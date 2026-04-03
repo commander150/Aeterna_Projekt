@@ -8,7 +8,6 @@ class Jatekos:
         self.nev = nev
         self.birodalom = birodalom_neve
 
-        # Saját birodalom kártyáinak szűrése
         sajat_lehetosegek = [k for k in teljes_kartyatar if k.birodalom == birodalom_neve]
 
         if not sajat_lehetosegek:
@@ -20,13 +19,12 @@ class Jatekos:
         if len(sajat_lehetosegek) < 5:
             raise ValueError(f"Hiba: {birodalom_neve} birodalomhoz nincs elég kártya a paklihoz!")
 
-        # 40 lapos pakli
         self.pakli = []
         elerheto_lapok = sajat_lehetosegek.copy()
 
         while len(self.pakli) < 40 and elerheto_lapok:
             lap = random.choice(elerheto_lapok)
-            if self.pakli.count(lap) < 4:  # Max 4 példány
+            if self.pakli.count(lap) < 4:
                 self.pakli.append(lap)
             else:
                 elerheto_lapok.remove(lap)
@@ -39,11 +37,48 @@ class Jatekos:
         self.temeto = []
         self.horizont = [None] * 6
         self.zenit = [None] * 6
+
         self.hasznalt_jelek_ebben_a_korben = 0
         self.rezonancia_aura = 0
 
-    def huzas(self):
-        # Ha üres a pakli, jön az újrakeverés és a büntetés
+        # körönkénti limitek
+        self.extra_huzas_ebben_a_korben = 0
+        self.ideiglenes_aura_ebben_a_korben = 0
+        self.ujraaktivalt_egysegek_ebben_a_korben = 0
+
+        # anti-stall / provoke előkészítés
+        self.kell_tamadnia_kovetkezo_korben = False
+
+    def uj_kor_inditasa(self):
+        for o in self.osforras:
+            o["hasznalt"] = False
+
+        for i in range(6):
+            if isinstance(self.horizont[i], CsataEgyseg):
+                self.horizont[i].kimerult = False
+            if isinstance(self.zenit[i], CsataEgyseg):
+                self.zenit[i].kimerult = False
+
+        self.hasznalt_jelek_ebben_a_korben = 0
+        self.rezonancia_aura = 0
+        self.extra_huzas_ebben_a_korben = 0
+        self.ideiglenes_aura_ebben_a_korben = 0
+        self.ujraaktivalt_egysegek_ebben_a_korben = 0
+
+    def kor_vegi_heal(self):
+        for e in self.horizont:
+            if isinstance(e, CsataEgyseg):
+                e.akt_hp = e.lap.eletero
+
+        for e in self.zenit:
+            if isinstance(e, CsataEgyseg):
+                e.akt_hp = e.lap.eletero
+
+    def huzas(self, extra=False):
+        if extra and self.extra_huzas_ebben_a_korben >= 3:
+            naplo.ir(f"⛔ {self.nev} nem húzhat több extra lapot ebben a körben.")
+            return False
+
         if not self.pakli:
             if self.temeto:
                 naplo.ir(
@@ -53,7 +88,6 @@ class Jatekos:
                 self.temeto.clear()
                 random.shuffle(self.pakli)
 
-                # Büntetés levonása
                 if self.pecsetek:
                     elvesztett = self.pecsetek.pop()
                     self.temeto.append(elvesztett)
@@ -64,47 +98,43 @@ class Jatekos:
                     naplo.ir(
                         f"💀 BÜNTETÉS: {self.nev}-nak nincs több Pecsétje a feláldozásra!"
                     )
-                    return
+                    return False
             else:
-                return
+                return False
 
         if self.pakli:
             lap = self.pakli.pop()
             self.kez.append(lap)
-            naplo.ir(f"{self.nev} húzott: {lap.nev}")
+            naplo.ir(f"📜 {self.nev} húzott: {lap.nev}")
+
+            if extra:
+                self.extra_huzas_ebben_a_korben += 1
+
+            return True
+
+        return False
 
     def osforras_bovites(self):
         if self.kez:
-            # A legdrágább lapot teszi le Ősforrásnak
             self.kez.sort(key=lambda k: k.aura_koltseg, reverse=True)
             lap = self.kez.pop(0)
             self.osforras.append({"lap": lap, "hasznalt": False})
-            naplo.ir(
-                f"🔋 {self.nev} feláldozta Ősforrásnak: {lap.nev} (Költség: {lap.aura_koltseg})"
-            )
-
-    def aura_visszatoltes(self):
-        for o in self.osforras:
-            o["hasznalt"] = False
-
-        for i in range(6):
-            if self.horizont[i]:
-                self.horizont[i].kimerult = False
-            if isinstance(self.zenit[i], CsataEgyseg):
-                self.zenit[i].kimerult = False
-
-        self.hasznalt_jelek_ebben_a_korben = 0
-        self.rezonancia_aura = 0
+            naplo.ir(f"🔋 {self.nev} Ősforrást bővített: {lap.nev}")
 
     def elerheto_aura(self):
-        alap_aura = sum(1 for o in self.osforras if not o["hasznalt"])
+        alap_aura = sum(
+            1 for o in self.osforras
+            if isinstance(o, dict) and not o.get("hasznalt", False)
+        )
         return alap_aura + self.rezonancia_aura
 
     def fizet(self, lap):
-        szabad_kartyak = [o for o in self.osforras if not o["hasznalt"]]
+        szabad_kartyak = [
+            o for o in self.osforras
+            if isinstance(o, dict) and not o.get("hasznalt", False)
+        ]
         fennmarado_koltseg = lap.aura_koltseg
 
-        # Rezonancia aura (ha van)
         if self.rezonancia_aura > 0:
             levonas = min(self.rezonancia_aura, fennmarado_koltseg)
             self.rezonancia_aura -= levonas
@@ -113,7 +143,6 @@ class Jatekos:
         if fennmarado_koltseg <= 0:
             return True
 
-        # ENTITÁS → sima fizetés
         if lap.egyseg_e:
             if len(szabad_kartyak) >= fennmarado_koltseg:
                 for i in range(fennmarado_koltseg):
@@ -121,17 +150,14 @@ class Jatekos:
                 return True
             return False
 
-        # VARÁZSLAT / JEL → büntetés logika
         sajat = [o for o in szabad_kartyak if o["lap"].birodalom == lap.birodalom]
         aether = [o for o in szabad_kartyak if o["lap"].birodalom == "Aether"]
 
-        # Elég saját aura
         if len(sajat) >= fennmarado_koltseg:
             for i in range(fennmarado_koltseg):
                 sajat[i]["hasznalt"] = True
             return True
 
-        # Enyhe büntetés: +1 költség, ha Aether aurát is bevon
         buntetett = fennmarado_koltseg + 1
 
         if len(sajat) + len(aether) >= buntetett:
