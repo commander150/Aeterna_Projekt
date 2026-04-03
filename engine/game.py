@@ -135,6 +135,28 @@ class AeternaSzimulacio:
 
         return True, burst_aktivalt_ebben_a_harcban
 
+    def _can_direct_attack_exhausted_unit(self, celpont):
+        return isinstance(celpont, CsataEgyseg) and celpont.kimerult
+
+    def _attackable_exhausted_unit(self, vedo, lane_index):
+        celpont = vedo.horizont[lane_index]
+        if self._can_direct_attack_exhausted_unit(celpont):
+            return lane_index, celpont
+        return None, None
+
+    def _select_direct_attack_target(self, vedo, lane_index):
+        lane_unit = vedo.horizont[lane_index]
+        lane_zenit = vedo.zenit[lane_index]
+
+        if lane_unit is None and isinstance(lane_zenit, CsataEgyseg):
+            return "zenit", lane_index, lane_zenit
+
+        cel_index, celpont = self._attackable_exhausted_unit(vedo, lane_index)
+        if celpont is not None:
+            return "horizont", cel_index, celpont
+
+        return "seal", None, None
+
     def harc_fazis(self, tamado, vedo):
         burst_aktivalt_ebben_a_harcban = False
         tamadas_tortent = False
@@ -211,20 +233,32 @@ class AeternaSzimulacio:
                         _, burst_aktivalt_ebben_a_harcban = sundering_result
 
                 else:
-                    if vedo.zenit[i] and isinstance(vedo.zenit[i], CsataEgyseg):
-                        z = vedo.zenit[i]
+                    target_kind, target_index, target_unit = self._select_direct_attack_target(vedo, i)
+
+                    if target_kind == "zenit":
+                        z = target_unit
 
                         naplo.ir(f"🎯 Zenit támadás: {z.lap.nev}")
 
-                        if z.serul(egyseg.akt_tamadas):
-                            self._elpusztit_egyseget(vedo, "zenit", i)
+                        if target_unit.serul(egyseg.akt_tamadas):
+                            self._elpusztit_egyseget(vedo, "zenit", target_index)
 
-                        KeywordEngine.on_damage_dealt(egyseg, z)
+                        KeywordEngine.on_damage_dealt(egyseg, target_unit)
 
-                        if egyseg.serul(z.akt_tamadas):
+                        if egyseg.serul(target_unit.akt_tamadas):
                             self._elpusztit_egyseget(tamado, "horizont", i)
 
-                        KeywordEngine.on_damage_dealt(z, egyseg)
+                        KeywordEngine.on_damage_dealt(target_unit, egyseg)
+
+                        continue
+
+                    if target_kind == "horizont":
+                        naplo.ir(f"Kozvetlen tamadas kimerult egysegre: {target_unit.lap.nev}")
+
+                        if target_unit.serul(egyseg.akt_tamadas):
+                            self._elpusztit_egyseget(vedo, "horizont", target_index)
+
+                        KeywordEngine.on_damage_dealt(egyseg, target_unit)
 
                         continue
 
@@ -232,9 +266,7 @@ class AeternaSzimulacio:
                         vedo, burst_aktivalt_ebben_a_harcban
                     )
 
-                    if pecset_tort:
-                        pass
-                    else:
+                    if not pecset_tort:
                         naplo.ir(f"☠️ {tamado.nev} nyert (Overflow)")
                         return tamado.nev
 
