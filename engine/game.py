@@ -25,6 +25,36 @@ class AeternaSzimulacio:
             if self.p2.pakli:
                 self.p2.pecsetek.append(self.p2.pakli.pop())
 
+    def _unit_zone(self, jatekos, zona_nev):
+        if zona_nev == "horizont":
+            return jatekos.horizont
+        if zona_nev == "zenit":
+            return jatekos.zenit
+        raise ValueError(f"Ismeretlen zona: {zona_nev}")
+
+    def _destroy_unit(self, jatekos, zona_nev, index):
+        zona = self._unit_zone(jatekos, zona_nev)
+        egyseg = zona[index]
+
+        if isinstance(egyseg, CsataEgyseg):
+            jatekos.temeto.append(egyseg.lap)
+            zona[index] = None
+            return True
+
+        return False
+
+    def _deal_combat_damage(self, tamado_egyseg, vedo_egyseg, sebzes, vedo_jatekos, vedo_zona, vedo_index):
+        if tamado_egyseg is None or vedo_egyseg is None:
+            return False
+
+        meghalt = vedo_egyseg.serul(sebzes)
+        KeywordEngine.on_damage_dealt(tamado_egyseg, vedo_egyseg)
+
+        if meghalt:
+            self._destroy_unit(vedo_jatekos, vedo_zona, vedo_index)
+
+        return meghalt
+
     def kijatszas_fazis(self, jatekos):
         lehetosegek = [
             l for l in jatekos.kez
@@ -125,8 +155,7 @@ class AeternaSzimulacio:
                             stats.aktivalt_jelek += 1
 
                             if EffectEngine.trigger_on_trap(jel, egyseg, tamado, vedo):
-                                tamado.temeto.append(egyseg.lap)
-                                tamado.horizont[i] = None
+                                self._destroy_unit(tamado, "horizont", i)
                                 jel_megallitotta = True
                             break
 
@@ -134,7 +163,7 @@ class AeternaSzimulacio:
                     continue
 
                 # 👻 LÉGIES
-                blokkolok = [e for e in vedo.horizont if e and not e.kimerult]
+                blokkolok = KeywordEngine.get_blockers(vedo)
 
                 if "légies" in egyseg.lap.kepesseg.lower():
                     blokkolok = [
@@ -150,13 +179,17 @@ class AeternaSzimulacio:
 
                     naplo.ir(f"🛡️ Blokkol: {b.lap.nev}")
 
-                    if b.serul(egyseg.akt_tamadas):
-                        vedo.temeto.append(b.lap)
-                        vedo.horizont[vedo.horizont.index(b)] = None
+                    blokkolo_index = vedo.horizont.index(b)
 
-                    if egyseg.serul(b.akt_tamadas):
-                        tamado.temeto.append(egyseg.lap)
-                        tamado.horizont[i] = None
+                    self._deal_combat_damage(
+                        egyseg, b, egyseg.akt_tamadas,
+                        vedo, "horizont", blokkolo_index
+                    )
+
+                    self._deal_combat_damage(
+                        b, egyseg, b.akt_tamadas,
+                        tamado, "horizont", i
+                    )
 
                 else:
                     # 🎯 Zenit támadás
@@ -165,13 +198,15 @@ class AeternaSzimulacio:
 
                         naplo.ir(f"🎯 Zenit támadás: {z.lap.nev}")
 
-                        if z.serul(egyseg.akt_tamadas):
-                            vedo.temeto.append(z.lap)
-                            vedo.zenit[i] = None
+                        self._deal_combat_damage(
+                            egyseg, z, egyseg.akt_tamadas,
+                            vedo, "zenit", i
+                        )
 
-                        if egyseg.serul(z.akt_tamadas):
-                            tamado.temeto.append(egyseg.lap)
-                            tamado.horizont[i] = None
+                        self._deal_combat_damage(
+                            z, egyseg, z.akt_tamadas,
+                            tamado, "horizont", i
+                        )
 
                         continue
 
@@ -187,8 +222,7 @@ class AeternaSzimulacio:
                             vedo.kez.append(p)
                             naplo.ir(f"💔 Pecsét feltört: {p.nev}")
 
-                        if p.reakcio_e:
-                            EffectEngine.trigger_on_burst(p, vedo)
+                        EffectEngine.trigger_on_burst(p, vedo)
 
                     else:
                         naplo.ir(f"☠️ {tamado.nev} nyert (Overflow)")
