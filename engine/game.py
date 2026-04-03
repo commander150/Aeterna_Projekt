@@ -281,6 +281,9 @@ class AeternaSzimulacio:
         for index, (akt, ell) in enumerate([(self.p1, self.p2), (self.p2, self.p1)]):
             akt.uj_kor_inditasa()
 
+            if akt.kell_tamadnia_kovetkezo_korben:
+                naplo.ir(f"⚠️ {akt.nev} Kényszerítés/Provoke hatás alatt áll: ha tud, támadnia kell ebben a körben.")
+
             if self.kor == 1 and index == 0:
                 naplo.ir("⚖️ Kezdőjátékos: nem húz és nem támadhat az első körben")
             else:
@@ -296,6 +299,10 @@ class AeternaSzimulacio:
                 return eredmeny
 
             kotelezo_tamadas = akt.kell_tamadnia_kovetkezo_korben
+            volt_tamadasra_kepes = any(
+                isinstance(e, CsataEgyseg) and not e.kimerult
+                for e in akt.horizont
+            )
 
             if not (self.kor == 1 and index == 0):
                 eredmeny = self.harc_fazis(akt, ell)
@@ -305,12 +312,11 @@ class AeternaSzimulacio:
                     return eredmeny
 
                 if kotelezo_tamadas:
-                    tud_tamadni = any(
-                        isinstance(e, CsataEgyseg) and not e.kimerult
-                        for e in akt.horizont
-                    )
-                    if tud_tamadni:
-                        akt.kell_tamadnia_kovetkezo_korben = False
+                    if volt_tamadasra_kepes:
+                        if not akt.kell_tamadnia_kovetkezo_korben:
+                            naplo.ir(f"✅ {akt.nev} teljesítette a kötelező támadást.")
+                    else:
+                        naplo.ir(f"ℹ️ {akt.nev} Kényszerítés/Provoke alatt állt, de nem volt támadásra képes Horizont egysége.")
 
             akt.kor_vegi_heal()
             ell.kor_vegi_heal()

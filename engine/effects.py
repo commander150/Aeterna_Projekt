@@ -64,6 +64,28 @@ class EffectEngine:
         return True
 
     @staticmethod
+    def _resolve_provoke(kartya, jatekos, ellenfel, szoveg, kontextus):
+        if ellenfel is None:
+            return False
+
+        provoke_szovegek = [
+            "kenyszerites",
+            "provoke",
+            "tamadnia kell",
+            "must attack",
+            "next turn if able",
+            "kovetkezo korben tamad",
+        ]
+        if not any(k in szoveg for k in provoke_szovegek):
+            return False
+
+        ellenfel.kell_tamadnia_kovetkezo_korben = True
+        naplo.ir(
+            f"{kontextus}: {kartya.nev} Kényszerítés/Provoke hatást alkalmazott {ellenfel.nev} játékosra"
+        )
+        return True
+
+    @staticmethod
     def _find_matching_ally(jatekos, kartya=None):
         egysegek = EffectEngine._collect_units(jatekos)
         if not egysegek:
@@ -325,6 +347,7 @@ class EffectEngine:
         tortent_valami |= EffectEngine._resolve_buff(kartya, jatekos, szoveg, kontextus)
         tortent_valami |= EffectEngine._resolve_heal(kartya, jatekos, szoveg, kontextus)
         tortent_valami |= EffectEngine._resolve_resource_gain(kartya, jatekos, szoveg, kontextus)
+        tortent_valami |= EffectEngine._resolve_provoke(kartya, jatekos, ellenfel, szoveg, kontextus)
         return tortent_valami
 
     @staticmethod
