@@ -39,8 +39,16 @@ class EffectEngine:
         return egysegek
 
     @staticmethod
-    def _destroy_unit(jatekos, zona_nev, index, ok=None):
-        zona = jatekos.horizont if zona_nev == "horizont" else jatekos.zenit
+    def _get_zone(jatekos, zona_nev):
+        if zona_nev == "horizont":
+            return jatekos.horizont
+        if zona_nev == "zenit":
+            return jatekos.zenit
+        raise ValueError(f"Ismeretlen zona: {zona_nev}")
+
+    @staticmethod
+    def destroy_unit(jatekos, zona_nev, index, ellenfel=None, ok=None):
+        zona = EffectEngine._get_zone(jatekos, zona_nev)
         egyseg = zona[index]
 
         if not isinstance(egyseg, CsataEgyseg):
@@ -52,6 +60,7 @@ class EffectEngine:
         if ok:
             naplo.ir(f"☠️ {egyseg.lap.nev} elpusztult ({ok})")
 
+        EffectEngine.trigger_on_death(egyseg.lap, jatekos, ellenfel)
         return True
 
     @staticmethod
@@ -66,6 +75,32 @@ class EffectEngine:
                     return zona_nev, index, egyseg
 
         return max(egysegek, key=lambda adat: (adat[2].akt_tamadas, adat[2].akt_hp))
+
+    @staticmethod
+    def trigger_on_death(kartya, jatekos, ellenfel=None):
+        """Halálkor aktiválódó képességek, pl. Echo / Visszhang."""
+        szoveg = EffectEngine._normalize_text(getattr(kartya, "kepesseg", ""))
+        if not szoveg or szoveg == "-":
+            return False
+
+        match = re.search(r'(?:visszhang|echo)\s*[:\-]?\s*(.+)', szoveg)
+        if not match:
+            return False
+
+        death_text = match.group(1).strip()
+        naplo.ir(f"✨ Halál effekt: {kartya.nev} (Echo/Visszhang)")
+
+        if not death_text:
+            return True
+
+        tortent_valami = EffectEngine._resolve_common_effects(
+            kartya, jatekos, ellenfel, death_text, "Halál effekt", True
+        )
+
+        if not tortent_valami:
+            naplo.ir(f"✨ Halál effekt: {kartya.nev} aktiválódott")
+
+        return True
 
     @staticmethod
     def _select_enemy_target(ellenfel):
@@ -91,7 +126,7 @@ class EffectEngine:
         return None
 
     @staticmethod
-    def _deal_damage_to_target(forras_nev, sebzes, cel_adat, ellenfel, kontextus):
+    def _deal_damage_to_target(forras_nev, sebzes, cel_adat, ellenfel, kontextus, forras_jatekos=None):
         if cel_adat is None or ellenfel is None or sebzes <= 0:
             return False
 
@@ -99,7 +134,9 @@ class EffectEngine:
         naplo.ir(f"🔥 {kontextus}: {forras_nev} -> {sebzes} sebzés {cel.lap.nev}-ba/be")
 
         if cel.serul(sebzes):
-            return EffectEngine._destroy_unit(ellenfel, zona_nev, index, kontextus.lower())
+            return EffectEngine.destroy_unit(
+                ellenfel, zona_nev, index, forras_jatekos, kontextus.lower()
+            )
 
         return False
 
@@ -139,7 +176,7 @@ class EffectEngine:
             naplo.ir(f"🔥 {kontextus}: {kartya.nev} -> Nem volt érvényes célpont.")
             return False
 
-        EffectEngine._deal_damage_to_target(kartya.nev, sebzes, cel, ellenfel, kontextus)
+        EffectEngine._deal_damage_to_target(kartya.nev, sebzes, cel, ellenfel, kontextus, jatekos)
         return True
 
     @staticmethod

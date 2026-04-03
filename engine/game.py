@@ -98,16 +98,13 @@ class AeternaSzimulacio:
         tamado = self.p1 if vedo == self.p2 else self.p2
         EffectEngine.trigger_on_burst(p, vedo, tamado)
 
-    def _elpusztit_egyseget(self, jatekos, zona_nev, index):
-        zona = jatekos.horizont if zona_nev == "horizont" else jatekos.zenit
-        egyseg = zona[index]
+    def _ellenfel(self, jatekos):
+        return self.p2 if jatekos == self.p1 else self.p1
 
-        if egyseg is None:
-            return False
-
-        jatekos.temeto.append(egyseg.lap)
-        zona[index] = None
-        return True
+    def _elpusztit_egyseget(self, jatekos, zona_nev, index, ok="harc"):
+        return EffectEngine.destroy_unit(
+            jatekos, zona_nev, index, self._ellenfel(jatekos), ok
+        )
 
     def _feltor_pecset(self, vedo, burst_aktivalt_ebben_a_harcban, forras=None):
         if not vedo.pecsetek:
@@ -189,7 +186,7 @@ class AeternaSzimulacio:
                             stats.aktivalt_jelek += 1
 
                             if EffectEngine.trigger_on_trap(jel, egyseg, tamado, vedo):
-                                self._elpusztit_egyseget(tamado, "horizont", i)
+                                self._elpusztit_egyseget(tamado, "horizont", i, "csapda")
                                 jel_megallitotta = True
                             break
 
@@ -221,7 +218,7 @@ class AeternaSzimulacio:
                     KeywordEngine.resolve_bane(
                         egyseg,
                         b,
-                        lambda: self._elpusztit_egyseget(vedo, "horizont", blokkolo_index)
+                        lambda: self._elpusztit_egyseget(vedo, "horizont", blokkolo_index, "métely")
                     )
 
                     sundering_result = KeywordEngine.resolve_sundering(
