@@ -222,7 +222,7 @@ class AeternaSzimulacio:
                             vedo.kez.append(p)
                             naplo.ir(f"💔 Pecsét feltört: {p.nev}")
 
-                        EffectEngine.trigger_on_burst(p, vedo)
+                        EffectEngine.trigger_on_burst(p, vedo, tamado)
 
                     else:
                         naplo.ir(f"☠️ {tamado.nev} nyert (Overflow)")
