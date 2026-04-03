@@ -4,6 +4,7 @@ from stats.analyzer import stats
 from engine.player import Jatekos
 from engine.card import CsataEgyseg
 from engine.effects import EffectEngine
+from engine.keywords import KeywordEngine
 
 
 class AeternaSzimulacio:
@@ -97,6 +98,43 @@ class AeternaSzimulacio:
         tamado = self.p1 if vedo == self.p2 else self.p2
         EffectEngine.trigger_on_burst(p, vedo, tamado)
 
+    def _elpusztit_egyseget(self, jatekos, zona_nev, index):
+        zona = jatekos.horizont if zona_nev == "horizont" else jatekos.zenit
+        egyseg = zona[index]
+
+        if egyseg is None:
+            return False
+
+        jatekos.temeto.append(egyseg.lap)
+        zona[index] = None
+        return True
+
+    def _feltor_pecset(self, vedo, burst_aktivalt_ebben_a_harcban, forras=None):
+        if not vedo.pecsetek:
+            return False, burst_aktivalt_ebben_a_harcban
+
+        p = vedo.pecsetek.pop()
+        stats.feltort_pecsetek += 1
+
+        if p.magnitudo > len(vedo.osforras):
+            vedo.osforras.append({"lap": p, "hasznalt": False})
+            if forras:
+                naplo.ir(f"✨ {forras} + Gondviselés")
+            else:
+                naplo.ir("✨ Gondviselés aktiválódott")
+        else:
+            vedo.kez.append(p)
+            if forras:
+                naplo.ir(f"💥 {forras}: extra pecsét tört ({p.nev})")
+            else:
+                naplo.ir(f"💔 Pecsét feltört: {p.nev}")
+
+        if p.reakcio_e and not burst_aktivalt_ebben_a_harcban:
+            self._aktivalhato_burst(vedo, p)
+            burst_aktivalt_ebben_a_harcban = True
+
+        return True, burst_aktivalt_ebben_a_harcban
+
     def harc_fazis(self, tamado, vedo):
         burst_aktivalt_ebben_a_harcban = False
         tamadas_tortent = False
@@ -111,17 +149,9 @@ class AeternaSzimulacio:
 
                 if tamado.zenit[i] and isinstance(tamado.zenit[i], CsataEgyseg):
                     hatso = tamado.zenit[i]
-                    if "harmonizálás" in hatso.lap.kepesseg.lower():
-                        if hatso.lap.magnitudo <= 4:
-                            bonusz = 2
-                        elif hatso.lap.magnitudo <= 8:
-                            bonusz = 1
-                        else:
-                            bonusz = 0
-
-                        if bonusz > 0:
-                            egyseg.akt_tamadas += bonusz
-                            naplo.ir(f"🎶 Harmonizálás +{bonusz} ATK")
+                    bonusz = KeywordEngine.get_harmonize_bonus(egyseg, hatso)
+                    if bonusz > 0:
+                        egyseg.akt_tamadas += bonusz
 
                 naplo.ir(f"--- TÁMADÁS: {egyseg.lap.nev} ({egyseg.akt_tamadas}) ---")
 
@@ -137,22 +167,15 @@ class AeternaSzimulacio:
                             stats.aktivalt_jelek += 1
 
                             if EffectEngine.trigger_on_trap(jel, egyseg, tamado, vedo):
-                                tamado.temeto.append(egyseg.lap)
-                                tamado.horizont[i] = None
+                                self._elpusztit_egyseget(tamado, "horizont", i)
                                 jel_megallitotta = True
                             break
 
                 if jel_megallitotta:
                     continue
 
-                blokkolok = [e for e in vedo.horizont if e and not e.kimerult]
-
-                if "légies" in egyseg.lap.kepesseg.lower():
-                    blokkolok = [
-                        e for e in blokkolok
-                        if "légies" in e.lap.kepesseg.lower()
-                    ]
-                    naplo.ir("👻 Csak légies blokkolhat")
+                blokkolok = KeywordEngine.get_blockers(vedo)
+                blokkolok = KeywordEngine.filter_blockers_for_attacker(egyseg, blokkolok)
 
                 if blokkolok:
                     b = random.choice(blokkolok)
@@ -161,37 +184,31 @@ class AeternaSzimulacio:
                     naplo.ir(f"🛡️ Blokkol: {b.lap.nev}")
 
                     blokkolo_meghalt = False
+                    blokkolo_index = vedo.horizont.index(b)
 
                     if b.serul(egyseg.akt_tamadas):
-                        vedo.temeto.append(b.lap)
-                        vedo.horizont[vedo.horizont.index(b)] = None
-                        blokkolo_meghalt = True
+                        blokkolo_meghalt = self._elpusztit_egyseget(vedo, "horizont", blokkolo_index)
+
+                    KeywordEngine.on_damage_dealt(egyseg, b)
 
                     if egyseg.serul(b.akt_tamadas):
-                        tamado.temeto.append(egyseg.lap)
-                        tamado.horizont[i] = None
+                        self._elpusztit_egyseget(tamado, "horizont", i)
 
-                    if "métely" in egyseg.lap.kepesseg.lower() and not blokkolo_meghalt:
-                        vedo.temeto.append(b.lap)
-                        idx = vedo.horizont.index(b)
-                        vedo.horizont[idx] = None
-                        naplo.ir(f"☠️ Métely: {b.lap.nev} a fázis végéig elpusztul")
+                    KeywordEngine.on_damage_dealt(b, egyseg)
 
-                    if "hasítás" in egyseg.lap.kepesseg.lower() and blokkolo_meghalt:
-                        if vedo.pecsetek:
-                            plusz = vedo.pecsetek.pop()
-                            stats.feltort_pecsetek += 1
+                    KeywordEngine.resolve_bane(
+                        egyseg,
+                        b,
+                        lambda: self._elpusztit_egyseget(vedo, "horizont", blokkolo_index)
+                    )
 
-                            if plusz.magnitudo > len(vedo.osforras):
-                                vedo.osforras.append({"lap": plusz, "hasznalt": False})
-                                naplo.ir("✨ Hasítás + Gondviselés")
-                            else:
-                                vedo.kez.append(plusz)
-                                naplo.ir(f"💥 Hasítás: extra pecsét tört ({plusz.nev})")
-
-                            if plusz.reakcio_e and not burst_aktivalt_ebben_a_harcban:
-                                self._aktivalhato_burst(vedo, plusz)
-                                burst_aktivalt_ebben_a_harcban = True
+                    sundering_result = KeywordEngine.resolve_sundering(
+                        egyseg,
+                        blokkolo_meghalt,
+                        lambda: self._feltor_pecset(vedo, burst_aktivalt_ebben_a_harcban, "Has?t?s")
+                    )
+                    if sundering_result:
+                        _, burst_aktivalt_ebben_a_harcban = sundering_result
 
                 else:
                     if vedo.zenit[i] and isinstance(vedo.zenit[i], CsataEgyseg):
@@ -200,30 +217,23 @@ class AeternaSzimulacio:
                         naplo.ir(f"🎯 Zenit támadás: {z.lap.nev}")
 
                         if z.serul(egyseg.akt_tamadas):
-                            vedo.temeto.append(z.lap)
-                            vedo.zenit[i] = None
+                            self._elpusztit_egyseget(vedo, "zenit", i)
+
+                        KeywordEngine.on_damage_dealt(egyseg, z)
 
                         if egyseg.serul(z.akt_tamadas):
-                            tamado.temeto.append(egyseg.lap)
-                            tamado.horizont[i] = None
+                            self._elpusztit_egyseget(tamado, "horizont", i)
+
+                        KeywordEngine.on_damage_dealt(z, egyseg)
 
                         continue
 
-                    if vedo.pecsetek:
-                        p = vedo.pecsetek.pop()
-                        stats.feltort_pecsetek += 1
+                    pecset_tort, burst_aktivalt_ebben_a_harcban = self._feltor_pecset(
+                        vedo, burst_aktivalt_ebben_a_harcban
+                    )
 
-                        if p.magnitudo > len(vedo.osforras):
-                            vedo.osforras.append({"lap": p, "hasznalt": False})
-                            naplo.ir("✨ Gondviselés aktiválódott")
-                        else:
-                            vedo.kez.append(p)
-                            naplo.ir(f"💔 Pecsét feltört: {p.nev}")
-
-                        if p.reakcio_e and not burst_aktivalt_ebben_a_harcban:
-                            self._aktivalhato_burst(vedo, p)
-                            burst_aktivalt_ebben_a_harcban = True
-
+                    if pecset_tort:
+                        pass
                     else:
                         naplo.ir(f"☠️ {tamado.nev} nyert (Overflow)")
                         return tamado.nev

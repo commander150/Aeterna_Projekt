@@ -1,6 +1,25 @@
-from utils.logger import naplo
+import unicodedata
 
-class KeywordEngine:
+from utils.logger import naplo
+from engine.keyword_rules import KeywordEngine
+
+class LegacyKeywordEngine:
+
+    @staticmethod
+    def _normalize(szoveg):
+        if not szoveg:
+            return ""
+
+        normalizalt = unicodedata.normalize("NFKD", str(szoveg))
+        normalizalt = "".join(ch for ch in normalizalt if not unicodedata.combining(ch))
+        return normalizalt.lower()
+
+    @staticmethod
+    def _has_keyword(forras, *kulcsszavak):
+        kepesseg = KeywordEngine._normalize(
+            getattr(forras.lap, "kepesseg", getattr(forras, "kepesseg", ""))
+        )
+        return any(KeywordEngine._normalize(kulcsszo) in kepesseg for kulcsszo in kulcsszavak)
 
     @staticmethod
     def on_summon(egyseg):
