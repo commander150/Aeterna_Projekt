@@ -77,6 +77,26 @@ class EffectEngine:
         return max(egysegek, key=lambda adat: (adat[2].akt_tamadas, adat[2].akt_hp))
 
     @staticmethod
+    def _enemy_targeting_mode(szoveg):
+        if any(k in szoveg for k in ["kimerult", "exhausted", "stunned"]):
+            return "exhausted"
+        if any(k in szoveg for k in ["leggyengebb", "weakest", "legalacsonyabb hp"]):
+            return "weakest"
+        return "strongest"
+
+    @staticmethod
+    def _pick_enemy_target(jeloltek, mod):
+        if not jeloltek:
+            return None
+        if mod == "weakest":
+            return min(jeloltek, key=lambda adat: (adat[2].akt_hp, adat[2].akt_tamadas))
+        if mod == "exhausted":
+            faradtak = [adat for adat in jeloltek if adat[2].kimerult]
+            if faradtak:
+                return max(faradtak, key=lambda adat: (adat[2].akt_tamadas, adat[2].akt_hp))
+        return max(jeloltek, key=lambda adat: (adat[2].akt_tamadas, adat[2].akt_hp))
+
+    @staticmethod
     def trigger_on_death(kartya, jatekos, ellenfel=None):
         """Halálkor aktiválódó képességek, pl. Echo / Visszhang."""
         szoveg = EffectEngine._normalize_text(getattr(kartya, "kepesseg", ""))
@@ -103,7 +123,7 @@ class EffectEngine:
         return True
 
     @staticmethod
-    def _select_enemy_target(ellenfel):
+    def _select_enemy_target(ellenfel, szoveg="", prefer_zone=None):
         if ellenfel is None:
             return None
 
@@ -112,18 +132,21 @@ class EffectEngine:
             for index, egyseg in enumerate(ellenfel.horizont)
             if isinstance(egyseg, CsataEgyseg)
         ]
-        if horizont:
-            return max(horizont, key=lambda adat: (adat[2].akt_tamadas, adat[2].akt_hp))
-
         zenit = [
             ("zenit", index, egyseg)
             for index, egyseg in enumerate(ellenfel.zenit)
             if isinstance(egyseg, CsataEgyseg)
         ]
-        if zenit:
-            return max(zenit, key=lambda adat: (adat[2].akt_tamadas, adat[2].akt_hp))
 
-        return None
+        jeloltek = horizont + zenit
+        if prefer_zone == "horizont" and horizont:
+            jeloltek = horizont
+        elif prefer_zone == "zenit" and zenit:
+            jeloltek = zenit
+
+        return EffectEngine._pick_enemy_target(
+            jeloltek, EffectEngine._enemy_targeting_mode(szoveg)
+        )
 
     @staticmethod
     def _deal_damage_to_target(forras_nev, sebzes, cel_adat, ellenfel, kontextus, forras_jatekos=None):
@@ -139,6 +162,42 @@ class EffectEngine:
             )
 
         return False
+
+    @staticmethod
+    def _destroy_target(cel_adat, jatekos, ellenfel, kontextus):
+        if cel_adat is None or ellenfel is None:
+            return False
+
+        zona_nev, index, cel = cel_adat
+        naplo.ir(f"{kontextus}: {cel.lap.nev} megsemmisul")
+        return EffectEngine.destroy_unit(ellenfel, zona_nev, index, jatekos, kontextus.lower())
+
+    @staticmethod
+    def _resolve_destroy(kartya, jatekos, ellenfel, szoveg, kontextus):
+        if not any(k in szoveg for k in ["megsemmisit", "elpusztit", "destroy", "pusztitsd el"]):
+            return False
+
+        cel = EffectEngine._select_enemy_target(ellenfel, szoveg)
+        if cel is None:
+            naplo.ir(f"{kontextus}: {kartya.nev} -> Nem volt megsemmisitheto celpont.")
+            return False
+
+        return EffectEngine._destroy_target(cel, jatekos, ellenfel, kontextus)
+
+    @staticmethod
+    def _resolve_exhaust(kartya, jatekos, ellenfel, szoveg, kontextus):
+        if not any(k in szoveg for k in ["kimerit", "stun", "fagyaszt", "exhaust"]):
+            return False
+
+        cel = EffectEngine._select_enemy_target(ellenfel, "strongest")
+        if cel is None:
+            naplo.ir(f"{kontextus}: {kartya.nev} -> Nem volt kimeritheto celpont.")
+            return False
+
+        _, _, egyseg = cel
+        egyseg.kimerult = True
+        naplo.ir(f"{kontextus}: {kartya.nev} kimeritette {egyseg.lap.nev} egyseget")
+        return True
 
     @staticmethod
     def _resolve_draw(kartya, jatekos, szoveg, kontextus):
@@ -171,7 +230,8 @@ class EffectEngine:
         if sebzes <= 0:
             return False
 
-        cel = EffectEngine._select_enemy_target(ellenfel)
+        prefer_zone = "horizont" if any(k in szoveg for k in ["horizont", "front", "elso sor"]) else None
+        cel = EffectEngine._select_enemy_target(ellenfel, szoveg, prefer_zone)
         if cel is None:
             naplo.ir(f"🔥 {kontextus}: {kartya.nev} -> Nem volt érvényes célpont.")
             return False
@@ -186,11 +246,13 @@ class EffectEngine:
             r'kap\s+\+(\d+)\s*atk',
             r'(\d+)\s*atk-t\s+kap',
             r'\+(\d+)\s*tamadas',
+            r'noveli\s+(\d+)\s*atk',
         ])
         hp_bonusz = EffectEngine._extract_number(szoveg, [
             r'\+(\d+)\s*(?:hp|eletero)',
             r'kap\s+\+(\d+)\s*(?:hp|eletero)',
             r'(\d+)\s*(?:hp|eletero)-t\s+kap',
+            r'noveli\s+(\d+)\s*(?:hp|eletero)',
         ])
 
         if atk_bonusz <= 0 and hp_bonusz <= 0:
@@ -216,9 +278,10 @@ class EffectEngine:
     @staticmethod
     def _resolve_heal(kartya, jatekos, szoveg, kontextus):
         gyogyitas = EffectEngine._extract_number(szoveg, [
-            r'gyogy(?:it|its)?\s+(\d+)',
+            r'gyogy(?:it|its|ul)?\s+(\d+)',
             r'(\d+)\s*(?:hp|eletero)\s+gyogyul',
             r'heal\s+(\d+)',
+            r'visszatolt\s+(\d+)\s*(?:hp|eletero)',
         ])
 
         if gyogyitas <= 0:
@@ -257,6 +320,8 @@ class EffectEngine:
         tortent_valami |= EffectEngine._resolve_damage(
             kartya, jatekos, ellenfel, szoveg, kontextus, engedelyezett_sebzes
         )
+        tortent_valami |= EffectEngine._resolve_destroy(kartya, jatekos, ellenfel, szoveg, kontextus)
+        tortent_valami |= EffectEngine._resolve_exhaust(kartya, jatekos, ellenfel, szoveg, kontextus)
         tortent_valami |= EffectEngine._resolve_buff(kartya, jatekos, szoveg, kontextus)
         tortent_valami |= EffectEngine._resolve_heal(kartya, jatekos, szoveg, kontextus)
         tortent_valami |= EffectEngine._resolve_resource_gain(kartya, jatekos, szoveg, kontextus)
@@ -288,15 +353,18 @@ class EffectEngine:
         if not szoveg or szoveg == "-":
             return False
 
+        tortent_valami = False
         meghalt = False
         sebzes = EffectEngine._extract_number(szoveg, [
             r'(\d+)\s+(?:kozvetlen\s+)?sebzes',
             r'okoz\s+(\d+)\s+sebzest',
             r'sebez\s+(\d+)',
+            r'(\d+)\s+damage',
         ])
         if sebzes > 0:
             naplo.ir(f"💥 Csapda: {jel.nev} -> {sebzes} sebzést okoz a támadónak!")
             meghalt = tamado_egyseg.serul(sebzes)
+            tortent_valami = True
 
         atk_csokkentes = EffectEngine._extract_number(szoveg, [
             r'-(\d+)\s*atk',
@@ -305,20 +373,24 @@ class EffectEngine:
         ])
         if atk_csokkentes > 0:
             tamado_egyseg.akt_tamadas = max(0, tamado_egyseg.akt_tamadas - atk_csokkentes)
+            tortent_valami = True
             naplo.ir(f"🕸️ Csapda: {jel.nev} -> -{atk_csokkentes} ATK a támadónak")
 
-        if "kimerit" in szoveg or "stun" in szoveg or "fagyaszt" in szoveg:
+        if "kimerit" in szoveg or "stun" in szoveg or "fagyaszt" in szoveg or "exhaust" in szoveg:
             tamado_egyseg.kimerult = True
+            tortent_valami = True
             naplo.ir(f"🧊 Csapda: {jel.nev} -> a támadó kimerült")
 
-        if "megsemmisit" in szoveg or "elpusztit" in szoveg or "pusztitsd el" in szoveg:
+        if "megsemmisit" in szoveg or "elpusztit" in szoveg or "pusztitsd el" in szoveg or "destroy" in szoveg:
             naplo.ir(f"☠️ Csapda: {jel.nev} -> a támadó megsemmisül")
             meghalt = True
+            tortent_valami = True
 
-        EffectEngine._resolve_draw(jel, vedo, szoveg, "Csapda")
-        EffectEngine._resolve_heal(jel, vedo, szoveg, "Csapda")
+        tortent_valami |= EffectEngine._resolve_draw(jel, vedo, szoveg, "Csapda")
+        tortent_valami |= EffectEngine._resolve_heal(jel, vedo, szoveg, "Csapda")
+        tortent_valami |= EffectEngine._resolve_buff(jel, vedo, szoveg, "Csapda")
 
-        if not meghalt and sebzes <= 0 and atk_csokkentes <= 0:
+        if not tortent_valami:
             naplo.ir(f"⚠️ Egyedi Csapda: {jel.nev} aktiválódott, de nem volt ismert konkrét hatása")
 
         return meghalt
