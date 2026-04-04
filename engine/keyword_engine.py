@@ -1,3 +1,4 @@
+﻿from engine.board_utils import _is_board_entity, _object_name, _object_type
 from engine.keyword_registry import KEYWORD_DEFINITIONS, KeywordRegistry
 from engine.targeting import TargetingEngine
 from engine.triggers import trigger_engine
@@ -38,7 +39,7 @@ class KeywordEngine:
         KeywordEngine.apply_static_keyword_states(egyseg)
         if KeywordEngine._has_keyword(egyseg, "celerity"):
             egyseg.kimerult = False
-            naplo.ir(f"⚡ {egyseg.lap.nev} azonnal támadhat (Celerity)")
+            naplo.ir(f"Celerity: {egyseg.lap.nev} azonnal tamadhat.")
 
     @staticmethod
     def modify_attack(attacker):
@@ -47,7 +48,7 @@ class KeywordEngine:
             owner = getattr(attacker, "owner", None)
             bonus += getattr(owner, "rezonancia_aura", 0)
             if bonus > 0:
-                naplo.ir(f"✨ Rezonancia +{bonus} ATK")
+                naplo.ir(f"Rezonancia +{bonus} ATK")
         return bonus
 
     @staticmethod
@@ -63,34 +64,49 @@ class KeywordEngine:
         else:
             bonusz = 0
         if bonusz > 0:
-            naplo.ir(f"🎶 Harmonizálás +{bonusz} ATK")
+            naplo.ir(f"Harmonizalas +{bonusz} ATK")
         return bonusz
 
     @staticmethod
     def on_damage_dealt(attacker, defender):
         if KeywordEngine._has_keyword(attacker, "sundering"):
-            naplo.ir("💢 Hasítás aktiválódik")
+            naplo.ir("Hasitas aktivalodik")
         if KeywordEngine._has_keyword(attacker, "bane") and defender is not None:
             defender.bane_target = True
-            naplo.ir("☠️ Métely megjelölte a célpontot")
+            naplo.ir("Metely megjelolte a celpontot")
 
     @staticmethod
     def get_blockers(vedo):
+        valid_blockers = []
+        for index, entity in enumerate(vedo.horizont):
+            if entity is None:
+                continue
+            if not _is_board_entity(entity):
+                naplo.ir(
+                    f"[DEBUG:INVALID_BLOCKER_ENTRY] {getattr(vedo, 'nev', 'ismeretlen')} | horizont[{index}] | tipus={_object_type(entity)} | nev={_object_name(entity)}"
+                )
+                continue
+            if getattr(entity, "kimerult", True):
+                continue
+            if getattr(entity, "cannot_block_until_turn_end", False):
+                continue
+            valid_blockers.append(entity)
+
         aegis = [
-            e for e in vedo.horizont
-            if e and not e.kimerult and not getattr(e, "cannot_block_until_turn_end", False) and KeywordEngine._has_keyword(e, "aegis")
+            entity for entity in valid_blockers
+            if KeywordEngine._has_keyword(entity, "aegis")
         ]
         if aegis:
-            naplo.ir("🛡️ Aegis kötelező blokkolás")
+            naplo.ir("Aegis kotelezo blokk")
             return aegis
-        return [e for e in vedo.horizont if e and not e.kimerult and not getattr(e, "cannot_block_until_turn_end", False)]
+        return valid_blockers
 
     @staticmethod
     def filter_blockers_for_attacker(attacker, blockers):
         if not KeywordEngine._has_keyword(attacker, "ethereal"):
             return blockers
         ervenyes = [blocker for blocker in blockers if KeywordEngine._has_keyword(blocker, "ethereal")]
-        naplo.ir("👻 Csak légies blokkolhat")
+        naplo.ir("Csak legies blokkolhat")
         return ervenyes
 
     @staticmethod
@@ -100,7 +116,7 @@ class KeywordEngine:
         if not KeywordEngine._has_keyword(attacker, "bane"):
             return False
         if destroy_defender():
-            naplo.ir(f"☠️ Métely: {defender.lap.nev} a fázis végéig elpusztul")
+            naplo.ir(f"Metely: {defender.lap.nev} elpusztul")
             return True
         return False
 

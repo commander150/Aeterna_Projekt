@@ -1,4 +1,5 @@
-import random
+﻿import random
+from engine.board_utils import _is_board_entity, _object_name, _object_type, set_zone_slot
 from engine.combat import CombatResolver
 from engine.config import get_active_engine_config
 from engine.game_state import MatchState
@@ -15,8 +16,8 @@ from cards.resolver import can_activate_trap, resolve_card_handler, resolve_leth
 
 class AeternaSzimulacio:
     def __init__(self, b1_nev, b2_nev, kartyak, engine_config=None):
-        self.p1 = Jatekos("Játékos_1", b1_nev, kartyak)
-        self.p2 = Jatekos("Játékos_2", b2_nev, kartyak)
+        self.p1 = Jatekos("Jatekos_1", b1_nev, kartyak)
+        self.p2 = Jatekos("Jatekos_2", b2_nev, kartyak)
         self.kor = 1
         self.engine_config = engine_config or get_active_engine_config()
         self.state = MatchState(self.p1, self.p2, self.kor)
@@ -57,21 +58,23 @@ class AeternaSzimulacio:
                 if zona[i] is None:
                     if jatekos.fizet(lap):
                         jatekos.kez.remove(lap)
-                        zona[i] = CsataEgyseg(lap)
-                        zona[i].owner = jatekos
+                        egyseg = CsataEgyseg(lap)
+                        egyseg.owner = jatekos
+                        zona_nev = "horizont" if zona is jatekos.horizont else "zenit"
+                        set_zone_slot(jatekos, zona_nev, i, egyseg, f"summon:{lap.nev}")
                         jatekos.megidezett_entitasok_ebben_a_korben += 1
                         stats.faj_statisztika(lap.faj)
-                        naplo.ir(f"⚔️ {jatekos.nev} megidézte: {lap.nev}")
+                        naplo.ir(f"{jatekos.nev} megidezte: {lap.nev}")
 
                         trigger_engine.dispatch(
                             "on_summon",
-                            source=zona[i],
+                            source=egyseg,
                             owner=jatekos,
-                            payload={"zone": "horizont" if zona is jatekos.horizont else "zenit"},
+                            payload={"zone": zona_nev},
                         )
                         ellenfel = self.p2 if jatekos == self.p1 else self.p1
-                        self._resolve_summon_traps(zona[i], jatekos, ellenfel)
-                        if zona[i] is None:
+                        self._resolve_summon_traps(egyseg, jatekos, ellenfel)
+                        if getattr(jatekos, zona_nev)[i] is None:
                             break
                         gyoztes = self._alkalmaz_kartya_hatast(lap, jatekos, ellenfel)
                         if gyoztes:
@@ -89,16 +92,16 @@ class AeternaSzimulacio:
                     if jatekos.zenit[i] and not isinstance(jatekos.zenit[i], CsataEgyseg):
                         kidobott = jatekos.zenit[i]
                         jatekos.temeto.append(kidobott)
-                        jatekos.zenit[i] = None
-                        naplo.ir(f"⚠️ Jel limit: {kidobott.nev} eldobva")
+                        set_zone_slot(jatekos, "zenit", i, None, "jel_limit_discard")
+                        naplo.ir(f"Jel limit: {kidobott.nev} eldobva")
                         break
 
             for i in range(6):
                 if jatekos.zenit[i] is None:
                     if jatekos.fizet(lap):
                         jatekos.kez.remove(lap)
-                        jatekos.zenit[i] = lap
-                        naplo.ir(f"🪤 {jatekos.nev} Jelet rakott: {lap.nev}")
+                        set_zone_slot(jatekos, "zenit", i, lap, f"trap_play:{lap.nev}")
+                        naplo.ir(f"{jatekos.nev} Jelet rakott: {lap.nev}")
                         break
 
         else:
@@ -106,7 +109,7 @@ class AeternaSzimulacio:
                 jatekos.kez.remove(lap)
                 jatekos.temeto.append(lap)
 
-                naplo.ir(f"🔮 {jatekos.nev} varázsol: {lap.nev}")
+                naplo.ir(f"{jatekos.nev} varazsol: {lap.nev}")
 
                 ellenfel = self.p2 if jatekos == self.p1 else self.p1
                 gyoztes = self._alkalmaz_kartya_hatast(lap, jatekos, ellenfel)
@@ -120,7 +123,7 @@ class AeternaSzimulacio:
         if not p.reakcio_e:
             return
 
-        naplo.ir("✨ Reakció (Burst) aktiválódik")
+        naplo.ir("Reakcio (Burst) aktivalodik")
         tamado = self.p1 if vedo == self.p2 else self.p2
         EffectEngine.trigger_on_burst(p, vedo, tamado)
 
@@ -144,7 +147,7 @@ class AeternaSzimulacio:
 
     def _jelol_harc_overflowot(self, tamado, vedo):
         vedo.jelol_overflow_vereseget(tamado.nev)
-        naplo.ir(f"☠️ {tamado.nev} nyert (Overflow)")
+        naplo.ir(f"{tamado.nev} nyert (Overflow)")
         return self._ellenoriz_gyoztest()
 
     def _elpusztit_egyseget(self, jatekos, zona_nev, index, ok="harc"):
@@ -162,15 +165,15 @@ class AeternaSzimulacio:
         if p.magnitudo > len(vedo.osforras):
             vedo.osforras.append({"lap": p, "hasznalt": False})
             if forras:
-                naplo.ir(f"✨ {forras} + Gondviselés")
+                naplo.ir(f"{forras} + Gondviseles")
             else:
-                naplo.ir("✨ Gondviselés aktiválódott")
+                naplo.ir("Gondviseles aktivalodott")
         else:
             vedo.kez.append(p)
             if forras:
-                naplo.ir(f"💥 {forras}: extra pecsét tört ({p.nev})")
+                naplo.ir(f"{forras}: extra pecset tort ({p.nev})")
             else:
-                naplo.ir(f"💔 Pecsét feltört: {p.nev}")
+                naplo.ir(f"Pecset feltort: {p.nev}")
 
         if p.reakcio_e and not burst_aktivalt_ebben_a_harcban:
             self._aktivalhato_burst(vedo, p)
@@ -195,7 +198,7 @@ class AeternaSzimulacio:
             )
             if result.get("consume_trap"):
                 opponent.temeto.append(trap)
-                opponent.zenit[index] = None
+                set_zone_slot(opponent, "zenit", index, None, f"summon_trap_consumed:{getattr(trap, 'nev', 'ismeretlen')}")
                 opponent.hasznalt_jelek_ebben_a_korben += 1
                 stats.aktivalt_jelek += 1
                 if result.get("destroy_summoned"):
@@ -223,7 +226,7 @@ class AeternaSzimulacio:
             )
             if result.get("consume_trap"):
                 defender.temeto.append(trap)
-                defender.zenit[index] = None
+                set_zone_slot(defender, "zenit", index, None, f"spell_trap_consumed:{getattr(trap, 'nev', 'ismeretlen')}")
                 defender.hasznalt_jelek_ebben_a_korben += 1
                 stats.aktivalt_jelek += 1
                 return True
@@ -257,6 +260,11 @@ class AeternaSzimulacio:
 
         for i in range(6):
             egyseg = tamado.horizont[i]
+            if egyseg is not None and not _is_board_entity(egyseg):
+                naplo.ir(
+                    f"[DEBUG:INVALID_ATTACKER_ENTRY] {tamado.nev} | horizont[{i}] | tipus={_object_type(egyseg)} | nev={_object_name(egyseg)}"
+                )
+                continue
 
             if egyseg and not egyseg.kimerult and not getattr(egyseg, "cannot_attack_until_turn_end", False):
                 tamadas_tortent = True
@@ -270,7 +278,7 @@ class AeternaSzimulacio:
                     if bonusz > 0:
                         egyseg.akt_tamadas += bonusz
 
-                naplo.ir(f"--- TÁMADÁS: {egyseg.lap.nev} ({egyseg.akt_tamadas}) ---")
+                naplo.ir(f"TAMADAS: {egyseg.lap.nev} ({egyseg.akt_tamadas})")
 
                 jel_megallitotta = False
                 if vedo.hasznalt_jelek_ebben_a_korben < 2:
@@ -279,7 +287,7 @@ class AeternaSzimulacio:
                             jel = vedo.zenit[j]
                             if not can_activate_trap(jel, tamado_egyseg=egyseg, tamado=tamado, vedo=vedo):
                                 continue
-                            vedo.zenit[j] = None
+                            set_zone_slot(vedo, "zenit", j, None, f"combat_trap_consumed:{getattr(jel, 'nev', 'ismeretlen')}")
                             vedo.temeto.append(jel)
 
                             vedo.hasznalt_jelek_ebben_a_korben += 1
@@ -303,7 +311,7 @@ class AeternaSzimulacio:
                     b = random.choice(blokkolok)
                     b.kimerult = True
 
-                    naplo.ir(f"🛡️ Blokkol: {b.lap.nev}")
+                    naplo.ir(f"Blokkol: {b.lap.nev}")
 
                     blokkolo_meghalt = False
                     blokkolo_index = vedo.horizont.index(b)
@@ -327,13 +335,13 @@ class AeternaSzimulacio:
                     KeywordEngine.resolve_bane(
                         egyseg,
                         b,
-                        lambda: self._elpusztit_egyseget(vedo, "horizont", blokkolo_index, "métely")
+                        lambda: self._elpusztit_egyseget(vedo, "horizont", blokkolo_index, "metely")
                     )
 
                     sundering_result = KeywordEngine.resolve_sundering(
                         egyseg,
                         blokkolo_meghalt,
-                        lambda: self._feltor_pecset(vedo, burst_aktivalt_ebben_a_harcban, "Has?t?s")
+                        lambda: self._feltor_pecset(vedo, burst_aktivalt_ebben_a_harcban, "Hasitas")
                     )
                     if sundering_result:
                         _, burst_aktivalt_ebben_a_harcban = sundering_result
@@ -347,7 +355,7 @@ class AeternaSzimulacio:
                     if target_kind == "zenit":
                         z = target_unit
 
-                        naplo.ir(f"🎯 Zenit támadás: {z.lap.nev}")
+                        naplo.ir(f"Zenit tamadas: {z.lap.nev}")
 
                         if target_unit.serul(egyseg.akt_tamadas):
                             lethal_result = resolve_lethal_trap(owner=vedo, unit=target_unit, attacker=egyseg, zone_name="zenit", index=target_index)
@@ -387,7 +395,7 @@ class AeternaSzimulacio:
                     if not pecset_tort:
                         return self._jelol_harc_overflowot(tamado, vedo)
 
-                if tamado.horizont[i]:
+                if _is_board_entity(tamado.horizont[i]):
                     tamado.horizont[i].akt_tamadas = eredeti_atk
 
         if tamado.kell_tamadnia_kovetkezo_korben and tamadas_tortent:
@@ -397,7 +405,7 @@ class AeternaSzimulacio:
 
     def kor_futtatasa(self):
         self.state.kor = self.kor
-        naplo.ir(f"\n>>>> {self.kor}. KÖR <<<<")
+        naplo.ir(f"\n>>>> {self.kor}. KOR <<<<")
 
         for index, (akt, ell) in enumerate([(self.p1, self.p2), (self.p2, self.p1)]):
             akt.uj_kor_inditasa()
@@ -405,10 +413,10 @@ class AeternaSzimulacio:
             trigger_engine.dispatch("on_awakening_phase", owner=akt, target=ell, payload={"turn": self.kor})
 
             if akt.kell_tamadnia_kovetkezo_korben:
-                naplo.ir(f"⚠️ {akt.nev} Kényszerítés/Provoke hatás alatt áll: ha tud, támadnia kell ebben a körben.")
+                naplo.ir(f"{akt.nev} Kenyszerites/Provoke hatas alatt all: ha tud, tamadnia kell ebben a korben.")
 
             if self.kor == 1 and index == 0:
-                naplo.ir("⚖️ Kezdőjátékos: nem húz és nem támadhat az első körben")
+                naplo.ir("Kezdojatekos: nem huz es nem tamadhat az elso korben")
             else:
                 akt.huzas()
                 akt.huzas()
@@ -438,9 +446,9 @@ class AeternaSzimulacio:
                 if kotelezo_tamadas:
                     if volt_tamadasra_kepes:
                         if not akt.kell_tamadnia_kovetkezo_korben:
-                            naplo.ir(f"✅ {akt.nev} teljesítette a kötelező támadást.")
+                            naplo.ir(f"{akt.nev} teljesitette a kotelezo tamadast.")
                     else:
-                        naplo.ir(f"ℹ️ {akt.nev} Kényszerítés/Provoke alatt állt, de nem volt támadásra képes Horizont egysége.")
+                        naplo.ir(f"{akt.nev} Kenyszerites/Provoke alatt allt, de nem volt tamadasra kepes Horizont egysege.")
 
             akt.kor_vegi_heal()
             ell.kor_vegi_heal()

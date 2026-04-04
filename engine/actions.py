@@ -1,4 +1,5 @@
-from engine.card import CsataEgyseg
+﻿from engine.card import CsataEgyseg
+from engine.board_utils import _is_board_entity, _object_name, _object_type, log_zone_write, set_zone_slot
 from engine.triggers import trigger_engine
 from utils.logger import naplo
 
@@ -10,7 +11,7 @@ class ActionLibrary:
         for zone_name in ("horizont", "zenit"):
             zone = getattr(player, zone_name)
             for index, unit in enumerate(zone):
-                if isinstance(unit, CsataEgyseg):
+                if _is_board_entity(unit):
                     result.append((zone_name, index, unit))
         return result
 
@@ -28,19 +29,23 @@ class ActionLibrary:
     @staticmethod
     def exhaust_target(target, reason):
         target.kimerult = True
-        naplo.ir(f"🧊 {target.lap.nev} kimerült ({reason})")
+        naplo.ir(f"{target.lap.nev} kimerult ({reason})")
         return True
 
     @staticmethod
     def return_target_to_hand(owner, zone_name, index, reason):
         zone = getattr(owner, zone_name)
         unit = zone[index]
-        if not isinstance(unit, CsataEgyseg):
+        if not _is_board_entity(unit):
+            if unit is not None:
+                naplo.ir(
+                    f"[DEBUG:RETURN_TO_HAND_SKIPPED] {getattr(owner, 'nev', 'ismeretlen')} | {zone_name}[{index}] | tipus={_object_type(unit)} | nev={_object_name(unit)} | reason={reason}"
+                )
             return False
         owner.kez.append(unit.lap)
-        zone[index] = None
+        set_zone_slot(owner, zone_name, index, None, f"return_to_hand:{reason}")
         trigger_engine.dispatch("on_position_changed", source=unit.lap, owner=owner, payload={"from": zone_name, "to": "kez"})
-        naplo.ir(f"↩️ {unit.lap.nev} visszakerült kézbe ({reason})")
+        naplo.ir(f"{unit.lap.nev} visszakerult kezbe ({reason})")
         return True
 
     @staticmethod
@@ -48,18 +53,28 @@ class ActionLibrary:
         if zone_name != "horizont":
             return False
         front = owner.horizont[index]
-        if not isinstance(front, CsataEgyseg):
+        if not _is_board_entity(front):
             return False
         if getattr(front, "position_lock_awakenings", 0) > 0:
-            naplo.ir(f"⛔ {front.lap.nev} nem válthat pozíciót ({reason})")
+            naplo.ir(f"{front.lap.nev} nem valthat poziciot ({reason})")
             return False
-        if owner.zenit[index] is None:
-            owner.zenit[index] = front
-            owner.horizont[index] = None
+
+        back = owner.zenit[index]
+        if back is None:
+            set_zone_slot(owner, "zenit", index, front, f"move_to_zenit:{reason}")
+            set_zone_slot(owner, "horizont", index, None, f"move_to_zenit:{reason}")
+        elif _is_board_entity(back):
+            set_zone_slot(owner, "horizont", index, back, f"swap_from_zenit:{reason}")
+            set_zone_slot(owner, "zenit", index, front, f"swap_to_zenit:{reason}")
         else:
-            owner.horizont[index], owner.zenit[index] = owner.zenit[index], owner.horizont[index]
+            log_zone_write(owner, "zenit", index, back, f"blocked_swap_non_entity:{reason}")
+            naplo.ir(
+                f"[DEBUG:MOVE_TO_ZENIT_BLOCKED] {getattr(owner, 'nev', 'ismeretlen')} | horizont[{index}] -> zenit[{index}] | tipus={_object_type(back)} | nev={_object_name(back)} | reason={reason}"
+            )
+            return False
+
         trigger_engine.dispatch("on_position_changed", source=front.lap, owner=owner, payload={"from": "horizont", "to": "zenit"})
-        naplo.ir(f"🔁 {front.lap.nev} a Zenitbe került ({reason})")
+        naplo.ir(f"{front.lap.nev} a Zenitbe kerult ({reason})")
         return True
 
     @staticmethod
@@ -71,18 +86,19 @@ class ActionLibrary:
         owner.temeto.remove(card)
         if to_hand:
             owner.kez.append(card)
-            dest = "kéz"
+            dest = "kez"
         else:
             for i in range(6):
                 if owner.horizont[i] is None:
-                    owner.horizont[i] = CsataEgyseg(card)
-                    owner.horizont[i].owner = owner
+                    revived = CsataEgyseg(card)
+                    revived.owner = owner
+                    set_zone_slot(owner, "horizont", i, revived, f"revive_from_graveyard:{reason}")
                     dest = "horizont"
                     break
             else:
                 owner.temeto.append(card)
                 return False
-        naplo.ir(f"♻️ {card.nev} visszatért a {dest} zónába ({reason})")
+        naplo.ir(f"{card.nev} visszatert a {dest} zonaba ({reason})")
         return True
 
     @staticmethod
@@ -94,7 +110,7 @@ class ActionLibrary:
         owner.pakli.remove(card)
         if to_hand:
             owner.kez.append(card)
-            naplo.ir(f"🔎 {owner.nev} megtalálta ezt a lapot a pakliban: {card.nev} ({reason})")
+            naplo.ir(f"{owner.nev} megtalalta ezt a lapot a pakliban: {card.nev} ({reason})")
         return True
 
     @staticmethod
@@ -106,18 +122,18 @@ class ActionLibrary:
         if not owner.pakli:
             return False
         card = owner.pakli[-1]
-        naplo.ir(f"👁️ Pakli teteje ({reason}): {card.nev}")
+        naplo.ir(f"Pakli teteje ({reason}): {card.nev}")
         return True
 
     @staticmethod
     def inspect_opponent_hand(opponent, reason):
         hand_names = ", ".join(card.nev for card in opponent.kez) or "-"
-        naplo.ir(f"👁️ Ellenfél kéz ({reason}): {hand_names}")
+        naplo.ir(f"Ellenfel kez ({reason}): {hand_names}")
         return True
 
     @staticmethod
     def prohibit_attack_or_block(target, reason):
         setattr(target, "cannot_attack_until_turn_end", True)
         setattr(target, "cannot_block_until_turn_end", True)
-        naplo.ir(f"🚫 {target.lap.nev} ebben a körben nem támadhat és nem blokkolhat ({reason})")
+        naplo.ir(f"{target.lap.nev} ebben a korben nem tamadhat es nem blokkolhat ({reason})")
         return True
