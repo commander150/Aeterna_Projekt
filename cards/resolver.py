@@ -194,6 +194,8 @@ TRAP_PREVIEW_HANDLERS = {
     "angyali beavatkozas": can_activate_angyali_beavatkozas,
     "hamis bizonyitek": can_activate_hamis_bizonyitek,
     "hamis halal": can_activate_hamis_halal,
+    "fa-oleles": lambda *_, **__: False,
+    "fa oleles": lambda *_, **__: False,
     "a melyseg szeme": lambda *_, **__: False,
     "csaloka hullam": lambda *_, **__: False,
     "zart sorkepzes": lambda *_, **__: False,
