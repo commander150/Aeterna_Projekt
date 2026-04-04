@@ -381,6 +381,17 @@ def _resolve_move_to_horizont(card, source_player, target_player, context):
     return False
 
 
+def _resolve_position_change(card, source_player, target_player, context):
+    for handler in (
+        lambda: _resolve_swap(card, source_player, target_player, context),
+        lambda: _resolve_move_to_zenit(card, source_player, target_player, context),
+        lambda: _resolve_move_to_horizont(card, source_player, target_player, context),
+    ):
+        if handler():
+            return True
+    return False
+
+
 def _resolve_combat_control(card, source_player, target_player, context):
     did = False
     attacker = context.get("tamado_egyseg") if isinstance(context, dict) else None
@@ -454,9 +465,7 @@ def resolve_structured_effect(card, source_player, target_player=None, context=N
         lambda: _resolve_reactivate(card, source_player, context),
         lambda: _resolve_buff(card, source_player, context),
         lambda: _resolve_heal(card, source_player, context),
-        lambda: _resolve_swap(card, source_player, target_player, context),
-        lambda: _resolve_move_to_zenit(card, source_player, target_player, context),
-        lambda: _resolve_move_to_horizont(card, source_player, target_player, context),
+        lambda: _resolve_position_change(card, source_player, target_player, context),
         lambda: _resolve_combat_control(card, source_player, target_player, context),
         lambda: _resolve_misc_state(card, source_player, target_player, context),
     )

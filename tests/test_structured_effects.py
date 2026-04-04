@@ -133,6 +133,29 @@ class TestStructuredEffects(unittest.TestCase):
         self.assertTrue(result["resolved"])
         self.assertEqual(len(enemy.pecsetek), 0)
 
+    def test_structured_move_to_zenit_does_not_bounce_back_to_horizon_same_resolution(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Viz alatti Borton",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Mozgasd az ellenseges Horizont Entitast a Zenitbe.",
+                "hatascimkek": "Kimerites; Mozgatas_Horizontra; Mozgatas_Zenitbe",
+                "celpont_felismerve": "enemy_entity; Horizont; Zenit",
+            }
+        )
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        target = CsataEgyseg(Kartya({"kartya_nev": "Celpont", "kartyatipus": "Entitas", "tamadas": 2, "eletero": 3}))
+        enemy.horizont[0] = target
+        enemy.zenit[0] = None
+
+        result = resolve_structured_effect(card, owner, enemy, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertIsNone(enemy.horizont[0])
+        self.assertIs(enemy.zenit[0], target)
+        self.assertTrue(enemy.zenit[0].kimerult)
+
 
 if __name__ == "__main__":
     unittest.main()
