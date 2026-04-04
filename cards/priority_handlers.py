@@ -231,7 +231,7 @@ def handle_csapda_a_fustben(card, vedo, summoned_unit=None, **_):
     )
 
 
-def can_activate_varatlan_erosites(card, tamado_egyseg, tamado, vedo, **_):
+def can_activate_varatlan_erosites(card, tamado_egyseg=None, tamado=None, vedo=None, **_):
     if tamado_egyseg is None or tamado is None or vedo is None:
         return False
 
@@ -415,8 +415,10 @@ def can_activate_kereskedelmi_embargo(card, vedo=None, summoned_unit=None, tamad
     return vedo is not None and summoned_unit is not None and tamado is not None and getattr(tamado, "megidezett_entitasok_ebben_a_korben", 0) >= 2
 
 
-def can_activate_angyali_beavatkozas(card, owner, unit, attacker=None, **_):
-    return owner is not None and unit is not None and attacker is not None
+def can_activate_angyali_beavatkozas(card, owner=None, unit=None, attacker=None, **_):
+    if owner is None or unit is None or attacker is None:
+        return False
+    return True
 
 
 def handle_angyali_beavatkozas(card, owner, unit, attacker=None, **_):
@@ -457,8 +459,10 @@ def handle_hamis_bizonyitek(card, spell_card=None, target_owner=None, caster=Non
     )
 
 
-def can_activate_hamis_halal(card, owner, unit, reason="combat", **_):
-    return owner is not None and unit is not None and reason == "combat"
+def can_activate_hamis_halal(card, owner=None, unit=None, reason="combat", **_):
+    if owner is None or unit is None:
+        return False
+    return reason == "combat"
 
 
 def handle_hamis_halal(card, owner, unit, zone_name=None, index=None, **_):
