@@ -1,4 +1,4 @@
-import random
+﻿import random
 from utils.logger import naplo
 from engine.card import CsataEgyseg
 from engine.board_utils import is_entity, is_zenit_entity
@@ -18,7 +18,7 @@ class Jatekos:
             ]
 
         if len(sajat_lehetosegek) < 5:
-            raise ValueError(f"Hiba: {birodalom_neve} birodalomhoz nincs elég kártya a paklihoz!")
+            raise ValueError(f"Hiba: {birodalom_neve} birodalomhoz nincs eleg kartya a paklihoz!")
 
         self.pakli = []
         elerheto_lapok = sajat_lehetosegek.copy()
@@ -42,20 +42,20 @@ class Jatekos:
         self.hasznalt_jelek_ebben_a_korben = 0
         self.rezonancia_aura = 0
 
-        # körönkénti limitek
         self.extra_huzas_ebben_a_korben = 0
         self.ideiglenes_aura_ebben_a_korben = 0
         self.ujraaktivalt_egysegek_ebben_a_korben = 0
 
-        # anti-stall / provoke előkészítés
         self.kell_tamadnia_kovetkezo_korben = False
         self.overflow_vereseg = False
         self.overflow_gyoztes_nev = None
         self.sik_aurabonusz = 0
         self.kovetkezo_jel_kedvezmeny = 0
         self.kovetkezo_gepezet_kedvezmeny = 0
+        self.kovetkezo_entitas_kedvezmeny = 0
         self.kovetkezo_kor_ideiglenes_aura = 0
         self.megidezett_entitasok_ebben_a_korben = 0
+        self.tomegtermeles_gyara_triggerelt_ebben_a_korben = False
 
     def jelol_overflow_vereseget(self, gyoztes_nev):
         self.overflow_vereseg = True
@@ -93,6 +93,7 @@ class Jatekos:
         self.ideiglenes_aura_ebben_a_korben = 0
         self.ujraaktivalt_egysegek_ebben_a_korben = 0
         self.megidezett_entitasok_ebben_a_korben = 0
+        self.tomegtermeles_gyara_triggerelt_ebben_a_korben = False
 
     def kor_vegi_heal(self):
         for e in self.horizont:
@@ -109,20 +110,20 @@ class Jatekos:
             koltseg = max(0, koltseg - 1)
         if getattr(lap, "egyseg_e", False) and self.kovetkezo_gepezet_kedvezmeny > 0:
             faj = getattr(lap, "faj", "").lower()
-            if "gépezet" in faj or "gepezet" in faj:
+            if "gepezet" in faj:
                 koltseg = max(0, koltseg - 1)
+        if getattr(lap, "egyseg_e", False) and self.kovetkezo_entitas_kedvezmeny > 0:
+            koltseg = max(0, koltseg - self.kovetkezo_entitas_kedvezmeny)
         return koltseg
 
     def huzas(self, extra=False):
         if extra and self.extra_huzas_ebben_a_korben >= 3:
-            naplo.ir(f"⛔ {self.nev} nem húzhat több extra lapot ebben a körben.")
+            naplo.ir(f"{self.nev} nem huzhat tobb extra lapot ebben a korben.")
             return False
 
         if not self.pakli:
             if self.temeto:
-                naplo.ir(
-                    f"⚠️ {self.nev} paklija elfogyott! Újrakeverés és Büntetés (Refresh Penalty)!"
-                )
+                naplo.ir(f"{self.nev} paklija elfogyott! Ujrakeveres es buntetes (Refresh Penalty)!")
                 self.pakli = self.temeto.copy()
                 self.temeto.clear()
                 random.shuffle(self.pakli)
@@ -130,13 +131,9 @@ class Jatekos:
                 if self.pecsetek:
                     elvesztett = self.pecsetek.pop()
                     self.temeto.append(elvesztett)
-                    naplo.ir(
-                        f"💀 BÜNTETÉS: {self.nev} elvesztett egy Pecsétet ({elvesztett.nev})!"
-                    )
+                    naplo.ir(f"BUNTETES: {self.nev} elvesztett egy Pecsetet ({elvesztett.nev})!")
                 else:
-                    naplo.ir(
-                        f"💀 BÜNTETÉS: {self.nev}-nak nincs több Pecsétje a feláldozásra!"
-                    )
+                    naplo.ir(f"BUNTETES: {self.nev}-nak nincs tobb Pecsetje a felaldozasra!")
                     return False
             else:
                 return False
@@ -144,7 +141,7 @@ class Jatekos:
         if self.pakli:
             lap = self.pakli.pop()
             self.kez.append(lap)
-            naplo.ir(f"📜 {self.nev} húzott: {lap.nev}")
+            naplo.ir(f"{self.nev} huzott: {lap.nev}")
 
             if extra:
                 self.extra_huzas_ebben_a_korben += 1
@@ -153,7 +150,7 @@ class Jatekos:
 
         return False
 
-    def ad_ideiglenes_aurat(self, mennyiseg, forras="hatás"):
+    def ad_ideiglenes_aurat(self, mennyiseg, forras="hatas"):
         if mennyiseg <= 0:
             return 0
 
@@ -161,27 +158,25 @@ class Jatekos:
         tenyleges = min(mennyiseg, maradek)
 
         if tenyleges <= 0:
-            naplo.ir(f"⛔ {self.nev} nem kaphat több ideiglenes aurát ebben a körben ({forras}).")
+            naplo.ir(f"{self.nev} nem kaphat tobb ideiglenes aurat ebben a korben ({forras}).")
             return 0
 
         self.rezonancia_aura += tenyleges
         self.ideiglenes_aura_ebben_a_korben += tenyleges
 
         if tenyleges < mennyiseg:
-            naplo.ir(
-                f"⛔ {self.nev} ideiglenes aura limitje miatt csak {tenyleges}/{mennyiseg} aura jött létre ({forras})."
-            )
+            naplo.ir(f"{self.nev} ideiglenes aura limitje miatt csak {tenyleges}/{mennyiseg} aura jott letre ({forras}).")
         else:
-            naplo.ir(f"✨ {self.nev} {tenyleges} ideiglenes aurát kapott ({forras}).")
+            naplo.ir(f"{self.nev} {tenyleges} ideiglenes aurat kapott ({forras}).")
 
         return tenyleges
 
-    def ujraaktivalt_egyseget(self, egyseg, forras="hatás"):
+    def ujraaktivalt_egyseget(self, egyseg, forras="hatas"):
         if not isinstance(egyseg, CsataEgyseg):
             return False
 
         if self.ujraaktivalt_egysegek_ebben_a_korben >= 2:
-            naplo.ir(f"⛔ {self.nev} nem aktiválhat újra több egységet ebben a körben ({forras}).")
+            naplo.ir(f"{self.nev} nem aktivalhat ujra tobb egyseget ebben a korben ({forras}).")
             return False
 
         if not egyseg.kimerult:
@@ -189,7 +184,7 @@ class Jatekos:
 
         egyseg.kimerult = False
         self.ujraaktivalt_egysegek_ebben_a_korben += 1
-        naplo.ir(f"✨ {self.nev} újraaktiválta {egyseg.lap.nev} egységet ({forras}).")
+        naplo.ir(f"{self.nev} ujraaktivalta {egyseg.lap.nev} egyseget ({forras}).")
         return True
 
     def osforras_bovites(self):
@@ -197,7 +192,7 @@ class Jatekos:
             self.kez.sort(key=lambda k: k.aura_koltseg, reverse=True)
             lap = self.kez.pop(0)
             self.osforras.append({"lap": lap, "hasznalt": False})
-            naplo.ir(f"🔋 {self.nev} Ősforrást bővített: {lap.nev}")
+            naplo.ir(f"{self.nev} Osforrast bovitett: {lap.nev}")
 
     def elerheto_aura(self):
         alap_aura = sum(
@@ -205,6 +200,19 @@ class Jatekos:
             if isinstance(o, dict) and not o.get("hasznalt", False)
         )
         return alap_aura + self.rezonancia_aura + self.sik_aurabonusz
+
+    def _fogyaszt_kedvezmenyeket(self, lap):
+        if getattr(lap, "jel_e", False) and self.kovetkezo_jel_kedvezmeny > 0:
+            self.kovetkezo_jel_kedvezmeny -= 1
+            naplo.ir(f"{self.nev} felhasznalta a kovetkezo Jel kedvezmenyt.")
+        if getattr(lap, "egyseg_e", False) and self.kovetkezo_gepezet_kedvezmeny > 0:
+            faj = getattr(lap, "faj", "").lower()
+            if "gepezet" in faj:
+                self.kovetkezo_gepezet_kedvezmeny -= 1
+                naplo.ir(f"{self.nev} felhasznalta a kovetkezo Gepezet kedvezmenyt.")
+        if getattr(lap, "egyseg_e", False) and self.kovetkezo_entitas_kedvezmeny > 0:
+            naplo.ir(f"{self.nev} felhasznalta a kovetkezo Entitas kedvezmenyt ({self.kovetkezo_entitas_kedvezmeny}).")
+            self.kovetkezo_entitas_kedvezmeny = 0
 
     def fizet(self, lap):
         szabad_kartyak = [
@@ -219,25 +227,14 @@ class Jatekos:
             fennmarado_koltseg -= levonas
 
         if fennmarado_koltseg <= 0:
-            if getattr(lap, "jel_e", False) and self.kovetkezo_jel_kedvezmeny > 0:
-                self.kovetkezo_jel_kedvezmeny -= 1
-                naplo.ir(f"✨ {self.nev} felhasználta a következő Jel kedvezményt.")
-            if getattr(lap, "egyseg_e", False) and self.kovetkezo_gepezet_kedvezmeny > 0:
-                faj = getattr(lap, "faj", "").lower()
-                if "gépezet" in faj or "gepezet" in faj:
-                    self.kovetkezo_gepezet_kedvezmeny -= 1
-                    naplo.ir(f"✨ {self.nev} felhasználta a következő Gépezet kedvezményt.")
+            self._fogyaszt_kedvezmenyeket(lap)
             return True
 
         if lap.egyseg_e:
             if len(szabad_kartyak) >= fennmarado_koltseg:
                 for i in range(fennmarado_koltseg):
                     szabad_kartyak[i]["hasznalt"] = True
-                if self.kovetkezo_gepezet_kedvezmeny > 0:
-                    faj = getattr(lap, "faj", "").lower()
-                    if "gépezet" in faj or "gepezet" in faj:
-                        self.kovetkezo_gepezet_kedvezmeny -= 1
-                        naplo.ir(f"✨ {self.nev} felhasználta a következő Gépezet kedvezményt.")
+                self._fogyaszt_kedvezmenyeket(lap)
                 return True
             return False
 
@@ -247,20 +244,13 @@ class Jatekos:
         if len(sajat) >= fennmarado_koltseg:
             for i in range(fennmarado_koltseg):
                 sajat[i]["hasznalt"] = True
-            if getattr(lap, "jel_e", False) and self.kovetkezo_jel_kedvezmeny > 0:
-                self.kovetkezo_jel_kedvezmeny -= 1
-                naplo.ir(f"✨ {self.nev} felhasználta a következő Jel kedvezményt.")
-            if getattr(lap, "egyseg_e", False) and self.kovetkezo_gepezet_kedvezmeny > 0:
-                faj = getattr(lap, "faj", "").lower()
-                if "gépezet" in faj or "gepezet" in faj:
-                    self.kovetkezo_gepezet_kedvezmeny -= 1
-                    naplo.ir(f"✨ {self.nev} felhasználta a következő Gépezet kedvezményt.")
+            self._fogyaszt_kedvezmenyeket(lap)
             return True
 
         buntetett = fennmarado_koltseg + 1
 
         if len(sajat) + len(aether) >= buntetett:
-            naplo.ir("⚠️ Enyhe Büntetés aktiválódott (+1 költség)")
+            naplo.ir("Enyhe buntetes aktivalodott (+1 koltseg)")
             hatra = buntetett
 
             for o in sajat:
@@ -273,14 +263,7 @@ class Jatekos:
                     o["hasznalt"] = True
                     hatra -= 1
 
-            if getattr(lap, "jel_e", False) and self.kovetkezo_jel_kedvezmeny > 0:
-                self.kovetkezo_jel_kedvezmeny -= 1
-                naplo.ir(f"✨ {self.nev} felhasználta a következő Jel kedvezményt.")
-            if getattr(lap, "egyseg_e", False) and self.kovetkezo_gepezet_kedvezmeny > 0:
-                faj = getattr(lap, "faj", "").lower()
-                if "gépezet" in faj or "gepezet" in faj:
-                    self.kovetkezo_gepezet_kedvezmeny -= 1
-                    naplo.ir(f"✨ {self.nev} felhasználta a következő Gépezet kedvezményt.")
+            self._fogyaszt_kedvezmenyeket(lap)
             return True
 
         return False

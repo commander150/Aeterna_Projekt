@@ -19,7 +19,7 @@ from engine.card import CsataEgyseg
 from engine.effects import EffectEngine
 from engine.keywords import KeywordEngine
 from engine.triggers import trigger_engine
-from cards.resolver import can_activate_trap, resolve_card_handler, resolve_lethal_trap, resolve_spell_cast_trap
+from cards.resolver import can_activate_trap, resolve_card_handler, resolve_lethal_trap, resolve_spell_cast_trap, handle_sivatagi_kem_pecset_sebzes
 
 
 class AeternaSzimulacio:
@@ -393,9 +393,30 @@ class AeternaSzimulacio:
 
                         continue
 
+                    direct_trap_stopped = False
+                    if vedo.hasznalt_jelek_ebben_a_korben < 2:
+                        for j in range(6):
+                            jel = vedo.zenit[j]
+                            if not is_trap(jel):
+                                continue
+                            if not can_activate_trap(jel, tamado_egyseg=egyseg, tamado=tamado, vedo=vedo, target_kind="seal"):
+                                continue
+                            result = resolve_card_handler(jel, category="trap", tamado_egyseg=egyseg, tamado=tamado, vedo=vedo, target_kind="seal")
+                            if result.get("consume_trap"):
+                                vedo.temeto.append(jel)
+                                set_zone_slot(vedo, "zenit", j, None, f"direct_attack_trap_consumed:{getattr(jel, 'nev', 'ismeretlen')}")
+                                vedo.hasznalt_jelek_ebben_a_korben += 1
+                                stats.aktivalt_jelek += 1
+                            if result.get("stop_attack"):
+                                direct_trap_stopped = True
+                                break
+                        if direct_trap_stopped:
+                            continue
+
                     pecset_tort, burst_aktivalt_ebben_a_harcban = self._feltor_pecset(
                         vedo, burst_aktivalt_ebben_a_harcban
                     )
+                    handle_sivatagi_kem_pecset_sebzes(egyseg, vedo)
                     gyoztes = self._ellenoriz_gyoztest()
                     if gyoztes:
                         return gyoztes

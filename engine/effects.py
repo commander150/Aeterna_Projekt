@@ -353,7 +353,21 @@ class EffectEngine:
             naplo.ir(f"{kontextus}: {forras_nev} -> a célpont nem spell-targetable ({cel.lap.nev})")
             return False
 
-        trigger_engine.dispatch("on_spell_targeted", source=forras_nev, owner=forras_jatekos, target=cel, payload={"context": kontextus})
+        context = trigger_engine.dispatch(
+            "on_spell_targeted",
+            source=forras_nev,
+            owner=forras_jatekos,
+            target=cel,
+            payload={
+                "context": kontextus,
+                "zone": zona_nev,
+                "index": index,
+                "target_owner": ellenfel,
+            },
+        )
+        if context.cancelled:
+            naplo.ir(f"{kontextus}: {forras_nev} semlegesitve lett a celpont reakcioja miatt.")
+            return False
         naplo.ir(f"🔥 {kontextus}: {forras_nev} -> {sebzes} sebzés {cel.lap.nev}-ba/be")
 
         trigger_engine.dispatch("on_damage_taken", source=forras_nev, owner=forras_jatekos, target=cel, payload={"damage": sebzes, "zone": zona_nev})
@@ -375,7 +389,16 @@ class EffectEngine:
             naplo.ir(f"{kontextus}: {cel.lap.nev} nem megcélozható spell által")
             return False
 
-        trigger_engine.dispatch("on_spell_targeted", source=kontextus, owner=jatekos, target=cel, payload={"action": "destroy"})
+        context = trigger_engine.dispatch(
+            "on_spell_targeted",
+            source=kontextus,
+            owner=jatekos,
+            target=cel,
+            payload={"action": "destroy", "zone": zona_nev, "index": index, "target_owner": ellenfel},
+        )
+        if context.cancelled:
+            naplo.ir(f"{kontextus}: {cel.lap.nev} megmenekult, a varazslat semlegesitve lett.")
+            return False
         naplo.ir(f"{kontextus}: {cel.lap.nev} megsemmisul")
         return EffectEngine.destroy_unit(ellenfel, zona_nev, index, jatekos, kontextus.lower())
 
@@ -389,10 +412,10 @@ class EffectEngine:
             naplo.ir(f"{kontextus}: {kartya.nev} -> Nem volt megsemmisitheto celpont.")
             return False
 
-        redirect_result = resolve_spell_redirect(spell_card=kartya, caster=jatekos, target_owner=ellenfel)
+        redirect_result = resolve_spell_redirect(spell_card=kartya, caster=jatekos, target_owner=ellenfel, current_target=cel)
         if redirect_result and redirect_result.get("redirected_target"):
             cel = redirect_result["redirected_target"]
-            ellenfel = jatekos
+            ellenfel = redirect_result.get("redirect_owner", jatekos)
 
         return EffectEngine._destroy_target(cel, jatekos, ellenfel, kontextus)
 
@@ -406,11 +429,22 @@ class EffectEngine:
             naplo.ir(f"{kontextus}: {kartya.nev} -> Nem volt kimeritheto celpont.")
             return False
 
-        redirect_result = resolve_spell_redirect(spell_card=kartya, caster=jatekos, target_owner=ellenfel)
+        redirect_result = resolve_spell_redirect(spell_card=kartya, caster=jatekos, target_owner=ellenfel, current_target=cel)
         if redirect_result and redirect_result.get("redirected_target"):
             cel = redirect_result["redirected_target"]
+            ellenfel = redirect_result.get("redirect_owner", ellenfel)
 
-        _, _, egyseg = cel
+        zona_nev, index, egyseg = cel
+        context = trigger_engine.dispatch(
+            "on_spell_targeted",
+            source=kartya.nev,
+            owner=jatekos,
+            target=egyseg,
+            payload={"action": "exhaust", "zone": zona_nev, "index": index, "target_owner": ellenfel},
+        )
+        if context.cancelled:
+            naplo.ir(f"{kontextus}: {kartya.nev} kimeritesi hatasa semlegesitve lett.")
+            return False
         egyseg.kimerult = True
         naplo.ir(f"{kontextus}: {kartya.nev} kimeritette {egyseg.lap.nev} egyseget")
         return True
@@ -458,10 +492,10 @@ class EffectEngine:
             naplo.ir(f"🔥 {kontextus}: {kartya.nev} -> Nem volt érvényes célpont.")
             return False
 
-        redirect_result = resolve_spell_redirect(spell_card=kartya, caster=jatekos, target_owner=ellenfel)
+        redirect_result = resolve_spell_redirect(spell_card=kartya, caster=jatekos, target_owner=ellenfel, current_target=cel)
         if redirect_result and redirect_result.get("redirected_target"):
             cel = redirect_result["redirected_target"]
-            ellenfel = jatekos
+            ellenfel = redirect_result.get("redirect_owner", jatekos)
 
         EffectEngine._deal_damage_to_target(kartya.nev, sebzes, cel, ellenfel, kontextus, jatekos)
         return True

@@ -31,6 +31,23 @@ def _enemy_horizon_units(player):
     ]
 
 
+def _card_name(obj):
+    if hasattr(obj, "lap") and hasattr(obj.lap, "nev"):
+        return normalize_lookup_text(obj.lap.nev)
+    return normalize_lookup_text(getattr(obj, "nev", ""))
+
+
+def _is_named(obj, name):
+    return _card_name(obj) == normalize_lookup_text(name)
+
+
+def _first_empty_horizon(player):
+    for index, slot in enumerate(player.horizont):
+        if slot is None:
+            return index
+    return None
+
+
 def _negative_spell_markers(unit):
     markers = getattr(unit, "negative_spell_markers", None)
     if markers is None:
@@ -458,13 +475,22 @@ def handle_hamis_halal(card, owner, unit, zone_name=None, index=None, **_):
     )
 
 
-def resolve_spell_redirect_trap(spell_card, caster, target_owner):
+def resolve_spell_redirect_trap(spell_card, caster, target_owner, current_target=None):
     trap = _consume_named_trap(target_owner, "Hamis Bizonyitek")
+    if trap is not None:
+        result = handle_hamis_bizonyitek(trap, spell_card=spell_card, target_owner=target_owner, caster=caster)
+        if not result.get("resolved"):
+            target_owner.zenit.append(target_owner.temeto.pop())
+            target_owner.hasznalt_jelek_ebben_a_korben = max(0, target_owner.hasznalt_jelek_ebben_a_korben - 1)
+        else:
+            return result
+
+    trap = _consume_named_trap(target_owner, "Csaloka Hullam")
     if trap is None:
         return None
 
-    result = handle_hamis_bizonyitek(trap, spell_card=spell_card, target_owner=target_owner, caster=caster)
-    if not result.get("resolved"):
+    result = handle_csaloka_hullam(trap, spell_card=spell_card, target_owner=target_owner, current_target=current_target, caster=caster)
+    if not result.get("resolved") or result.get("partial"):
         target_owner.zenit.append(target_owner.temeto.pop())
         target_owner.hasznalt_jelek_ebben_a_korben = max(0, target_owner.hasznalt_jelek_ebben_a_korben - 1)
         return None
@@ -539,8 +565,322 @@ def on_destroyed(context):
     if owner is None or source is None:
         return
     if not getattr(owner, "hulladektelep_aktiv", False):
-        return
-    if _is_machine_card(source):
+        pass
+    elif _is_machine_card(source):
         owner.kovetkezo_gepezet_kedvezmeny = getattr(owner, "kovetkezo_gepezet_kedvezmeny", 0) + 1
         naplo.ir(f"A Hulladektelep: {owner.nev} kovetkezo Gepezet idezese 1 auraval olcsobb lesz.")
+
+    if context.payload.get("zone") == "horizont" and _is_machine_card(source):
+        trap = _consume_named_trap(owner, "Tulhevult Kazan")
+        if trap is not None and context.target is not None:
+            from engine.effects import EffectEngine
+
+            celpontok = list(_enemy_horizon_units(context.target))
+            if not celpontok:
+                naplo.ir("Tulhevult Kazan: nem volt ellenseges Horizont Entitas a robbanashoz.")
+                return
+            naplo.ir(f"Tulhevult Kazan: {len(celpontok)} ellenseges Horizont Entitas 2 sebzest kap.")
+            for _, _, unit in list(celpontok):
+                aktualis = EffectEngine._select_enemy_target(context.target, "weakest", "horizont")
+                if aktualis is None:
+                    break
+                EffectEngine._deal_damage_to_target(trap.nev, 2, aktualis, context.target, "Csapda", owner)
+
+
+def handle_lathatatlan_fal(card, tamado_egyseg=None, tamado=None, vedo=None, **_):
+    if tamado_egyseg is None or tamado is None or vedo is None:
+        return {"resolved": False}
+
+    try:
+        tamado_index = tamado.horizont.index(tamado_egyseg)
+    except ValueError:
+        return {"resolved": False}
+
+    ActionLibrary.return_target_to_hand(tamado, "horizont", tamado_index, card.nev)
+    return _handled(
+        f"Lathatatlan Fal: {tamado_egyseg.lap.nev} tamadasa ervenytelenitve, a tamado visszakerult kezbe.",
+        consume_trap=True,
+        stop_attack=True,
+    )
+
+
+def handle_a_melyseg_szeme(card, vedo, tamado, summoned_unit=None, **_):
+    if summoned_unit is None or tamado is None or vedo is None:
+        return {"resolved": False}
+    if summoned_unit.lap.magnitudo < 4:
+        return {"resolved": False}
+    if summoned_unit not in tamado.horizont:
+        return {"resolved": False}
+
+    lane_index = tamado.horizont.index(summoned_unit)
+    zenit_jeloltek = [
+        (index, unit)
+        for index, unit in enumerate(tamado.zenit)
+        if _is_board_entity(unit)
+    ]
+    if not zenit_jeloltek:
+        return _handled(
+            f"A Melyseg Szeme: {summoned_unit.lap.nev} megjelent, de nem volt zenitbeli Entitas a cserere.",
+            consume_trap=True,
+            partial=True,
+        )
+
+    cel_index, zenit_unit = min(zenit_jeloltek, key=lambda adat: (adat[1].akt_tamadas, adat[1].akt_hp))
+    set_zone_slot(tamado, "horizont", lane_index, zenit_unit, "a_melyseg_szeme_swap_to_horizont")
+    set_zone_slot(tamado, "zenit", cel_index, summoned_unit, "a_melyseg_szeme_swap_to_zenit")
+    trigger_engine.dispatch("on_position_changed", source=summoned_unit.lap, owner=tamado, payload={"from": "horizont", "to": "zenit"})
+    trigger_engine.dispatch("on_position_changed", source=zenit_unit.lap, owner=tamado, payload={"from": "zenit", "to": "horizont"})
+    return _handled(
+        f"A Melyseg Szeme: {summoned_unit.lap.nev} helyet cserelt {zenit_unit.lap.nev} lappal.",
+        consume_trap=True,
+    )
+
+
+def handle_csaloka_hullam(card, spell_card=None, target_owner=None, current_target=None, **_):
+    if spell_card is None or target_owner is None or current_target is None:
+        return {"resolved": False}
+
+    alternativa = next(
+        (
+            adat for adat in ActionLibrary._all_units(target_owner)
+            if adat[2] is not current_target[2]
+        ),
+        None,
+    )
+    if alternativa is None:
+        return _handled(
+            f"Csaloka Hullam: nem volt masik ervenyes sajat celpont a {spell_card.nev} atiranyitasahoz.",
+            partial=True,
+        )
+
+    return _handled(
+        f"Csaloka Hullam: a {spell_card.nev} celpontja atiranyitva {alternativa[2].lap.nev} lapra.",
+        consume_trap=True,
+        redirected_target=alternativa,
+        redirect_owner=target_owner,
+    )
+
+
+def handle_tuzeso(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Tuzeso: nem volt ellenfel.", partial=True)
+    from engine.effects import EffectEngine
+
+    jeloltek = list(_enemy_horizon_units(ellenfel))
+    if not jeloltek:
+        return _handled("Tuzeso: nem volt ellenseges Horizont Entitas.", partial=True)
+
+    for _, _, _ in jeloltek:
+        aktualis = EffectEngine._select_enemy_target(ellenfel, "weakest", "horizont")
+        if aktualis is None:
+            break
+        EffectEngine._deal_damage_to_target(card.nev, 2, aktualis, ellenfel, "Kepesseg", jatekos)
+    return _handled(f"Tuzeso: {len(jeloltek)} ellenseges Horizont Entitas 2 sebzest kapott.")
+
+
+def handle_goznyomasos_kiloves(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Goznyomasos Kiloves: nem volt ellenfel.", partial=True)
+    from engine.effects import EffectEngine
+
+    cel = EffectEngine._select_enemy_target(ellenfel, "strongest", "horizont")
+    if cel is None:
+        return _handled("Goznyomasos Kiloves: nem volt ellenseges Horizont celpont.", partial=True)
+
+    _, index, unit = cel
+    overflow = max(0, 4 - unit.akt_hp)
+    elpusztult = EffectEngine._deal_damage_to_target(card.nev, 4, cel, ellenfel, "Kepesseg", jatekos)
+    if not elpusztult or overflow <= 0:
+        return _handled(f"Goznyomasos Kiloves: {unit.lap.nev} 4 sebzest kapott.")
+
+    hatso = ellenfel.zenit[index]
+    if _is_board_entity(hatso):
+        EffectEngine._deal_damage_to_target(card.nev, overflow, ("zenit", index, hatso), ellenfel, "Kepesseg", jatekos)
+        return _handled(f"Goznyomasos Kiloves: {unit.lap.nev} elpusztult, a maradek {overflow} sebzes a mogotte allo Zenit Entitast erte.")
+
+    if overflow > 0:
+        EffectEngine._deal_direct_seal_damage(card.nev, overflow, jatekos, ellenfel, "Kepesseg")
+        return _handled(f"Goznyomasos Kiloves: {unit.lap.nev} elpusztult, a maradek {overflow} sebzes Pecsetet tort.")
+
+    return _handled(f"Goznyomasos Kiloves: {unit.lap.nev} elpusztult.")
+
+
+def handle_visszahivas_az_uressegbol(card, jatekos, **_):
+    if jatekos is None:
+        return {"resolved": False}
+    from engine.card import CsataEgyseg
+
+    jeloltek = [lap for lap in jatekos.temeto if "entitas" in normalize_lookup_text(getattr(lap, "kartyatipus", ""))]
+    if not jeloltek:
+        return _handled("Visszahivas az Uressegbol: nem volt Entitas az Uressegben.", partial=True)
+
+    ures = _first_empty_horizon(jatekos)
+    if ures is None:
+        return _handled("Visszahivas az Uressegbol: nincs szabad Horizont hely.", partial=True)
+
+    cel_lap = max(jeloltek, key=lambda lap: (lap.magnitudo, lap.tamadas, lap.eletero))
+    jatekos.temeto.remove(cel_lap)
+    egyseg = CsataEgyseg(cel_lap)
+    egyseg.owner = jatekos
+    egyseg.kimerult = False
+    set_zone_slot(jatekos, "horizont", ures, egyseg, "visszahivas_az_uressegbol")
+    trigger_engine.dispatch("on_summon", source=egyseg, owner=jatekos, payload={"zone": "horizont", "revived": True})
+    return _handled(f"Visszahivas az Uressegbol: {cel_lap.nev} visszatert a Horizontra aktiv allapotban.")
+
+
+def handle_gyar_felugyelo(card, jatekos, **_):
+    ures = _first_empty_horizon(jatekos)
+    if ures is None:
+        return _handled("Gyar-Felugyelo: nincs ures Horizont hely a tokennek.", partial=True)
+    _summon_token(jatekos, ures, "Gepezet Token", atk=1, hp=1, race="Gepezet", realm=jatekos.birodalom, exhausted=True)
+    return _handled("Gyar-Felugyelo: egy 1/1-es Gepezet token a Horizontra kerult.")
+
+
+def handle_a_tomegtermeles_gyara(card, jatekos, **_):
+    setattr(jatekos, "tomegtermeles_gyara_aktiv", True)
+    return _handled(f"A Tomegtermeles Gyara: {jatekos.nev} elso gepezet/golem/kiborg idezese koronkent +1 ideiglenes aurat ad.")
+
+
+def handle_egi_emeles(card, jatekos, **_):
+    egyseg = next(iter(_allied_units(jatekos)), None)
+    if egyseg is None:
+        return _handled("Egi Emeles: nem volt sajat Entitas a visszavetelhez.", partial=True)
+    zone_name, index, unit = egyseg
+    ActionLibrary.return_target_to_hand(jatekos, zone_name, index, card.nev)
+    jatekos.kovetkezo_entitas_kedvezmeny = max(getattr(jatekos, "kovetkezo_entitas_kedvezmeny", 0), 2)
+    return _handled(f"Egi Emeles: {unit.lap.nev} visszakerult kezbe, a kovetkezo megidezett Entitas 2 auraval olcsobb.")
+
+
+def handle_tengeri_delibab(card, jatekos, **_):
+    ures = _first_empty_horizon(jatekos)
+    if ures is None:
+        return _handled("Tengeri Delibab: nincs ures Horizont hely a masolatnak.", partial=True)
+    eredeti = next(iter(_allied_units(jatekos)), None)
+    if eredeti is None:
+        return _handled("Tengeri Delibab: nincs masolhato sajat Entitas.", partial=True)
+
+    _, _, unit = eredeti
+    masolat = _summon_token(
+        jatekos,
+        ures,
+        f"{unit.lap.nev} Delibab",
+        atk=unit.akt_tamadas,
+        hp=1,
+        race=getattr(unit.lap, "faj", "Illuzio"),
+        realm=jatekos.birodalom,
+        exhausted=True,
+    )
+    masolat.temp_mirage = True
+    return _handled(f"Tengeri Delibab: ideiglenes 1 HP-s masolat jott letre {unit.lap.nev} alapjan.")
+
+
+def handle_kod_alak(card, jatekos, **_):
+    return _handled("Kod-Alak: spell-target reakcio aktiv, celzasra kezbe ter vissza es semlegesit.")
+
+
+def handle_lopakodo_felcser_dron(card, jatekos, **_):
+    return _handled("Lopakodo Felcser-Dron: spell/rituale target immunity aktiv.")
+
+
+def handle_sivatagi_kem(card, jatekos, **_):
+    return _handled("Sivatagi Kem: pecset-sebzes utan az ellenfel keze naplozodik.")
+
+
+def handle_viharos_menekules(card, jatekos, ellenfel, **_):
+    sajatok = list(_allied_units(jatekos))[:2]
+    if not sajatok:
+        return _handled("Viharos Menekules: nem volt visszaveheto sajat Entitas.", partial=True)
+
+    visszavett = 0
+    for zone_name, index, _ in sajatok:
+        if ActionLibrary.return_target_to_hand(jatekos, zone_name, index, card.nev):
+            visszavett += 1
+
+    elpusztitott = 0
+    if ellenfel is not None:
+        for index, trap in enumerate(list(ellenfel.zenit)):
+            if elpusztitott >= visszavett:
+                break
+            if not is_trap(trap):
+                continue
+            ellenfel.temeto.append(trap)
+            set_zone_slot(ellenfel, "zenit", index, None, "viharos_menekules_destroy_trap")
+            elpusztitott += 1
+
+    return _handled(f"Viharos Menekules: {visszavett} sajat Entitas kerult kezbe vissza, es {elpusztitott} ellenseges Jel pusztult el.")
+
+
+def handle_univerzalis_csere(card, jatekos, **_):
+    eldobhato = list(jatekos.kez[:2])
+    if not eldobhato:
+        return _handled("Univerzalis Csere: nem volt eldobhato lap a kezben.", partial=True)
+
+    for lap in eldobhato:
+        jatekos.kez.remove(lap)
+        jatekos.temeto.append(lap)
+        naplo.ir(f"Univerzalis Csere: eldobva {lap.nev}.")
+
+    huzando = len(eldobhato) * 2
+    for _ in range(huzando):
+        jatekos.huzas(extra=True)
+    return _handled(f"Univerzalis Csere: {len(eldobhato)} lap eldobva, {huzando} lap huzva.")
+
+
+def handle_sivatagi_kem_pecset_sebzes(attacker, defender):
+    if attacker is None or defender is None or not _is_named(attacker, "Sivatagi Kem"):
+        return False
+    ActionLibrary.inspect_opponent_hand(defender, "Sivatagi Kem")
+    return True
+
+
+def on_summon_priority(context):
+    unit = context.source
+    owner = context.owner
+    if unit is None or owner is None:
+        return
+
+    if _is_named(unit, "Lopakodo Felcser-Dron"):
+        state = TargetingEngine.target_state(unit)
+        state.spell_negate = True
+        naplo.ir(f"Lopakodo Felcser-Dron: {unit.lap.nev} nem celozhato ellenseges Igevel vagy Ritualeval.")
+
+    if getattr(owner, "tomegtermeles_gyara_aktiv", False) and not getattr(owner, "tomegtermeles_gyara_triggerelt_ebben_a_korben", False):
+        if _is_machine_card(unit.lap):
+            owner.tomegtermeles_gyara_triggerelt_ebben_a_korben = True
+            owner.ad_ideiglenes_aurat(1, "A Tomegtermeles Gyara")
+            naplo.ir(f"A Tomegtermeles Gyara: {owner.nev} elso megfelelo idezese utan 1 ideiglenes aura jott letre.")
+
+
+def on_spell_targeted_priority(context):
+    target = context.target
+    owner = context.payload.get("target_owner")
+    if target is None or owner is None:
+        return
+
+    if _is_named(target, "Kod-Alak"):
+        zone_name = context.payload.get("zone")
+        index = context.payload.get("index")
+        if zone_name is None or index is None:
+            return
+        if ActionLibrary.return_target_to_hand(owner, zone_name, index, "Kod-Alak"):
+            context.cancelled = True
+            naplo.ir(f"Kod-Alak: {target.lap.nev} visszatert kezbe, a rajta levo varazslat semlegesitve.")
+
+
+def on_turn_end_priority(context):
+    owner = context.owner
+    if owner is None:
+        return
+
+    for zone_name in ("horizont", "zenit"):
+        zone = getattr(owner, zone_name)
+        for index in range(len(zone) - 1, -1, -1):
+            unit = zone[index]
+            if _is_board_entity(unit) and getattr(unit, "temp_mirage", False):
+                from engine.effects import EffectEngine
+
+                EffectEngine.destroy_unit(owner, zone_name, index, context.target, "Tengeri Delibab")
+
+    if getattr(owner, "kovetkezo_entitas_kedvezmeny", 0) > 0:
+        owner.kovetkezo_entitas_kedvezmeny = 0
 
