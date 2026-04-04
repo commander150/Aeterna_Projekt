@@ -7,6 +7,14 @@ from engine.triggers import trigger_engine
 from utils.logger import naplo
 from utils.text import normalize_lookup_text
 
+STRUCTURED_STATUS_RESOLVED = "resolved"
+STRUCTURED_STATUS_PARTIAL = "partial"
+STRUCTURED_STATUS_DEFERRED = "deferred"
+STRUCTURED_STATUS_NOT_APPLICABLE = "not_applicable"
+STRUCTURED_STATUS_MISSING = "missing"
+STRUCTURED_STATUS_FALLBACK_USED = "fallback_used"
+STRUCTURED_STATUS_NO_STRUCTURED = "no_structured"
+
 
 TAG_ALIASES = {
     "laphuzas": "draw",
@@ -34,6 +42,43 @@ TAG_ALIASES = {
 
 
 SUPPORTED_EFFECT_TAGS = tuple(sorted(set(TAG_ALIASES.values())))
+
+PASSIVE_KEYWORDS = {
+    "aegis",
+    "oltalom",
+    "ethereal",
+    "legies",
+    "celerity",
+    "gyorsasag",
+    "bane",
+    "metely",
+    "sundering",
+    "hasitas",
+    "harmonize",
+    "harmonizalas",
+    "resonance",
+    "rezonancia",
+    "clarion",
+    "riado",
+    "burst",
+    "echo",
+    "visszhang",
+}
+
+TRIGGER_HINTS = {
+    "on_play": {"on_play", "riado", "clarion", "summon", "megidez", "megidezeskor", "kijatszas"},
+    "trap": {"trap", "reaction", "reakcio", "aktivalas", "amikor_tamad", "spell_targeted", "on_attack_declared"},
+    "burst": {"burst", "reakcio", "pecsettores", "seal_break"},
+    "death": {"on_destroyed", "destroyed", "death", "halal", "echo", "visszhang", "uressegbe_kerul"},
+    "on_summon": {"on_summon", "summon", "megidez", "clarion", "riado"},
+    "on_attack_declared": {"on_attack_declared", "attack", "tamadas"},
+    "on_damage_taken": {"on_damage_taken", "damage_taken", "sebzest_kap"},
+    "on_manifestation_phase": {"on_manifestation_phase", "manifestation", "manifestacio"},
+    "on_awakening_phase": {"on_awakening_phase", "awakening", "ebredes"},
+    "on_turn_start": {"on_turn_start", "turn_start", "kor_eleje"},
+    "on_turn_end": {"on_turn_end", "turn_end", "kor_vege"},
+    "on_position_changed": {"on_position_changed", "position_changed", "helyet_cserel", "poziciot_valt"},
+}
 
 
 def _normalized_tags(card):
@@ -86,6 +131,72 @@ def _pick_unit(units, weakest=False):
 
 def _find_matching_tag(card, name):
     return name in _normalized_tags(card)
+
+
+def build_result(status, **extra):
+    result = {"status": status}
+    result["resolved"] = status in {
+        STRUCTURED_STATUS_RESOLVED,
+        STRUCTURED_STATUS_PARTIAL,
+        STRUCTURED_STATUS_FALLBACK_USED,
+    }
+    result["partial"] = status == STRUCTURED_STATUS_PARTIAL
+    result["deferred"] = status == STRUCTURED_STATUS_DEFERRED
+    result["not_applicable"] = status == STRUCTURED_STATUS_NOT_APPLICABLE
+    result.update(extra)
+    return result
+
+
+def _effect_class(card):
+    normalized_keywords = set(getattr(card, "keywords_normalized", []) or [])
+    normalized_triggers = set(getattr(card, "triggers_normalized", []) or [])
+    normalized_tags = set(_normalized_tags(card))
+    text = normalize_lookup_text(_canonical_text(card))
+
+    if normalized_tags:
+        if normalized_triggers:
+            return "mixed"
+        return "on_play"
+
+    if normalized_triggers:
+        joined = " ".join(sorted(normalized_triggers))
+        if any(term in joined for term in ("manifest", "ebredes", "awakening", "turn_end", "turn_start")):
+            return "continuous_aura"
+        if any(term in joined for term in ("tamad", "attack", "spell", "target", "halal", "death", "burst", "reakcio")):
+            return "triggered_reaction"
+        return "triggered_reaction"
+
+    if normalized_keywords and normalized_keywords.issubset(PASSIVE_KEYWORDS):
+        return "passive_static"
+
+    if any(token in text for token in ("amig", "[horizont]", "[zenit]", "while ")):
+        return "continuous_aura"
+    return "on_play"
+
+
+def is_passive_structured_card(card):
+    return _effect_class(card) in {"passive_static", "continuous_aura"}
+
+
+def should_defer_structured(card, category):
+    effect_class = _effect_class(card)
+    if effect_class in {"passive_static", "continuous_aura"}:
+        return False
+
+    normalized_triggers = set(getattr(card, "triggers_normalized", []) or [])
+    if not normalized_triggers:
+        text = normalize_lookup_text(_canonical_text(card))
+        if category == "on_play" and any(token in text for token in ("aktivalas:", "amikor ", "ha ", "barmikor")):
+            if not any(token in text for token in ("riado", "clarion", "megidezesekor", "kijatszasakor")):
+                return True
+        return False
+
+    accepted = TRIGGER_HINTS.get(category, set())
+    if any(trigger in accepted for trigger in normalized_triggers):
+        return False
+
+    joined = " ".join(sorted(normalized_triggers))
+    return not any(hint in joined for hint in accepted)
 
 
 def _resolve_draw(card, source_player, context):
@@ -301,23 +412,33 @@ def _resolve_misc_state(card, source_player, target_player, context):
 
 
 def resolve_structured_effect(card, source_player, target_player=None, context=None):
+    context = context or {}
     tags = _normalized_tags(card)
     if not tags:
-        return {"resolved": False, "mode": "no_structured"}
+        return build_result(STRUCTURED_STATUS_NO_STRUCTURED, mode="no_structured")
+
+    category = context.get("category", "on_play")
+    effect_class = _effect_class(card)
+
+    if effect_class in {"passive_static", "continuous_aura"}:
+        return build_result("passive_static_ignored", mode="structured", effect_class=effect_class)
+
+    if should_defer_structured(card, category):
+        return build_result(STRUCTURED_STATUS_DEFERRED, mode="structured", effect_class=effect_class)
 
     handlers = (
-        lambda: _resolve_draw(card, source_player, context or {}),
-        lambda: _resolve_damage(card, source_player, target_player, context or {}),
-        lambda: _resolve_destroy(card, source_player, target_player, context or {}),
-        lambda: _resolve_exhaust(card, source_player, target_player, context or {}),
-        lambda: _resolve_reactivate(card, source_player, context or {}),
-        lambda: _resolve_buff(card, source_player, context or {}),
-        lambda: _resolve_heal(card, source_player, context or {}),
-        lambda: _resolve_swap(card, source_player, target_player, context or {}),
-        lambda: _resolve_move_to_zenit(card, source_player, target_player, context or {}),
-        lambda: _resolve_move_to_horizont(card, source_player, target_player, context or {}),
-        lambda: _resolve_combat_control(card, source_player, target_player, context or {}),
-        lambda: _resolve_misc_state(card, source_player, target_player, context or {}),
+        lambda: _resolve_draw(card, source_player, context),
+        lambda: _resolve_damage(card, source_player, target_player, context),
+        lambda: _resolve_destroy(card, source_player, target_player, context),
+        lambda: _resolve_exhaust(card, source_player, target_player, context),
+        lambda: _resolve_reactivate(card, source_player, context),
+        lambda: _resolve_buff(card, source_player, context),
+        lambda: _resolve_heal(card, source_player, context),
+        lambda: _resolve_swap(card, source_player, target_player, context),
+        lambda: _resolve_move_to_zenit(card, source_player, target_player, context),
+        lambda: _resolve_move_to_horizont(card, source_player, target_player, context),
+        lambda: _resolve_combat_control(card, source_player, target_player, context),
+        lambda: _resolve_misc_state(card, source_player, target_player, context),
     )
 
     did_any = False
@@ -328,27 +449,32 @@ def resolve_structured_effect(card, source_player, target_player=None, context=N
             continue
 
     if did_any:
-        return {"resolved": True, "mode": "structured", "partial": False}
+        return build_result(STRUCTURED_STATUS_RESOLVED, mode="structured", effect_class=effect_class)
 
     status = normalize_lookup_text(getattr(card, "interpretation_status", ""))
-    partial = status in {"partial", "reszleges", "structured_partial"}
-    return {"resolved": partial, "mode": "structured", "partial": partial}
-
-
-def is_passive_structured_card(card):
-    if getattr(card, "keywords", None):
-        if not getattr(card, "effect_tags", None) and not getattr(card, "triggers", None):
-            return True
-    return False
+    if status in {"structured_partial", "partial", "reszleges"}:
+        return build_result(STRUCTURED_STATUS_PARTIAL, mode="structured", effect_class=effect_class)
+    if status in {"deferred", "trigger_waiting", "structured_deferred"}:
+        return build_result(STRUCTURED_STATUS_DEFERRED, mode="structured", effect_class=effect_class)
+    if status in {"not_applicable", "nincs_celpont"}:
+        return build_result(STRUCTURED_STATUS_NOT_APPLICABLE, mode="structured", effect_class=effect_class)
+    return build_result(STRUCTURED_STATUS_MISSING, mode="structured", effect_class=effect_class)
 
 
 def get_structured_status(card):
     status = normalize_lookup_text(getattr(card, "interpretation_status", ""))
     if status:
+        if status in {"structured_partial", "partial", "reszleges"}:
+            return "structured_partial"
+        if status in {"deferred", "trigger_waiting", "structured_deferred"}:
+            return "structured_deferred"
+        if status in {"not_applicable", "nincs_celpont"}:
+            return "not_applicable"
         return status
     if is_passive_structured_card(card):
-        return "passziv_kulcsszo"
+        return "passive_static_ignored"
+    if should_defer_structured(card, "on_play"):
+        return "structured_deferred"
     if getattr(card, "effect_tags", None):
         return "structured_partial"
     return "missing_implementation"
-

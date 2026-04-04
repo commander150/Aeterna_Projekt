@@ -467,6 +467,29 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertTrue(result["resolved"])
         self.assertEqual(owner.kez[-1].nev, "Elesett")
 
+    def test_aeterna_aldasa_rebuilds_broken_seal_from_deck_top(self):
+        owner = make_player("Owner")
+        owner.pecsetek = [make_card("Megmaradt Pecset", card_type="Pecsét")]
+        owner.pakli = [make_card("Uj Pecset", card_type="Ige")]
+
+        result = resolve_card_handler(make_card("Aeterna Áldása", card_type="Ige"), category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(len(owner.pecsetek), 2)
+        self.assertEqual(owner.pecsetek[-1].nev, "Uj Pecset")
+
+    def test_sirba_teres_returns_unit_to_same_slot_active(self):
+        owner = make_player("Owner")
+        owner.horizont[2] = CsataEgyseg(make_card("Alany", atk=3, hp=4))
+
+        result = resolve_card_handler(make_card("Sírba Térés", card_type="Ige"), category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertIsNotNone(owner.horizont[2])
+        self.assertEqual(owner.horizont[2].lap.nev, "Alany")
+        self.assertFalse(owner.horizont[2].kimerult)
+        self.assertEqual(owner.horizont[2].akt_hp, 4)
+
 if __name__ == "__main__":
     unittest.main()
 

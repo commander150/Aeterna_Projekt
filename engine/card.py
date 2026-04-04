@@ -12,9 +12,10 @@ class Kartya:
     def __init__(self, sor_adat):
         row = sor_adat if isinstance(sor_adat, dict) else {}
 
-        def _get(index, key, default=""):
-            if key in row:
-                return row.get(key)
+        def _get(index, *keys, default=""):
+            for key in keys:
+                if key in row:
+                    return row.get(key)
             if isinstance(sor_adat, (list, tuple)) and len(sor_adat) > index:
                 return sor_adat[index]
             return default
@@ -25,25 +26,28 @@ class Kartya:
             except Exception:
                 return 0
 
-        self.nev = normalize_metadata_value(_get(0, "kartya_nev", "Nevtelen")) or "Nevtelen"
-        self.kartyatipus = normalize_metadata_value(_get(1, "kartyatipus", ""))
-        self.birodalom = normalize_metadata_value(_get(2, "birodalom", ""))
-        self.klan = normalize_metadata_value(_get(3, "klan", ""))
-        self.faj = normalize_metadata_value(_get(4, "faj", ""))
-        self.kaszt = normalize_metadata_value(_get(5, "kaszt", ""))
+        self.nev = normalize_metadata_value(_get(0, "kartya_nev", default="Nevtelen")) or "Nevtelen"
+        self.kartyatipus = normalize_metadata_value(_get(1, "kartyatipus", "tipus", default=""))
+        self.birodalom = normalize_metadata_value(_get(2, "birodalom", default=""))
+        self.klan = normalize_metadata_value(_get(3, "klan", default=""))
+        self.faj = normalize_metadata_value(_get(4, "faj", default=""))
+        self.kaszt = normalize_metadata_value(_get(5, "kaszt", default=""))
 
-        self.magnitudo = _to_int(_get(6, "magnitudo", 0))
-        self.aura_koltseg = _to_int(_get(7, "aura_koltseg", 0))
-        self.tamadas = _to_int(_get(8, "tamadas", 0))
-        self.eletero = _to_int(_get(9, "eletero", 0))
-        self.kepesseg = normalize_metadata_value(_get(10, "kepesseg", ""))
+        self.magnitudo = _to_int(_get(6, "magnitudo", default=0))
+        self.aura_koltseg = _to_int(_get(7, "aura_koltseg", "aura", default=0))
+        self.tamadas = _to_int(_get(8, "tamadas", "atk", default=0))
+        self.eletero = _to_int(_get(9, "eletero", "hp", default=0))
+        self.kepesseg = normalize_metadata_value(_get(10, "kepesseg", default=""))
 
-        self.canonical_text = normalize_metadata_value(_get(11, "kepesseg_canonical", "")) or self.kepesseg
-        self.keywords = normalized_metadata_list(_get(12, "kulcsszavak_felismerve", ""))
-        self.triggers = normalized_metadata_list(_get(13, "trigger_felismerve", ""))
-        self.targets = normalized_metadata_list(_get(14, "celpont_felismerve", ""))
-        self.effect_tags = normalized_metadata_list(_get(15, "hatascimkek", ""))
-        self.interpretation_status = normalize_metadata_value(_get(16, "ertelmezesi_statusz", ""))
+        self.canonical_text = normalize_metadata_value(_get(11, "kepesseg_canonical", default="")) or self.kepesseg
+        self.keywords = normalized_metadata_list(_get(11, "kulcsszavak_felismerve", default=""))
+        self.triggers = normalized_metadata_list(_get(12, "trigger_felismerve", default=""))
+        self.targets = normalized_metadata_list(_get(13, "celpont_felismerve", default=""))
+        self.effect_tags = normalized_metadata_list(_get(14, "hatascimkek", default=""))
+        self.interpretation_status = normalize_metadata_value(_get(15, "ertelmezesi_statusz", default=""))
+
+        if self.keywords and self.canonical_text == self.kepesseg and "kepesseg_canonical" not in row:
+            self.canonical_text = self.kepesseg
 
         self.keywords_normalized = list(self.keywords)
         self.triggers_normalized = list(self.triggers)

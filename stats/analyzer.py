@@ -21,8 +21,11 @@ class Statisztika:
             "attempted": 0,
             "resolved": 0,
             "partial": 0,
+            "deferred": 0,
+            "passive": 0,
+            "not_applicable": 0,
             "fallback": 0,
-            "unresolved": 0,
+            "missing": 0,
         }
 
     def faj_statisztika(self, faj):
@@ -108,8 +111,11 @@ class Statisztika:
         naplo.ir(f"  - structured probalkozasok: {self.structured_metrics['attempted']}")
         naplo.ir(f"  - teljes structured feloldas: {self.structured_metrics['resolved']}")
         naplo.ir(f"  - reszleges structured feloldas: {self.structured_metrics['partial']}")
+        naplo.ir(f"  - deferred triggerre varakozik: {self.structured_metrics['deferred']}")
+        naplo.ir(f"  - passive/static figyelmen kivul hagyva: {self.structured_metrics['passive']}")
+        naplo.ir(f"  - nem alkalmazhato ebben a helyzetben: {self.structured_metrics['not_applicable']}")
         naplo.ir(f"  - text fallbackre esett: {self.structured_metrics['fallback']}")
-        naplo.ir(f"  - unresolved maradt: {self.structured_metrics['unresolved']}")
+        naplo.ir(f"  - tenylegesen hianyzo maradt: {self.structured_metrics['missing']}")
         naplo.ir("=" * 40)
 
 

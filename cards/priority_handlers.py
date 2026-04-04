@@ -401,6 +401,45 @@ def handle_az_orok_elet_temploma(card, jatekos, **_):
     return _handled(f"Az Orok Elet Temploma: {jatekos.nev} szamara aktiv lett az allando eleteronovelo sikhatas.")
 
 
+def handle_aeterna_aldasa(card, jatekos, **_):
+    max_pecset = getattr(jatekos, "max_pecsetek_szama", 5)
+    if len(jatekos.pecsetek) >= max_pecset:
+        return _handled("Aeterna Aldasa: nincs feltort Pecset, vagy nincs ures Pecset mezo.", partial=True)
+    if not jatekos.pakli:
+        return _handled("Aeterna Aldasa: a pakli ures volt, nem lehetett uj Pecsetet visszahelyezni.", partial=True)
+
+    uj_pecset = jatekos.pakli.pop()
+    jatekos.pecsetek.append(uj_pecset)
+    naplo.ir(f"Aeterna Aldasa: {uj_pecset.nev} uj Pecsetkent, keppel lefele visszakerult.")
+    return _handled("Aeterna Aldasa: 1 feltort Pecset helye vissza lett allitva a pakli tetejerol.")
+
+
+def handle_sirba_teres(card, jatekos, **_):
+    from engine.effects import EffectEngine
+
+    cel = _best_other_allied_unit(jatekos) or next(iter(_allied_units(jatekos)), None)
+    if cel is None:
+        return _handled("Sirba Teres: nem volt sajat Entitas a visszahivashoz.", partial=True)
+
+    zone_name, index, unit = cel
+    eredeti_lap = unit.lap
+    if not EffectEngine.destroy_unit(jatekos, zone_name, index, None, card.nev):
+        return _handled("Sirba Teres: a celpont nem hagyta el ervenyesen a palyat.", partial=True)
+
+    if eredeti_lap not in jatekos.temeto:
+        return _handled("Sirba Teres: a lap nem kerult az Uressegbe, igy nem hozhato vissza.", partial=True)
+
+    jatekos.temeto.remove(eredeti_lap)
+    uj_egyseg = CsataEgyseg(eredeti_lap)
+    uj_egyseg.owner = jatekos
+    uj_egyseg.kimerult = False
+    uj_egyseg.akt_hp = eredeti_lap.eletero
+    set_zone_slot(jatekos, zone_name, index, uj_egyseg, "sirba_teres_return")
+    trigger_engine.dispatch("on_position_changed", source=eredeti_lap, owner=jatekos, payload={"from": "uresseg", "to": zone_name})
+    trigger_engine.dispatch("on_summon", source=uj_egyseg, owner=jatekos, payload={"zone": zone_name, "revived": True, "returned": True})
+    return _handled(f"Sirba Teres: {eredeti_lap.nev} elhagyta a palyat, majd teljes HP-val aktivan visszatert ugyanarra a mezore.")
+
+
 def handle_informacio_vasarlas(card, jatekos, **_):
     if not jatekos.pakli:
         return _handled("Informacio-Vasarlas: a pakli ures volt.", partial=True)

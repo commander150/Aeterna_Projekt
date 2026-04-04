@@ -5,9 +5,36 @@ from utils.logger import naplo
 from engine.card import Kartya
 
 
+HEADER_ALIASES = {
+    "kartya_nev": "kartya_nev",
+    "tipus": "kartyatipus",
+    "kartyatipus": "kartyatipus",
+    "birodalom": "birodalom",
+    "klan": "klan",
+    "faj": "faj",
+    "kaszt": "kaszt",
+    "magnitudo": "magnitudo",
+    "aura": "aura_koltseg",
+    "aura_koltseg": "aura_koltseg",
+    "atk": "tamadas",
+    "tamadas": "tamadas",
+    "hp": "eletero",
+    "eletero": "eletero",
+    "kepesseg": "kepesseg",
+    "kepesseg_canonical": "kepesseg_canonical",
+    "kulcsszavak_felismerve": "kulcsszavak_felismerve",
+    "trigger_felismerve": "trigger_felismerve",
+    "celpont_felismerve": "celpont_felismerve",
+    "hatascimkek": "hatascimkek",
+    "ertelmezesi_statusz": "ertelmezesi_statusz",
+    "engine_megjegyzes": "engine_megjegyzes",
+}
+
+
 def _normalize_header_name(header):
     normalized = normalize_lookup_text(header)
-    return normalized.replace(" ", "_")
+    normalized = normalized.replace(" ", "_")
+    return HEADER_ALIASES.get(normalized, normalized)
 
 
 def _row_to_mapping(headers, row):

@@ -1,4 +1,4 @@
-import unittest
+﻿import unittest
 
 from engine.card import Kartya, CsataEgyseg
 from engine.card_metadata import has_effect_tag, has_keyword, has_trigger, parse_semicolon_list
@@ -46,28 +46,53 @@ def make_player(name="P1"):
 
 class TestStructuredEffects(unittest.TestCase):
     def test_parse_semicolon_list(self):
-        self.assertEqual(parse_semicolon_list("Sebzés; LapHúzás ;"), ["Sebzés", "LapHúzás"])
+        self.assertEqual(parse_semicolon_list("Sebzes; LapHuzas ;"), ["Sebzes", "LapHuzas"])
 
     def test_card_loads_structured_fields(self):
         card = Kartya(
             {
                 "kartya_nev": "Teszt Lap",
-                "kartyatipus": "Ige",
+                "tipus": "Ige",
                 "birodalom": "Aether",
                 "kepesseg": "Flavor text",
-                "kepesseg_canonical": "Okozz 2 sebzést.",
+                "kepesseg_canonical": "Okozz 2 sebzest.",
                 "kulcsszavak_felismerve": "Burst; Echo",
                 "trigger_felismerve": "on_play; on_destroyed",
-                "celpont_felismerve": "Horizont; Pecsét",
-                "hatascimkek": "Sebzés; PecsétSebzés",
+                "celpont_felismerve": "Horizont; Pecset",
+                "hatascimkek": "Sebzes; PecsetSebzes",
                 "ertelmezesi_statusz": "structured",
             }
         )
 
-        self.assertEqual(card.canonical_text, "Okozz 2 sebzést.")
+        self.assertEqual(card.canonical_text, "Okozz 2 sebzest.")
         self.assertTrue(has_keyword(card, "burst"))
         self.assertTrue(has_trigger(card, "on_play"))
         self.assertTrue(has_effect_tag(card, "sebzes"))
+
+    def test_card_loads_new_sheet_layout_without_canonical_column(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Teszt Entitas",
+                "tipus": "Entitas",
+                "birodalom": "Lux",
+                "magnitudo": 3,
+                "aura": 2,
+                "atk": 4,
+                "hp": 5,
+                "kepesseg": "[HORIZONT] Oltalom",
+                "kulcsszavak_felismerve": "Oltalom",
+                "trigger_felismerve": "",
+                "celpont_felismerve": "",
+                "hatascimkek": "",
+                "ertelmezesi_statusz": "passziv_kulcsszo",
+            }
+        )
+
+        self.assertEqual(card.kartyatipus, "Entitas")
+        self.assertTrue(card.egyseg_e)
+        self.assertEqual(card.aura_koltseg, 2)
+        self.assertEqual(card.tamadas, 4)
+        self.assertEqual(card.eletero, 5)
 
     def test_structured_damage_hits_enemy_unit(self):
         card = Kartya(
@@ -75,14 +100,14 @@ class TestStructuredEffects(unittest.TestCase):
                 "kartya_nev": "Structured Sebzes",
                 "kartyatipus": "Ige",
                 "kepesseg": "-",
-                "kepesseg_canonical": "Okozz 2 sebzést egy ellenséges Horizont Entitásnak.",
-                "hatascimkek": "Sebzés",
+                "kepesseg_canonical": "Okozz 2 sebzest egy ellenseges Horizont Entitasnak.",
+                "hatascimkek": "Sebzes",
                 "celpont_felismerve": "Horizont",
             }
         )
         owner = make_player("Caster")
         enemy = make_player("Enemy")
-        enemy.horizont[0] = CsataEgyseg(Kartya({"kartya_nev": "Celpont", "kartyatipus": "Entitás", "tamadas": 1, "eletero": 2}))
+        enemy.horizont[0] = CsataEgyseg(Kartya({"kartya_nev": "Celpont", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2}))
 
         result = resolve_structured_effect(card, owner, enemy, {"category": "on_play"})
 
@@ -92,16 +117,16 @@ class TestStructuredEffects(unittest.TestCase):
     def test_structured_seal_damage_breaks_seal(self):
         card = Kartya(
             {
-                "kartya_nev": "Structured Pecsét",
+                "kartya_nev": "Structured Pecset",
                 "kartyatipus": "Ige",
-                "kepesseg_canonical": "Okozz 1 közvetlen sebzést az ellenfél Pecsétjének.",
-                "hatascimkek": "Sebzés; PecsétSebzés",
-                "celpont_felismerve": "Pecsét",
+                "kepesseg_canonical": "Okozz 1 kozvetlen sebzest az ellenfel Pecsetjenek.",
+                "hatascimkek": "Sebzes; PecsetSebzes",
+                "celpont_felismerve": "Pecset",
             }
         )
         owner = make_player("Caster")
         enemy = make_player("Enemy")
-        enemy.pecsetek = [Kartya({"kartya_nev": "Pecsét", "kartyatipus": "Pecsét", "magnitudo": 1})]
+        enemy.pecsetek = [Kartya({"kartya_nev": "Pecset", "kartyatipus": "Pecset", "magnitudo": 1})]
 
         result = resolve_structured_effect(card, owner, enemy, {"category": "on_play"})
 
