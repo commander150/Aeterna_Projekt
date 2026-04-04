@@ -25,7 +25,6 @@ Innen a meccsfuttatás közben jellemzően ezek a core modulok kapcsolódnak be:
 - `engine/actions.py`
 - `engine/board_utils.py`
 - `engine/triggers.py`
-- `engine/keywords.py`
 - `engine/keyword_engine.py`
 - `engine/effects.py`
 - `engine/structured_effects.py`
@@ -54,7 +53,6 @@ Az alábbi modulok jelenleg a hivatalos, aktív motor részei:
 - `engine/effect_diagnostics_v2.py`
 - `engine/triggers.py`
 - `engine/targeting.py`
-- `engine/keywords.py`
 - `engine/keyword_engine.py`
 - `engine/keyword_registry.py`
 - `engine/config.py`
@@ -105,10 +103,14 @@ Az alábbi státuszok a jelenlegi, működő architektúrához igazodnak.
   - indok: jelenleg egyetlen delegáló metódust tartalmaz a `game.py` felé
 
 - `engine/keywords.py`
-  - státusz: félrevezető / átnevezendő
-  - indok: a runtime ezen keresztül importálja a `KeywordEngine`-t, de a fájlban
-    még egy legacy implementáció is bent van; emiatt a név és a tartalom nem
-    teljesen egyértelmű
+  - státusz: wrapper marad átmenetileg
+  - indok: tiszta kompatibilitási re-export a hivatalos
+    `engine.keyword_engine.KeywordEngine` fölött, benne maradt legacy logika
+    nélkül
+
+- `engine/keyword_engine.py`
+  - státusz: core és marad
+  - indok: ez a hivatalos, közvetlen runtime keyword-útvonal
 
 - `tests/test_keywords.py`
   - státusz: tesztoldali igazítást igényelt
@@ -120,6 +122,8 @@ Az alábbi státuszok a jelenlegi, működő architektúrához igazodnak.
 - `engine/effects.py` még mindig nagy és több korszak logikáját hordozza.
 - `engine/effect_diagnostics_v2.py` side-effect importtal aktiválódik a
   runnerből, ami rejtett függést jelent.
+- A hivatalos keyword-útvonal most: `engine.keyword_engine.KeywordEngine`.
+  Az `engine.keywords` csak kompatibilitási wrapper.
 - A `game_state/phases/combat` szétválasztás jelenleg még vékony wrapper-szintű,
   nem teljes moduláris szeletelés.
 - A `cards/resolver.py` + `cards/priority_handlers.py` útvonal működőképes, de

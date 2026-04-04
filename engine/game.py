@@ -17,7 +17,7 @@ from stats.analyzer import stats
 from engine.player import Jatekos
 from engine.card import CsataEgyseg
 from engine.effects import EffectEngine
-from engine.keywords import KeywordEngine
+from engine.keyword_engine import KeywordEngine
 from engine.triggers import trigger_engine
 from cards.resolver import can_activate_trap, resolve_card_handler, resolve_lethal_trap, resolve_spell_cast_trap, handle_sivatagi_kem_pecset_sebzes
 
