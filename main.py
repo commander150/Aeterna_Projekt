@@ -12,11 +12,11 @@ XLSX_FAJL = os.path.join(PROGRAM_MAPPA, "cards.xlsx")
 # Ures ertek vagy None -> alapertelmezett, veletlen viselkedes.
 # =========================
 SZIMULACIOS_BEALLITASOK = {
-    "jatekok_szama": 3,
-    "random_seed": None,
+    "jatekok_szama": 10,
+    "random_seed": 123,
     "jatekos1_birodalom": None,
     "jatekos2_birodalom": None,
-    "veletlen_birodalmak": True,
+    "veletlen_birodalmak": False,
     "scenario_nev": None,
 }
 
