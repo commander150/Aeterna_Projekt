@@ -10,7 +10,7 @@ from engine.card import CsataEgyseg
 from engine.effects import EffectEngine
 from engine.keywords import KeywordEngine
 from engine.triggers import trigger_engine
-from cards.resolver import can_activate_trap, resolve_card_handler
+from cards.resolver import can_activate_trap, resolve_card_handler, resolve_lethal_trap, resolve_spell_cast_trap
 
 
 class AeternaSzimulacio:
@@ -59,6 +59,7 @@ class AeternaSzimulacio:
                         jatekos.kez.remove(lap)
                         zona[i] = CsataEgyseg(lap)
                         zona[i].owner = jatekos
+                        jatekos.megidezett_entitasok_ebben_a_korben += 1
                         stats.faj_statisztika(lap.faj)
                         naplo.ir(f"⚔️ {jatekos.nev} megidézte: {lap.nev}")
 
@@ -70,6 +71,8 @@ class AeternaSzimulacio:
                         )
                         ellenfel = self.p2 if jatekos == self.p1 else self.p1
                         self._resolve_summon_traps(zona[i], jatekos, ellenfel)
+                        if zona[i] is None:
+                            break
                         gyoztes = self._alkalmaz_kartya_hatast(lap, jatekos, ellenfel)
                         if gyoztes:
                             return gyoztes
@@ -107,6 +110,7 @@ class AeternaSzimulacio:
 
                 ellenfel = self.p2 if jatekos == self.p1 else self.p1
                 gyoztes = self._alkalmaz_kartya_hatast(lap, jatekos, ellenfel)
+                self._resolve_spell_cast_traps(lap, jatekos, ellenfel)
                 if gyoztes:
                     return gyoztes
 
@@ -194,8 +198,35 @@ class AeternaSzimulacio:
                 opponent.zenit[index] = None
                 opponent.hasznalt_jelek_ebben_a_korben += 1
                 stats.aktivalt_jelek += 1
+                if result.get("destroy_summoned"):
+                    if summoned_unit in owner.horizont:
+                        self._elpusztit_egyseget(owner, "horizont", owner.horizont.index(summoned_unit), "csapda")
+                    elif summoned_unit in owner.zenit:
+                        self._elpusztit_egyseget(owner, "zenit", owner.zenit.index(summoned_unit), "csapda")
                 return True
 
+        return False
+
+    def _resolve_spell_cast_traps(self, spell_card, caster, defender):
+        if defender.hasznalt_jelek_ebben_a_korben >= 2:
+            return False
+
+        for index, trap in enumerate(defender.zenit):
+            if trap is None or isinstance(trap, CsataEgyseg):
+                continue
+
+            result = resolve_spell_cast_trap(
+                trap,
+                varazslat=spell_card,
+                jatekos=defender,
+                ellenfel=caster,
+            )
+            if result.get("consume_trap"):
+                defender.temeto.append(trap)
+                defender.zenit[index] = None
+                defender.hasznalt_jelek_ebben_a_korben += 1
+                stats.aktivalt_jelek += 1
+                return True
         return False
 
     def _can_direct_attack_exhausted_unit(self, celpont):
@@ -278,12 +309,18 @@ class AeternaSzimulacio:
                     blokkolo_index = vedo.horizont.index(b)
 
                     if b.serul(egyseg.akt_tamadas):
-                        blokkolo_meghalt = self._elpusztit_egyseget(vedo, "horizont", blokkolo_index)
+                        lethal_result = resolve_lethal_trap(owner=vedo, unit=b, attacker=egyseg, zone_name="horizont", index=blokkolo_index)
+                        if lethal_result and lethal_result.get("prevented_death"):
+                            blokkolo_meghalt = False
+                        else:
+                            blokkolo_meghalt = self._elpusztit_egyseget(vedo, "horizont", blokkolo_index)
 
                     KeywordEngine.on_damage_dealt(egyseg, b)
 
                     if egyseg.serul(b.akt_tamadas):
-                        self._elpusztit_egyseget(tamado, "horizont", i)
+                        lethal_result = resolve_lethal_trap(owner=tamado, unit=egyseg, attacker=b, zone_name="horizont", index=i)
+                        if not (lethal_result and lethal_result.get("prevented_death")):
+                            self._elpusztit_egyseget(tamado, "horizont", i)
 
                     KeywordEngine.on_damage_dealt(b, egyseg)
 
@@ -313,12 +350,16 @@ class AeternaSzimulacio:
                         naplo.ir(f"🎯 Zenit támadás: {z.lap.nev}")
 
                         if target_unit.serul(egyseg.akt_tamadas):
-                            self._elpusztit_egyseget(vedo, "zenit", target_index)
+                            lethal_result = resolve_lethal_trap(owner=vedo, unit=target_unit, attacker=egyseg, zone_name="zenit", index=target_index)
+                            if not (lethal_result and lethal_result.get("prevented_death")):
+                                self._elpusztit_egyseget(vedo, "zenit", target_index)
 
                         KeywordEngine.on_damage_dealt(egyseg, target_unit)
 
                         if egyseg.serul(target_unit.akt_tamadas):
-                            self._elpusztit_egyseget(tamado, "horizont", i)
+                            lethal_result = resolve_lethal_trap(owner=tamado, unit=egyseg, attacker=target_unit, zone_name="horizont", index=i)
+                            if not (lethal_result and lethal_result.get("prevented_death")):
+                                self._elpusztit_egyseget(tamado, "horizont", i)
 
                         KeywordEngine.on_damage_dealt(target_unit, egyseg)
 
@@ -328,7 +369,9 @@ class AeternaSzimulacio:
                         naplo.ir(f"Kozvetlen tamadas kimerult egysegre: {target_unit.lap.nev}")
 
                         if target_unit.serul(egyseg.akt_tamadas):
-                            self._elpusztit_egyseget(vedo, "horizont", target_index)
+                            lethal_result = resolve_lethal_trap(owner=vedo, unit=target_unit, attacker=egyseg, zone_name="horizont", index=target_index)
+                            if not (lethal_result and lethal_result.get("prevented_death")):
+                                self._elpusztit_egyseget(vedo, "horizont", target_index)
 
                         KeywordEngine.on_damage_dealt(egyseg, target_unit)
 

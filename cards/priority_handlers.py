@@ -7,6 +7,7 @@ from engine.card import CsataEgyseg
 from engine.targeting import TargetingEngine
 from engine.triggers import trigger_engine
 from utils.logger import naplo
+from utils.text import normalize_lookup_text
 
 
 def _handled(message=None, partial=False, **extra):
@@ -35,6 +36,23 @@ def _negative_spell_markers(unit):
         markers = set()
         setattr(unit, "negative_spell_markers", markers)
     return markers
+
+
+def _is_machine_card(card):
+    faj = normalize_lookup_text(getattr(card, "faj", ""))
+    return "gepezet" in faj or "kiborg" in faj or "golem" in faj
+
+
+def _consume_named_trap(player, trap_name):
+    for index, trap in enumerate(player.zenit):
+        if trap is None or isinstance(trap, CsataEgyseg):
+            continue
+        if normalize_lookup_text(getattr(trap, "nev", "")) == normalize_lookup_text(trap_name):
+            player.temeto.append(trap)
+            player.zenit[index] = None
+            player.hasznalt_jelek_ebben_a_korben += 1
+            return trap
+    return None
 
 
 def _summon_token(owner, lane_index, name, atk, hp, race="Token", realm="Semleges", exhausted=True):
@@ -251,6 +269,223 @@ def handle_varatlan_erosites(card, tamado_egyseg, tamado, vedo, **_):
     )
 
 
+def handle_a_hulladektelep(card, jatekos, **_):
+    setattr(jatekos, "hulladektelep_aktiv", True)
+    return _handled(f"🏗️ A Hulladéktelep: {jatekos.nev} számára aktív lett a gépezet-újrahasznosító síkhatás.")
+
+
+def handle_alvilagi_kapcsolatok(card, jatekos, **_):
+    traps = [lap for lap in jatekos.pakli if getattr(lap, "jel_e", False)]
+    if not traps:
+        return _handled("🕸️ Alvilági Kapcsolatok: nem volt kereshető Jel a pakliban.", partial=True)
+
+    target = min(traps, key=lambda lap: (lap.magnitudo, lap.aura_koltseg, lap.nev))
+    empty_index = next((i for i, slot in enumerate(jatekos.zenit) if slot is None), None)
+    if empty_index is None:
+        return _handled("🕸️ Alvilági Kapcsolatok: nem volt üres Zenit hely a csapdának.", partial=True)
+
+    jatekos.pakli.remove(target)
+    jatekos.zenit[empty_index] = target
+    return _handled(f"🕸️ Alvilági Kapcsolatok: {target.nev} ingyen, lefordítva a Zenitbe került.")
+
+
+def handle_az_orok_elet_temploma(card, jatekos, **_):
+    setattr(jatekos, "orok_elet_temploma_aktiv", True)
+    return _handled(f"⛪ Az Örök Élet Temploma: {jatekos.nev} számára aktív lett az állandó életerőnövelő síkhatás.")
+
+
+def handle_informacio_vasarlas(card, jatekos, **_):
+    if not jatekos.pakli:
+        return _handled("🧠 Információ-Vásárlás: a pakli üres volt.", partial=True)
+
+    top_cards = []
+    for _ in range(min(3, len(jatekos.pakli))):
+        top_cards.append(jatekos.pakli.pop())
+
+    chosen = max(top_cards, key=lambda lap: (lap.aura_koltseg, lap.magnitudo, lap.tamadas + lap.eletero))
+    jatekos.kez.append(chosen)
+    top_cards.remove(chosen)
+
+    for card_to_bottom in top_cards:
+        jatekos.pakli.insert(0, card_to_bottom)
+
+    return _handled(
+        f"🧠 Információ-Vásárlás: {chosen.nev} kézbe került, a maradék {len(top_cards)} lap a pakli aljára ment."
+    )
+
+
+def handle_rendszerfrissites(card, jatekos, **_):
+    units = _allied_units(jatekos)
+    if not units:
+        return _handled("🛠️ Rendszerfrissítés: nem volt saját Entitás a célponthoz.", partial=True)
+
+    _, _, unit = max(units, key=lambda data: (data[2].akt_tamadas, data[2].akt_hp))
+    unit.protect_keywords_until_turn_end = True
+    unit.protect_atk_from_enemy_until_turn_end = True
+    return _handled(
+        f"🛠️ Rendszerfrissítés: {unit.lap.nev} a kör végéig nem veszítheti el a kulcsszavait, és ATK-ja nem csökkenthető ellenséges hatásokkal."
+    )
+
+
+def handle_a_gyenge_elhullik(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("☠️ A Gyenge Elhullik: nem volt ellenfél.", partial=True)
+
+    candidates = [data for data in _enemy_horizon_units(ellenfel) if data[2].akt_hp <= 2]
+    if not candidates:
+        return _handled("☠️ A Gyenge Elhullik: nem volt 2 vagy kevesebb jelenlegi HP-jú ellenséges Horizont Entitás.", partial=True)
+
+    from engine.effects import EffectEngine
+
+    for zone_name, index, unit in sorted(candidates, key=lambda data: data[1], reverse=True):
+        EffectEngine.destroy_unit(ellenfel, zone_name, index, jatekos, "a gyenge elhullik")
+    return _handled(f"☠️ A Gyenge Elhullik: {len(candidates)} ellenséges Horizont Entitás elpusztult.")
+
+
+def handle_hamis_arany(card, varazslat, jatekos, ellenfel, **_):
+    if varazslat is None or getattr(varazslat, "egyseg_e", False) or getattr(varazslat, "jel_e", False):
+        return {"resolved": False}
+
+    aktiv = 0
+    for source in ellenfel.osforras:
+        if isinstance(source, dict) and not source.get("hasznalt", False):
+            source["hasznalt"] = True
+            aktiv += 1
+    ellenfel.rezonancia_aura = 0
+
+    return _handled(
+        f"🪤 Hamis Arany: {ellenfel.nev} varázslata létrejött, de {aktiv} megmaradt aktív aurája elveszett ebben a körben.",
+        consume_trap=True,
+    )
+
+
+def can_activate_hamis_arany(card, varazslat=None, **_):
+    if varazslat is None:
+        return False
+    return not getattr(varazslat, "egyseg_e", False) and not getattr(varazslat, "jel_e", False)
+
+
+def handle_hamis_igeret(card, vedo, summoned_unit=None, **_):
+    if summoned_unit is None or summoned_unit.lap.magnitudo < 4:
+        return {"resolved": False}
+
+    vedo.kovetkezo_kor_ideiglenes_aura = getattr(vedo, "kovetkezo_kor_ideiglenes_aura", 0) + 2
+    return _handled(
+        f"🪤 Hamis Ígéret: {vedo.nev} a következő saját körére 2 ideiglenes Aether Aurát kapott előkészítve.",
+        consume_trap=True,
+    )
+
+
+def can_activate_hamis_igeret(card, summoned_unit=None, **_):
+    return summoned_unit is not None and summoned_unit.lap.magnitudo >= 4
+
+
+def handle_kereskedelmi_embargo(card, vedo, summoned_unit=None, tamado=None, **_):
+    if summoned_unit is None or tamado is None:
+        return {"resolved": False}
+    if getattr(tamado, "megidezett_entitasok_ebben_a_korben", 0) < 2:
+        return {"resolved": False}
+
+    return _handled(
+        f"🪤 Kereskedelmi Embargó: {summoned_unit.lap.nev} a sikeres idézés után azonnal az Ürességbe került.",
+        consume_trap=True,
+        destroy_summoned=True,
+    )
+
+
+def can_activate_kereskedelmi_embargo(card, vedo=None, summoned_unit=None, tamado=None, **_):
+    return vedo is not None and summoned_unit is not None and tamado is not None and getattr(tamado, "megidezett_entitasok_ebben_a_korben", 0) >= 2
+
+
+def can_activate_angyali_beavatkozas(card, owner, unit, attacker=None, **_):
+    return owner is not None and unit is not None and attacker is not None
+
+
+def handle_angyali_beavatkozas(card, owner, unit, attacker=None, **_):
+    if not can_activate_angyali_beavatkozas(card, owner, unit, attacker=attacker):
+        return {"resolved": False}
+
+    unit.akt_hp = 1
+    attacker.kimerult = True
+    attacker.extra_exhausted_turns = getattr(attacker, "extra_exhausted_turns", 0) + 1
+    return _handled(
+        f"🪤 Angyali Beavatkozás: {unit.lap.nev} megmenekült 1 HP-n, {attacker.lap.nev} pedig a következő körére is kimerült marad.",
+        consume_trap=True,
+        prevented_death=True,
+    )
+
+
+def can_activate_hamis_bizonyitek(card, spell_card=None, target_owner=None, caster=None, **_):
+    if spell_card is None or target_owner is None or caster is None:
+        return False
+    if normalize_lookup_text(getattr(spell_card, "kartyatipus", "")) != "rituale":
+        return False
+    return any(isinstance(unit, CsataEgyseg) for unit in caster.horizont + caster.zenit)
+
+
+def handle_hamis_bizonyitek(card, spell_card=None, target_owner=None, caster=None, **_):
+    if not can_activate_hamis_bizonyitek(card, spell_card=spell_card, target_owner=target_owner, caster=caster):
+        return {"resolved": False}
+
+    redirect_targets = ActionLibrary._all_units(caster)
+    if not redirect_targets:
+        return _handled("🪤 Hamis Bizonyíték: nem volt átirányítható ellenséges saját Entitás.", partial=True)
+
+    zone_name, index, unit = min(redirect_targets, key=lambda data: (data[2].akt_hp, data[2].akt_tamadas))
+    return _handled(
+        f"🪤 Hamis Bizonyíték: a {spell_card.nev} célpontja átirányítva {unit.lap.nev} lapra.",
+        consume_trap=True,
+        redirected_target=(zone_name, index, unit),
+    )
+
+
+def can_activate_hamis_halal(card, owner, unit, reason="combat", **_):
+    return owner is not None and unit is not None and reason == "combat"
+
+
+def handle_hamis_halal(card, owner, unit, zone_name=None, index=None, **_):
+    if zone_name is None or index is None or not can_activate_hamis_halal(card, owner, unit):
+        return {"resolved": False}
+
+    getattr(owner, zone_name)[index] = None
+    owner.kez.append(unit.lap)
+    return _handled(
+        f"🪤 Hamis Halál: {unit.lap.nev} megmenekült, és azonnal visszakerült a kézbe.",
+        consume_trap=True,
+        prevented_death=True,
+        returned_to_hand=True,
+    )
+
+
+def resolve_spell_redirect_trap(spell_card, caster, target_owner):
+    trap = _consume_named_trap(target_owner, "Hamis Bizonyíték")
+    if trap is None:
+        return None
+
+    result = handle_hamis_bizonyitek(trap, spell_card=spell_card, target_owner=target_owner, caster=caster)
+    if not result.get("resolved"):
+        target_owner.zenit.append(target_owner.temeto.pop())
+        target_owner.hasznalt_jelek_ebben_a_korben = max(0, target_owner.hasznalt_jelek_ebben_a_korben - 1)
+        return None
+    return result
+
+
+def resolve_combat_lethal_trap(owner, unit, attacker, zone_name, index):
+    for trap_name, handler in (
+        ("Angyali Beavatkozás", handle_angyali_beavatkozas),
+        ("Hamis Halál", handle_hamis_halal),
+    ):
+        trap = _consume_named_trap(owner, trap_name)
+        if trap is None:
+            continue
+        result = handler(trap, owner=owner, unit=unit, attacker=attacker, zone_name=zone_name, index=index, reason="combat")
+        if result.get("resolved"):
+            return result
+        owner.zenit.append(owner.temeto.pop())
+        owner.hasznalt_jelek_ebben_a_korben = max(0, owner.hasznalt_jelek_ebben_a_korben - 1)
+    return None
+
+
 def on_awakening_phase(context):
     player = context.owner
     if player is None:
@@ -274,6 +509,19 @@ def on_awakening_phase(context):
                     f"🌌 A Világok Kereszteződése: {player.nev} megnézte a pakli tetejét ({top_card.nev}), és a helyén hagyta."
                 )
 
+    if getattr(player, "orok_elet_temploma_aktiv", False):
+        units = _allied_units(player)
+        if units:
+            for _, _, unit in units:
+                unit.bonus_max_hp = getattr(unit, "bonus_max_hp", 0) + 1
+                unit.akt_hp += 1
+            naplo.ir(f"⛪ Az Örök Élet Temploma: {len(units)} saját Entitás +1 maximális HP-t kapott.")
+
+    pending_temp_aura = getattr(player, "kovetkezo_kor_ideiglenes_aura", 0)
+    if pending_temp_aura > 0:
+        player.kovetkezo_kor_ideiglenes_aura = 0
+        player.ad_ideiglenes_aurat(pending_temp_aura, "Hamis Ígéret")
+
     for _, _, unit in _allied_units(player):
         if getattr(unit, "stone_awaken_lock", 0) > 0:
             unit.kimerult = True
@@ -283,3 +531,14 @@ def on_awakening_phase(context):
         if getattr(unit, "position_lock_awakenings", 0) > 0:
             unit.position_lock_awakenings -= 1
 
+
+def on_destroyed(context):
+    owner = context.owner
+    source = context.source
+    if owner is None or source is None:
+        return
+    if not getattr(owner, "hulladektelep_aktiv", False):
+        return
+    if _is_machine_card(source):
+        owner.kovetkezo_gepezet_kedvezmeny = getattr(owner, "kovetkezo_gepezet_kedvezmeny", 0) + 1
+        naplo.ir(f"🏗️ A Hulladéktelep: {owner.nev} következő Gépezet idézése 1 aurával olcsóbb lesz.")

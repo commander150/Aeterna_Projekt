@@ -146,9 +146,13 @@ def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo):
         r'csokkenti\s+(\d+)\s*atk',
     ])
     if atk_csokkentes > 0:
-        tamado_egyseg.akt_tamadas = max(0, tamado_egyseg.akt_tamadas - atk_csokkentes)
-        tortent_valami = True
-        naplo.ir(f"🗡️ Csapda: {jel.nev} -> -{atk_csokkentes} ATK a támadónak")
+        if getattr(tamado_egyseg, "protect_atk_from_enemy_until_turn_end", False):
+            naplo.ir(f"🛡️ Csapda: {jel.nev} nem csökkenthette {tamado_egyseg.lap.nev} ATK-ját a védelem miatt")
+            tortent_valami = True
+        else:
+            tamado_egyseg.akt_tamadas = max(0, tamado_egyseg.akt_tamadas - atk_csokkentes)
+            tortent_valami = True
+            naplo.ir(f"🗡️ Csapda: {jel.nev} -> -{atk_csokkentes} ATK a támadónak")
 
     if "kimerit" in szoveg or "stun" in szoveg or "fagyaszt" in szoveg or "exhaust" in szoveg:
         tamado_egyseg.kimerult = True

@@ -30,12 +30,16 @@ def make_player(name="P1", realm="Aether"):
         birodalom=realm,
         pakli=[],
         kez=[],
+        osforras=[],
         temeto=[],
         horizont=[None] * 6,
         zenit=[None] * 6,
         pecsetek=[],
         hasznalt_jelek_ebben_a_korben=0,
         kovetkezo_jel_kedvezmeny=0,
+        kovetkezo_gepezet_kedvezmeny=0,
+        megidezett_entitasok_ebben_a_korben=0,
+        kovetkezo_kor_ideiglenes_aura=0,
     )
 
 
@@ -102,6 +106,55 @@ class TestPriorityHandlers(unittest.TestCase):
 
         self.assertTrue(result["resolved"])
         self.assertTrue(result["stop_attack"])
+
+    def test_alvilagi_kapcsolatok_puts_lowest_trap_to_zenit(self):
+        ritual = make_card("Alvilági Kapcsolatok", card_type="Rituálé")
+        owner = make_player()
+        owner.pakli = [
+            make_card("Drága Jel", card_type="Jel", magnitude=4, aura=4),
+            make_card("Olcsó Jel", card_type="Jel", magnitude=1, aura=1),
+        ]
+
+        result = resolve_card_handler(ritual, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(owner.zenit[0].nev, "Olcsó Jel")
+
+    def test_kereskedelmi_embargo_marks_second_summon_for_destruction(self):
+        trap = make_card("Kereskedelmi Embargó", card_type="Jel")
+        defender = make_player("Defender")
+        attacker_owner = make_player("Attacker")
+        attacker_owner.megidezett_entitasok_ebben_a_korben = 2
+        summoned = CsataEgyseg(make_card("Második Idézés", magnitude=5))
+
+        result = resolve_card_handler(
+            trap,
+            category="summon_trap",
+            vedo=defender,
+            tamado=attacker_owner,
+            summoned_unit=summoned,
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["destroy_summoned"])
+
+    def test_hamis_arany_drains_remaining_aura_after_spell(self):
+        trap = make_card("Hamis Arany", card_type="Jel")
+        defender = make_player("Defender")
+        attacker = make_player("Caster")
+        attacker.osforras = [{"lap": make_card("Forrás"), "hasznalt": False} for _ in range(3)]
+        spell = make_card("Varázslat", card_type="Ige")
+
+        result = resolve_card_handler(
+            trap,
+            category="trap",
+            varazslat=spell,
+            jatekos=defender,
+            ellenfel=attacker,
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(all(source["hasznalt"] for source in attacker.osforras))
 
 
 if __name__ == "__main__":

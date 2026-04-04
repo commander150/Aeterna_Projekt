@@ -3,6 +3,7 @@ import unicodedata
 
 from engine.card import CsataEgyseg
 from engine.actions import ActionLibrary
+from cards.resolver import resolve_spell_redirect
 from engine.effects_expansions import handle_expansion_gate
 from engine.targeting import TargetingEngine
 from engine.triggers import trigger_engine
@@ -387,6 +388,11 @@ class EffectEngine:
             naplo.ir(f"{kontextus}: {kartya.nev} -> Nem volt megsemmisitheto celpont.")
             return False
 
+        redirect_result = resolve_spell_redirect(spell_card=kartya, caster=jatekos, target_owner=ellenfel)
+        if redirect_result and redirect_result.get("redirected_target"):
+            cel = redirect_result["redirected_target"]
+            ellenfel = jatekos
+
         return EffectEngine._destroy_target(cel, jatekos, ellenfel, kontextus)
 
     @staticmethod
@@ -398,6 +404,10 @@ class EffectEngine:
         if cel is None:
             naplo.ir(f"{kontextus}: {kartya.nev} -> Nem volt kimeritheto celpont.")
             return False
+
+        redirect_result = resolve_spell_redirect(spell_card=kartya, caster=jatekos, target_owner=ellenfel)
+        if redirect_result and redirect_result.get("redirected_target"):
+            cel = redirect_result["redirected_target"]
 
         _, _, egyseg = cel
         egyseg.kimerult = True
@@ -446,6 +456,11 @@ class EffectEngine:
         if cel is None:
             naplo.ir(f"🔥 {kontextus}: {kartya.nev} -> Nem volt érvényes célpont.")
             return False
+
+        redirect_result = resolve_spell_redirect(spell_card=kartya, caster=jatekos, target_owner=ellenfel)
+        if redirect_result and redirect_result.get("redirected_target"):
+            cel = redirect_result["redirected_target"]
+            ellenfel = jatekos
 
         EffectEngine._deal_damage_to_target(kartya.nev, sebzes, cel, ellenfel, kontextus, jatekos)
         return True
