@@ -1,7 +1,7 @@
 ﻿import unittest
 from types import SimpleNamespace
 
-from cards.resolver import can_activate_trap, resolve_card_handler
+from cards.resolver import can_activate_trap, resolve_card_handler, resolve_spell_redirect
 from engine.card import CsataEgyseg
 from engine.triggers import trigger_engine
 
@@ -389,6 +389,83 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertTrue(result["resolved"])
         self.assertEqual(owner.horizont[1].lap.nev, "Visszatero")
         self.assertTrue(owner.horizont[1].kimerult)
+
+    def test_benito_fagy_stops_attack_and_keeps_attacker_exhausted_next_turn(self):
+        trap = make_card("Bénító Fagy", card_type="Jel")
+        attacker_owner = make_player("Attacker")
+        attacker = CsataEgyseg(make_card("Tamado", atk=3, hp=3))
+        attacker_owner.horizont[0] = attacker
+
+        result = resolve_card_handler(trap, category="trap", tamado_egyseg=attacker, tamado=attacker_owner, vedo=make_player("Defender"))
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["stop_attack"])
+        self.assertEqual(attacker.extra_exhausted_turns, 1)
+
+    def test_csuszos_talaj_slides_attacker_sideways(self):
+        trap = make_card("Csúszós Talaj", card_type="Jel")
+        attacker_owner = make_player("Attacker")
+        attacker = CsataEgyseg(make_card("Tamado", atk=3, hp=3))
+        attacker_owner.horizont[2] = attacker
+
+        result = resolve_card_handler(trap, category="trap", tamado_egyseg=attacker, tamado=attacker_owner, vedo=make_player("Defender"))
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["stop_attack"])
+        self.assertIsNone(attacker_owner.horizont[2])
+        self.assertIsNotNone(attacker_owner.horizont[1] or attacker_owner.horizont[3])
+        self.assertTrue(attacker.cannot_attack_until_turn_end)
+
+    def test_zart_sorkepzes_cancels_targeted_spell_and_buffs_target(self):
+        owner = make_player("Owner")
+        target = CsataEgyseg(make_card("Vedett", atk=2, hp=2))
+        owner.horizont[0] = target
+        owner.zenit[0] = make_card("Zárt Sorképzés", card_type="Jel")
+
+        result = resolve_spell_redirect(
+            spell_card=make_card("Villam", card_type="Ige"),
+            caster=make_player("Enemy"),
+            target_owner=owner,
+            current_target=("horizont", 0, target),
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["cancelled_spell"])
+        self.assertEqual(target.bonus_max_hp, 2)
+
+    def test_a_valtozo_sziget_swaps_enemy_same_lane_on_awakening(self):
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        resolve_card_handler(make_card("A Változó Sziget", card_type="Sík"), category="on_play", jatekos=owner, ellenfel=enemy)
+        owner.horizont[1] = CsataEgyseg(make_card("Sajat", atk=1, hp=2))
+        enemy.horizont[1] = CsataEgyseg(make_card("Elol", atk=4, hp=4))
+        enemy.zenit[1] = CsataEgyseg(make_card("Hatul", atk=1, hp=1))
+
+        trigger_engine.dispatch("on_awakening_phase", owner=owner, target=enemy, payload={})
+
+        self.assertEqual(enemy.horizont[1].lap.nev, "Hatul")
+        self.assertEqual(enemy.zenit[1].lap.nev, "Elol")
+
+    def test_melytengeri_nyomas_halves_attack_until_turn_end(self):
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        enemy.horizont[0] = CsataEgyseg(make_card("Celpont", atk=5, hp=4))
+
+        result = resolve_card_handler(make_card("Mélytengeri Nyomás", card_type="Ige"), category="on_play", jatekos=owner, ellenfel=enemy)
+        self.assertTrue(result["resolved"])
+        self.assertEqual(enemy.horizont[0].akt_tamadas, 2)
+
+        trigger_engine.dispatch("on_turn_end", owner=enemy, target=owner, payload={})
+        self.assertEqual(enemy.horizont[0].akt_tamadas, 5)
+
+    def test_lelekmentes_resolves_from_burst(self):
+        owner = make_player("Owner")
+        owner.temeto.append(make_card("Elesett", atk=2, hp=2))
+
+        result = resolve_card_handler(make_card("Lélekmentés", card_type="Jel"), category="burst", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(owner.kez[-1].nev, "Elesett")
 
 if __name__ == "__main__":
     unittest.main()

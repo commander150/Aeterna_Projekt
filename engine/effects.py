@@ -387,6 +387,9 @@ class EffectEngine:
         if context.cancelled:
             naplo.ir(f"{kontextus}: {forras_nev} semlegesitve lett a celpont reakcioja miatt.")
             return False
+        if getattr(cel, "damage_immunity_until_turn_end", False):
+            naplo.ir(f"{kontextus}: {forras_nev} nem sebezte meg {cel.lap.nev} egyseget, mert a kor vegeig sebzesimmunis.")
+            return False
         naplo.ir(f"🔥 {kontextus}: {forras_nev} -> {sebzes} sebzés {cel.lap.nev}-ba/be")
 
         trigger_engine.dispatch("on_damage_taken", source=forras_nev, owner=forras_jatekos, target=cel, payload={"damage": sebzes, "zone": zona_nev})
@@ -432,6 +435,8 @@ class EffectEngine:
             return False
 
         redirect_result = resolve_spell_redirect(spell_card=kartya, caster=jatekos, target_owner=ellenfel, current_target=cel)
+        if redirect_result and redirect_result.get("cancelled_spell"):
+            return True
         if redirect_result and redirect_result.get("redirected_target"):
             cel = redirect_result["redirected_target"]
             ellenfel = redirect_result.get("redirect_owner", jatekos)
@@ -449,6 +454,8 @@ class EffectEngine:
             return False
 
         redirect_result = resolve_spell_redirect(spell_card=kartya, caster=jatekos, target_owner=ellenfel, current_target=cel)
+        if redirect_result and redirect_result.get("cancelled_spell"):
+            return True
         if redirect_result and redirect_result.get("redirected_target"):
             cel = redirect_result["redirected_target"]
             ellenfel = redirect_result.get("redirect_owner", ellenfel)
@@ -512,6 +519,8 @@ class EffectEngine:
             return False
 
         redirect_result = resolve_spell_redirect(spell_card=kartya, caster=jatekos, target_owner=ellenfel, current_target=cel)
+        if redirect_result and redirect_result.get("cancelled_spell"):
+            return True
         if redirect_result and redirect_result.get("redirected_target"):
             cel = redirect_result["redirected_target"]
             ellenfel = redirect_result.get("redirect_owner", jatekos)
