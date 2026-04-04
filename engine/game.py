@@ -5,6 +5,7 @@ from engine.player import Jatekos
 from engine.card import CsataEgyseg
 from engine.effects import EffectEngine
 from engine.keywords import KeywordEngine
+from engine.triggers import trigger_engine
 
 
 class AeternaSzimulacio:
@@ -24,6 +25,9 @@ class AeternaSzimulacio:
                 self.p1.pecsetek.append(self.p1.pakli.pop())
             if self.p2.pakli:
                 self.p2.pecsetek.append(self.p2.pakli.pop())
+
+        trigger_engine.dispatch("on_manifestation_phase", owner=self.p1, payload={"phase": "setup"})
+        trigger_engine.dispatch("on_manifestation_phase", owner=self.p2, payload={"phase": "setup"})
 
     def kijatszas_fazis(self, jatekos):
         lehetosegek = [
@@ -45,9 +49,16 @@ class AeternaSzimulacio:
                     if jatekos.fizet(lap):
                         jatekos.kez.remove(lap)
                         zona[i] = CsataEgyseg(lap)
+                        zona[i].owner = jatekos
                         stats.faj_statisztika(lap.faj)
                         naplo.ir(f"⚔️ {jatekos.nev} megidézte: {lap.nev}")
 
+                        trigger_engine.dispatch(
+                            "on_summon",
+                            source=zona[i],
+                            owner=jatekos,
+                            payload={"zone": "horizont" if zona is jatekos.horizont else "zenit"},
+                        )
                         ellenfel = self.p2 if jatekos == self.p1 else self.p1
                         gyoztes = self._alkalmaz_kartya_hatast(lap, jatekos, ellenfel)
                         if gyoztes:
@@ -113,6 +124,7 @@ class AeternaSzimulacio:
         return self._overflow_gyoztes()
 
     def _alkalmaz_kartya_hatast(self, lap, jatekos, ellenfel):
+        trigger_engine.dispatch("on_play", source=lap, owner=jatekos, target=ellenfel)
         EffectEngine.trigger_on_play(lap, jatekos, ellenfel)
         return self._ellenoriz_gyoztest()
 
@@ -184,6 +196,7 @@ class AeternaSzimulacio:
             if egyseg and not egyseg.kimerult:
                 tamadas_tortent = True
                 egyseg.kimerult = True
+                trigger_engine.dispatch("on_attack_declared", source=egyseg, owner=tamado, target=vedo, payload={"lane_index": i})
                 eredeti_atk = egyseg.akt_tamadas
 
                 if tamado.zenit[i] and isinstance(tamado.zenit[i], CsataEgyseg):
@@ -305,6 +318,8 @@ class AeternaSzimulacio:
 
         for index, (akt, ell) in enumerate([(self.p1, self.p2), (self.p2, self.p1)]):
             akt.uj_kor_inditasa()
+            trigger_engine.dispatch("on_turn_start", owner=akt, target=ell, payload={"turn": self.kor})
+            trigger_engine.dispatch("on_awakening_phase", owner=akt, target=ell, payload={"turn": self.kor})
 
             if akt.kell_tamadnia_kovetkezo_korben:
                 naplo.ir(f"⚠️ {akt.nev} Kényszerítés/Provoke hatás alatt áll: ha tud, támadnia kell ebben a körben.")
@@ -316,6 +331,7 @@ class AeternaSzimulacio:
                 akt.huzas()
 
             akt.osforras_bovites()
+            trigger_engine.dispatch("on_manifestation_phase", owner=akt, target=ell, payload={"turn": self.kor})
 
             eredmeny = self.kijatszas_fazis(akt)
             if eredmeny:
@@ -345,6 +361,7 @@ class AeternaSzimulacio:
 
             akt.kor_vegi_heal()
             ell.kor_vegi_heal()
+            trigger_engine.dispatch("on_turn_end", owner=akt, target=ell, payload={"turn": self.kor})
 
         self.kor += 1
         return None

@@ -1,7 +1,7 @@
 import unicodedata
 
 from utils.logger import naplo
-from engine.keyword_rules import KeywordEngine
+from engine.keyword_engine import KeywordEngine
 
 class LegacyKeywordEngine:
 

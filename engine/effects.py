@@ -2,20 +2,18 @@ import re
 import unicodedata
 
 from engine.card import CsataEgyseg
+from engine.targeting import TargetingEngine
+from engine.triggers import trigger_engine
 from stats.analyzer import stats
 from utils.logger import naplo
+from utils.text import normalize_lookup_text
 
 
 class EffectEngine:
 
     @staticmethod
     def _normalize_text(szoveg):
-        if not szoveg:
-            return ""
-
-        normalizalt = unicodedata.normalize("NFKD", str(szoveg))
-        normalizalt = "".join(ch for ch in normalizalt if not unicodedata.combining(ch))
-        return normalizalt.lower()
+        return normalize_lookup_text(szoveg)
 
     @staticmethod
     def _extract_number(szoveg, mintak):
@@ -73,6 +71,13 @@ class EffectEngine:
         if ok:
             naplo.ir(f"☠️ {egyseg.lap.nev} elpusztult ({ok})")
 
+        trigger_engine.dispatch(
+            "on_destroyed",
+            source=egyseg.lap,
+            owner=jatekos,
+            target=ellenfel,
+            payload={"zone": zona_nev, "reason": ok},
+        )
         EffectEngine.trigger_on_death(egyseg.lap, jatekos, ellenfel)
         return True
 
@@ -306,8 +311,15 @@ class EffectEngine:
             return False
 
         zona_nev, index, cel = cel_adat
+        ervenyes, _ = TargetingEngine.validate(cel, "spell")
+        if not ervenyes:
+            naplo.ir(f"{kontextus}: {forras_nev} -> a célpont nem spell-targetable ({cel.lap.nev})")
+            return False
+
+        trigger_engine.dispatch("on_spell_targeted", source=forras_nev, owner=forras_jatekos, target=cel, payload={"context": kontextus})
         naplo.ir(f"🔥 {kontextus}: {forras_nev} -> {sebzes} sebzés {cel.lap.nev}-ba/be")
 
+        trigger_engine.dispatch("on_damage_taken", source=forras_nev, owner=forras_jatekos, target=cel, payload={"damage": sebzes, "zone": zona_nev})
         if cel.serul(sebzes):
             return EffectEngine.destroy_unit(
                 ellenfel, zona_nev, index, forras_jatekos, kontextus.lower()
@@ -321,6 +333,12 @@ class EffectEngine:
             return False
 
         zona_nev, index, cel = cel_adat
+        ervenyes, _ = TargetingEngine.validate(cel, "spell")
+        if not ervenyes:
+            naplo.ir(f"{kontextus}: {cel.lap.nev} nem megcélozható spell által")
+            return False
+
+        trigger_engine.dispatch("on_spell_targeted", source=kontextus, owner=jatekos, target=cel, payload={"action": "destroy"})
         naplo.ir(f"{kontextus}: {cel.lap.nev} megsemmisul")
         return EffectEngine.destroy_unit(ellenfel, zona_nev, index, jatekos, kontextus.lower())
 

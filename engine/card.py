@@ -1,3 +1,7 @@
+from engine.keyword_registry import KeywordRegistry
+from utils.text import repair_mojibake
+
+
 class Kartya:
     def __init__(self, sor_adat):
         self.nev = str(sor_adat[0]) if sor_adat[0] else "Névtelen"

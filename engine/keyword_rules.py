@@ -122,3 +122,6 @@ class KeywordEngine:
             return False
 
         return break_extra_seal()
+
+
+from engine.keyword_engine import KeywordEngine  # noqa: E402,F401
