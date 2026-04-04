@@ -25,6 +25,10 @@ class EffectEngine:
         return 0
 
     @staticmethod
+    def _contains_any(szoveg, kulcsszavak):
+        return any(kulcsszo in szoveg for kulcsszo in kulcsszavak)
+
+    @staticmethod
     def _collect_units(jatekos):
         egysegek = []
 
@@ -64,6 +68,40 @@ class EffectEngine:
         return True
 
     @staticmethod
+    def _resolve_temporary_aura(kartya, jatekos, szoveg, kontextus):
+        aura_szavak = ["ideiglenes aura", "temporary aura", "rezonancia aura", "plusz aura", "extra aura"]
+        if not EffectEngine._contains_any(szoveg, aura_szavak):
+            return False
+
+        mennyiseg = EffectEngine._extract_number(szoveg, [
+            r'(\d+)\s+(?:ideiglenes\s+)?aura',
+            r'kap\s+(\d+)\s+aura',
+            r'(\d+)\s+temporary\s+aura',
+            r'(\d+)\s+rezonancia aura',
+        ])
+        if mennyiseg <= 0:
+            mennyiseg = 1
+
+        return jatekos.ad_ideiglenes_aurat(mennyiseg, f"{kontextus}: {kartya.nev}") > 0
+
+    @staticmethod
+    def _resolve_reactivate(kartya, jatekos, szoveg, kontextus):
+        reaktivalas_szavak = ["ujraaktival", "reaktival", "untap", "ready", "frissit", "ujra kesz"]
+        if not EffectEngine._contains_any(szoveg, reaktivalas_szavak):
+            return False
+
+        jeloltek = [
+            adat for adat in EffectEngine._collect_units(jatekos)
+            if adat[2].kimerult
+        ]
+        if not jeloltek:
+            naplo.ir(f"{kontextus}: {kartya.nev} -> Nem volt újraaktiválható saját egység.")
+            return False
+
+        _, _, egyseg = max(jeloltek, key=lambda adat: (adat[2].akt_tamadas, adat[2].akt_hp))
+        return jatekos.ujraaktivalt_egyseget(egyseg, f"{kontextus}: {kartya.nev}")
+
+    @staticmethod
     def _resolve_provoke(kartya, jatekos, ellenfel, szoveg, kontextus):
         if ellenfel is None:
             return False
@@ -76,7 +114,7 @@ class EffectEngine:
             "next turn if able",
             "kovetkezo korben tamad",
         ]
-        if not any(k in szoveg for k in provoke_szovegek):
+        if not EffectEngine._contains_any(szoveg, provoke_szovegek):
             return False
 
         ellenfel.kell_tamadnia_kovetkezo_korben = True
@@ -233,9 +271,10 @@ class EffectEngine:
             return False
 
         naplo.ir(f"✨ {kontextus}: {kartya.nev} -> {huzas_db} lap húzás")
+        tortent = False
         for _ in range(huzas_db):
-            jatekos.huzas()
-        return True
+            tortent |= bool(jatekos.huzas(extra=True))
+        return tortent
 
     @staticmethod
     def _resolve_damage(kartya, jatekos, ellenfel, szoveg, kontextus, engedelyezett):
@@ -324,6 +363,12 @@ class EffectEngine:
         if "osforras" not in szoveg and "aura" not in szoveg:
             return False
 
+        if EffectEngine._contains_any(
+            szoveg,
+            ["ideiglenes aura", "temporary aura", "rezonancia aura", "plusz aura", "extra aura"],
+        ):
+            return False
+
         if not jatekos.pakli:
             return False
 
@@ -346,6 +391,8 @@ class EffectEngine:
         tortent_valami |= EffectEngine._resolve_exhaust(kartya, jatekos, ellenfel, szoveg, kontextus)
         tortent_valami |= EffectEngine._resolve_buff(kartya, jatekos, szoveg, kontextus)
         tortent_valami |= EffectEngine._resolve_heal(kartya, jatekos, szoveg, kontextus)
+        tortent_valami |= EffectEngine._resolve_temporary_aura(kartya, jatekos, szoveg, kontextus)
+        tortent_valami |= EffectEngine._resolve_reactivate(kartya, jatekos, szoveg, kontextus)
         tortent_valami |= EffectEngine._resolve_resource_gain(kartya, jatekos, szoveg, kontextus)
         tortent_valami |= EffectEngine._resolve_provoke(kartya, jatekos, ellenfel, szoveg, kontextus)
         return tortent_valami
@@ -412,6 +459,8 @@ class EffectEngine:
         tortent_valami |= EffectEngine._resolve_draw(jel, vedo, szoveg, "Csapda")
         tortent_valami |= EffectEngine._resolve_heal(jel, vedo, szoveg, "Csapda")
         tortent_valami |= EffectEngine._resolve_buff(jel, vedo, szoveg, "Csapda")
+        tortent_valami |= EffectEngine._resolve_temporary_aura(jel, vedo, szoveg, "Csapda")
+        tortent_valami |= EffectEngine._resolve_reactivate(jel, vedo, szoveg, "Csapda")
 
         if not tortent_valami:
             naplo.ir(f"⚠️ Egyedi Csapda: {jel.nev} aktiválódott, de nem volt ismert konkrét hatása")

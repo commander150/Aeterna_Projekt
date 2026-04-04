@@ -114,6 +114,45 @@ class Jatekos:
 
         return False
 
+    def ad_ideiglenes_aurat(self, mennyiseg, forras="hatás"):
+        if mennyiseg <= 0:
+            return 0
+
+        maradek = max(0, 2 - self.ideiglenes_aura_ebben_a_korben)
+        tenyleges = min(mennyiseg, maradek)
+
+        if tenyleges <= 0:
+            naplo.ir(f"⛔ {self.nev} nem kaphat több ideiglenes aurát ebben a körben ({forras}).")
+            return 0
+
+        self.rezonancia_aura += tenyleges
+        self.ideiglenes_aura_ebben_a_korben += tenyleges
+
+        if tenyleges < mennyiseg:
+            naplo.ir(
+                f"⛔ {self.nev} ideiglenes aura limitje miatt csak {tenyleges}/{mennyiseg} aura jött létre ({forras})."
+            )
+        else:
+            naplo.ir(f"✨ {self.nev} {tenyleges} ideiglenes aurát kapott ({forras}).")
+
+        return tenyleges
+
+    def ujraaktivalt_egyseget(self, egyseg, forras="hatás"):
+        if not isinstance(egyseg, CsataEgyseg):
+            return False
+
+        if self.ujraaktivalt_egysegek_ebben_a_korben >= 2:
+            naplo.ir(f"⛔ {self.nev} nem aktiválhat újra több egységet ebben a körben ({forras}).")
+            return False
+
+        if not egyseg.kimerult:
+            return False
+
+        egyseg.kimerult = False
+        self.ujraaktivalt_egysegek_ebben_a_korben += 1
+        naplo.ir(f"✨ {self.nev} újraaktiválta {egyseg.lap.nev} egységet ({forras}).")
+        return True
+
     def osforras_bovites(self):
         if self.kez:
             self.kez.sort(key=lambda k: k.aura_koltseg, reverse=True)
