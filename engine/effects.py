@@ -2,6 +2,7 @@ import re
 import unicodedata
 
 from engine.card import CsataEgyseg
+from stats.analyzer import stats
 from utils.logger import naplo
 
 
@@ -157,6 +158,16 @@ class EffectEngine:
         return max(jeloltek, key=lambda adat: (adat[2].akt_tamadas, adat[2].akt_hp))
 
     @staticmethod
+    def _mark_overflow_defeat(vedo, tamado, kontextus, forras_nev):
+        if vedo is None:
+            return False
+
+        vedo.overflow_vereseg = True
+        vedo.overflow_gyoztes_nev = getattr(tamado, "nev", None)
+        naplo.ir(f"☠️ {kontextus}: {forras_nev} Overflow győzelmet okozott")
+        return True
+
+    @staticmethod
     def trigger_on_death(kartya, jatekos, ellenfel=None):
         """Halálkor aktiválódó képességek, pl. Echo / Visszhang."""
         szoveg = EffectEngine._normalize_text(getattr(kartya, "kepesseg", ""))
@@ -207,6 +218,80 @@ class EffectEngine:
         return EffectEngine._pick_enemy_target(
             jeloltek, EffectEngine._enemy_targeting_mode(szoveg)
         )
+
+    @staticmethod
+    def _targets_player_or_seal(szoveg):
+        return EffectEngine._contains_any(
+            szoveg,
+            [
+                "pecset",
+                "seal",
+                "ward",
+                "wards",
+                "enemy player",
+                "opposing player",
+                "ellenfel jatekos",
+                "jatekost",
+                "ellenfel pecsete",
+            ],
+        )
+
+    @staticmethod
+    def _break_seal_from_effect(vedo, tamado, kartya_nev, kontextus, burst_aktivalt):
+        if vedo is None or not vedo.pecsetek:
+            return False, burst_aktivalt
+
+        p = vedo.pecsetek.pop()
+        stats.feltort_pecsetek += 1
+
+        if p.magnitudo > len(vedo.osforras):
+            vedo.osforras.append({"lap": p, "hasznalt": False})
+            naplo.ir(f"✨ {kontextus}: {kartya_nev} + Gondviselés ({p.nev})")
+        else:
+            vedo.kez.append(p)
+            naplo.ir(f"💔 {kontextus}: {kartya_nev} feltört egy Pecsétet ({p.nev})")
+
+        if p.reakcio_e and not burst_aktivalt:
+            naplo.ir("✨ Reakció (Burst) aktiválódik")
+            EffectEngine.trigger_on_burst(p, vedo, tamado)
+            burst_aktivalt = True
+
+        return True, burst_aktivalt
+
+    @staticmethod
+    def _deal_direct_seal_damage(kartya_nev, sebzes, tamado, vedo, kontextus):
+        if vedo is None or sebzes <= 0:
+            return False
+
+        naplo.ir(f"🔥 {kontextus}: {kartya_nev} közvetlenül {sebzes} sebzést okoz {vedo.nev} Pecsétjeinek")
+
+        if not vedo.pecsetek:
+            return EffectEngine._mark_overflow_defeat(vedo, tamado, kontextus, kartya_nev)
+
+        burst_aktivalt = False
+        feltort_db = 0
+        maradek_sebzes = sebzes
+
+        while maradek_sebzes > 0 and vedo.pecsetek:
+            pecset_tort, burst_aktivalt = EffectEngine._break_seal_from_effect(
+                vedo, tamado, kartya_nev, kontextus, burst_aktivalt
+            )
+            if not pecset_tort:
+                break
+
+            feltort_db += 1
+            maradek_sebzes -= 1
+
+            if vedo.overflow_vereseg or getattr(tamado, "overflow_vereseg", False):
+                break
+
+        if feltort_db > 0:
+            naplo.ir(f"💥 {kontextus}: {kartya_nev} összesen {feltort_db} Pecsétet tört fel")
+
+        if maradek_sebzes > 0 and not vedo.pecsetek:
+            EffectEngine._mark_overflow_defeat(vedo, tamado, kontextus, kartya_nev)
+
+        return feltort_db > 0 or vedo.overflow_vereseg
 
     @staticmethod
     def _deal_damage_to_target(forras_nev, sebzes, cel_adat, ellenfel, kontextus, forras_jatekos=None):
@@ -290,6 +375,11 @@ class EffectEngine:
 
         if sebzes <= 0:
             return False
+
+        if EffectEngine._targets_player_or_seal(szoveg):
+            return EffectEngine._deal_direct_seal_damage(
+                kartya.nev, sebzes, jatekos, ellenfel, kontextus
+            )
 
         prefer_zone = "horizont" if any(k in szoveg for k in ["horizont", "front", "elso sor"]) else None
         cel = EffectEngine._select_enemy_target(ellenfel, szoveg, prefer_zone)

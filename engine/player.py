@@ -48,6 +48,8 @@ class Jatekos:
 
         # anti-stall / provoke előkészítés
         self.kell_tamadnia_kovetkezo_korben = False
+        self.overflow_vereseg = False
+        self.overflow_gyoztes_nev = None
 
     def uj_kor_inditasa(self):
         for o in self.osforras:
