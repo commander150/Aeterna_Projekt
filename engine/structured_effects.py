@@ -20,15 +20,24 @@ TAG_ALIASES = {
     "laphuzas": "draw",
     "draw": "draw",
     "sebzes": "damage",
+    "damage": "damage",
     "megsemmisites": "destroy",
+    "destroy": "destroy",
     "kimerites": "exhaust",
+    "exhaust": "exhaust",
     "visszaallitas": "reactivate",
+    "reactivate": "reactivate",
     "atk_buff": "atk_buff",
+    "atk_mod": "atk_buff",
     "hp_buff": "hp_buff",
+    "hp_mod": "hp_buff",
     "gyogyitas": "heal",
+    "heal": "heal",
     "poziciocsere": "swap_position",
     "mozgatas_zenitbe": "move_to_zenit",
+    "move_zenit": "move_to_zenit",
     "mozgatas_horizontra": "move_to_horizon",
+    "move_horizont": "move_to_horizon",
     "tamadassemlegesites": "cancel_attack",
     "sebzessemlegesites": "cancel_damage",
     "felallastiltas": "no_ready",
@@ -63,6 +72,13 @@ PASSIVE_KEYWORDS = {
     "burst",
     "echo",
     "visszhang",
+}
+
+PASSIVE_STATUS_HINTS = {
+    "passziv_vagy_egyszeru",
+    "passziv_kulcsszo",
+    "passive_static_ignored",
+    "static_not_explicitly_simulated",
 }
 
 TRIGGER_HINTS = {
@@ -151,11 +167,17 @@ def _effect_class(card):
     normalized_keywords = set(getattr(card, "keywords_normalized", []) or [])
     normalized_triggers = set(getattr(card, "triggers_normalized", []) or [])
     normalized_tags = set(_normalized_tags(card))
+    normalized_status = normalize_lookup_text(getattr(card, "interpretation_status", ""))
     text = normalize_lookup_text(_canonical_text(card))
+
+    if normalized_status in PASSIVE_STATUS_HINTS:
+        return "passive_static"
 
     if normalized_tags:
         if normalized_triggers:
             return "mixed"
+        if normalized_tags.issubset(PASSIVE_KEYWORDS):
+            return "passive_static"
         return "on_play"
 
     if normalized_triggers:
@@ -185,10 +207,6 @@ def should_defer_structured(card, category):
 
     normalized_triggers = set(getattr(card, "triggers_normalized", []) or [])
     if not normalized_triggers:
-        text = normalize_lookup_text(_canonical_text(card))
-        if category == "on_play" and any(token in text for token in ("aktivalas:", "amikor ", "ha ", "barmikor")):
-            if not any(token in text for token in ("riado", "clarion", "megidezesekor", "kijatszasakor")):
-                return True
         return False
 
     accepted = TRIGGER_HINTS.get(category, set())
@@ -196,6 +214,8 @@ def should_defer_structured(card, category):
         return False
 
     joined = " ".join(sorted(normalized_triggers))
+    if category == "on_play" and any(trigger in joined for trigger in ("on_play", "clarion", "riado", "summon", "megidez")):
+        return False
     return not any(hint in joined for hint in accepted)
 
 
@@ -448,7 +468,16 @@ def resolve_structured_effect(card, source_player, target_player=None, context=N
         except Exception:
             continue
 
+    unsupported_tags = [tag for tag in tags if tag not in SUPPORTED_EFFECT_TAGS]
+
     if did_any:
+        if unsupported_tags:
+            return build_result(
+                STRUCTURED_STATUS_PARTIAL,
+                mode="structured",
+                effect_class=effect_class,
+                unsupported_tags=unsupported_tags,
+            )
         return build_result(STRUCTURED_STATUS_RESOLVED, mode="structured", effect_class=effect_class)
 
     status = normalize_lookup_text(getattr(card, "interpretation_status", ""))
@@ -464,6 +493,8 @@ def resolve_structured_effect(card, source_player, target_player=None, context=N
 def get_structured_status(card):
     status = normalize_lookup_text(getattr(card, "interpretation_status", ""))
     if status:
+        if status in PASSIVE_STATUS_HINTS:
+            return "passive_static_ignored"
         if status in {"structured_partial", "partial", "reszleges"}:
             return "structured_partial"
         if status in {"deferred", "trigger_waiting", "structured_deferred"}:
@@ -472,7 +503,7 @@ def get_structured_status(card):
             return "not_applicable"
         return status
     if is_passive_structured_card(card):
-        return "passive_static_ignored"
+        return "static_not_explicitly_simulated"
     if should_defer_structured(card, "on_play"):
         return "structured_deferred"
     if getattr(card, "effect_tags", None):

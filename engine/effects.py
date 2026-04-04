@@ -100,7 +100,7 @@ class EffectEngine:
             source=egyseg.lap,
             owner=jatekos,
             target=ellenfel,
-            payload={"zone": zona_nev, "reason": ok},
+            payload={"zone": zona_nev, "index": index, "reason": ok},
         )
         EffectEngine.trigger_on_death(egyseg.lap, jatekos, ellenfel)
         return True

@@ -11,7 +11,7 @@ class Statisztika:
         self.kijatszott_fajok = {}
         self.feltort_pecsetek = 0
         self.aktivalt_jelek = 0
-        self.fel_nem_oldott_effektek = {
+        self.effect_outcomes = {
             "on_play": {},
             "trap": {},
             "burst": {},
@@ -25,7 +25,33 @@ class Statisztika:
             "passive": 0,
             "not_applicable": 0,
             "fallback": 0,
+            "runtime_supported": 0,
+            "legacy_supported": 0,
+            "trap_consumed_only": 0,
+            "trap_resolved": 0,
+            "trap_partial": 0,
+            "trap_missing": 0,
             "missing": 0,
+        }
+        self.outcome_precedence = {
+            "resolved": 100,
+            "trap_resolved": 98,
+            "runtime_supported": 95,
+            "legacy_supported": 92,
+            "fallback_text_resolved": 90,
+            "partial": 80,
+            "structured_partial": 80,
+            "trap_partial": 78,
+            "deferred": 70,
+            "structured_deferred": 70,
+            "passive_static_applied": 60,
+            "passive_static_ignored": 55,
+            "static_not_explicitly_simulated": 50,
+            "trap_consumed_only": 45,
+            "not_applicable": 40,
+            "trap_missing": 20,
+            "missing": 10,
+            "missing_implementation": 10,
         }
 
     def faj_statisztika(self, faj):
@@ -33,14 +59,22 @@ class Statisztika:
             return
         self.kijatszott_fajok[faj] = self.kijatszott_fajok.get(faj, 0) + 1
 
-    def rogzit_fel_nem_oldott_effektet(self, kategoria, kartya_nev, effekt_szoveg, allapot="tenylegesen_hianyzo"):
-        if kategoria not in self.fel_nem_oldott_effektek:
-            self.fel_nem_oldott_effektek[kategoria] = {}
+    def rogzit_effekt_kimenetet(self, kategoria, kartya_nev, effekt_szoveg, allapot):
+        if kategoria not in self.effect_outcomes:
+            self.effect_outcomes[kategoria] = {}
 
         tisztitott_szoveg = (effekt_szoveg or "").strip() or "-"
-        kulcs = (kartya_nev or "Ismeretlen lap", tisztitott_szoveg, allapot)
-        kategoriak = self.fel_nem_oldott_effektek[kategoria]
-        kategoriak[kulcs] = kategoriak.get(kulcs, 0) + 1
+        kulcs = (kartya_nev or "Ismeretlen lap", tisztitott_szoveg)
+        kategoriak = self.effect_outcomes[kategoria]
+        adat = kategoriak.get(kulcs, {"status": allapot, "db": 0})
+        aktualis = adat.get("status", allapot)
+        if self.outcome_precedence.get(allapot, 0) >= self.outcome_precedence.get(aktualis, 0):
+            adat["status"] = allapot
+        adat["db"] = adat.get("db", 0) + 1
+        kategoriak[kulcs] = adat
+
+    def rogzit_fel_nem_oldott_effektet(self, kategoria, kartya_nev, effekt_szoveg, allapot="tenylegesen_hianyzo"):
+        self.rogzit_effekt_kimenetet(kategoria, kartya_nev, effekt_szoveg, allapot)
 
     def rogzit_structured_kimenetet(self, statusz):
         if statusz not in self.structured_metrics:
@@ -58,7 +92,7 @@ class Statisztika:
         ]
 
         for kategoria_kulcs, cimke in kategoriak:
-            tetelek = self.fel_nem_oldott_effektek.get(kategoria_kulcs, {})
+            tetelek = self.effect_outcomes.get(kategoria_kulcs, {})
             naplo.ir(f"  [{cimke}]")
 
             if not tetelek:
@@ -67,10 +101,10 @@ class Statisztika:
 
             rendezett = sorted(
                 tetelek.items(),
-                key=lambda adat: (-adat[1], adat[0][0], adat[0][1]),
+                key=lambda adat: (-adat[1]["db"], adat[0][0], adat[0][1]),
             )
-            for (kartya_nev, effekt_szoveg, allapot), db in rendezett:
-                naplo.ir(f"    - {db}x | {allapot} | {kartya_nev} | {effekt_szoveg}")
+            for (kartya_nev, effekt_szoveg), adat in rendezett:
+                naplo.ir(f"    - {adat['db']}x | {adat['status']} | {kartya_nev} | {effekt_szoveg}")
 
     def rogzit_meccs_eredmenyt(self, nyertes):
         if nyertes is None:
@@ -107,6 +141,22 @@ class Statisztika:
         for faj, db in rendezett_fajok[:10]:
             naplo.ir(f"  - {faj}: {db} db")
         self._kiir_fel_nem_oldott_effekteket()
+        runtime_mukodott = (
+            self.structured_metrics["resolved"]
+            + self.structured_metrics["partial"]
+            + self.structured_metrics["fallback"]
+            + self.structured_metrics["runtime_supported"]
+            + self.structured_metrics["legacy_supported"]
+        )
+        naplo.ir("\nOutcome osszegzes:")
+        naplo.ir(f"  - runtime tenylegesen mukodott: {runtime_mukodott}")
+        naplo.ir(f"  - structured teljes: {self.structured_metrics['resolved']}")
+        naplo.ir(f"  - structured partial: {self.structured_metrics['partial']}")
+        naplo.ir(f"  - structured deferred: {self.structured_metrics['deferred']}")
+        naplo.ir(f"  - fallback text resolved: {self.structured_metrics['fallback']}")
+        naplo.ir(f"  - passive/static: {self.structured_metrics['passive']}")
+        naplo.ir(f"  - legacy supported: {self.structured_metrics['legacy_supported']}")
+        naplo.ir(f"  - missing: {self.structured_metrics['missing']}")
         naplo.ir("\nStructured resolver osszegzes:")
         naplo.ir(f"  - structured probalkozasok: {self.structured_metrics['attempted']}")
         naplo.ir(f"  - teljes structured feloldas: {self.structured_metrics['resolved']}")
@@ -115,6 +165,12 @@ class Statisztika:
         naplo.ir(f"  - passive/static figyelmen kivul hagyva: {self.structured_metrics['passive']}")
         naplo.ir(f"  - nem alkalmazhato ebben a helyzetben: {self.structured_metrics['not_applicable']}")
         naplo.ir(f"  - text fallbackre esett: {self.structured_metrics['fallback']}")
+        naplo.ir(f"  - runtime supported: {self.structured_metrics['runtime_supported']}")
+        naplo.ir(f"  - legacy supported: {self.structured_metrics['legacy_supported']}")
+        naplo.ir(f"  - trap consumed only: {self.structured_metrics['trap_consumed_only']}")
+        naplo.ir(f"  - trap resolved: {self.structured_metrics['trap_resolved']}")
+        naplo.ir(f"  - trap partial: {self.structured_metrics['trap_partial']}")
+        naplo.ir(f"  - trap missing: {self.structured_metrics['trap_missing']}")
         naplo.ir(f"  - tenylegesen hianyzo maradt: {self.structured_metrics['missing']}")
         naplo.ir("=" * 40)
 

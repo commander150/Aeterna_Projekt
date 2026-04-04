@@ -47,8 +47,11 @@ from cards.priority_handlers import (
     handle_hamis_arany,
     handle_hamis_igeret,
     handle_hamis_halal,
+    handle_hirtelen_dagaly,
     handle_informacio_vasarlas,
+    handle_isteni_erintes,
     handle_kereskedelmi_embargo,
+    handle_kagylo_csapda,
     handle_kove_valas,
     handle_keresztes_hadjarat,
     handle_kitero_manover,
@@ -60,7 +63,9 @@ from cards.priority_handlers import (
     handle_kod_alak,
     handle_lopakodo_felcser_dron,
     handle_szentjanosbogar_raj,
+    handle_szent_lang_inkvizitor,
     handle_vakito_ragyogas,
+    handle_vakito_visszavagas,
     handle_sikatori_zsebtolvaj,
     handle_sirba_teres,
     handle_varatlan_apaly,
@@ -70,6 +75,7 @@ from cards.priority_handlers import (
     handle_uresseg_kutato,
     handle_zart_sorkepzes,
     handle_zatony_felderito,
+    handle_viz_alatti_borton,
     handle_tengeri_delibab,
     handle_tornado_csapda,
     handle_tukrozodo_remeny,
@@ -82,6 +88,7 @@ from cards.priority_handlers import (
     handle_visszahivas_az_uressegbol,
     handle_megtisztulas,
     handle_rendszerfrissites,
+    handle_eletado_fopap,
     on_damage_taken_priority,
     on_destroyed,
     handle_varatlan_erosites,
@@ -92,6 +99,8 @@ from cards.priority_handlers import (
     resolve_combat_lethal_trap,
     resolve_spell_redirect_trap,
     handle_sivatagi_kem_pecset_sebzes,
+    can_activate_kagylo_csapda,
+    can_activate_vakito_visszavagas,
 )
 
 
@@ -102,6 +111,7 @@ ON_PLAY_HANDLERS = {
     "sikatori zsebtolvaj": handle_sikatori_zsebtolvaj,
     "aeterna aldasa": handle_aeterna_aldasa,
     "sirba teres": handle_sirba_teres,
+    "hirtelen dagaly": handle_hirtelen_dagaly,
     "tukrozodo remeny": handle_tukrozodo_remeny,
     "a feny utja": handle_a_feny_utja,
     "a feny neve": handle_a_feny_neve,
@@ -114,6 +124,7 @@ ON_PLAY_HANDLERS = {
     "csapdaallito": handle_csapdaallito,
     "kove valas": handle_kove_valas,
     "megtisztulas": handle_megtisztulas,
+    "isteni erintes": handle_isteni_erintes,
     "a hulladektelep": handle_a_hulladektelep,
     "alvilagi kapcsolatok": handle_alvilagi_kapcsolatok,
     "az orok elet temploma": handle_az_orok_elet_temploma,
@@ -149,6 +160,9 @@ ON_PLAY_HANDLERS = {
     "kod-alak": handle_kod_alak,
     "lopakodo felcser-dron": handle_lopakodo_felcser_dron,
     "sivatagi kem": handle_sivatagi_kem,
+    "viz alatti borton": handle_viz_alatti_borton,
+    "eletado fopap": handle_eletado_fopap,
+    "szent lang inkvizitor": handle_szent_lang_inkvizitor,
 }
 
 TRAP_HANDLERS = {
@@ -157,6 +171,7 @@ TRAP_HANDLERS = {
     "lathatatlan fal": handle_lathatatlan_fal,
     "tornado csapda": handle_tornado_csapda,
     "benito fagy": handle_benito_fagy,
+    "vakito visszavagas": handle_vakito_visszavagas,
     "csuszos talaj": handle_csuszos_talaj,
     "orveny-nyeles": handle_orveny_nyeles,
     "atkozott orveny": handle_atkozott_orveny,
@@ -167,6 +182,8 @@ SUMMON_TRAP_HANDLERS = {
     "hamis igeret": handle_hamis_igeret,
     "kereskedelmi embargo": handle_kereskedelmi_embargo,
     "a melyseg szeme": handle_a_melyseg_szeme,
+    "kagylocsapda": handle_kagylo_csapda,
+    "kagylo csapda": handle_kagylo_csapda,
 }
 
 TRAP_PREVIEW_HANDLERS = {
@@ -183,16 +200,20 @@ TRAP_PREVIEW_HANDLERS = {
     "lathatatlan fal": lambda card, target_kind=None, **_: target_kind == "seal",
     "tornado csapda": lambda card, tamado_egyseg=None, **_: tamado_egyseg is not None,
     "benito fagy": can_activate_benito_fagy,
+    "vakito visszavagas": can_activate_vakito_visszavagas,
     "csuszos talaj": can_activate_csuszos_talaj,
     "orveny-nyeles": can_activate_orveny_nyeles,
     "atkozott orveny": can_activate_atkozott_orveny,
     "tulhevult kazan": lambda *_, **__: False,
+    "kagylocsapda": can_activate_kagylo_csapda,
+    "kagylo csapda": can_activate_kagylo_csapda,
 }
 
 BURST_HANDLERS = {
     "a feny utja": handle_a_feny_utja,
     "vakito ragyogas": handle_vakito_ragyogas,
     "lelekmentes": handle_lelekmentes,
+    "hirtelen dagaly": handle_hirtelen_dagaly,
 }
 
 

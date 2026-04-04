@@ -279,6 +279,7 @@ class AeternaSzimulacio:
                 egyseg.kimerult = True
                 trigger_engine.dispatch("on_attack_declared", source=egyseg, owner=tamado, target=vedo, payload={"lane_index": i})
                 eredeti_atk = egyseg.akt_tamadas
+                egyseg.attack_damage_zero_this_combat = False
 
                 if is_zenit_entity(tamado.zenit[i]):
                     hatso = tamado.zenit[i]
@@ -329,11 +330,11 @@ class AeternaSzimulacio:
                         source=egyseg,
                         owner=tamado,
                         target=b,
-                        payload={"damage": egyseg.akt_tamadas, "zone": "horizont", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
+                        payload={"damage": 0 if getattr(egyseg, "attack_damage_zero_this_combat", False) else egyseg.akt_tamadas, "zone": "horizont", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
                     )
                     if getattr(b, "damage_immunity_until_turn_end", False):
                         naplo.ir(f"Vakito Ragyogas: {b.lap.nev} sebzesimmunis volt, a harci sebzes elmaradt.")
-                    elif b.serul(egyseg.akt_tamadas):
+                    elif not getattr(egyseg, "attack_damage_zero_this_combat", False) and b.serul(egyseg.akt_tamadas):
                         lethal_result = resolve_lethal_trap(owner=vedo, unit=b, attacker=egyseg, zone_name="horizont", index=blokkolo_index)
                         if lethal_result and lethal_result.get("prevented_death"):
                             blokkolo_meghalt = False
@@ -388,11 +389,11 @@ class AeternaSzimulacio:
                             source=egyseg,
                             owner=tamado,
                             target=target_unit,
-                            payload={"damage": egyseg.akt_tamadas, "zone": "zenit", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
+                            payload={"damage": 0 if getattr(egyseg, "attack_damage_zero_this_combat", False) else egyseg.akt_tamadas, "zone": "zenit", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
                         )
                         if getattr(target_unit, "damage_immunity_until_turn_end", False):
                             naplo.ir(f"Vakito Ragyogas: {target_unit.lap.nev} sebzesimmunis volt, a Zenit sebzes elmaradt.")
-                        elif target_unit.serul(egyseg.akt_tamadas):
+                        elif not getattr(egyseg, "attack_damage_zero_this_combat", False) and target_unit.serul(egyseg.akt_tamadas):
                             lethal_result = resolve_lethal_trap(owner=vedo, unit=target_unit, attacker=egyseg, zone_name="zenit", index=target_index)
                             if not (lethal_result and lethal_result.get("prevented_death")):
                                 self._elpusztit_egyseget(vedo, "zenit", target_index)
@@ -425,11 +426,11 @@ class AeternaSzimulacio:
                             source=egyseg,
                             owner=tamado,
                             target=target_unit,
-                            payload={"damage": egyseg.akt_tamadas, "zone": "horizont", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
+                            payload={"damage": 0 if getattr(egyseg, "attack_damage_zero_this_combat", False) else egyseg.akt_tamadas, "zone": "horizont", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
                         )
                         if getattr(target_unit, "damage_immunity_until_turn_end", False):
                             naplo.ir(f"Vakito Ragyogas: {target_unit.lap.nev} sebzesimmunis volt, a direkt sebzes elmaradt.")
-                        elif target_unit.serul(egyseg.akt_tamadas):
+                        elif not getattr(egyseg, "attack_damage_zero_this_combat", False) and target_unit.serul(egyseg.akt_tamadas):
                             lethal_result = resolve_lethal_trap(owner=vedo, unit=target_unit, attacker=egyseg, zone_name="horizont", index=target_index)
                             if not (lethal_result and lethal_result.get("prevented_death")):
                                 self._elpusztit_egyseget(vedo, "horizont", target_index)
@@ -471,6 +472,7 @@ class AeternaSzimulacio:
 
                 if _is_board_entity(tamado.horizont[i]):
                     tamado.horizont[i].akt_tamadas = eredeti_atk
+                    tamado.horizont[i].attack_damage_zero_this_combat = False
 
         if tamado.kell_tamadnia_kovetkezo_korben and tamadas_tortent:
             tamado.kell_tamadnia_kovetkezo_korben = False

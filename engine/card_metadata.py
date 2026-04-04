@@ -10,6 +10,8 @@ def parse_semicolon_list(value):
         items = value
     else:
         text = repair_mojibake(str(value)).replace("|", ";")
+        if ";" not in text and "," in text:
+            text = text.replace(",", ";")
         items = text.split(";")
     result = []
     for item in items:
@@ -45,4 +47,3 @@ def has_trigger(card, trigger):
 def has_target(card, target):
     targets = set(getattr(card, "targets_normalized", []) or [])
     return normalize_lookup_text(target) in targets
-

@@ -90,7 +90,13 @@ def _classify_unresolved_effect(card, text):
         return "passive_static_ignored"
 
     structured_status = get_structured_status(card)
-    if structured_status in {"passive_static_ignored", "structured_partial", "structured_deferred"}:
+    if structured_status in {
+        "passive_static_ignored",
+        "passive_static_applied",
+        "static_not_explicitly_simulated",
+        "structured_partial",
+        "structured_deferred",
+    }:
         return structured_status
 
     has_keyword = bool(getattr(card, "keywords_normalized", [])) or _has_known_keyword(text)
@@ -98,7 +104,7 @@ def _classify_unresolved_effect(card, text):
     has_passive = has_keyword or any(hint in normalized for hint in PASSIVE_HINTS)
 
     if has_keyword and (has_passive and not has_active):
-        return "passive_static_ignored"
+        return "static_not_explicitly_simulated"
     if has_active and getattr(card, "structured_data_available", False):
         return "structured_partial"
     return "missing_implementation"
@@ -107,7 +113,13 @@ def _classify_unresolved_effect(card, text):
 def _record_structured_result(metric_status, category, card, effect_text, record_status=None):
     stats.rogzit_structured_kimenetet(metric_status)
     if record_status:
-        EffectEngine._rogzit_fel_nem_oldott_effektet(category, card, effect_text, record_status)
+        stats.rogzit_effekt_kimenetet(category, getattr(card, "nev", "Ismeretlen lap"), effect_text, record_status)
+
+
+def _record_runtime_result(category, card, effect_text, status, metric=None):
+    if metric:
+        stats.rogzit_structured_kimenetet(metric)
+    stats.rogzit_effekt_kimenetet(category, getattr(card, "nev", "Ismeretlen lap"), effect_text, status)
 
 
 def _run_structured(card, source_player, target_player=None, context=None):
@@ -141,6 +153,7 @@ def _trigger_on_play_with_diagnostics(kartya, jatekos, ellenfel):
 
     custom_result = resolve_card_handler(kartya, category="on_play", jatekos=jatekos, ellenfel=ellenfel)
     if custom_result.get("resolved"):
+        _record_runtime_result("on_play", kartya, nyers_szoveg, "runtime_supported", "runtime_supported")
         return None
 
     sebzes_engedelyezett = (
@@ -154,14 +167,14 @@ def _trigger_on_play_with_diagnostics(kartya, jatekos, ellenfel):
     )
 
     if tortent_valami:
-        _record_structured_result("fallback", "on_play", kartya, nyers_szoveg, "fallback_text_resolved")
+        _record_runtime_result("on_play", kartya, nyers_szoveg, "fallback_text_resolved", "fallback")
         return None
 
     if pending_partial:
         _record_structured_result("partial", "on_play", kartya, nyers_szoveg, "structured_partial")
         return None
 
-    _record_structured_result("missing", "on_play", kartya, nyers_szoveg, "missing_implementation")
+    _record_runtime_result("on_play", kartya, nyers_szoveg, "missing_implementation", "missing")
     status = _classify_unresolved_effect(kartya, nyers_szoveg)
     if status == "missing_implementation":
         naplo.ir(f"[UNRESOLVED] Kepesseg: {kartya.nev} aktivodott, de nem volt ismert konkret hatasa")
@@ -198,6 +211,14 @@ def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo):
         vedo=vedo,
     )
     if custom_result.get("resolved"):
+        if custom_result.get("consume_trap") and not any(
+            custom_result.get(flag) for flag in ("stop_attack", "prevented_death", "redirected_target", "cancelled_spell", "destroy_summoned")
+        ):
+            _record_runtime_result("trap", jel, _effect_text(jel), "trap_consumed_only", "trap_consumed_only")
+        elif custom_result.get("partial"):
+            _record_runtime_result("trap", jel, _effect_text(jel), "trap_partial", "trap_partial")
+        else:
+            _record_runtime_result("trap", jel, _effect_text(jel), "trap_resolved", "trap_resolved")
         return custom_result
 
     tortent_valami = False
@@ -236,16 +257,16 @@ def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo):
     tortent_valami |= EffectEngine._resolve_reactivate(jel, vedo, szoveg, "Csapda")
 
     if tortent_valami:
-        _record_structured_result("fallback", "trap", jel, _effect_text(jel), "fallback_text_resolved")
+        _record_runtime_result("trap", jel, _effect_text(jel), "fallback_text_resolved", "fallback")
         return meghalt
 
     if pending_partial:
-        _record_structured_result("partial", "trap", jel, _effect_text(jel), "structured_partial")
+        _record_runtime_result("trap", jel, _effect_text(jel), "trap_partial", "trap_partial")
         return meghalt
 
-    _record_structured_result("missing", "trap", jel, _effect_text(jel), "missing_implementation")
+    _record_runtime_result("trap", jel, _effect_text(jel), "trap_missing", "trap_missing")
     status = _classify_unresolved_effect(jel, _effect_text(jel))
-    if status == "missing_implementation":
+    if status in {"missing_implementation", "trap_missing"}:
         naplo.ir(f"[UNRESOLVED] Egyedi Csapda: {jel.nev} aktivodott, de nem volt ismert konkret hatasa")
 
     return meghalt
@@ -274,6 +295,7 @@ def _trigger_on_burst_with_diagnostics(kartya, jatekos, ellenfel=None):
 
     custom_result = resolve_card_handler(kartya, category="burst", jatekos=jatekos, ellenfel=ellenfel)
     if custom_result.get("resolved"):
+        _record_runtime_result("burst", kartya, _effect_text(kartya), "runtime_supported", "runtime_supported")
         return True
 
     tortent_valami = EffectEngine._resolve_common_effects(
@@ -281,14 +303,14 @@ def _trigger_on_burst_with_diagnostics(kartya, jatekos, ellenfel=None):
     )
 
     if tortent_valami:
-        _record_structured_result("fallback", "burst", kartya, _effect_text(kartya), "fallback_text_resolved")
+        _record_runtime_result("burst", kartya, _effect_text(kartya), "fallback_text_resolved", "fallback")
         return True
 
     if pending_partial:
         _record_structured_result("partial", "burst", kartya, _effect_text(kartya), "structured_partial")
         return False
 
-    _record_structured_result("missing", "burst", kartya, _effect_text(kartya), "missing_implementation")
+    _record_runtime_result("burst", kartya, _effect_text(kartya), "missing_implementation", "missing")
     return False
 
 
@@ -328,14 +350,14 @@ def _trigger_on_death_with_diagnostics(kartya, jatekos, ellenfel=None):
     )
 
     if tortent_valami:
-        _record_structured_result("fallback", "death", kartya, death_text, "fallback_text_resolved")
+        _record_runtime_result("death", kartya, death_text, "legacy_supported", "legacy_supported")
         return True
 
     if pending_partial:
         _record_structured_result("partial", "death", kartya, death_text, "structured_partial")
         return True
 
-    _record_structured_result("missing", "death", kartya, death_text, "missing_implementation")
+    _record_runtime_result("death", kartya, death_text, "missing_implementation", "missing")
     status = _classify_unresolved_effect(kartya, death_text)
     if status == "missing_implementation":
         naplo.ir(f"Halal effekt: {kartya.nev} aktivodott")

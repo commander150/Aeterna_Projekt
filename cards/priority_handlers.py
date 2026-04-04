@@ -7,6 +7,7 @@ from engine.board_utils import _is_board_entity, is_trap, is_zenit_entity, set_z
 from engine.card import CsataEgyseg
 from engine.targeting import TargetingEngine
 from engine.triggers import trigger_engine
+from stats.analyzer import stats
 from utils.logger import naplo
 from utils.text import normalize_lookup_text
 
@@ -17,6 +18,17 @@ def _handled(message=None, partial=False, **extra):
     result = {"resolved": True, "partial": partial}
     result.update(extra)
     return result
+
+
+def _record_runtime_status(category, card, text, status, metric=None):
+    if metric:
+        stats.rogzit_structured_kimenetet(metric)
+    stats.rogzit_effekt_kimenetet(
+        category,
+        getattr(card, "nev", "Ismeretlen lap"),
+        text or getattr(card, "kepesseg", "") or "-",
+        status,
+    )
 
 
 def _allied_units(player):
@@ -81,6 +93,15 @@ def _grant_keyword(unit, keyword, temporary=False):
     values = set(getattr(unit, attr, set()) or set())
     values.add(normalize_lookup_text(keyword))
     setattr(unit, attr, values)
+
+
+def _unit_has_keyword(unit, keyword):
+    lap = getattr(unit, "lap", None)
+    if lap is None:
+        return False
+    if hasattr(lap, "van_kulcsszo"):
+        return lap.van_kulcsszo(keyword)
+    return normalize_lookup_text(keyword) in normalize_lookup_text(getattr(lap, "kepesseg", ""))
 
 
 def _remove_keyword_temporarily(unit, keyword):
@@ -748,6 +769,33 @@ def on_destroyed(context):
             unit.bonus_max_hp = getattr(unit, "bonus_max_hp", 0) + 2
             unit.akt_hp += 2
             naplo.ir(f"Szentjanosbogar-Raj: {unit.lap.nev} veglegesen +2 maximalis HP-t kapott.")
+            _record_runtime_status("death", source, getattr(source, "kepesseg", ""), "runtime_supported", "runtime_supported")
+
+    trap = _consume_named_trap(owner, "Martirok Vedelme")
+    if trap is not None and context.payload.get("zone") == "horizont":
+        cel_index = context.payload.get("index")
+        if cel_index is None or not (0 <= cel_index < len(owner.zenit)):
+            cel_index = _first_empty_zenit(owner)
+        if cel_index is not None and owner.zenit[cel_index] is None:
+            vissza = CsataEgyseg(source)
+            vissza.owner = owner
+            vissza.kimerult = True
+            vissza.akt_hp = 1
+            _grant_keyword(vissza, "aegis", temporary=False)
+            set_zone_slot(owner, "zenit", cel_index, vissza, "martirok_vedelme_trap")
+            naplo.ir(f"Martirok Vedelme: {source.nev} 1 HP-val visszatert a Zenitbe, es tartos Aegist kapott.")
+            _record_runtime_status("trap", trap, getattr(trap, "kepesseg", ""), "trap_resolved", "trap_resolved")
+
+    trap = _consume_named_trap(owner, "Tukrozodo Remeny")
+    if trap is not None and context.payload.get("zone") == "horizont" and context.target is not None:
+        masik = _best_other_allied_unit(owner)
+        if masik is not None:
+            _, _, celpont = masik
+            damage = max(1, getattr(source, "eletero", 0) or 1)
+            celpont.bonus_max_hp = getattr(celpont, "bonus_max_hp", 0) + damage
+            celpont.akt_hp += damage
+            naplo.ir(f"Tukrozodo Remeny: {source.nev} pusztulasa utan {celpont.lap.nev} +{damage} maximalis HP-t kapott.")
+            _record_runtime_status("trap", trap, getattr(trap, "kepesseg", ""), "trap_resolved", "trap_resolved")
 
 
 def handle_lathatatlan_fal(card, tamado_egyseg=None, tamado=None, vedo=None, **_):
@@ -1231,6 +1279,128 @@ def handle_megtorlo_feny(card, jatekos, **_):
     return _handled(f"Megtorlo Feny: {jatekos.nev} sajat serulesei mostantol visszacsapnak a tamadora.")
 
 
+def handle_hirtelen_dagaly(card, jatekos, **_):
+    cel = min(_allied_units(jatekos), key=lambda data: (data[2].akt_hp, data[2].akt_tamadas), default=None)
+    if cel is None:
+        return _handled("Hirtelen Dagaly: nem volt sajat Entitas az ideiglenes Aegishez.", partial=True)
+    _, _, unit = cel
+    _grant_keyword(unit, "aegis", temporary=True)
+    return _handled(f"Hirtelen Dagaly: {unit.lap.nev} megkapta az Oltalom (Aegis) kulcsszot a kor vegeig.")
+
+
+def can_activate_vakito_visszavagas(card, tamado_egyseg=None, vedo=None, **_):
+    if tamado_egyseg is None or vedo is None:
+        return False
+    return any(_is_board_entity(unit) and _unit_has_keyword(unit, "aegis") for _, _, unit in _allied_horizon_units(vedo))
+
+
+def handle_vakito_visszavagas(card, tamado_egyseg=None, vedo=None, **_):
+    if tamado_egyseg is None or vedo is None:
+        return {"resolved": False}
+    vedett = next(
+        (unit for _, _, unit in _allied_horizon_units(vedo) if _unit_has_keyword(unit, "aegis")),
+        None,
+    )
+    if vedett is None:
+        return {"resolved": False}
+    tamado_egyseg.attack_damage_zero_this_combat = True
+    tamado_egyseg.extra_exhausted_turns = getattr(tamado_egyseg, "extra_exhausted_turns", 0) + 1
+    return _handled(
+        f"Vakito Visszavagas: {tamado_egyseg.lap.nev} sebzese 0-ra csokkent, es a kovetkezo Ebredés fazisban sem all fel.",
+        consume_trap=True,
+    )
+
+
+def handle_kagylo_csapda(card, vedo=None, tamado=None, summoned_unit=None, **_):
+    if vedo is None or tamado is None or summoned_unit is None:
+        return {"resolved": False}
+    if summoned_unit.lap.magnitudo > 3:
+        return {"resolved": False}
+    if summoned_unit in tamado.horizont:
+        index = tamado.horizont.index(summoned_unit)
+        ActionLibrary.return_target_to_hand(tamado, "horizont", index, card.nev)
+        return _handled(
+            f"KagyloCsapda: {summoned_unit.lap.nev} visszakerult a kezbe a sikeres idezes utan.",
+            consume_trap=True,
+        )
+    return {"resolved": False}
+
+
+def can_activate_kagylo_csapda(card, summoned_unit=None, **_):
+    return summoned_unit is not None and summoned_unit.lap.magnitudo <= 3
+
+
+def handle_viz_alatti_borton(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Viz alatti Borton: nem volt ellenfel.", partial=True)
+    cel = next(iter(_enemy_horizon_units(ellenfel)), None)
+    if cel is None:
+        return _handled("Viz alatti Borton: nem volt ellenseges Horizont Entitas.", partial=True)
+    zone_name, index, unit = cel
+    if not ActionLibrary.move_target_to_zenit(ellenfel, zone_name, index, card.nev):
+        return _handled("Viz alatti Borton: a celpont nem volt a Zenitbe mozgathato.", partial=True)
+    mozgatott = ellenfel.zenit[index]
+    if _is_board_entity(mozgatott):
+        mozgatott.kimerult = True
+        mozgatott.no_bonus_while_in_zenit = True
+        return _handled(f"Viz alatti Borton: {mozgatott.lap.nev} a Zenitbe kerult, kimerulten, es nem kaphat bonuszokat ott.")
+    return _handled("Viz alatti Borton: a celpont elmozdult, de a vegso allapot nem lett tisztan entitas.", partial=True)
+
+
+def handle_isteni_erintes(card, jatekos, ellenfel, **_):
+    from engine.effects import EffectEngine
+
+    sajat = next(iter(_allied_units(jatekos)), None)
+    if sajat is None:
+        return _handled("Isteni Erintes: nem volt sajat Entitas a HP-buffhoz.", partial=True)
+    _, _, sajat_unit = sajat
+    sajat_unit.bonus_max_hp = getattr(sajat_unit, "bonus_max_hp", 0) + 3
+    sajat_unit.akt_hp += 3
+
+    cel = next(iter(_enemy_horizon_units(ellenfel)), None) if ellenfel is not None else None
+    if cel is None:
+        return _handled(f"Isteni Erintes: {sajat_unit.lap.nev} +3 max HP-t kapott, de nem volt ellenseges celpont.", partial=True)
+    zone_name, index, unit = cel
+    EffectEngine._deal_damage_to_target(card.nev, 3, (zone_name, index, unit), ellenfel, "Kepesseg", jatekos)
+    return _handled(f"Isteni Erintes: {sajat_unit.lap.nev} +3 max HP-t kapott, es {unit.lap.nev} 3 sebzest szenvedett.")
+
+
+def handle_eletado_fopap(card, jatekos, **_):
+    jeloltek = [
+        lap for lap in jatekos.temeto
+        if "entitas" in normalize_lookup_text(getattr(lap, "kartyatipus", "")) and getattr(lap, "magnitudo", 0) <= 2
+    ]
+    if not jeloltek:
+        return _handled("Eletado Fopap: nem volt 2-es vagy kisebb Magnitudoju Entitas az Uressegben.", partial=True)
+    index = _first_empty_horizon(jatekos)
+    if index is None:
+        return _handled("Eletado Fopap: nem volt ures Horizont mezo a visszatereshez.", partial=True)
+    lap = max(jeloltek, key=lambda item: (item.tamadas, item.eletero))
+    jatekos.temeto.remove(lap)
+    egyseg = CsataEgyseg(lap)
+    egyseg.owner = jatekos
+    egyseg.kimerult = False
+    set_zone_slot(jatekos, "horizont", index, egyseg, "eletado_fopap")
+    trigger_engine.dispatch("on_summon", source=egyseg, owner=jatekos, payload={"zone": "horizont", "revived": True})
+    return _handled(f"Eletado Fopap: {lap.nev} aktiv allapotban visszatert a Horizontra.")
+
+
+def handle_szent_lang_inkvizitor(card, jatekos, ellenfel, **_):
+    from engine.effects import EffectEngine
+
+    if ellenfel is None:
+        return _handled("Szent Lang Inkvizitor: nem volt ellenfel.", partial=True)
+    cel = next(iter(_enemy_horizon_units(ellenfel)), None)
+    if cel is None:
+        return _handled("Szent Lang Inkvizitor: nem volt ellenseges Horizont Entitas.", partial=True)
+    zone_name, index, unit = cel
+    unit.temp_removed_keywords = set(getattr(unit, "temp_removed_keywords", set()) or set())
+    for kulcsszo in ("aegis", "ethereal", "celerity", "bane", "sundering", "harmonize", "resonance"):
+        unit.temp_removed_keywords.add(kulcsszo)
+    EffectEngine._deal_damage_to_target(card.nev, 2, (zone_name, index, unit), ellenfel, "Kepesseg", jatekos)
+    return _handled(f"Szent Lang Inkvizitor: {unit.lap.nev} elvesztette kulcsszavait a kor vegeig, es 2 sebzest kapott.")
+
+
 def handle_tornado_csapda(card, tamado_egyseg=None, tamado=None, vedo=None, **_):
     if tamado_egyseg is None or tamado is None:
         return {"resolved": False}
@@ -1533,6 +1703,7 @@ def on_damage_taken_priority(context):
             celpont.bonus_max_hp = getattr(celpont, "bonus_max_hp", 0) + damage
             celpont.akt_hp += damage
             naplo.ir(f"Tukrozodo Remeny: {target.lap.nev} serulese utan {celpont.lap.nev} +{damage} maximalis HP-t kapott.")
+            _record_runtime_status("trap", SimpleNamespace(nev="Tukrozodo Remeny", kepesseg=""), "runtime trap effect", "trap_resolved", "trap_resolved")
         else:
             naplo.ir("Tukrozodo Remeny: nem volt masik sajat Entitas a tukrozott erosodeshez.")
 
@@ -1564,6 +1735,18 @@ def on_damage_taken_priority(context):
         if aktualis_source is not None:
             EffectEngine._deal_damage_to_target("Megtorlo Feny", vissza, (source_zone, source_index, aktualis_source), source_owner, "Kepesseg", cel_owner)
             naplo.ir(f"Megtorlo Feny: {source_unit.lap.nev} visszakapott {vissza} sebzest.")
+            _record_runtime_status("trap", SimpleNamespace(nev="Megtorlo Feny", kepesseg=""), "runtime trap effect", "trap_resolved", "trap_resolved")
+
+    trap = _consume_named_trap(cel_owner, "Megtorlo Feny") if cel_owner is not None and damage > 0 else None
+    if trap is not None and _is_board_entity(source_unit) and source_owner is not None and source_zone in {"horizont", "zenit"} and source_index is not None:
+        from engine.effects import EffectEngine
+
+        vissza = (damage + 1) // 2
+        aktualis_source = getattr(source_owner, source_zone)[source_index]
+        if aktualis_source is not None:
+            EffectEngine._deal_damage_to_target("Megtorlo Feny", vissza, (source_zone, source_index, aktualis_source), source_owner, "Csapda", cel_owner)
+            naplo.ir(f"Megtorlo Feny (Trap): {source_unit.lap.nev} visszakapott {vissza} sebzest.")
+            _record_runtime_status("trap", trap, getattr(trap, "kepesseg", ""), "trap_resolved", "trap_resolved")
 
 
 def on_turn_end_priority(context):
