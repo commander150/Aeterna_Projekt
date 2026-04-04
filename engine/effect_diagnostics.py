@@ -11,18 +11,18 @@ def _trigger_on_play_with_diagnostics(kartya, jatekos, ellenfel):
         return None
 
     sebzes_engedelyezett = (
-        kartya.kartyatipus in ["Ige", "RituĂˇlĂ©"]
+        kartya.kartyatipus in ["Ige", "Rituálé"]
         or "riado" in szoveg
         or "clarion" in szoveg
     )
 
     tortent_valami = EffectEngine._resolve_common_effects(
-        kartya, jatekos, ellenfel, szoveg, "KĂ©pessĂ©g", sebzes_engedelyezett
+        kartya, jatekos, ellenfel, szoveg, "Képesség", sebzes_engedelyezett
     )
 
     if not tortent_valami:
         EffectEngine._rogzit_fel_nem_oldott_effektet("on_play", kartya, nyers_szoveg)
-        naplo.ir(f"âš ď¸Ź KĂ©pessĂ©g: {kartya.nev} aktivĂˇlĂłdott, de nem volt ismert konkrĂ©t hatĂˇsa")
+        naplo.ir(f"âš ď¸Ź Képesség: {kartya.nev} aktiválodott, de nem volt ismert konkrét hatása")
 
     return None
 
@@ -41,7 +41,7 @@ def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo):
         r'(\d+)\s+damage',
     ])
     if sebzes > 0:
-        naplo.ir(f"đź’Ą Csapda: {jel.nev} -> {sebzes} sebzĂ©st okoz a tĂˇmadĂłnak!")
+        naplo.ir(f"đź’Ą Csapda: {jel.nev} -> {sebzes} sebzést okoz a támadónak!")
         meghalt = tamado_egyseg.serul(sebzes)
         tortent_valami = True
 
@@ -53,7 +53,7 @@ def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo):
     if atk_csokkentes > 0:
         tamado_egyseg.akt_tamadas = max(0, tamado_egyseg.akt_tamadas - atk_csokkentes)
         tortent_valami = True
-        naplo.ir(f"đź•¸ď¸Ź Csapda: {jel.nev} -> -{atk_csokkentes} ATK a tĂˇmadĂłnak")
+        naplo.ir(f"đź•¸ď¸Ź Csapda: {jel.nev} -> -{atk_csokkentes} ATK a támadónak")
 
     if "kimerit" in szoveg or "stun" in szoveg or "fagyaszt" in szoveg or "exhaust" in szoveg:
         tamado_egyseg.kimerult = True
