@@ -1,6 +1,6 @@
 import random
 import traceback
-import engine.effect_diagnostics
+import engine.effect_diagnostics_v2
 from utils.logger import naplo
 from stats.analyzer import stats
 from data.loader import kartyak_betoltese_xlsx

@@ -2,6 +2,7 @@ import re
 import unicodedata
 
 from engine.card import CsataEgyseg
+from engine.actions import ActionLibrary
 from engine.targeting import TargetingEngine
 from engine.triggers import trigger_engine
 from stats.analyzer import stats
@@ -28,11 +29,12 @@ class EffectEngine:
         return any(kulcsszo in szoveg for kulcsszo in kulcsszavak)
 
     @staticmethod
-    def _rogzit_fel_nem_oldott_effektet(kategoria, kartya, effekt_szoveg):
+    def _rogzit_fel_nem_oldott_effektet(kategoria, kartya, effekt_szoveg, allapot="tenylegesen_hianyzo"):
         stats.rogzit_fel_nem_oldott_effektet(
             kategoria,
             getattr(kartya, "nev", "Ismeretlen lap"),
             effekt_szoveg,
+            allapot,
         )
 
     @staticmethod
@@ -80,6 +82,38 @@ class EffectEngine:
         )
         EffectEngine.trigger_on_death(egyseg.lap, jatekos, ellenfel)
         return True
+
+    @staticmethod
+    def _resolve_target_actions(kartya, jatekos, ellenfel, szoveg, kontextus):
+        tortent = False
+
+        if any(k in szoveg for k in ["vedd vissza a kezedbe", "veszi vissza a kezedbe", "take it back to your hand"]):
+            tortent |= ActionLibrary.search_graveyard_by_predicate(
+                jatekos,
+                lambda card: "entitas" in normalize_lookup_text(getattr(card, "kartyatipus", "")),
+                to_hand=True,
+                reason=f"{kontextus}: {kartya.nev}",
+            )
+
+        if any(k in szoveg for k in ["nezz bele az ellenfel kezebe", "ellenfel kezebe", "look at opponent hand"]):
+            tortent |= ActionLibrary.inspect_opponent_hand(ellenfel, f"{kontextus}: {kartya.nev}")
+
+        if any(k in szoveg for k in ["pakli teteje", "paklid tetejet", "top card"]):
+            tortent |= ActionLibrary.inspect_top_card(jatekos, f"{kontextus}: {kartya.nev}")
+
+        if any(k in szoveg for k in ["nem tamadhat", "nem blokkolhat", "ervenytelenitodik"]):
+            cel = ActionLibrary.select_target(ellenfel or jatekos)
+            if cel is not None:
+                _, _, egyseg = cel
+                tortent |= ActionLibrary.prohibit_attack_or_block(egyseg, f"{kontextus}: {kartya.nev}")
+
+        if any(k in szoveg for k in ["zenitjebe", "zenitbe", "visszasodorja", "visszalep a zenitbe"]):
+            cel = ActionLibrary.select_target(ellenfel)
+            if cel is not None:
+                zona_nev, index, _ = cel
+                tortent |= ActionLibrary.move_target_to_zenit(ellenfel, zona_nev, index, f"{kontextus}: {kartya.nev}")
+
+        return tortent
 
     @staticmethod
     def _resolve_temporary_aura(kartya, jatekos, szoveg, kontextus):
@@ -510,6 +544,7 @@ class EffectEngine:
         tortent_valami |= EffectEngine._resolve_reactivate(kartya, jatekos, szoveg, kontextus)
         tortent_valami |= EffectEngine._resolve_resource_gain(kartya, jatekos, szoveg, kontextus)
         tortent_valami |= EffectEngine._resolve_provoke(kartya, jatekos, ellenfel, szoveg, kontextus)
+        tortent_valami |= EffectEngine._resolve_target_actions(kartya, jatekos, ellenfel, szoveg, kontextus)
         return tortent_valami
 
     @staticmethod

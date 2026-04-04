@@ -76,11 +76,14 @@ class KeywordEngine:
 
     @staticmethod
     def get_blockers(vedo):
-        aegis = [e for e in vedo.horizont if e and not e.kimerult and KeywordEngine._has_keyword(e, "aegis")]
+        aegis = [
+            e for e in vedo.horizont
+            if e and not e.kimerult and not getattr(e, "cannot_block_until_turn_end", False) and KeywordEngine._has_keyword(e, "aegis")
+        ]
         if aegis:
             naplo.ir("🛡️ Aegis kötelező blokkolás")
             return aegis
-        return [e for e in vedo.horizont if e and not e.kimerult]
+        return [e for e in vedo.horizont if e and not e.kimerult and not getattr(e, "cannot_block_until_turn_end", False)]
 
     @staticmethod
     def filter_blockers_for_attacker(attacker, blockers):

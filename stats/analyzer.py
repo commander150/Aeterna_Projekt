@@ -20,12 +20,12 @@ class Statisztika:
         if not faj or faj == "None" or faj == "-": return
         self.kijatszott_fajok[faj] = self.kijatszott_fajok.get(faj, 0) + 1
 
-    def rogzit_fel_nem_oldott_effektet(self, kategoria, kartya_nev, effekt_szoveg):
+    def rogzit_fel_nem_oldott_effektet(self, kategoria, kartya_nev, effekt_szoveg, allapot="tenylegesen_hianyzo"):
         if kategoria not in self.fel_nem_oldott_effektek:
             self.fel_nem_oldott_effektek[kategoria] = {}
 
         tisztitott_szoveg = (effekt_szoveg or "").strip() or "-"
-        kulcs = (kartya_nev or "Ismeretlen lap", tisztitott_szoveg)
+        kulcs = (kartya_nev or "Ismeretlen lap", tisztitott_szoveg, allapot)
         kategoriak = self.fel_nem_oldott_effektek[kategoria]
         kategoriak[kulcs] = kategoriak.get(kulcs, 0) + 1
 
@@ -51,8 +51,8 @@ class Statisztika:
                 tetelek.items(),
                 key=lambda adat: (-adat[1], adat[0][0], adat[0][1]),
             )
-            for (kartya_nev, effekt_szoveg), db in rendezett:
-                naplo.ir(f"    - {db}x | {kartya_nev} | {effekt_szoveg}")
+            for (kartya_nev, effekt_szoveg, allapot), db in rendezett:
+                naplo.ir(f"    - {db}x | {allapot} | {kartya_nev} | {effekt_szoveg}")
 
     def osszesites_mentese(self):
         naplo.ir("\n" + "="*40)

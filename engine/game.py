@@ -193,7 +193,7 @@ class AeternaSzimulacio:
         for i in range(6):
             egyseg = tamado.horizont[i]
 
-            if egyseg and not egyseg.kimerult:
+            if egyseg and not egyseg.kimerult and not getattr(egyseg, "cannot_attack_until_turn_end", False):
                 tamadas_tortent = True
                 egyseg.kimerult = True
                 trigger_engine.dispatch("on_attack_declared", source=egyseg, owner=tamado, target=vedo, payload={"lane_index": i})

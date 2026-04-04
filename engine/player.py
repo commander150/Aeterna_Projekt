@@ -50,6 +50,7 @@ class Jatekos:
         self.kell_tamadnia_kovetkezo_korben = False
         self.overflow_vereseg = False
         self.overflow_gyoztes_nev = None
+        self.sik_aurabonusz = 0
 
     def jelol_overflow_vereseget(self, gyoztes_nev):
         self.overflow_vereseg = True
@@ -62,8 +63,12 @@ class Jatekos:
         for i in range(6):
             if isinstance(self.horizont[i], CsataEgyseg):
                 self.horizont[i].kimerult = False
+                self.horizont[i].cannot_attack_until_turn_end = False
+                self.horizont[i].cannot_block_until_turn_end = False
             if isinstance(self.zenit[i], CsataEgyseg):
                 self.zenit[i].kimerult = False
+                self.zenit[i].cannot_attack_until_turn_end = False
+                self.zenit[i].cannot_block_until_turn_end = False
 
         self.hasznalt_jelek_ebben_a_korben = 0
         self.rezonancia_aura = 0
@@ -171,7 +176,7 @@ class Jatekos:
             1 for o in self.osforras
             if isinstance(o, dict) and not o.get("hasznalt", False)
         )
-        return alap_aura + self.rezonancia_aura
+        return alap_aura + self.rezonancia_aura + self.sik_aurabonusz
 
     def fizet(self, lap):
         szabad_kartyak = [
