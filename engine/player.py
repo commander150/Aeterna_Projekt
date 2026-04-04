@@ -51,6 +51,10 @@ class Jatekos:
         self.overflow_vereseg = False
         self.overflow_gyoztes_nev = None
 
+    def jelol_overflow_vereseget(self, gyoztes_nev):
+        self.overflow_vereseg = True
+        self.overflow_gyoztes_nev = gyoztes_nev
+
     def uj_kor_inditasa(self):
         for o in self.osforras:
             o["hasznalt"] = False

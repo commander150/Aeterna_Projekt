@@ -162,8 +162,7 @@ class EffectEngine:
         if vedo is None:
             return False
 
-        vedo.overflow_vereseg = True
-        vedo.overflow_gyoztes_nev = getattr(tamado, "nev", None)
+        vedo.jelol_overflow_vereseget(getattr(tamado, "nev", None))
         naplo.ir(f"☠️ {kontextus}: {forras_nev} Overflow győzelmet okozott")
         return True
 

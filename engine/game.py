@@ -49,10 +49,9 @@ class AeternaSzimulacio:
                         naplo.ir(f"⚔️ {jatekos.nev} megidézte: {lap.nev}")
 
                         ellenfel = self.p2 if jatekos == self.p1 else self.p1
-                        EffectEngine.trigger_on_play(lap, jatekos, ellenfel)
-                        overflow_gyoztes = self._overflow_gyoztes()
-                        if overflow_gyoztes:
-                            return overflow_gyoztes
+                        gyoztes = self._alkalmaz_kartya_hatast(lap, jatekos, ellenfel)
+                        if gyoztes:
+                            return gyoztes
                         break
 
         elif lap.jel_e:
@@ -86,25 +85,19 @@ class AeternaSzimulacio:
                 naplo.ir(f"🔮 {jatekos.nev} varázsol: {lap.nev}")
 
                 ellenfel = self.p2 if jatekos == self.p1 else self.p1
-                eredmeny = EffectEngine.trigger_on_play(lap, jatekos, ellenfel)
-
-                if eredmeny == "JATEK_VEGE":
-                    return jatekos.nev
-
-                overflow_gyoztes = self._overflow_gyoztes()
-                if overflow_gyoztes:
-                    return overflow_gyoztes
+                gyoztes = self._alkalmaz_kartya_hatast(lap, jatekos, ellenfel)
+                if gyoztes:
+                    return gyoztes
 
         return None
 
     def _aktivalhato_burst(self, vedo, p):
         if not p.reakcio_e:
-            return None
+            return
 
         naplo.ir("✨ Reakció (Burst) aktiválódik")
         tamado = self.p1 if vedo == self.p2 else self.p2
         EffectEngine.trigger_on_burst(p, vedo, tamado)
-        return self._overflow_gyoztes()
 
     def _ellenfel(self, jatekos):
         return self.p2 if jatekos == self.p1 else self.p1
@@ -115,6 +108,18 @@ class AeternaSzimulacio:
         if self.p2.overflow_vereseg:
             return self.p2.overflow_gyoztes_nev or self.p1.nev
         return None
+
+    def _ellenoriz_gyoztest(self):
+        return self._overflow_gyoztes()
+
+    def _alkalmaz_kartya_hatast(self, lap, jatekos, ellenfel):
+        EffectEngine.trigger_on_play(lap, jatekos, ellenfel)
+        return self._ellenoriz_gyoztest()
+
+    def _jelol_harc_overflowot(self, tamado, vedo):
+        vedo.jelol_overflow_vereseget(tamado.nev)
+        naplo.ir(f"☠️ {tamado.nev} nyert (Overflow)")
+        return self._ellenoriz_gyoztest()
 
     def _elpusztit_egyseget(self, jatekos, zona_nev, index, ok="harc"):
         return EffectEngine.destroy_unit(
@@ -243,9 +248,9 @@ class AeternaSzimulacio:
                     )
                     if sundering_result:
                         _, burst_aktivalt_ebben_a_harcban = sundering_result
-                        overflow_gyoztes = self._overflow_gyoztes()
-                        if overflow_gyoztes:
-                            return overflow_gyoztes
+                        gyoztes = self._ellenoriz_gyoztest()
+                        if gyoztes:
+                            return gyoztes
 
                 else:
                     target_kind, target_index, target_unit = self._select_direct_attack_target(vedo, i)
@@ -280,13 +285,12 @@ class AeternaSzimulacio:
                     pecset_tort, burst_aktivalt_ebben_a_harcban = self._feltor_pecset(
                         vedo, burst_aktivalt_ebben_a_harcban
                     )
-                    overflow_gyoztes = self._overflow_gyoztes()
-                    if overflow_gyoztes:
-                        return overflow_gyoztes
+                    gyoztes = self._ellenoriz_gyoztest()
+                    if gyoztes:
+                        return gyoztes
 
                     if not pecset_tort:
-                        naplo.ir(f"☠️ {tamado.nev} nyert (Overflow)")
-                        return tamado.nev
+                        return self._jelol_harc_overflowot(tamado, vedo)
 
                 if tamado.horizont[i]:
                     tamado.horizont[i].akt_tamadas = eredeti_atk
