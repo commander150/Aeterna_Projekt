@@ -51,6 +51,7 @@ class Jatekos:
         self.overflow_vereseg = False
         self.overflow_gyoztes_nev = None
         self.sik_aurabonusz = 0
+        self.kovetkezo_jel_kedvezmeny = 0
 
     def jelol_overflow_vereseget(self, gyoztes_nev):
         self.overflow_vereseg = True
@@ -79,11 +80,17 @@ class Jatekos:
     def kor_vegi_heal(self):
         for e in self.horizont:
             if isinstance(e, CsataEgyseg):
-                e.akt_hp = e.lap.eletero
+                e.akt_hp = e.lap.eletero + getattr(e, "bonus_max_hp", 0)
 
         for e in self.zenit:
             if isinstance(e, CsataEgyseg):
-                e.akt_hp = e.lap.eletero
+                e.akt_hp = e.lap.eletero + getattr(e, "bonus_max_hp", 0)
+
+    def effektiv_aura_koltseg(self, lap):
+        koltseg = lap.aura_koltseg
+        if getattr(lap, "jel_e", False) and self.kovetkezo_jel_kedvezmeny > 0:
+            koltseg = max(0, koltseg - 1)
+        return koltseg
 
     def huzas(self, extra=False):
         if extra and self.extra_huzas_ebben_a_korben >= 3:
@@ -183,7 +190,7 @@ class Jatekos:
             o for o in self.osforras
             if isinstance(o, dict) and not o.get("hasznalt", False)
         ]
-        fennmarado_koltseg = lap.aura_koltseg
+        fennmarado_koltseg = self.effektiv_aura_koltseg(lap)
 
         if self.rezonancia_aura > 0:
             levonas = min(self.rezonancia_aura, fennmarado_koltseg)
@@ -191,6 +198,9 @@ class Jatekos:
             fennmarado_koltseg -= levonas
 
         if fennmarado_koltseg <= 0:
+            if getattr(lap, "jel_e", False) and self.kovetkezo_jel_kedvezmeny > 0:
+                self.kovetkezo_jel_kedvezmeny -= 1
+                naplo.ir(f"✨ {self.nev} felhasználta a következő Jel kedvezményt.")
             return True
 
         if lap.egyseg_e:
@@ -206,6 +216,9 @@ class Jatekos:
         if len(sajat) >= fennmarado_koltseg:
             for i in range(fennmarado_koltseg):
                 sajat[i]["hasznalt"] = True
+            if getattr(lap, "jel_e", False) and self.kovetkezo_jel_kedvezmeny > 0:
+                self.kovetkezo_jel_kedvezmeny -= 1
+                naplo.ir(f"✨ {self.nev} felhasználta a következő Jel kedvezményt.")
             return True
 
         buntetett = fennmarado_koltseg + 1
@@ -224,6 +237,9 @@ class Jatekos:
                     o["hasznalt"] = True
                     hatra -= 1
 
+            if getattr(lap, "jel_e", False) and self.kovetkezo_jel_kedvezmeny > 0:
+                self.kovetkezo_jel_kedvezmeny -= 1
+                naplo.ir(f"✨ {self.nev} felhasználta a következő Jel kedvezményt.")
             return True
 
         return False

@@ -1,5 +1,6 @@
 import re
 
+from cards.resolver import resolve_card_handler
 from engine.effects import EffectEngine
 from engine.keyword_registry import KEYWORD_DEFINITIONS, KeywordRegistry
 from utils.logger import naplo
@@ -92,6 +93,9 @@ def _trigger_on_play_with_diagnostics(kartya, jatekos, ellenfel):
     szoveg = EffectEngine._normalize_text(nyers_szoveg)
     if not szoveg or szoveg == "-":
         return None
+    custom_result = resolve_card_handler(kartya, category="on_play", jatekos=jatekos, ellenfel=ellenfel)
+    if custom_result.get("resolved"):
+        return None
 
     sebzes_engedelyezett = (
         kartya.kartyatipus in ["Ige", "RituĂˇlĂ©", "Rituale"]
@@ -113,6 +117,15 @@ def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo):
     szoveg = EffectEngine._normalize_text(jel.kepesseg)
     if not szoveg or szoveg == "-":
         return False
+    custom_result = resolve_card_handler(
+        jel,
+        category="trap",
+        tamado_egyseg=tamado_egyseg,
+        tamado=tamado,
+        vedo=vedo,
+    )
+    if custom_result.get("resolved"):
+        return custom_result
 
     tortent_valami = False
     meghalt = False

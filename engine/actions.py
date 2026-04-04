@@ -50,6 +50,9 @@ class ActionLibrary:
         front = owner.horizont[index]
         if not isinstance(front, CsataEgyseg):
             return False
+        if getattr(front, "position_lock_awakenings", 0) > 0:
+            naplo.ir(f"⛔ {front.lap.nev} nem válthat pozíciót ({reason})")
+            return False
         if owner.zenit[index] is None:
             owner.zenit[index] = front
             owner.horizont[index] = None

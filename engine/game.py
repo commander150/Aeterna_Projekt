@@ -10,6 +10,7 @@ from engine.card import CsataEgyseg
 from engine.effects import EffectEngine
 from engine.keywords import KeywordEngine
 from engine.triggers import trigger_engine
+from cards.resolver import can_activate_trap, resolve_card_handler
 
 
 class AeternaSzimulacio:
@@ -40,7 +41,7 @@ class AeternaSzimulacio:
     def kijatszas_fazis(self, jatekos):
         lehetosegek = [
             l for l in jatekos.kez
-            if jatekos.elerheto_aura() >= l.aura_koltseg
+            if jatekos.elerheto_aura() >= jatekos.effektiv_aura_koltseg(l)
             and l.magnitudo <= len(jatekos.osforras)
         ]
 
@@ -68,6 +69,7 @@ class AeternaSzimulacio:
                             payload={"zone": "horizont" if zona is jatekos.horizont else "zenit"},
                         )
                         ellenfel = self.p2 if jatekos == self.p1 else self.p1
+                        self._resolve_summon_traps(zona[i], jatekos, ellenfel)
                         gyoztes = self._alkalmaz_kartya_hatast(lap, jatekos, ellenfel)
                         if gyoztes:
                             return gyoztes
@@ -172,6 +174,30 @@ class AeternaSzimulacio:
 
         return True, burst_aktivalt_ebben_a_harcban
 
+    def _resolve_summon_traps(self, summoned_unit, owner, opponent):
+        if opponent.hasznalt_jelek_ebben_a_korben >= 2:
+            return False
+
+        for index, trap in enumerate(opponent.zenit):
+            if trap is None or isinstance(trap, CsataEgyseg):
+                continue
+
+            result = resolve_card_handler(
+                trap,
+                category="summon_trap",
+                vedo=opponent,
+                tamado=owner,
+                summoned_unit=summoned_unit,
+            )
+            if result.get("consume_trap"):
+                opponent.temeto.append(trap)
+                opponent.zenit[index] = None
+                opponent.hasznalt_jelek_ebben_a_korben += 1
+                stats.aktivalt_jelek += 1
+                return True
+
+        return False
+
     def _can_direct_attack_exhausted_unit(self, celpont):
         return isinstance(celpont, CsataEgyseg) and celpont.kimerult
 
@@ -220,13 +246,18 @@ class AeternaSzimulacio:
                     for j in range(6):
                         if vedo.zenit[j] and not isinstance(vedo.zenit[j], CsataEgyseg):
                             jel = vedo.zenit[j]
+                            if not can_activate_trap(jel, tamado_egyseg=egyseg, tamado=tamado, vedo=vedo):
+                                continue
                             vedo.zenit[j] = None
                             vedo.temeto.append(jel)
 
                             vedo.hasznalt_jelek_ebben_a_korben += 1
                             stats.aktivalt_jelek += 1
 
-                            if EffectEngine.trigger_on_trap(jel, egyseg, tamado, vedo):
+                            trap_result = EffectEngine.trigger_on_trap(jel, egyseg, tamado, vedo)
+                            if isinstance(trap_result, dict) and trap_result.get("stop_attack"):
+                                jel_megallitotta = True
+                            elif trap_result:
                                 self._elpusztit_egyseget(tamado, "horizont", i, "csapda")
                                 jel_megallitotta = True
                             break

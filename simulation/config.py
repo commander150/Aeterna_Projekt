@@ -21,6 +21,7 @@ class SimulationConfig:
     engine_run_mode: str = "core_only"
     expansion_modules: Dict[str, bool] = field(default_factory=dict)
     expansion_flags: Dict[str, bool] = field(default_factory=dict)
+    log_base_dir: Optional[str] = None
 
     def to_engine_config(self) -> EngineConfig:
         return EngineConfig(
