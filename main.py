@@ -7,19 +7,29 @@ from simulation.runner import futtat_szimulaciot
 PROGRAM_MAPPA = os.path.dirname(os.path.abspath(__file__))
 XLSX_FAJL = os.path.join(PROGRAM_MAPPA, "cards.xlsx")
 
+# =========================
+# SZIMULACIOS BEALLITASOK
+# Ures ertek vagy None -> alapertelmezett, veletlen viselkedes.
+# =========================
+SZIMULACIOS_BEALLITASOK = {
+    "jatekok_szama": 3,
+    "random_seed": None,
+    "jatekos1_birodalom": None,
+    "jatekos2_birodalom": None,
+    "veletlen_birodalmak": True,
+    "scenario_nev": None,
+}
 
-def random_szimulacio_config():
-    return SimulationConfig()
 
-
-def celzott_szimulacio_config():
+def _config_from_main_settings():
+    beallitas = SZIMULACIOS_BEALLITASOK
     return SimulationConfig(
-        games=5,
-        random_seed=42,
-        player1_realm="Solaris",
-        player2_realm="Umbra",
-        random_realm_fallback=True,
-        scenario="celzott-alapteszt",
+        games=beallitas.get("jatekok_szama") or 3,
+        random_seed=beallitas.get("random_seed"),
+        player1_realm=beallitas.get("jatekos1_birodalom") or None,
+        player2_realm=beallitas.get("jatekos2_birodalom") or None,
+        random_realm_fallback=beallitas.get("veletlen_birodalmak", True),
+        scenario=beallitas.get("scenario_nev") or None,
     )
 
 if __name__ == "__main__":
@@ -34,13 +44,9 @@ if __name__ == "__main__":
         if not os.path.exists(XLSX_FAJL):
             print("HIBA: cards.xlsx nem található!")
         else:
-            FUTTATASI_MOD = "random"
-
-            if FUTTATASI_MOD == "targeted":
-                config = celzott_szimulacio_config()
-            else:
-                config = random_szimulacio_config()
-
+            config = _config_from_main_settings()
+            print(f"Aktív konfiguráció: {config.describe()}")
+            naplo.ir(f"Startup konfiguráció: {config.describe()}")
             futtat_szimulaciot(XLSX_FAJL, config=config)
 
         print("\nKész!")
