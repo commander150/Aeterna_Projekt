@@ -120,8 +120,11 @@ class AeternaSzimulacio:
                 naplo.ir(f"{jatekos.nev} varazsol: {lap.nev}")
 
                 ellenfel = self.p2 if jatekos == self.p1 else self.p1
+                trap_result = self._resolve_spell_cast_traps(lap, jatekos, ellenfel)
+                if self._spell_cancelled_by_trap(trap_result):
+                    naplo.ir(f"{jatekos.nev} varazslata megszakadt: {lap.nev}")
+                    return None
                 gyoztes = self._alkalmaz_kartya_hatast(lap, jatekos, ellenfel)
-                self._resolve_spell_cast_traps(lap, jatekos, ellenfel)
                 if gyoztes:
                     return gyoztes
 
@@ -237,8 +240,13 @@ class AeternaSzimulacio:
                 set_zone_slot(defender, "zenit", index, None, f"spell_trap_consumed:{getattr(trap, 'nev', 'ismeretlen')}")
                 defender.hasznalt_jelek_ebben_a_korben += 1
                 stats.aktivalt_jelek += 1
-                return True
+                return result
         return False
+
+    def _spell_cancelled_by_trap(self, trap_result):
+        if not isinstance(trap_result, dict):
+            return False
+        return bool(trap_result.get("cancelled_spell") or trap_result.get("stop_spell"))
 
     def _can_direct_attack_exhausted_unit(self, celpont):
         return _is_board_entity(celpont) and celpont.kimerult
