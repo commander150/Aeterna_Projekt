@@ -17,6 +17,13 @@ class Statisztika:
             "burst": {},
             "death": {},
         }
+        self.structured_metrics = {
+            "attempted": 0,
+            "resolved": 0,
+            "partial": 0,
+            "fallback": 0,
+            "unresolved": 0,
+        }
 
     def faj_statisztika(self, faj):
         if not faj or faj == "None" or faj == "-":
@@ -31,6 +38,11 @@ class Statisztika:
         kulcs = (kartya_nev or "Ismeretlen lap", tisztitott_szoveg, allapot)
         kategoriak = self.fel_nem_oldott_effektek[kategoria]
         kategoriak[kulcs] = kategoriak.get(kulcs, 0) + 1
+
+    def rogzit_structured_kimenetet(self, statusz):
+        if statusz not in self.structured_metrics:
+            return
+        self.structured_metrics[statusz] += 1
 
     def _kiir_fel_nem_oldott_effekteket(self):
         naplo.ir("\nFel nem oldott effektek:")
@@ -92,6 +104,12 @@ class Statisztika:
         for faj, db in rendezett_fajok[:10]:
             naplo.ir(f"  - {faj}: {db} db")
         self._kiir_fel_nem_oldott_effekteket()
+        naplo.ir("\nStructured resolver osszegzes:")
+        naplo.ir(f"  - structured probalkozasok: {self.structured_metrics['attempted']}")
+        naplo.ir(f"  - teljes structured feloldas: {self.structured_metrics['resolved']}")
+        naplo.ir(f"  - reszleges structured feloldas: {self.structured_metrics['partial']}")
+        naplo.ir(f"  - text fallbackre esett: {self.structured_metrics['fallback']}")
+        naplo.ir(f"  - unresolved maradt: {self.structured_metrics['unresolved']}")
         naplo.ir("=" * 40)
 
 

@@ -22,11 +22,14 @@ class KeywordEngine:
         granted = set(getattr(forras, "granted_keywords", set()) or set())
         temp_granted = set(getattr(forras, "temp_granted_keywords", set()) or set())
         keyword_text = KeywordEngine._keyword_text(forras)
+        card_keywords = set(getattr(getattr(forras, "lap", forras), "keywords_normalized", []) or [])
         for kulcsszo in kulcsszavak:
             normalized = KeywordRegistry.normalize_keyword_name(kulcsszo)
             if normalized in temp_removed:
                 continue
             if normalized in granted or normalized in temp_granted:
+                return True
+            if normalized in card_keywords:
                 return True
             if KeywordRegistry.has_keyword(keyword_text, kulcsszo):
                 return True

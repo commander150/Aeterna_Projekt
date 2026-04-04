@@ -1,31 +1,85 @@
-from engine.keyword_registry import KeywordRegistry
-from utils.text import repair_mojibake
+from engine.card_metadata import (
+    has_effect_tag,
+    has_keyword,
+    has_target,
+    has_trigger,
+    normalize_metadata_value,
+    normalized_metadata_list,
+)
 
 
 class Kartya:
     def __init__(self, sor_adat):
-        self.nev = str(sor_adat[0]) if sor_adat[0] else "Névtelen"
-        self.kartyatipus = str(sor_adat[1]) if sor_adat[1] else ""
-        self.birodalom = str(sor_adat[2]) if sor_adat[2] else ""
-        self.klan = str(sor_adat[3]) if sor_adat[3] else ""
-        self.faj = str(sor_adat[4]) if sor_adat[4] else ""
-        self.kaszt = str(sor_adat[5]) if sor_adat[5] else ""
-        
-        def tisztit_szam(v):
-            try: return int(float(v)) if v is not None else 0
-            except: return 0
+        row = sor_adat if isinstance(sor_adat, dict) else {}
 
-        self.magnitudo = tisztit_szam(sor_adat[6])
-        self.aura_koltseg = tisztit_szam(sor_adat[7])
-        self.tamadas = tisztit_szam(sor_adat[8])
-        self.eletero = tisztit_szam(sor_adat[9])
-        self.kepesseg = str(sor_adat[10]) if len(sor_adat) > 10 and sor_adat[10] else ""
+        def _get(index, key, default=""):
+            if key in row:
+                return row.get(key)
+            if isinstance(sor_adat, (list, tuple)) and len(sor_adat) > index:
+                return sor_adat[index]
+            return default
 
-        self.egyseg_e = "Entitás" in self.kartyatipus
-        self.jel_e = "Jel" in self.kartyatipus
-        self.reakcio_e = "Reakció" in self.kepesseg or "Burst" in self.kepesseg
+        def _to_int(value):
+            try:
+                return int(float(value)) if value is not None else 0
+            except Exception:
+                return 0
+
+        self.nev = normalize_metadata_value(_get(0, "kartya_nev", "Nevtelen")) or "Nevtelen"
+        self.kartyatipus = normalize_metadata_value(_get(1, "kartyatipus", ""))
+        self.birodalom = normalize_metadata_value(_get(2, "birodalom", ""))
+        self.klan = normalize_metadata_value(_get(3, "klan", ""))
+        self.faj = normalize_metadata_value(_get(4, "faj", ""))
+        self.kaszt = normalize_metadata_value(_get(5, "kaszt", ""))
+
+        self.magnitudo = _to_int(_get(6, "magnitudo", 0))
+        self.aura_koltseg = _to_int(_get(7, "aura_koltseg", 0))
+        self.tamadas = _to_int(_get(8, "tamadas", 0))
+        self.eletero = _to_int(_get(9, "eletero", 0))
+        self.kepesseg = normalize_metadata_value(_get(10, "kepesseg", ""))
+
+        self.canonical_text = normalize_metadata_value(_get(11, "kepesseg_canonical", "")) or self.kepesseg
+        self.keywords = normalized_metadata_list(_get(12, "kulcsszavak_felismerve", ""))
+        self.triggers = normalized_metadata_list(_get(13, "trigger_felismerve", ""))
+        self.targets = normalized_metadata_list(_get(14, "celpont_felismerve", ""))
+        self.effect_tags = normalized_metadata_list(_get(15, "hatascimkek", ""))
+        self.interpretation_status = normalize_metadata_value(_get(16, "ertelmezesi_statusz", ""))
+
+        self.keywords_normalized = list(self.keywords)
+        self.triggers_normalized = list(self.triggers)
+        self.targets_normalized = list(self.targets)
+        self.effect_tags_normalized = list(self.effect_tags)
+        self.structured_data_available = any(
+            (
+                bool(self.canonical_text and self.canonical_text != self.kepesseg),
+                bool(self.keywords),
+                bool(self.triggers),
+                bool(self.targets),
+                bool(self.effect_tags),
+                bool(self.interpretation_status),
+            )
+        )
+
+        self.egyseg_e = "entit" in self.kartyatipus.lower()
+        self.jel_e = "jel" in self.kartyatipus.lower()
+        self.reakcio_e = (
+            "reakci" in self.kepesseg.lower()
+            or "burst" in self.kepesseg.lower()
+            or has_keyword(self, "burst")
+        )
+
     def van_kulcsszo(self, kulcsszo):
-        return kulcsszo.lower() in self.kepesseg.lower()
+        return has_keyword(self, kulcsszo) or kulcsszo.lower() in self.kepesseg.lower()
+
+    def has_effect_tag(self, tag):
+        return has_effect_tag(self, tag)
+
+    def has_trigger(self, trigger):
+        return has_trigger(self, trigger)
+
+    def has_target(self, target):
+        return has_target(self, target)
+
 
 class CsataEgyseg:
     def __init__(self, kartya):
@@ -34,8 +88,14 @@ class CsataEgyseg:
         self.akt_hp = kartya.eletero
         self.kimerult = True
         self.bane_target = False
-        
-        if "Gyorsaság" in kartya.kepesseg or "Celerity" in kartya.kepesseg:
+
+        if hasattr(kartya, "van_kulcsszo"):
+            gyors = kartya.van_kulcsszo("gyorsasag") or kartya.van_kulcsszo("celerity")
+        else:
+            kepesseg = getattr(kartya, "kepesseg", "") or ""
+            gyors = "gyorsas" in kepesseg.lower() or "celerity" in kepesseg.lower()
+
+        if gyors:
             self.kimerult = False
 
     def serul(self, mennyiseg):
