@@ -1,5 +1,12 @@
 ﻿from engine.card import CsataEgyseg
-from engine.board_utils import _is_board_entity, _object_name, _object_type, log_zone_write, set_zone_slot
+from engine.board_utils import (
+    _is_board_entity,
+    _object_name,
+    _object_type,
+    is_zenit_entity,
+    log_zone_write,
+    set_zone_slot,
+)
 from engine.triggers import trigger_engine
 from utils.logger import naplo
 
@@ -63,7 +70,7 @@ class ActionLibrary:
         if back is None:
             set_zone_slot(owner, "zenit", index, front, f"move_to_zenit:{reason}")
             set_zone_slot(owner, "horizont", index, None, f"move_to_zenit:{reason}")
-        elif _is_board_entity(back):
+        elif is_zenit_entity(back):
             set_zone_slot(owner, "horizont", index, back, f"swap_from_zenit:{reason}")
             set_zone_slot(owner, "zenit", index, front, f"swap_to_zenit:{reason}")
         else:

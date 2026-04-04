@@ -1,6 +1,7 @@
 import random
 from utils.logger import naplo
 from engine.card import CsataEgyseg
+from engine.board_utils import is_entity, is_zenit_entity
 
 
 class Jatekos:
@@ -65,7 +66,7 @@ class Jatekos:
             o["hasznalt"] = False
 
         for i in range(6):
-            if isinstance(self.horizont[i], CsataEgyseg):
+            if is_entity(self.horizont[i]):
                 if getattr(self.horizont[i], "extra_exhausted_turns", 0) > 0:
                     self.horizont[i].extra_exhausted_turns -= 1
                     self.horizont[i].kimerult = True
@@ -75,7 +76,7 @@ class Jatekos:
                 self.horizont[i].cannot_block_until_turn_end = False
                 self.horizont[i].protect_keywords_until_turn_end = False
                 self.horizont[i].protect_atk_from_enemy_until_turn_end = False
-            if isinstance(self.zenit[i], CsataEgyseg):
+            if is_zenit_entity(self.zenit[i]):
                 if getattr(self.zenit[i], "extra_exhausted_turns", 0) > 0:
                     self.zenit[i].extra_exhausted_turns -= 1
                     self.zenit[i].kimerult = True
@@ -95,11 +96,11 @@ class Jatekos:
 
     def kor_vegi_heal(self):
         for e in self.horizont:
-            if isinstance(e, CsataEgyseg):
+            if is_entity(e):
                 e.akt_hp = e.lap.eletero + getattr(e, "bonus_max_hp", 0)
 
         for e in self.zenit:
-            if isinstance(e, CsataEgyseg):
+            if is_zenit_entity(e):
                 e.akt_hp = e.lap.eletero + getattr(e, "bonus_max_hp", 0)
 
     def effektiv_aura_koltseg(self, lap):

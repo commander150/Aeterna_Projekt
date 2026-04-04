@@ -1,4 +1,4 @@
-import random
+﻿import random
 import traceback
 import engine.effect_diagnostics_v2
 from engine.config import set_active_engine_config
@@ -54,7 +54,7 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
             return
 
         birodalmak = _elerheto_birodalmak(kartyak)
-        naplo.ir(f"Elérhető birodalmak: {', '.join(birodalmak)}")
+        naplo.ir(f"ElĂ©rhetĹ‘ birodalmak: {', '.join(birodalmak)}")
 
         naplo.ir(f"Aktiv szimulacios konfiguracio: {config.describe()}")
         naplo.ir(f"Aktiv engine konfiguracio: {engine_config.describe()}")
@@ -72,7 +72,7 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
                 tiltott=[] if config.player2_realm else [b1],
             )
 
-            naplo.ir(f"\n--- {i+1}. JÁTÉK INDUL: {b1} vs {b2} ---")
+            naplo.ir(f"\n--- {i+1}. JĂTĂ‰K INDUL: {b1} vs {b2} ---")
             jatek = AeternaSzimulacio(b1, b2, kartyak, engine_config=engine_config)
             stats.jatekok_szama += 1
 
@@ -80,16 +80,16 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
             while not nyertes and jatek.kor < 100:
                 nyertes = jatek.kor_futtatasa()
 
-            if nyertes == "Játékos_1": stats.p1_gyozelem += 1
-            elif nyertes == "Játékos_2": stats.p2_gyozelem += 1
+            stats.rogzit_meccs_eredmenyt(nyertes)
             
             stats.osszes_kor += jatek.kor
-            naplo.ir(f"Játék vége! Győztes: {nyertes if nyertes else 'Döntetlen (Időtúllépés)'}")
+            naplo.ir(f"JĂˇtĂ©k vĂ©ge! GyĹ‘ztes: {nyertes if nyertes else 'DĂ¶ntetlen (IdĹ‘tĂşllĂ©pĂ©s)'}")
 
         stats.osszesites_mentese()
 
     except Exception:
         naplo.ir("\n" + "!"*40)
-        naplo.ir("PROGRAM LEÁLLT - KRITIKUS HIBA:")
+        naplo.ir("PROGRAM LEĂLLT - KRITIKUS HIBA:")
         traceback.print_exc()
         naplo.ir("!"*40)
+

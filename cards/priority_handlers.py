@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 
 from engine.actions import ActionLibrary
-from engine.board_utils import set_zone_slot
+from engine.board_utils import _is_board_entity, is_trap, is_zenit_entity, set_zone_slot
 from engine.card import CsataEgyseg
 from engine.targeting import TargetingEngine
 from engine.triggers import trigger_engine
@@ -46,7 +46,7 @@ def _is_machine_card(card):
 
 def _consume_named_trap(player, trap_name):
     for index, trap in enumerate(player.zenit):
-        if trap is None or isinstance(trap, CsataEgyseg):
+        if not is_trap(trap):
             continue
         if normalize_lookup_text(getattr(trap, "nev", "")) == normalize_lookup_text(trap_name):
             player.temeto.append(trap)
@@ -232,7 +232,7 @@ def can_activate_varatlan_erosites(card, tamado_egyseg, tamado, vedo, **_):
 
     if vedo.horizont[lane_index] is not None:
         return False
-    if isinstance(vedo.zenit[lane_index], CsataEgyseg):
+    if is_zenit_entity(vedo.zenit[lane_index]):
         return False
     if not vedo.pecsetek:
         return False
@@ -421,7 +421,7 @@ def can_activate_hamis_bizonyitek(card, spell_card=None, target_owner=None, cast
         return False
     if normalize_lookup_text(getattr(spell_card, "kartyatipus", "")) != "rituale":
         return False
-    return any(isinstance(unit, CsataEgyseg) for unit in caster.horizont + caster.zenit)
+    return any(_is_board_entity(unit) for unit in caster.horizont + caster.zenit)
 
 
 def handle_hamis_bizonyitek(card, spell_card=None, target_owner=None, caster=None, **_):

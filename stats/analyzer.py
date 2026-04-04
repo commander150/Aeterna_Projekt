@@ -1,10 +1,12 @@
-from utils.logger import naplo
+﻿from utils.logger import naplo
+
 
 class Statisztika:
     def __init__(self):
         self.jatekok_szama = 0
         self.p1_gyozelem = 0
         self.p2_gyozelem = 0
+        self.dontetlen = 0
         self.osszes_kor = 0
         self.kijatszott_fajok = {}
         self.feltort_pecsetek = 0
@@ -17,7 +19,8 @@ class Statisztika:
         }
 
     def faj_statisztika(self, faj):
-        if not faj or faj == "None" or faj == "-": return
+        if not faj or faj == "None" or faj == "-":
+            return
         self.kijatszott_fajok[faj] = self.kijatszott_fajok.get(faj, 0) + 1
 
     def rogzit_fel_nem_oldott_effektet(self, kategoria, kartya_nev, effekt_szoveg, allapot="tenylegesen_hianyzo"):
@@ -54,23 +57,42 @@ class Statisztika:
             for (kartya_nev, effekt_szoveg, allapot), db in rendezett:
                 naplo.ir(f"    - {db}x | {allapot} | {kartya_nev} | {effekt_szoveg}")
 
+    def rogzit_meccs_eredmenyt(self, nyertes):
+        if nyertes is None:
+            self.dontetlen += 1
+            return "dontetlen"
+
+        nyertes_nev = getattr(nyertes, "nev", nyertes)
+        if nyertes_nev == "Jatekos_1":
+            self.p1_gyozelem += 1
+            return "p1"
+        if nyertes_nev == "Jatekos_2":
+            self.p2_gyozelem += 1
+            return "p2"
+
+        naplo.ir(f"[DEBUG:UNKNOWN_WINNER] {nyertes_nev}")
+        self.dontetlen += 1
+        return "ismeretlen"
+
     def osszesites_mentese(self):
-        naplo.ir("\n" + "="*40)
-        naplo.ir("VÉGSŐ SZIMULÁCIÓS STATISZTIKA")
-        naplo.ir("="*40)
-        naplo.ir(f"Összes lejátszott meccs: {self.jatekok_szama}")
-        naplo.ir(f"P1 győzelmi arány: {(self.p1_gyozelem/max(1,self.jatekok_szama))*100:.1f}%")
-        naplo.ir(f"P2 győzelmi arány: {(self.p2_gyozelem/max(1,self.jatekok_szama))*100:.1f}%")
-        naplo.ir(f"Átlagos körszám: {self.osszes_kor/max(1,self.jatekok_szama):.2f}")
-        naplo.ir(f"Összes aktivált Jel: {self.aktivalt_jelek}")
-        naplo.ir(f"Összes feltört Pecsét: {self.feltort_pecsetek}")
-        naplo.ir("\nLeggyakrabban kijátszott fajok:")
-        
+        osszes_meccs = max(1, self.jatekok_szama)
+        naplo.ir("\n" + "=" * 40)
+        naplo.ir("VEGSO SZIMULACIOS STATISZTIKA")
+        naplo.ir("=" * 40)
+        naplo.ir(f"Osszes lejatszott meccs: {self.jatekok_szama}")
+        naplo.ir(f"P1 gyozelmi arany: {(self.p1_gyozelem / osszes_meccs) * 100:.1f}%")
+        naplo.ir(f"P2 gyozelmi arany: {(self.p2_gyozelem / osszes_meccs) * 100:.1f}%")
+        naplo.ir(f"Dontetlen arany: {(self.dontetlen / osszes_meccs) * 100:.1f}%")
+        naplo.ir(f"Atlagos korszam: {self.osszes_kor / osszes_meccs:.2f}")
+        naplo.ir(f"Osszes aktivalt Jel: {self.aktivalt_jelek}")
+        naplo.ir(f"Osszes feltort Pecset: {self.feltort_pecsetek}")
+        naplo.ir("\nLeggyakrabban kijatszott fajok:")
+
         rendezett_fajok = sorted(self.kijatszott_fajok.items(), key=lambda x: x[1], reverse=True)
         for faj, db in rendezett_fajok[:10]:
             naplo.ir(f"  - {faj}: {db} db")
         self._kiir_fel_nem_oldott_effekteket()
-        naplo.ir("="*40)
+        naplo.ir("=" * 40)
 
-# Globális statisztika példány
+
 stats = Statisztika()

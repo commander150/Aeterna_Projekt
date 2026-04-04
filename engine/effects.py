@@ -3,6 +3,7 @@ import unicodedata
 
 from engine.card import CsataEgyseg
 from engine.actions import ActionLibrary
+from engine.board_utils import _is_board_entity, is_attackable_zenit_target, is_zenit_entity
 from cards.resolver import resolve_spell_redirect
 from engine.effects_expansions import handle_expansion_gate
 from engine.targeting import TargetingEngine
@@ -44,11 +45,11 @@ class EffectEngine:
         egysegek = []
 
         for index, egyseg in enumerate(jatekos.horizont):
-            if isinstance(egyseg, CsataEgyseg):
+            if _is_board_entity(egyseg):
                 egysegek.append(("horizont", index, egyseg))
 
         for index, egyseg in enumerate(jatekos.zenit):
-            if isinstance(egyseg, CsataEgyseg):
+            if is_zenit_entity(egyseg):
                 egysegek.append(("zenit", index, egyseg))
 
         return egysegek
@@ -66,7 +67,7 @@ class EffectEngine:
         zona = EffectEngine._get_zone(jatekos, zona_nev)
         egyseg = zona[index]
 
-        if not isinstance(egyseg, CsataEgyseg):
+        if not _is_board_entity(egyseg):
             return False
 
         jatekos.temeto.append(egyseg.lap)
@@ -249,12 +250,12 @@ class EffectEngine:
         horizont = [
             ("horizont", index, egyseg)
             for index, egyseg in enumerate(ellenfel.horizont)
-            if isinstance(egyseg, CsataEgyseg)
+            if _is_board_entity(egyseg)
         ]
         zenit = [
             ("zenit", index, egyseg)
             for index, egyseg in enumerate(ellenfel.zenit)
-            if isinstance(egyseg, CsataEgyseg)
+            if is_attackable_zenit_target(egyseg)
         ]
 
         jeloltek = horizont + zenit

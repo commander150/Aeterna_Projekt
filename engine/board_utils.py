@@ -25,6 +25,22 @@ def _is_board_entity(obj):
     )
 
 
+def is_entity(obj):
+    return _is_board_entity(obj)
+
+
+def is_trap(obj):
+    return obj is not None and not _is_board_entity(obj)
+
+
+def is_zenit_entity(obj):
+    return _is_board_entity(obj)
+
+
+def is_attackable_zenit_target(obj):
+    return _is_board_entity(obj)
+
+
 def log_zone_write(owner, zone_name, slot_index, obj, reason):
     if obj is None:
         naplo.ir(

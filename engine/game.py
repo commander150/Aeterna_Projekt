@@ -1,5 +1,13 @@
 ﻿import random
-from engine.board_utils import _is_board_entity, _object_name, _object_type, set_zone_slot
+from engine.board_utils import (
+    _is_board_entity,
+    _object_name,
+    _object_type,
+    is_attackable_zenit_target,
+    is_trap,
+    is_zenit_entity,
+    set_zone_slot,
+)
 from engine.combat import CombatResolver
 from engine.config import get_active_engine_config
 from engine.game_state import MatchState
@@ -84,12 +92,12 @@ class AeternaSzimulacio:
         elif lap.jel_e:
             jelek_szama = len([
                 z for z in jatekos.zenit
-                if z is not None and not isinstance(z, CsataEgyseg)
+                if is_trap(z)
             ])
 
             if jelek_szama >= 2:
                 for i in range(6):
-                    if jatekos.zenit[i] and not isinstance(jatekos.zenit[i], CsataEgyseg):
+                    if is_trap(jatekos.zenit[i]):
                         kidobott = jatekos.zenit[i]
                         jatekos.temeto.append(kidobott)
                         set_zone_slot(jatekos, "zenit", i, None, "jel_limit_discard")
@@ -186,7 +194,7 @@ class AeternaSzimulacio:
             return False
 
         for index, trap in enumerate(opponent.zenit):
-            if trap is None or isinstance(trap, CsataEgyseg):
+            if not is_trap(trap):
                 continue
 
             result = resolve_card_handler(
@@ -215,7 +223,7 @@ class AeternaSzimulacio:
             return False
 
         for index, trap in enumerate(defender.zenit):
-            if trap is None or isinstance(trap, CsataEgyseg):
+            if not is_trap(trap):
                 continue
 
             result = resolve_spell_cast_trap(
@@ -233,7 +241,7 @@ class AeternaSzimulacio:
         return False
 
     def _can_direct_attack_exhausted_unit(self, celpont):
-        return isinstance(celpont, CsataEgyseg) and celpont.kimerult
+        return _is_board_entity(celpont) and celpont.kimerult
 
     def _attackable_exhausted_unit(self, vedo, lane_index):
         celpont = vedo.horizont[lane_index]
@@ -245,7 +253,7 @@ class AeternaSzimulacio:
         lane_unit = vedo.horizont[lane_index]
         lane_zenit = vedo.zenit[lane_index]
 
-        if lane_unit is None and isinstance(lane_zenit, CsataEgyseg):
+        if lane_unit is None and is_attackable_zenit_target(lane_zenit):
             return "zenit", lane_index, lane_zenit
 
         cel_index, celpont = self._attackable_exhausted_unit(vedo, lane_index)
@@ -272,7 +280,7 @@ class AeternaSzimulacio:
                 trigger_engine.dispatch("on_attack_declared", source=egyseg, owner=tamado, target=vedo, payload={"lane_index": i})
                 eredeti_atk = egyseg.akt_tamadas
 
-                if tamado.zenit[i] and isinstance(tamado.zenit[i], CsataEgyseg):
+                if is_zenit_entity(tamado.zenit[i]):
                     hatso = tamado.zenit[i]
                     bonusz = KeywordEngine.get_harmonize_bonus(egyseg, hatso)
                     if bonusz > 0:
@@ -283,7 +291,7 @@ class AeternaSzimulacio:
                 jel_megallitotta = False
                 if vedo.hasznalt_jelek_ebben_a_korben < 2:
                     for j in range(6):
-                        if vedo.zenit[j] and not isinstance(vedo.zenit[j], CsataEgyseg):
+                        if is_trap(vedo.zenit[j]):
                             jel = vedo.zenit[j]
                             if not can_activate_trap(jel, tamado_egyseg=egyseg, tamado=tamado, vedo=vedo):
                                 continue
@@ -432,7 +440,7 @@ class AeternaSzimulacio:
 
             kotelezo_tamadas = akt.kell_tamadnia_kovetkezo_korben
             volt_tamadasra_kepes = any(
-                isinstance(e, CsataEgyseg) and not e.kimerult
+                _is_board_entity(e) and not e.kimerult
                 for e in akt.horizont
             )
 
