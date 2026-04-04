@@ -1,0 +1,1 @@
+"""Kapcsolhato kiegeszito modulok helye."""

@@ -1,6 +1,7 @@
 import random
 import traceback
 import engine.effect_diagnostics_v2
+from engine.config import set_active_engine_config
 from utils.logger import naplo
 from stats.analyzer import stats
 from data.loader import kartyak_betoltese_xlsx
@@ -43,6 +44,7 @@ def _resolve_config(config=None, meccsek_szama=3):
 def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
     try:
         config = _resolve_config(config, meccsek_szama)
+        engine_config = set_active_engine_config(config.to_engine_config())
 
         if config.random_seed is not None:
             random.seed(config.random_seed)
@@ -55,6 +57,7 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
         naplo.ir(f"Elérhető birodalmak: {', '.join(birodalmak)}")
 
         naplo.ir(f"Aktiv szimulacios konfiguracio: {config.describe()}")
+        naplo.ir(f"Aktiv engine konfiguracio: {engine_config.describe()}")
 
         for i in range(config.games):
             b1 = _valassz_birodalmat(
@@ -70,7 +73,7 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
             )
 
             naplo.ir(f"\n--- {i+1}. JÁTÉK INDUL: {b1} vs {b2} ---")
-            jatek = AeternaSzimulacio(b1, b2, kartyak)
+            jatek = AeternaSzimulacio(b1, b2, kartyak, engine_config=engine_config)
             stats.jatekok_szama += 1
 
             nyertes = None

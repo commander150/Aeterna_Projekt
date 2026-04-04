@@ -3,6 +3,7 @@ import unicodedata
 
 from engine.card import CsataEgyseg
 from engine.actions import ActionLibrary
+from engine.effects_expansions import handle_expansion_gate
 from engine.targeting import TargetingEngine
 from engine.triggers import trigger_engine
 from stats.analyzer import stats
@@ -531,6 +532,8 @@ class EffectEngine:
 
     @staticmethod
     def _resolve_common_effects(kartya, jatekos, ellenfel, szoveg, kontextus, engedelyezett_sebzes):
+        if handle_expansion_gate(getattr(kartya, "nev", "Ismeretlen lap"), szoveg):
+            return True
         tortent_valami = False
         tortent_valami |= EffectEngine._resolve_draw(kartya, jatekos, szoveg, kontextus)
         tortent_valami |= EffectEngine._resolve_damage(

@@ -1,4 +1,8 @@
 import random
+from engine.combat import CombatResolver
+from engine.config import get_active_engine_config
+from engine.game_state import MatchState
+from engine.phases import PhaseRunner
 from utils.logger import naplo
 from stats.analyzer import stats
 from engine.player import Jatekos
@@ -9,10 +13,14 @@ from engine.triggers import trigger_engine
 
 
 class AeternaSzimulacio:
-    def __init__(self, b1_nev, b2_nev, kartyak):
+    def __init__(self, b1_nev, b2_nev, kartyak, engine_config=None):
         self.p1 = Jatekos("Játékos_1", b1_nev, kartyak)
         self.p2 = Jatekos("Játékos_2", b2_nev, kartyak)
         self.kor = 1
+        self.engine_config = engine_config or get_active_engine_config()
+        self.state = MatchState(self.p1, self.p2, self.kor)
+        self.phase_runner = PhaseRunner(self)
+        self.combat_resolver = CombatResolver(self)
         self.elokeszites()
 
     def elokeszites(self):
@@ -314,6 +322,7 @@ class AeternaSzimulacio:
         return None
 
     def kor_futtatasa(self):
+        self.state.kor = self.kor
         naplo.ir(f"\n>>>> {self.kor}. KÖR <<<<")
 
         for index, (akt, ell) in enumerate([(self.p1, self.p2), (self.p2, self.p1)]):
@@ -333,7 +342,7 @@ class AeternaSzimulacio:
             akt.osforras_bovites()
             trigger_engine.dispatch("on_manifestation_phase", owner=akt, target=ell, payload={"turn": self.kor})
 
-            eredmeny = self.kijatszas_fazis(akt)
+            eredmeny = self.phase_runner.run_play_phase(akt)
             if eredmeny:
                 akt.kor_vegi_heal()
                 ell.kor_vegi_heal()
@@ -346,7 +355,7 @@ class AeternaSzimulacio:
             )
 
             if not (self.kor == 1 and index == 0):
-                eredmeny = self.harc_fazis(akt, ell)
+                eredmeny = self.combat_resolver.resolve_attack_phase(akt, ell)
                 if eredmeny:
                     akt.kor_vegi_heal()
                     ell.kor_vegi_heal()

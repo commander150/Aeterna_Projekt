@@ -1,0 +1,1 @@
+"""Lapfeloldasi segedmodulok."""

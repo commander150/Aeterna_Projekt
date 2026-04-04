@@ -1,5 +1,6 @@
 import os
 import traceback
+from engine.config import DEFAULT_EXPANSION_FLAGS, DEFAULT_EXPANSION_MODULES
 from simulation.config import SimulationConfig
 from utils.logger import naplo
 from simulation.runner import futtat_szimulaciot
@@ -18,6 +19,9 @@ SZIMULACIOS_BEALLITASOK = {
     "jatekos2_birodalom": None,
     "veletlen_birodalmak": False,
     "scenario_nev": None,
+    "engine_futasi_mod": "core_only",
+    "expansion_modulok": dict(DEFAULT_EXPANSION_MODULES),
+    "expansion_flagek": dict(DEFAULT_EXPANSION_FLAGS),
 }
 
 
@@ -30,6 +34,9 @@ def _config_from_main_settings():
         player2_realm=beallitas.get("jatekos2_birodalom") or None,
         random_realm_fallback=beallitas.get("veletlen_birodalmak", True),
         scenario=beallitas.get("scenario_nev") or None,
+        engine_run_mode=beallitas.get("engine_futasi_mod") or "core_only",
+        expansion_modules=dict(beallitas.get("expansion_modulok") or {}),
+        expansion_flags=dict(beallitas.get("expansion_flagek") or {}),
     )
 
 if __name__ == "__main__":
