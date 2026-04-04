@@ -1,7 +1,7 @@
 import unittest
 from types import SimpleNamespace
 
-from engine.keyword_rules import KeywordEngine
+from engine.keyword_engine import KeywordEngine
 
 
 class DummyUnit:

@@ -77,6 +77,44 @@ modulhelyek, nem a fő viselkedés elsődleges hordozói:
 - `engine/effects_expansions.py`
 - `expansions/` alatti placeholder modulok
 
+## Wrapper Státuszdöntések
+
+Az alábbi státuszok a jelenlegi, működő architektúrához igazodnak.
+
+- `engine/effects_core.py`
+  - státusz: wrapper marad átmenetileg
+  - indok: tiszta re-export az `engine.effects` fölött, nem zavarja a runtime-ot,
+    de önálló viselkedése nincs
+
+- `engine/keywords_core.py`
+  - státusz: wrapper marad átmenetileg
+  - indok: tiszta re-export az `engine.keyword_engine` fölött, biztonságos, de
+    később kivezethető
+
+- `engine/game_state.py`
+  - státusz: wrapper marad átmenetileg
+  - indok: nagyon vékony állapot-adapter, jelenleg nem zavarja a futási utat,
+    de nem tekinthető teljes moduláris szeletnek
+
+- `engine/phases.py`
+  - státusz: wrapper kivezethető később
+  - indok: jelenleg egyetlen delegáló metódust tartalmaz a `game.py` felé
+
+- `engine/combat.py`
+  - státusz: wrapper kivezethető később
+  - indok: jelenleg egyetlen delegáló metódust tartalmaz a `game.py` felé
+
+- `engine/keywords.py`
+  - státusz: félrevezető / átnevezendő
+  - indok: a runtime ezen keresztül importálja a `KeywordEngine`-t, de a fájlban
+    még egy legacy implementáció is bent van; emiatt a név és a tartalom nem
+    teljesen egyértelmű
+
+- `tests/test_keywords.py`
+  - státusz: tesztoldali igazítást igényelt
+  - indok: megszűnt `engine.keyword_rules` importot használt, ezért a tesztet a
+    tényleges aktív `engine.keyword_engine` útvonalhoz kellett igazítani
+
 ## Jelenlegi Fő Kockázatok
 
 - `engine/effects.py` még mindig nagy és több korszak logikáját hordozza.
