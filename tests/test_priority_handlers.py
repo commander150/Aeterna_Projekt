@@ -44,10 +44,14 @@ def make_player(name="P1", realm="Aether"):
         kovetkezo_entitas_kedvezmeny=0,
         tomegtermeles_gyara_aktiv=False,
         tomegtermeles_gyara_triggerelt_ebben_a_korben=False,
+        tukrozodo_remeny_aktiv=False,
+        megtorlo_feny_aktiv=False,
+        martirok_vedelme_aktiv=False,
+        vamszedo_pont_figyelo=None,
         ideiglenes_aura_ebben_a_korben=0,
         rezonancia_aura=0,
         ad_ideiglenes_aurat=lambda mennyiseg, forras="": mennyiseg,
-        huzas=lambda extra=False: True,
+        huzas=lambda extra=False, trigger_watch=True: True,
     )
 
 
@@ -284,6 +288,107 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertIsNone(owner.zenit[0])
         self.assertIsNone(enemy.horizont[0])
         self.assertEqual(enemy.horizont[1].akt_hp, 1)
+
+    def test_goblin_taktika_summons_two_tokens(self):
+        spell = make_card("Goblin Taktika", card_type="RituĂˇlĂ©")
+        owner = make_player("Caster", realm="Ignis")
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(sum(1 for x in owner.horizont if x is not None), 2)
+
+    def test_a_feny_utja_can_resolve_from_burst(self):
+        burst = make_card("A FĂ©ny Ăštja", card_type="Jel")
+        owner = make_player("Caster")
+        owner.horizont[0] = CsataEgyseg(make_card("Vedett", atk=2, hp=2))
+
+        result = resolve_card_handler(burst, category="burst", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(owner.horizont[0].survival_shield_until_turn_end)
+
+    def test_tukrozodo_remeny_buffs_other_unit_after_damage(self):
+        owner = make_player("Owner")
+        owner.tukrozodo_remeny_aktiv = True
+        damaged = CsataEgyseg(make_card("Elso", atk=1, hp=3))
+        target = CsataEgyseg(make_card("Masik", atk=2, hp=2))
+        owner.horizont[0] = damaged
+        owner.horizont[1] = target
+
+        trigger_engine.dispatch(
+            "on_damage_taken",
+            source=CsataEgyseg(make_card("Tamado", atk=3, hp=3)),
+            owner=make_player("Enemy"),
+            target=damaged,
+            payload={"damage": 2, "zone": "horizont", "target_owner": owner, "source_zone": "horizont", "source_index": 0, "combat": True},
+        )
+
+        self.assertEqual(target.bonus_max_hp, 2)
+        self.assertEqual(target.akt_hp, 4)
+
+    def test_vamszedo_pont_copies_extra_draw(self):
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        owner_huzas = {"db": 0}
+        enemy_huzas = {"db": 0}
+
+        def owner_draw(extra=False, trigger_watch=True):
+            owner_huzas["db"] += 1
+            return True
+
+        def enemy_draw(extra=False, trigger_watch=True):
+            enemy_huzas["db"] += 1
+            if extra and trigger_watch and enemy.vamszedo_pont_figyelo is not None:
+                enemy.vamszedo_pont_figyelo.huzas(extra=True, trigger_watch=False)
+            return True
+
+        owner.huzas = owner_draw
+        enemy.huzas = enemy_draw
+
+        resolve_card_handler(make_card("VĂˇmszedĹ‘ Pont", card_type="SĂ­k"), category="on_play", jatekos=owner, ellenfel=enemy)
+        enemy.huzas(extra=True)
+
+        self.assertEqual(enemy_huzas["db"], 1)
+        self.assertEqual(owner_huzas["db"], 1)
+
+    def test_szegecsvihar_hits_two_different_targets(self):
+        spell = make_card("Szegecsvihar", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy.horizont[0] = CsataEgyseg(make_card("A", atk=1, hp=2))
+        enemy.horizont[1] = CsataEgyseg(make_card("B", atk=1, hp=3))
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertIsNone(enemy.horizont[0])
+        self.assertEqual(enemy.horizont[1].akt_hp, 1)
+
+    def test_a_termeszet_szava_searches_bestia(self):
+        spell = make_card("A TermĂ©szet Szava", card_type="RituĂˇlĂ©")
+        owner = make_player("Caster")
+        bestia = make_card("Farkas", card_type="EntitĂˇs")
+        bestia.faj = "Bestia"
+        owner.pakli = [bestia]
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(owner.kez[-1].nev, "Farkas")
+
+    def test_ujjaszuletes_fenye_revives_to_same_slot_exhausted(self):
+        spell = make_card("ĂšjjĂˇszĂĽletĂ©s FĂ©nye", card_type="RituĂˇlĂ©")
+        owner = make_player("Caster")
+        owner.horizont[1] = CsataEgyseg(make_card("Aldozat", atk=1, hp=1))
+        revived = make_card("Visszatero", atk=4, hp=4)
+        owner.temeto = [revived]
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(owner.horizont[1].lap.nev, "Visszatero")
+        self.assertTrue(owner.horizont[1].kimerult)
 
 if __name__ == "__main__":
     unittest.main()

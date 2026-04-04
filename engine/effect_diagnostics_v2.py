@@ -181,6 +181,10 @@ def _trigger_on_burst_with_diagnostics(kartya, jatekos, ellenfel=None):
     if not szoveg or szoveg == "-":
         return False
 
+    custom_result = resolve_card_handler(kartya, category="burst", jatekos=jatekos, ellenfel=ellenfel)
+    if custom_result.get("resolved"):
+        return True
+
     tortent_valami = EffectEngine._resolve_common_effects(
         kartya, jatekos, ellenfel, szoveg, "Burst", True
     )

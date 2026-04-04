@@ -18,8 +18,19 @@ class KeywordEngine:
 
     @staticmethod
     def _has_keyword(forras, *kulcsszavak):
+        temp_removed = set(getattr(forras, "temp_removed_keywords", set()) or set())
+        granted = set(getattr(forras, "granted_keywords", set()) or set())
+        temp_granted = set(getattr(forras, "temp_granted_keywords", set()) or set())
         keyword_text = KeywordEngine._keyword_text(forras)
-        return any(KeywordRegistry.has_keyword(keyword_text, kulcsszo) for kulcsszavak in [kulcsszavak] for kulcsszo in kulcsszavak)
+        for kulcsszo in kulcsszavak:
+            normalized = KeywordRegistry.normalize_keyword_name(kulcsszo)
+            if normalized in temp_removed:
+                continue
+            if normalized in granted or normalized in temp_granted:
+                return True
+            if KeywordRegistry.has_keyword(keyword_text, kulcsszo):
+                return True
+        return False
 
     @staticmethod
     def apply_static_keyword_states(egyseg):

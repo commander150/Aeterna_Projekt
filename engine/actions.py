@@ -13,6 +13,41 @@ from utils.logger import naplo
 
 class ActionLibrary:
     @staticmethod
+    def first_empty_slot(player, zone_name):
+        zone = getattr(player, zone_name, None)
+        if zone is None:
+            return None
+        for index, item in enumerate(zone):
+            if item is None:
+                return index
+        return None
+
+    @staticmethod
+    def move_entity_between_zones(owner, from_zone, from_index, to_zone, to_index, reason, exhausted=None):
+        source_zone = getattr(owner, from_zone, None)
+        target_zone = getattr(owner, to_zone, None)
+        if source_zone is None or target_zone is None:
+            return False
+        if from_index < 0 or from_index >= len(source_zone):
+            return False
+        if to_index < 0 or to_index >= len(target_zone):
+            return False
+
+        entity = source_zone[from_index]
+        if not _is_board_entity(entity):
+            return False
+        if target_zone[to_index] is not None:
+            return False
+
+        set_zone_slot(owner, to_zone, to_index, entity, f"move:{reason}")
+        set_zone_slot(owner, from_zone, from_index, None, f"move:{reason}")
+        if exhausted is not None:
+            entity.kimerult = exhausted
+        trigger_engine.dispatch("on_position_changed", source=entity.lap, owner=owner, payload={"from": from_zone, "to": to_zone})
+        naplo.ir(f"{entity.lap.nev} atkerult {from_zone} -> {to_zone} ({reason})")
+        return True
+
+    @staticmethod
     def _all_units(player):
         result = []
         for zone_name in ("horizont", "zenit"):

@@ -56,6 +56,7 @@ class Jatekos:
         self.kovetkezo_kor_ideiglenes_aura = 0
         self.megidezett_entitasok_ebben_a_korben = 0
         self.tomegtermeles_gyara_triggerelt_ebben_a_korben = False
+        self.vamszedo_pont_figyelo = None
 
     def jelol_overflow_vereseget(self, gyoztes_nev):
         self.overflow_vereseg = True
@@ -116,7 +117,7 @@ class Jatekos:
             koltseg = max(0, koltseg - self.kovetkezo_entitas_kedvezmeny)
         return koltseg
 
-    def huzas(self, extra=False):
+    def huzas(self, extra=False, trigger_watch=True):
         if extra and self.extra_huzas_ebben_a_korben >= 3:
             naplo.ir(f"{self.nev} nem huzhat tobb extra lapot ebben a korben.")
             return False
@@ -145,6 +146,14 @@ class Jatekos:
 
             if extra:
                 self.extra_huzas_ebben_a_korben += 1
+                if trigger_watch and self.vamszedo_pont_figyelo is not None:
+                    try:
+                        self.vamszedo_pont_figyelo.huzas(extra=True, trigger_watch=False)
+                        naplo.ir(
+                            f"Vamszedo Pont: {getattr(self.vamszedo_pont_figyelo, 'nev', 'ismeretlen')} is huzott, mert {self.nev} normal huzasi fazison kivul lapot huzott."
+                        )
+                    except Exception:
+                        pass
 
             return True
 

@@ -324,6 +324,13 @@ class AeternaSzimulacio:
                     blokkolo_meghalt = False
                     blokkolo_index = vedo.horizont.index(b)
 
+                    trigger_engine.dispatch(
+                        "on_damage_taken",
+                        source=egyseg,
+                        owner=tamado,
+                        target=b,
+                        payload={"damage": egyseg.akt_tamadas, "zone": "horizont", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
+                    )
                     if b.serul(egyseg.akt_tamadas):
                         lethal_result = resolve_lethal_trap(owner=vedo, unit=b, attacker=egyseg, zone_name="horizont", index=blokkolo_index)
                         if lethal_result and lethal_result.get("prevented_death"):
@@ -333,6 +340,13 @@ class AeternaSzimulacio:
 
                     KeywordEngine.on_damage_dealt(egyseg, b)
 
+                    trigger_engine.dispatch(
+                        "on_damage_taken",
+                        source=b,
+                        owner=vedo,
+                        target=egyseg,
+                        payload={"damage": b.akt_tamadas, "zone": "horizont", "target_owner": tamado, "source_zone": "horizont", "source_index": blokkolo_index, "combat": True},
+                    )
                     if egyseg.serul(b.akt_tamadas):
                         lethal_result = resolve_lethal_trap(owner=tamado, unit=egyseg, attacker=b, zone_name="horizont", index=i)
                         if not (lethal_result and lethal_result.get("prevented_death")):
@@ -365,6 +379,13 @@ class AeternaSzimulacio:
 
                         naplo.ir(f"Zenit tamadas: {z.lap.nev}")
 
+                        trigger_engine.dispatch(
+                            "on_damage_taken",
+                            source=egyseg,
+                            owner=tamado,
+                            target=target_unit,
+                            payload={"damage": egyseg.akt_tamadas, "zone": "zenit", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
+                        )
                         if target_unit.serul(egyseg.akt_tamadas):
                             lethal_result = resolve_lethal_trap(owner=vedo, unit=target_unit, attacker=egyseg, zone_name="zenit", index=target_index)
                             if not (lethal_result and lethal_result.get("prevented_death")):
@@ -372,6 +393,13 @@ class AeternaSzimulacio:
 
                         KeywordEngine.on_damage_dealt(egyseg, target_unit)
 
+                        trigger_engine.dispatch(
+                            "on_damage_taken",
+                            source=target_unit,
+                            owner=vedo,
+                            target=egyseg,
+                            payload={"damage": target_unit.akt_tamadas, "zone": "horizont", "target_owner": tamado, "source_zone": "zenit", "source_index": target_index, "combat": True},
+                        )
                         if egyseg.serul(target_unit.akt_tamadas):
                             lethal_result = resolve_lethal_trap(owner=tamado, unit=egyseg, attacker=target_unit, zone_name="horizont", index=i)
                             if not (lethal_result and lethal_result.get("prevented_death")):
@@ -384,6 +412,13 @@ class AeternaSzimulacio:
                     if target_kind == "horizont":
                         naplo.ir(f"Kozvetlen tamadas kimerult egysegre: {target_unit.lap.nev}")
 
+                        trigger_engine.dispatch(
+                            "on_damage_taken",
+                            source=egyseg,
+                            owner=tamado,
+                            target=target_unit,
+                            payload={"damage": egyseg.akt_tamadas, "zone": "horizont", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
+                        )
                         if target_unit.serul(egyseg.akt_tamadas):
                             lethal_result = resolve_lethal_trap(owner=vedo, unit=target_unit, attacker=egyseg, zone_name="horizont", index=target_index)
                             if not (lethal_result and lethal_result.get("prevented_death")):

@@ -3,7 +3,7 @@ import unicodedata
 
 from engine.card import CsataEgyseg
 from engine.actions import ActionLibrary
-from engine.board_utils import _is_board_entity, is_attackable_zenit_target, is_zenit_entity
+from engine.board_utils import _is_board_entity, is_attackable_zenit_target, is_zenit_entity, set_zone_slot
 from cards.resolver import resolve_spell_redirect
 from engine.effects_expansions import handle_expansion_gate
 from engine.targeting import TargetingEngine
@@ -69,6 +69,25 @@ class EffectEngine:
 
         if not _is_board_entity(egyseg):
             return False
+
+        if getattr(egyseg, "survival_shield_until_turn_end", False):
+            egyseg.survival_shield_until_turn_end = False
+            egyseg.akt_hp = max(1, egyseg.akt_hp)
+            naplo.ir(f"A Feny Utja: {egyseg.lap.nev} 1 HP-n tulelte a pusztulast ({ok}).")
+            return False
+
+        if zona_nev == "horizont" and getattr(jatekos, "martirok_vedelme_aktiv", False):
+            cel_index = index if jatekos.zenit[index] is None else ActionLibrary.first_empty_slot(jatekos, "zenit")
+            if cel_index is not None:
+                zona[index] = None
+                egyseg.akt_hp = 1
+                egyseg.kimerult = True
+                granted = set(getattr(egyseg, "granted_keywords", set()) or set())
+                granted.add("aegis")
+                egyseg.granted_keywords = granted
+                set_zone_slot(jatekos, "zenit", cel_index, egyseg, "martirok_vedelme_return")
+                naplo.ir(f"Martirok Vedelme: {egyseg.lap.nev} 1 HP-val visszatert a Zenitbe, es tartos Aegist kapott.")
+                return False
 
         jatekos.temeto.append(egyseg.lap)
         zona[index] = None
