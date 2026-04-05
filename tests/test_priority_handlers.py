@@ -141,6 +141,107 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertTrue(result["consume_trap"])
         self.assertTrue(summoned.kimerult)
 
+    def test_csapda_a_hamuban_consumes_on_3_plus_horizon_summon_and_deals_damage(self):
+        trap = make_card("Csapda a Hamuban", card_type="Jel", text="Aktivalas: ...")
+        summoned = CsataEgyseg(make_card("Celpont", magnitude=3, atk=4, hp=4))
+        owner = make_player("Attacker")
+        defender = make_player("Defender")
+        owner.horizont[0] = summoned
+
+        result = resolve_card_handler(
+            trap,
+            category="summon_trap",
+            vedo=defender,
+            tamado=owner,
+            summoned_unit=summoned,
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["consume_trap"])
+        self.assertEqual(summoned.akt_hp, 1)
+
+    def test_csapda_a_hamuban_does_not_trigger_for_zenit_summon(self):
+        trap = make_card("Csapda a Hamuban", card_type="Jel", text="Aktivalas: ...")
+        summoned = CsataEgyseg(make_card("Zenit Celpont", magnitude=4, atk=4, hp=4))
+        owner = make_player("Attacker")
+        defender = make_player("Defender")
+        owner.zenit[0] = summoned
+
+        result = resolve_card_handler(
+            trap,
+            category="summon_trap",
+            vedo=defender,
+            tamado=owner,
+            summoned_unit=summoned,
+        )
+
+        self.assertFalse(result["resolved"])
+        self.assertEqual(summoned.akt_hp, 4)
+
+    def test_langolo_visszavagas_kills_attacker_before_combat(self):
+        trap = make_card("Lángoló Visszavágás", card_type="Jel", text="Aktivalas: ...")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=4))
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        defender_unit = CsataEgyseg(make_card("Vedett", atk=2, hp=5))
+        attacker_owner.horizont[0] = attacker
+        defender.horizont[0] = defender_unit
+
+        self.assertTrue(can_activate_trap(trap, tamado_egyseg=attacker, tamado=attacker_owner, vedo=defender))
+
+        result = resolve_card_handler(
+            trap,
+            category="trap",
+            tamado_egyseg=attacker,
+            tamado=attacker_owner,
+            vedo=defender,
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["consume_trap"])
+        self.assertTrue(result["stop_attack"])
+        self.assertIsNone(attacker_owner.horizont[0])
+
+    def test_langolo_visszavagas_damages_attacker_but_allows_combat_to_continue(self):
+        trap = make_card("Lángoló Visszavágás", card_type="Jel", text="Aktivalas: ...")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=6))
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        defender_unit = CsataEgyseg(make_card("Vedett", atk=2, hp=5))
+        attacker_owner.horizont[0] = attacker
+        defender.horizont[0] = defender_unit
+
+        result = resolve_card_handler(
+            trap,
+            category="trap",
+            tamado_egyseg=attacker,
+            tamado=attacker_owner,
+            vedo=defender,
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["consume_trap"])
+        self.assertTrue(result["continue_attack"])
+        self.assertEqual(attacker.akt_hp, 2)
+        self.assertIs(attacker_owner.horizont[0], attacker)
+
+    def test_langolo_visszavagas_does_not_activate_on_seal_attack(self):
+        trap = make_card("Lángoló Visszavágás", card_type="Jel", text="Aktivalas: ...")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=6))
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        attacker_owner.horizont[0] = attacker
+
+        self.assertFalse(
+            can_activate_trap(
+                trap,
+                tamado_egyseg=attacker,
+                tamado=attacker_owner,
+                vedo=defender,
+                target_kind="seal",
+            )
+        )
+
     def test_varatlan_erosites_only_activates_on_open_seal_attack(self):
         trap = make_card("VĂˇratlan ErĹ‘sĂ­tĂ©s", card_type="Jel", text="AktivĂˇlĂˇs: ...")
         attacker_owner = make_player("Attacker")

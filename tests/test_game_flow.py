@@ -145,6 +145,37 @@ class TestGameFlow(unittest.TestCase):
 
         self.assertEqual(defender.akt_hp, 3)
 
+    def test_langolo_visszavagas_surviving_attacker_continues_combat(self):
+        sim = object.__new__(AeternaSzimulacio)
+        sim.kor = 1
+        sim._feltor_pecset = lambda vedo, burst=False, *args, **kwargs: (True, burst)
+        sim._ellenoriz_gyoztest = lambda: None
+        sim._jelol_harc_overflowot = lambda tamado, vedo: (None, None)
+        sim._elpusztit_egyseget = AeternaSzimulacio._elpusztit_egyseget.__get__(sim, AeternaSzimulacio)
+
+        attacker_player = make_player("Attacker")
+        defender_player = make_player("Defender")
+        defender_player.hasznalt_jelek_ebben_a_korben = 0
+
+        attacker = make_unit("Tamado", atk=4, hp=6, kingdom="Ignis", exhausted=False)
+        defender = make_unit("Vedett", atk=0, hp=5, kingdom="Ignis", exhausted=False)
+        trap = make_card("Lángoló Visszavágás", card_type="Jel", magnitude=1, aura=1)
+        trap.kepesseg = "Aktivalas: amikor az ellenfel megtamadja az egyik Entitasodat a Horizonton. Hatas: a tamado Entitas azonnal kap 4 sebzest a harc elott."
+
+        attacker.owner = attacker_player
+        defender.owner = defender_player
+        attacker_player.horizont[0] = attacker
+        defender_player.horizont[0] = defender
+        defender_player.zenit[0] = trap
+
+        with patch("engine.game.trigger_engine.dispatch", Mock(return_value=SimpleNamespace(cancelled=False))):
+            AeternaSzimulacio.harc_fazis(sim, attacker_player, defender_player)
+
+        self.assertEqual(attacker.akt_hp, 2)
+        self.assertEqual(defender.akt_hp, 1)
+        self.assertIsNone(defender_player.zenit[0])
+        self.assertEqual(defender_player.hasznalt_jelek_ebben_a_korben, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

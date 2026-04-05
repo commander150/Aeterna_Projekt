@@ -720,6 +720,241 @@ def generate_clan_rule_audit_by_card_type(path: str, realm: str, clan: str = "")
     }
 
 
+TRAP_VALIDATION_RULES = {
+    "forro talaj": {
+        "activation_status": "supported",
+        "trigger_support": "metadata trigger: on_attack_declared; engine dispatch: engine/game.py harc_fazis -> trigger_engine.dispatch('on_attack_declared'); generic combat trap consumption path bizonyitott.",
+        "dispatch_support": "generic combat trap path: engine/game.py -> can_activate_trap(...) -> EffectEngine.trigger_on_trap(...); nincs explicit kartya-handler, de a generic trap adapter aktiv.",
+        "effect_support": "supported",
+        "final_status": "supported",
+        "evidence_files": [
+            "engine/game.py",
+            "engine/effect_diagnostics_v2.py",
+            "engine/structured_effects.py",
+            "LOG/2026/04/AETERNA_LOG_2026-04-05_17-50-46.txt",
+        ],
+        "notes": [
+            "A logban tenylegesen lerakva, elfogyasztva es 2 sebzest okozva latszik.",
+            "Nincs explicit handler, de mind az Aktiválás, mind a Hatás bizonyitott a generic trap utvonalon.",
+        ],
+    },
+    "robbano pajzs": {
+        "activation_status": "uncertain",
+        "trigger_support": "Nincs Trigger_Felismerve metadata; az Aegis-feltetel nincs explicit preview vagy trigger-kotes ala huzva.",
+        "dispatch_support": "Csak a generic combat trap utvonal latszik, amely nem bizonyitja az Aegis-specifikus aktivalasi feltetelt.",
+        "effect_support": "uncertain",
+        "final_status": "uncertain",
+        "evidence_files": [
+            "engine/game.py",
+            "cards/resolver.py",
+            "LOG/2026/04/AETERNA_LOG_2026-04-05_17-50-46.txt",
+        ],
+        "notes": [
+            "A logban a Jel lerakasa latszik, de tenyleges aktivalasi/hatas-visszaigazolas nem.",
+            "A kartya csak akkor lehetne supported, ha az Aegishez kotott Aktiválás is bizonyitott lenne.",
+        ],
+    },
+    "csapda a fustben": {
+        "activation_status": "supported",
+        "trigger_support": "Metadata trigger: on_enemy_summon; engine dispatch: engine/game.py _resolve_summon_traps; resolver SUMMON_TRAP_HANDLERS registryben benne van.",
+        "dispatch_support": "summon trap dispatch explicit: cards/resolver.py SUMMON_TRAP_HANDLERS['csapda a fustben'] -> handle_csapda_a_fustben",
+        "effect_support": "supported",
+        "final_status": "supported",
+        "evidence_files": [
+            "cards/resolver.py",
+            "cards/priority_handlers.py",
+            "engine/game.py",
+            "tests/test_priority_handlers.py",
+            "LOG/2026/04/AETERNA_LOG_2026-04-05_17-50-46.txt",
+        ],
+        "notes": [
+            "A handler, a summon dispatch, a teszt es a log is egy iranyba mutat.",
+            "Ez a Hamvaskezű Jel-reteg legjobban bizonyitott lapja.",
+        ],
+    },
+    "hamis parancs": {
+        "activation_status": "missing",
+        "trigger_support": "Nincs Trigger_Felismerve metadata es nincs explicit trap preview/trigger-kotes a Pecsét elleni tamadas atiranyitasara.",
+        "dispatch_support": "Nincs trap handler, summon trap handler vagy preview-regisztracio.",
+        "effect_support": "missing",
+        "final_status": "missing",
+        "evidence_files": [
+            "cards/resolver.py",
+            "engine/game.py",
+            "LOG/2026/04/AETERNA_LOG_2026-04-05_17-50-46.txt",
+        ],
+        "notes": [
+            "A logban a Jel lerakasa latszik, de nincs runtime bizonyitek az atiranyitasra.",
+            "A Hatás komplex direct-seal attack redirect, amire jelenleg nincs konkret implementacio.",
+        ],
+    },
+    "tuzes megtorlas": {
+        "activation_status": "uncertain",
+        "trigger_support": "Nincs Trigger_Felismerve metadata; a blokkolas soran meghalo tamado sajat egyseg feltetele nincs explicit modellezve.",
+        "dispatch_support": "A log szerint a generic combat trap utvonal elfogyasztja, de ez nem ugyanaz, mint a szabaly szerinti Aktiválás.",
+        "effect_support": "uncertain",
+        "final_status": "uncertain",
+        "evidence_files": [
+            "engine/game.py",
+            "engine/effect_diagnostics_v2.py",
+            "engine/structured_effects.py",
+            "LOG/2026/04/AETERNA_LOG_2026-04-05_17-50-46.txt",
+        ],
+        "notes": [
+            "Van logbeli aktivalas/elfogyasztas es fallback_text_resolved summary, de a hatas a logban hibasan +ATK iranyba csuszik.",
+            "Ez pont tipikus pelda arra, amikor van runtime zaj, de a szabalyhuseg nincs bizonyitva.",
+        ],
+    },
+    "langolo visszavagas": {
+        "activation_status": "uncertain",
+        "trigger_support": "Nincs Trigger_Felismerve metadata es nincs explicit trap preview a sajat Horizont-entitas elleni tamadasra.",
+        "dispatch_support": "Nincs trap handler-regisztracio; legfeljebb a generic combat trap utvonal tudna probalkozni.",
+        "effect_support": "uncertain",
+        "final_status": "uncertain",
+        "evidence_files": [
+            "cards/resolver.py",
+            "engine/game.py",
+            "LOG/2026/04/AETERNA_LOG_2026-04-05_17-50-46.txt",
+        ],
+        "notes": [
+            "A logban a lap lerakasa latszik, de tenyleges aktivalasi/hatas-bizonyitek nem.",
+            "A 4 sebzeses Hatás egyszeru lenne, de jelenleg nincs bekotve.",
+        ],
+    },
+    "csapda a hamuban": {
+        "activation_status": "supported",
+        "trigger_support": "Metadata trigger: on_enemy_summon; az engine summon dispatch utvonala biztosan letezik.",
+        "dispatch_support": "A summon trap dispatch letezik, de a kartya nincs benne a SUMMON_TRAP_HANDLERS registryben.",
+        "effect_support": "missing",
+        "final_status": "partial",
+        "evidence_files": [
+            "engine/game.py",
+            "cards/resolver.py",
+            "LOG/2026/04/AETERNA_LOG_2026-04-05_17-50-46.txt",
+        ],
+        "notes": [
+            "Az Aktiválás oldala bizonyitott, de a 3 sebzeses Hatásra nincs konkret runtime vegrehajtas.",
+            "Ez tipikus 'trigger megvan, effect hianyzik' allapot.",
+        ],
+    },
+    "izzo aura": {
+        "activation_status": "missing",
+        "trigger_support": "Nincs Trigger_Felismerve metadata; az enemy spell targetingre van ugyan engine event, de ez nincs ehhez a traphez kotve.",
+        "dispatch_support": "Nincs trap handler vagy spell-trap regisztracio erre a lapra.",
+        "effect_support": "missing",
+        "final_status": "missing",
+        "evidence_files": [
+            "cards/resolver.py",
+            "engine/effects.py",
+            "cards/priority_handlers.py",
+            "LOG/2026/04/AETERNA_LOG_2026-04-05_17-50-46.txt",
+        ],
+        "notes": [
+            "A lap szovege spell-negalast es kovetkezo korig tarto buffot ker.",
+            "Ehhez jelenleg nincs bizonyitott Aktiválás + Hatás par a Hamvaskezű Jel retegben.",
+        ],
+    },
+}
+
+RULEBOOK_TRAP_BASELINES = [
+    "Szabálykönyv: a Jel lapok a Zenitbe kerülnek, lefordítva.",
+    "Szabálykönyv: egyszerre legfeljebb 2 aktív Jel lehet a Zenitben.",
+    "Szabálykönyv: egy játékos körönként legfeljebb 2 Jelet aktiválhat.",
+    "Szabálykönyv: a Jel kétlépcsős lapforma, külön Aktiválás és külön Hatás résszel.",
+]
+
+
+def generate_trap_validation(path: str, realm: str, clan: str = ""):
+    rows = load_cards_rows(path)
+    clan_value = repair_mojibake(clan or "")
+    scoped_rows = [
+        row for row in rows
+        if row.get("Birodalom", "") == realm
+        and normalize_lookup_text(row.get("Klán", "")) == normalize_lookup_text(clan_value)
+        and row.get("Típus", "") == "Jel"
+    ]
+
+    validations = []
+    status_counter = collections.Counter()
+
+    for row in scoped_rows:
+        name = row.get("Kártya név", "")
+        raw_ability = row.get("Képesség", "")
+        normalized_name = normalize_lookup_text(name)
+        activation_condition, effect_resolution = _extract_trap_parts(raw_ability)
+        rule = TRAP_VALIDATION_RULES.get(
+            normalized_name,
+            {
+                "activation_status": "uncertain",
+                "trigger_support": "Nincs kulon kezi validacios szabaly, csak altalanos audit-bizonyitek.",
+                "dispatch_support": "Nincs kulon kezi validacios szabaly, csak altalanos audit-bizonyitek.",
+                "effect_support": "uncertain",
+                "final_status": "uncertain",
+                "evidence_files": [],
+                "notes": ["Nincs kulon kezi validacios szabaly erre a Jel lapra."],
+            },
+        )
+        trigger_tokens = [token.strip() for token in _parse_semicolon_or_csv(row.get("Trigger_Felismerve", ""))]
+        normalized_triggers = [TRIGGER_ALIASES.get(token, token) for token in trigger_tokens]
+        notes = list(rule["notes"])
+        notes.append("rulebook_basis: Jel = Aktiválás + Hatás; csak akkor supported, ha mindkettő bizonyított.")
+        if normalized_triggers:
+            notes.append("trigger_metadata: " + "; ".join(normalized_triggers))
+        else:
+            notes.append("trigger_metadata: none")
+
+        validations.append(
+            {
+                "card_name": name,
+                "raw_ability": raw_ability,
+                "activation_condition": activation_condition or "-",
+                "effect_resolution": effect_resolution or "-",
+                "trigger_support": rule["trigger_support"],
+                "dispatch_support": rule["dispatch_support"],
+                "effect_support": rule["effect_support"],
+                "evidence_files": rule["evidence_files"],
+                "final_status": rule["final_status"],
+                "notes": notes,
+            }
+        )
+        status_counter[rule["final_status"]] += 1
+
+    output_path = pathlib.Path("stats") / f"trap_validation_{_safe_slugify(realm)}_{_safe_slugify(clan_value)}.md"
+    with output_path.open("w", encoding="utf-8") as handle:
+        handle.write(f"# Trap Validation: {realm} / {clan_value}\n\n")
+        handle.write("## Rulebook Baseline\n\n")
+        for line in RULEBOOK_TRAP_BASELINES:
+            handle.write(f"- {line}\n")
+        handle.write("\n")
+        handle.write("## Summary\n\n")
+        handle.write(f"- Trap cards validated: {len(validations)}\n")
+        for status in ("supported", "partial", "uncertain", "missing"):
+            handle.write(f"- {status}: {status_counter.get(status, 0)}\n")
+        handle.write("\n")
+        for row in validations:
+            handle.write(f"## {row['card_name']}\n\n")
+            handle.write(f"- raw_ability: {row['raw_ability']}\n")
+            handle.write(f"- activation_condition: {row['activation_condition']}\n")
+            handle.write(f"- effect_resolution: {row['effect_resolution']}\n")
+            handle.write(f"- trigger_support: {row['trigger_support']}\n")
+            handle.write(f"- dispatch_support: {row['dispatch_support']}\n")
+            handle.write(f"- effect_support: {row['effect_support']}\n")
+            handle.write(f"- evidence_files: {'; '.join(row['evidence_files']) or '-'}\n")
+            handle.write(f"- final_status: {row['final_status']}\n")
+            handle.write("- notes:\n")
+            for note in row["notes"]:
+                handle.write(f"  - {note}\n")
+            handle.write("\n")
+
+    return {
+        "output_path": str(output_path),
+        "realm": realm,
+        "clan": clan_value,
+        "cards": validations,
+        "status_counter": status_counter,
+    }
+
+
 def generate_simple_effect_support_audit(path: str, realm: str, clan: str = ""):
     rows = load_cards_rows(path)
     clan_value = repair_mojibake(clan or "")
@@ -970,6 +1205,18 @@ if __name__ == "__main__":
         print(f"Cards audited: {len(result['cards'])}")
         for card_type in ("Entitás", "Rituálé", "Ige", "Jel", "Sík"):
             print(f"{card_type}: {result['type_counter'].get(card_type, 0)}")
+        for status in ("supported", "partial", "uncertain", "missing"):
+            print(f"{status}: {result['status_counter'].get(status, 0)}")
+    elif "--trap-validation" in args:
+        realm = "Ignis"
+        clan = ""
+        if "--realm" in args:
+            realm = args[args.index("--realm") + 1]
+        if "--clan" in args:
+            clan = args[args.index("--clan") + 1]
+        result = generate_trap_validation(filepath, realm, clan)
+        print(f"Trap validation generated: {result['output_path']}")
+        print(f"Trap cards validated: {len(result['cards'])}")
         for status in ("supported", "partial", "uncertain", "missing"):
             print(f"{status}: {result['status_counter'].get(status, 0)}")
     else:

@@ -372,6 +372,8 @@ class AeternaSzimulacio:
                             trap_result = EffectEngine.trigger_on_trap(jel, egyseg, tamado, vedo)
                             if isinstance(trap_result, dict) and trap_result.get("stop_attack"):
                                 jel_megallitotta = True
+                            elif isinstance(trap_result, dict) and trap_result.get("continue_attack"):
+                                jel_megallitotta = False
                             elif trap_result:
                                 self._elpusztit_egyseget(tamado, "horizont", i, "csapda")
                                 jel_megallitotta = True

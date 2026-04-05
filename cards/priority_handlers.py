@@ -773,6 +773,28 @@ def handle_viharos_ellencsapas(card, vedo, summoned_unit=None, tamado=None, **_)
     )
 
 
+def handle_csapda_a_hamuban(card, vedo=None, tamado=None, summoned_unit=None, **_):
+    from engine.effects import EffectEngine
+
+    if vedo is None or tamado is None or summoned_unit is None:
+        return {"resolved": False}
+
+    if summoned_unit.lap.magnitudo < 3:
+        return {"resolved": False}
+
+    # Rulebook-based reading: this trap only reacts to summons that actually land on the Horizont.
+    if summoned_unit not in tamado.horizont:
+        return {"resolved": False}
+
+    index = tamado.horizont.index(summoned_unit)
+    cel = ("horizont", index, summoned_unit)
+    EffectEngine._deal_damage_to_target(card.nev, 3, cel, tamado, "Csapda", vedo)
+    return _handled(
+        f"Csapda a Hamuban: {summoned_unit.lap.nev} 3 sebzest kapott a Horizontra idezes utan.",
+        consume_trap=True,
+    )
+
+
 def can_activate_vegzetes_lepes(card, tamado_egyseg=None, tamado=None, vedo=None, target_kind=None, **_):
     if target_kind != "seal":
         return False
@@ -1861,6 +1883,43 @@ def can_activate_vakito_visszavagas(card, tamado_egyseg=None, vedo=None, **_):
     if tamado_egyseg is None or vedo is None:
         return False
     return any(_is_board_entity(unit) and _unit_has_keyword(unit, "aegis") for _, _, unit in _allied_horizon_units(vedo))
+
+
+def can_activate_langolo_visszavagas(card, tamado_egyseg=None, tamado=None, vedo=None, target_kind=None, **_):
+    if target_kind == "seal" or tamado_egyseg is None or tamado is None or vedo is None:
+        return False
+    try:
+        lane_index = tamado.horizont.index(tamado_egyseg)
+    except ValueError:
+        return False
+    return _is_board_entity(vedo.horizont[lane_index])
+
+
+def handle_langolo_visszavagas(card, tamado_egyseg=None, tamado=None, vedo=None, **_):
+    from engine.effects import EffectEngine
+
+    if tamado_egyseg is None or tamado is None or vedo is None:
+        return {"resolved": False}
+    try:
+        lane_index = tamado.horizont.index(tamado_egyseg)
+    except ValueError:
+        return {"resolved": False}
+    if not _is_board_entity(vedo.horizont[lane_index]):
+        return {"resolved": False}
+
+    cel = ("horizont", lane_index, tamado_egyseg)
+    meghalt = EffectEngine._deal_damage_to_target(card.nev, 4, cel, tamado, "Csapda", vedo)
+    if meghalt:
+        return _handled(
+            f"Langolo Visszavagas: {tamado_egyseg.lap.nev} 4 sebzest kapott a harc elott, es elpusztult.",
+            consume_trap=True,
+            stop_attack=True,
+        )
+    return _handled(
+        f"Langolo Visszavagas: {tamado_egyseg.lap.nev} 4 sebzest kapott a harc elott, de tulelte a csapdat.",
+        consume_trap=True,
+        continue_attack=True,
+    )
 
 
 def handle_vakito_visszavagas(card, tamado_egyseg=None, vedo=None, **_):
