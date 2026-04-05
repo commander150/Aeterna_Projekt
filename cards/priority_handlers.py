@@ -1568,6 +1568,15 @@ def handle_vakito_ragyogas(card, jatekos, **_):
     return _handled(f"Vakito Ragyogas: {unit.lap.nev} a kor vegeig immunis minden sebzesre.")
 
 
+def handle_buborek_pajzs(card, jatekos, **_):
+    cel = min(_allied_units(jatekos), key=lambda data: (data[2].akt_hp, data[2].akt_tamadas), default=None)
+    if cel is None:
+        return _handled("Buborek-pajzs: nem volt sajat Entitas a vedelemhez.", partial=True)
+    _, _, unit = cel
+    unit.spell_damage_immunity_until_turn_end = True
+    return _handled(f"Buborek-pajzs: {unit.lap.nev} a kor vegeig nem kaphat sebzest Igekbol vagy Ritualekbol.")
+
+
 def handle_uresseg_kutato(card, jatekos, **_):
     jeloltek = [
         lap for lap in jatekos.pakli
@@ -2026,6 +2035,27 @@ def handle_szegecsvihar(card, jatekos, ellenfel, **_):
     return _handled(f"Szegecsvihar: {kulonbozo} kulonbozo ellenseges Entitas kapott 2-2 sebzest.", partial=kulonbozo < 2)
 
 
+def handle_langnyelvek_tanca(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Langnyelvek Tanca: nem volt ellenfel.", partial=True)
+    from engine.effects import EffectEngine
+
+    celpontok = list(ActionLibrary._all_units(ellenfel))[:2]
+    if not celpontok:
+        return _handled("Langnyelvek Tanca: nem volt ellenseges Entitas.", partial=True)
+    kulonbozo = 0
+    for zone_name, index, _ in celpontok:
+        aktualis = getattr(ellenfel, zone_name)[index]
+        if aktualis is None:
+            continue
+        EffectEngine._deal_damage_to_target(card.nev, 2, (zone_name, index, aktualis), ellenfel, "Kepesseg", jatekos)
+        kulonbozo += 1
+    return _handled(
+        f"Langnyelvek Tanca: {kulonbozo} kulonbozo ellenseges Entitas kapott 2-2 sebzest.",
+        partial=kulonbozo < 2,
+    )
+
+
 def handle_a_termeszet_szava(card, jatekos, **_):
     talalat = ActionLibrary.search_deck_by_predicate(
         jatekos,
@@ -2212,6 +2242,7 @@ def on_turn_end_priority(context):
             unit.temp_atk_penalty_until_turn_end = 0
         unit.survival_shield_until_turn_end = False
         unit.damage_immunity_until_turn_end = False
+        unit.spell_damage_immunity_until_turn_end = False
         unit.temp_granted_keywords = set()
         unit.temp_removed_keywords = set()
 

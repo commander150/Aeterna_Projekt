@@ -283,6 +283,31 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertIsNone(enemy.horizont[0])
         self.assertEqual(enemy.horizont[1].akt_hp, 1)
 
+    def test_langnyelvek_tanca_hits_two_different_enemy_units(self):
+        spell = make_card("Langnyelvek Tanca", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy.horizont[0] = CsataEgyseg(make_card("Elso", atk=1, hp=2))
+        enemy.zenit[0] = CsataEgyseg(make_card("Masodik", atk=1, hp=3))
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertIsNone(enemy.horizont[0])
+        self.assertEqual(enemy.zenit[0].akt_hp, 1)
+
+    def test_langnyelvek_tanca_returns_partial_with_one_enemy_unit(self):
+        spell = make_card("Langnyelvek Tanca", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy.horizont[0] = CsataEgyseg(make_card("Elso", atk=1, hp=3))
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+        self.assertEqual(enemy.horizont[0].akt_hp, 1)
+
     def test_fenykard_csapas_kill_buffs_ally(self):
         spell = make_card("Fenykard Csapas", card_type="Ige")
         owner = make_player("Caster")
@@ -802,6 +827,32 @@ class TestPriorityHandlers(unittest.TestCase):
 
         self.assertTrue(result["resolved"])
         self.assertTrue(result["partial"])
+
+    def test_buborek_pajzs_grants_spell_damage_immunity_until_turn_end(self):
+        spell = make_card("Buborek-pajzs", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        protected = CsataEgyseg(make_card("Vedett", atk=2, hp=4))
+        owner.horizont[0] = protected
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertTrue(protected.spell_damage_immunity_until_turn_end)
+
+    def test_buborek_pajzs_blocks_spell_damage(self):
+        spell = make_card("Buborek-pajzs", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        protected = CsataEgyseg(make_card("Vedett", atk=2, hp=4))
+        owner.horizont[0] = protected
+
+        resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+        destroyed = EffectEngine._deal_damage_to_target("Villam", 3, ("horizont", 0, protected), owner, "Kepesseg", enemy)
+
+        self.assertFalse(destroyed)
+        self.assertEqual(protected.akt_hp, 4)
 
     def test_tulhevult_kazan_triggers_on_own_machine_death(self):
         owner = make_player("Owner")

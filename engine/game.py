@@ -12,6 +12,7 @@ from engine.combat import CombatResolver
 from engine.config import get_active_engine_config
 from engine.game_state import MatchState
 from engine.phases import PhaseRunner
+from utils.text import normalize_lookup_text
 from utils.logger import naplo
 from stats.analyzer import stats
 from engine.player import Jatekos
@@ -285,6 +286,35 @@ class AeternaSzimulacio:
 
         return "seal", None, None
 
+    def _can_attack_with_unit(self, tamado, egyseg):
+        if egyseg is None:
+            return False
+
+        lap = getattr(egyseg, "lap", None)
+        lap_nev = normalize_lookup_text(getattr(lap, "nev", ""))
+        if lap_nev != "vulkani golem":
+            return True
+
+        sajat_birodalom = normalize_lookup_text(getattr(lap, "birodalom", ""))
+        aktiv_ignis_tarsak = 0
+        for zona in (getattr(tamado, "horizont", []), getattr(tamado, "zenit", [])):
+            for masik in zona:
+                if masik is None or masik is egyseg or not _is_board_entity(masik):
+                    continue
+                if getattr(masik, "kimerult", True):
+                    continue
+                masik_lap = getattr(masik, "lap", None)
+                if normalize_lookup_text(getattr(masik_lap, "birodalom", "")) != sajat_birodalom:
+                    continue
+                aktiv_ignis_tarsak += 1
+                if aktiv_ignis_tarsak >= 2:
+                    return True
+
+        naplo.ir(
+            f"Vulkani Golem: {getattr(lap, 'nev', 'ismeretlen')} nem tamadhat, mert nincs 2 masik aktiv Ignis entitas a Dominiumon."
+        )
+        return False
+
     def harc_fazis(self, tamado, vedo):
         burst_aktivalt_ebben_a_harcban = False
         tamadas_tortent = False
@@ -299,6 +329,8 @@ class AeternaSzimulacio:
                 continue
 
             if egyseg and not egyseg.kimerult and not getattr(egyseg, "cannot_attack_until_turn_end", False):
+                if not self._can_attack_with_unit(tamado, egyseg):
+                    continue
                 tamadas_tortent = True
                 egyseg.kimerult = True
                 trigger_engine.dispatch("on_attack_declared", source=egyseg, owner=tamado, target=vedo, payload={"lane_index": i})

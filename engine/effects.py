@@ -381,6 +381,9 @@ class EffectEngine:
         if getattr(cel, "damage_immunity_until_turn_end", False):
             naplo.ir(f"{kontextus}: {forras_nev} nem sebezte meg {cel.lap.nev} egyseget, mert a kor vegeig sebzesimmunis.")
             return False
+        if getattr(cel, "spell_damage_immunity_until_turn_end", False):
+            naplo.ir(f"{kontextus}: {forras_nev} nem sebezte meg {cel.lap.nev} egyseget, mert a kor vegeig immunis Igek es Ritualek sebzesere.")
+            return False
         naplo.ir(f"🔥 {kontextus}: {forras_nev} -> {sebzes} sebzés {cel.lap.nev}-ba/be")
 
         trigger_engine.dispatch("on_damage_taken", source=forras_nev, owner=forras_jatekos, target=cel, payload={"damage": sebzes, "zone": zona_nev})
