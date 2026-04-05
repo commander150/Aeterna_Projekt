@@ -1368,6 +1368,101 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertTrue(result["resolved"])
         self.assertTrue(result["partial"])
 
+    def test_a_langok_haragja_grants_attack_and_temporary_sundering(self):
+        spell = make_card("A Langok Haragja", card_type="Ige")
+        owner = make_player("Caster")
+        target = CsataEgyseg(make_card("Harcos", atk=2, hp=4))
+        owner.horizont[0] = target
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(target.akt_tamadas, 4)
+        self.assertEqual(getattr(target, "temp_atk_bonus_until_turn_end", 0), 2)
+        self.assertIn("sundering", getattr(target, "temp_granted_keywords", set()))
+
+    def test_a_langok_haragja_returns_partial_without_allied_unit(self):
+        spell = make_card("A Langok Haragja", card_type="Ige")
+        owner = make_player("Caster")
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+
+    def test_verforralo_uvoltes_buffs_allied_units_and_grants_temp_celerity(self):
+        spell = make_card("Verforralo Uvoltes", card_type="Ige")
+        owner = make_player("Caster")
+        first = CsataEgyseg(make_card("Elso", atk=2, hp=4))
+        second = CsataEgyseg(make_card("Masodik", atk=1, hp=3))
+        owner.horizont[0] = first
+        owner.zenit[0] = second
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(first.akt_tamadas, 3)
+        self.assertEqual(second.akt_tamadas, 2)
+        self.assertEqual(getattr(first, "temp_atk_bonus_until_turn_end", 0), 1)
+        self.assertEqual(getattr(second, "temp_atk_bonus_until_turn_end", 0), 1)
+        self.assertIn("celerity", getattr(first, "temp_granted_keywords", set()))
+        self.assertIn("celerity", getattr(second, "temp_granted_keywords", set()))
+
+    def test_verforralo_uvoltes_returns_partial_without_allied_unit(self):
+        spell = make_card("Verforralo Uvoltes", card_type="Ige")
+        owner = make_player("Caster")
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+
+    def test_parazs_szilank_damages_enemy_and_draws_on_play(self):
+        spell = make_card("Parazs-Szilank", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy_unit = CsataEgyseg(make_card("Celpont", atk=2, hp=3))
+        enemy.horizont[0] = enemy_unit
+        owner.pakli = [make_card("Huzott Lap", card_type="Ige")]
+        owner.huzas = lambda extra=False, trigger_watch=True: owner.kez.append(owner.pakli.pop()) is None if owner.pakli else False
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(enemy_unit.akt_hp, 2)
+        self.assertEqual(len(owner.kez), 1)
+        self.assertEqual(owner.kez[0].nev, "Huzott Lap")
+
+    def test_parazs_szilank_burst_uses_same_handler(self):
+        spell = make_card("Parazs-Szilank", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy_unit = CsataEgyseg(make_card("Burst Celpont", atk=1, hp=2))
+        enemy.horizont[1] = enemy_unit
+        owner.pakli = [make_card("Burst Huzas", card_type="Ige")]
+        owner.huzas = lambda extra=False, trigger_watch=True: owner.kez.append(owner.pakli.pop()) is None if owner.pakli else False
+
+        result = resolve_card_handler(spell, category="burst", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(enemy_unit.akt_hp, 1)
+        self.assertEqual(len(owner.kez), 1)
+        self.assertEqual(owner.kez[0].nev, "Burst Huzas")
+
+    def test_parazs_szilank_returns_partial_without_enemy_unit(self):
+        spell = make_card("Parazs-Szilank", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+
     def test_folyekony_pancel_marks_allied_horizon_units_for_half_damage(self):
         spell = make_card("Folyekony Pancel", card_type="Ige")
         owner = make_player("Caster")

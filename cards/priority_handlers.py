@@ -2034,6 +2034,48 @@ def handle_tuzgyuru(card, jatekos, **_):
     )
 
 
+def handle_a_langok_haragja(card, jatekos, **_):
+    cel = max(_allied_units(jatekos), key=lambda data: (data[2].akt_tamadas, data[2].akt_hp), default=None)
+    if cel is None:
+        return _handled("A Langok Haragja: nem volt sajat Entitas a bonuszhoz.", partial=True)
+    _, _, unit = cel
+    _grant_temp_attack(unit, 2)
+    _grant_keyword(unit, "sundering", temporary=True)
+    return _handled(f"A Langok Haragja: {unit.lap.nev} +2 ATK-t es ideiglenes Sunderinget kapott a kor vegeig.")
+
+
+def handle_verforralo_uvoltes(card, jatekos, **_):
+    units = list(_allied_units(jatekos))
+    if not units:
+        return _handled("Verforralo Uvoltes: nem volt sajat Entitas a bonuszhoz.", partial=True)
+    for _, _, unit in units:
+        _grant_temp_attack(unit, 1)
+        _grant_keyword(unit, "celerity", temporary=True)
+    return _handled(f"Verforralo Uvoltes: {len(units)} sajat Entitas +1 ATK-t es ideiglenes Celerityt kapott a kor vegeig.")
+
+
+def handle_parazs_szilank(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Parazs-Szilank: nem volt ellenfel.", partial=True)
+
+    from engine.effects import EffectEngine
+
+    celpontok = list(ActionLibrary._all_units(ellenfel))
+    if not celpontok:
+        return _handled("Parazs-Szilank: nem volt ellenseges Entitas.", partial=True)
+
+    cel = min(celpontok, key=lambda data: (data[2].akt_hp, data[2].akt_tamadas))
+    EffectEngine._deal_damage_to_target(card.nev, 1, cel, ellenfel, "Kepesseg", jatekos)
+
+    if jatekos is None or not jatekos.huzas(extra=True):
+        return _handled(
+            f"Parazs-Szilank: {cel[2].lap.nev} 1 sebzest kapott, de a huzas nem sikerult.",
+            partial=True,
+        )
+
+    return _handled(f"Parazs-Szilank: {cel[2].lap.nev} 1 sebzest kapott, es 1 lap huzva.")
+
+
 def can_activate_vakito_visszavagas(card, tamado_egyseg=None, vedo=None, **_):
     if tamado_egyseg is None or vedo is None:
         return False
