@@ -52,6 +52,9 @@ Ez a belépési pont futáskor beregisztrálja a diagnostics réteget az
 
 Az `EffectEngine.trigger_*` belépési pontjai most közös belső adapter-dispatch
 helperen keresztül kérdezik le a regisztrált diagnostics adaptert.
+Az `engine/effects.py` korábbi, shadowed történeti trigger-maradványai már
+ki lettek vezetve, így a runtime-ban csak ez az egy végső trigger-belépési út
+maradt aktív.
 
 ## Rétegek Szerepe
 

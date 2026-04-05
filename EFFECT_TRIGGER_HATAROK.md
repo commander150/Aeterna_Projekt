@@ -49,6 +49,6 @@ Most:
 
 ## Mi Maradt Későbbre
 
-- az `engine.effects.py` belső duplikált trigger-definícióinak tisztítása
 - az adapterek esetleges egységes pipeline-objektumba emelése
-- az `engine.effects.py` korábbi, régi trigger-definícióinak teljes eltávolítása
+- az `engine.effects.py` trigger-default ágának további belső tisztítása, ha ez
+  később még indokolt lesz

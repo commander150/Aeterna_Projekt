@@ -119,6 +119,9 @@ Az alábbi státuszok a jelenlegi, működő architektúrához igazodnak.
   `EffectEngine` hivatalos trigger-adapter pontjaira.
 - Az `engine.effects.py` végső trigger-belépési pontjai most közös belső
   adapter-dispatch helperen keresztül hívódnak.
+- A korábban bent maradt, shadowed történeti trigger-definíciók kivezetésre
+  kerültek; a hivatalos runtime útban már csak a végső `_trigger_on_*_default`
+  + `trigger_on_*` párok maradtak.
 - A hivatalos effect-útvonal most külön is rögzítve van az
   `EFFECT_RETEG_AKTIV_UTVONAL.md` fájlban.
 - A hivatalos keyword-útvonal most: `engine.keyword_engine.KeywordEngine`.
