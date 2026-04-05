@@ -196,6 +196,23 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertEqual(owner.horizont[0].bonus_max_hp, 1)
         self.assertEqual(owner.horizont[0].akt_hp, 3)
 
+    def test_vakito_szikra_exhausts_active_enemy_horizon_unit(self):
+        spell = make_card("Vakito Szikra", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        active = CsataEgyseg(make_card("Aktiv", atk=2, hp=2))
+        active.kimerult = False
+        exhausted = CsataEgyseg(make_card("Faradt", atk=1, hp=3))
+        exhausted.kimerult = True
+        enemy.horizont[0] = active
+        enemy.horizont[1] = exhausted
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(enemy.horizont[0].kimerult)
+        self.assertTrue(enemy.horizont[1].kimerult)
+
     def test_visszahivas_az_uressegbol_summons_active_unit(self):
         spell = make_card("VisszahĂ­vĂˇs az ĂśressĂ©gbĹ‘l", card_type="Ige")
         owner = make_player("Caster")

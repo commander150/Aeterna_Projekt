@@ -67,6 +67,7 @@ from cards.priority_handlers import (
     handle_szentjanosbogar_raj,
     handle_szent_lang_inkvizitor,
     handle_vakito_ragyogas,
+    handle_vakito_szikra,
     handle_vakito_visszavagas,
     handle_sikatori_zsebtolvaj,
     handle_sirba_teres,
@@ -144,6 +145,7 @@ ON_PLAY_HANDLERS = {
     "a zatony eneke": handle_a_zatony_eneke,
     "melytengeri nyomas": handle_melytengeri_nyomas,
     "szentjanosbogar-raj": handle_szentjanosbogar_raj,
+    "vakito szikra": handle_vakito_szikra,
     "vakito ragyogas": handle_vakito_ragyogas,
     "uresseg-kutato": handle_uresseg_kutato,
     "lelekmentes": handle_lelekmentes,
@@ -221,6 +223,7 @@ TRAP_PREVIEW_HANDLERS = {
 BURST_HANDLERS = {
     "a feny utja": handle_a_feny_utja,
     "fenykard csapas": handle_fenykard_csapas,
+    "vakito szikra": handle_vakito_szikra,
     "vakito ragyogas": handle_vakito_ragyogas,
     "lelekmentes": handle_lelekmentes,
     "hirtelen dagaly": handle_hirtelen_dagaly,

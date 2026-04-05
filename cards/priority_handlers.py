@@ -240,6 +240,19 @@ def handle_fenykard_csapas(card, jatekos, ellenfel, **_):
     return _handled(f"Fenykard Csapas: a celpont elpusztult, ezert {egyseg.lap.nev} +1 maximalis HP-t kapott.")
 
 
+def handle_vakito_szikra(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Vakito Szikra: nem volt ellenfel.", partial=True)
+
+    celpontok = [item for item in _enemy_horizon_units(ellenfel) if not item[2].kimerult]
+    if not celpontok:
+        return _handled("Vakito Szikra: nem volt aktiv ellenseges Horizont Entitas.", partial=True)
+
+    _, _, egyseg = min(celpontok, key=lambda data: (data[2].akt_hp, data[2].akt_tamadas))
+    egyseg.kimerult = True
+    return _handled(f"Vakito Szikra: {egyseg.lap.nev} kimerult allapotba kerult.")
+
+
 def handle_felderito_bagoly(card, jatekos, ellenfel, **_):
     if ellenfel is None or not ellenfel.pakli:
         return _handled(
