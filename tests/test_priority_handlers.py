@@ -1509,6 +1509,7 @@ class TestPriorityHandlers(unittest.TestCase):
         spell = make_card("Utolso Szikra", card_type="Ige")
         owner = make_player("Caster")
         enemy = make_player("Enemy")
+        enemy.pecsetek = []
 
         result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
 
