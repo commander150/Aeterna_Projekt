@@ -112,6 +112,18 @@ def _unit_has_keyword(unit, keyword):
     return normalized in normalize_lookup_text(getattr(lap, "kepesseg", ""))
 
 
+def _unit_matches_trait(unit, trait):
+    normalized = normalize_lookup_text(trait)
+    lap = getattr(unit, "lap", None)
+    if lap is None:
+        return False
+    haystack = " ".join(
+        normalize_lookup_text(getattr(lap, field, ""))
+        for field in ("nev", "klan", "faj", "kaszt", "birodalom")
+    )
+    return normalized in haystack
+
+
 def _remove_keyword_temporarily(unit, keyword):
     values = set(getattr(unit, "temp_removed_keywords", set()) or set())
     values.add(normalize_lookup_text(keyword))
@@ -1773,6 +1785,19 @@ def handle_vakito_seregek(card, jatekos, **_):
     for unit in units:
         _grant_temp_attack(unit, 2)
     return _handled(f"Vakito Seregek: {len(units)} sajat Oltalommal rendelkezo Entitas +2 ATK-t kapott a kor vegeig.")
+
+
+def handle_pusztito_roham(card, jatekos, **_):
+    cel = min(
+        [data for data in _allied_horizon_units(jatekos) if _unit_matches_trait(data[2], "hamvaskezu")],
+        key=lambda data: (data[2].akt_hp, data[2].akt_tamadas),
+        default=None,
+    )
+    if cel is None:
+        return _handled("Pusztito Roham: nem volt sajat Hamvaskezu Entitas a Horizonon.", partial=True)
+    _, _, unit = cel
+    _grant_temp_attack(unit, 3)
+    return _handled(f"Pusztito Roham: {unit.lap.nev} +3 ATK-t kapott a kor vegeig.")
 
 
 def can_activate_vakito_visszavagas(card, tamado_egyseg=None, vedo=None, **_):

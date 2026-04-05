@@ -895,6 +895,34 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertFalse(result["partial"])
         self.assertTrue(protected.enemy_spell_damage_immunity_until_turn_end)
 
+    def test_pusztito_roham_buffs_hamvaskezu_horizon_unit(self):
+        spell = make_card("Pusztito Roham", card_type="Ige")
+        owner = make_player("Caster")
+        target_card = make_card("Harcos", atk=2, hp=3)
+        target_card.klan = "Hamvaskezu"
+        target = CsataEgyseg(target_card)
+        other = CsataEgyseg(make_card("Masik", atk=4, hp=4))
+        owner.horizont[0] = target
+        owner.horizont[1] = other
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(target.akt_tamadas, 5)
+        self.assertEqual(target.temp_atk_bonus_until_turn_end, 3)
+        self.assertEqual(other.akt_tamadas, 4)
+
+    def test_pusztito_roham_returns_partial_without_hamvaskezu_horizon_unit(self):
+        spell = make_card("Pusztito Roham", card_type="Ige")
+        owner = make_player("Caster")
+        owner.horizont[0] = CsataEgyseg(make_card("Nem Jo", atk=2, hp=3))
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+
     def test_folyekony_pancel_marks_allied_horizon_units_for_half_damage(self):
         spell = make_card("Folyekony Pancel", card_type="Ige")
         owner = make_player("Caster")
