@@ -240,6 +240,35 @@ def handle_fenykard_csapas(card, jatekos, ellenfel, **_):
     return _handled(f"Fenykard Csapas: a celpont elpusztult, ezert {egyseg.lap.nev} +1 maximalis HP-t kapott.")
 
 
+def handle_apaly_es_dagaly(card, jatekos, **_):
+    ures_mezok = sum(1 for slot in jatekos.horizont if slot is None)
+    huzas_db = min(3, ures_mezok)
+
+    if huzas_db <= 0:
+        return _handled("Apaly es Dagaly: nem volt ures sajat Horizont mezo, ezert nem tortent huzas.")
+
+    sikeres = 0
+    for _ in range(huzas_db):
+        if jatekos.huzas(extra=True):
+            sikeres += 1
+        else:
+            break
+
+    if sikeres <= 0:
+        return _handled(
+            f"Apaly es Dagaly: {huzas_db} huzas lett volna lehetseges, de egy sem sikerult.",
+            partial=True,
+        )
+
+    if sikeres < huzas_db:
+        return _handled(
+            f"Apaly es Dagaly: {ures_mezok} ures Horizont mezo alapjan {huzas_db} huzas jart volna, de csak {sikeres} sikerult.",
+            partial=True,
+        )
+
+    return _handled(f"Apaly es Dagaly: {ures_mezok} ures Horizont mezo alapjan {sikeres} lap huzva.")
+
+
 def handle_vakito_szikra(card, jatekos, ellenfel, **_):
     if ellenfel is None:
         return _handled("Vakito Szikra: nem volt ellenfel.", partial=True)

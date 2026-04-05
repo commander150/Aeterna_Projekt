@@ -196,6 +196,47 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertEqual(owner.horizont[0].bonus_max_hp, 1)
         self.assertEqual(owner.horizont[0].akt_hp, 3)
 
+    def test_apaly_es_dagaly_zero_empty_horizon_draws_zero(self):
+        spell = make_card("Apaly es Dagaly", card_type="Rituale")
+        owner = make_player("Caster")
+        for i in range(6):
+            owner.horizont[i] = CsataEgyseg(make_card(f"E{i}", atk=1, hp=1))
+        huzasok = {"db": 0}
+        owner.huzas = lambda extra=False, trigger_watch=True: huzasok.__setitem__("db", huzasok["db"] + 1) or True
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(huzasok["db"], 0)
+
+    def test_apaly_es_dagaly_draws_for_one_or_two_empty_slots(self):
+        spell = make_card("Apaly es Dagaly", card_type="Rituale")
+        owner = make_player("Caster")
+        owner.horizont[0] = CsataEgyseg(make_card("E0", atk=1, hp=1))
+        owner.horizont[1] = CsataEgyseg(make_card("E1", atk=1, hp=1))
+        owner.horizont[2] = CsataEgyseg(make_card("E2", atk=1, hp=1))
+        owner.horizont[3] = CsataEgyseg(make_card("E3", atk=1, hp=1))
+        huzasok = {"db": 0}
+        owner.huzas = lambda extra=False, trigger_watch=True: huzasok.__setitem__("db", huzasok["db"] + 1) or True
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(huzasok["db"], 2)
+
+    def test_apaly_es_dagaly_caps_at_three_draws(self):
+        spell = make_card("Apaly es Dagaly", card_type="Rituale")
+        owner = make_player("Caster")
+        owner.horizont[0] = CsataEgyseg(make_card("E0", atk=1, hp=1))
+        owner.horizont[1] = CsataEgyseg(make_card("E1", atk=1, hp=1))
+        huzasok = {"db": 0}
+        owner.huzas = lambda extra=False, trigger_watch=True: huzasok.__setitem__("db", huzasok["db"] + 1) or True
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(huzasok["db"], 3)
+
     def test_vakito_szikra_exhausts_active_enemy_horizon_unit(self):
         spell = make_card("Vakito Szikra", card_type="Ige")
         owner = make_player("Caster")
