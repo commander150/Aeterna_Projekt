@@ -75,6 +75,7 @@ from cards.priority_handlers import (
     handle_sikatori_zsebtolvaj,
     handle_sirba_teres,
     handle_varatlan_apaly,
+    handle_viharos_ellencsapas,
     handle_sivatagi_kem,
     handle_vizeses_golem,
     handle_szegecsvihar,
@@ -195,6 +196,7 @@ SUMMON_TRAP_HANDLERS = {
     "hamis igeret": handle_hamis_igeret,
     "kereskedelmi embargo": handle_kereskedelmi_embargo,
     "a melyseg szeme": handle_a_melyseg_szeme,
+    "viharos ellencsapas": handle_viharos_ellencsapas,
     "kagylocsapda": handle_kagylo_csapda,
     "kagylo csapda": handle_kagylo_csapda,
 }
@@ -223,6 +225,7 @@ TRAP_PREVIEW_HANDLERS = {
     "orveny-nyeles": can_activate_orveny_nyeles,
     "atkozott orveny": can_activate_atkozott_orveny,
     "tulhevult kazan": lambda *_, **__: False,
+    "viharos ellencsapas": lambda *_, **__: False,
     "kagylocsapda": can_activate_kagylo_csapda,
     "kagylo csapda": can_activate_kagylo_csapda,
 }

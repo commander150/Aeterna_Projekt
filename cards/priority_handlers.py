@@ -659,6 +659,29 @@ def handle_kereskedelmi_embargo(card, vedo, summoned_unit=None, tamado=None, **_
     )
 
 
+def handle_viharos_ellencsapas(card, vedo, summoned_unit=None, tamado=None, **_):
+    if summoned_unit is None or tamado is None or vedo is None:
+        return {"resolved": False}
+    if getattr(summoned_unit.lap, "magnitudo", 0) < 4:
+        return {"resolved": False}
+
+    jeloltek = [
+        item
+        for item in _allied_horizon_units(vedo)
+        if getattr(item[2], "kimerult", False)
+    ]
+    if not jeloltek:
+        return {"resolved": False}
+
+    _, _, celpont = max(jeloltek, key=lambda data: (data[2].akt_tamadas, data[2].akt_hp))
+    celpont.kimerult = False
+    _grant_temp_attack(celpont, 2)
+    return _handled(
+        f"Viharos Ellencsapas: {celpont.lap.nev} ujra aktivalodott es +2 ATK-t kapott a kor vegeig.",
+        consume_trap=True,
+    )
+
+
 def can_activate_kereskedelmi_embargo(card, vedo=None, summoned_unit=None, tamado=None, **_):
     return vedo is not None and summoned_unit is not None and tamado is not None and getattr(tamado, "megidezett_entitasok_ebben_a_korben", 0) >= 2
 

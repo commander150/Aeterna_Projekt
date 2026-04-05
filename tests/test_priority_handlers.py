@@ -153,6 +153,33 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertTrue(result["resolved"])
         self.assertTrue(result["destroy_summoned"])
 
+    def test_viharos_ellencsapas_reactivates_exhausted_unit_on_big_enemy_summon(self):
+        trap = make_card("Viharos Ellencsapas", card_type="Jel")
+        defender = make_player("Defender")
+        attacker_owner = make_player("Attacker")
+        summoned = CsataEgyseg(make_card("Nagy Entitas", magnitude=4, atk=4, hp=4))
+        exhausted = CsataEgyseg(make_card("Faradt Vedo", atk=2, hp=3))
+        exhausted.kimerult = True
+        defender.horizont[0] = exhausted
+
+        result = resolve_card_handler(
+            trap,
+            category="summon_trap",
+            vedo=defender,
+            tamado=attacker_owner,
+            summoned_unit=summoned,
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["consume_trap"])
+        self.assertFalse(exhausted.kimerult)
+        self.assertEqual(exhausted.akt_tamadas, 4)
+
+    def test_viharos_ellencsapas_does_not_activate_as_generic_combat_trap(self):
+        trap = make_card("Viharos Ellencsapas", card_type="Jel")
+
+        self.assertFalse(can_activate_trap(trap))
+
     def test_hamis_arany_drains_remaining_aura_after_spell(self):
         trap = make_card("Hamis Arany", card_type="Jel")
         defender = make_player("Defender")
