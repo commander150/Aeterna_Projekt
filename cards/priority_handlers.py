@@ -2551,6 +2551,24 @@ def handle_sivatagi_kem_pecset_sebzes(attacker, defender):
     ActionLibrary.inspect_opponent_hand(defender, "Sivatagi Kem")
     return True
 
+def handle_utolso_szikra(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Utolso Szikra: nem volt ellenfel.", partial=True)
+
+    from engine.effects import EffectEngine
+
+    celpontok = list(ActionLibrary._all_units(ellenfel))
+    if celpontok:
+        cel = min(celpontok, key=lambda data: (data[2].akt_hp, data[2].akt_tamadas))
+        EffectEngine._deal_damage_to_target(card.nev, 2, cel, ellenfel, "Kepesseg", jatekos)
+        return _handled(f"Utolso Szikra: {cel[2].lap.nev} 2 sebzest szenvedett el.")
+
+    tortent = EffectEngine._deal_direct_seal_damage(card.nev, 2, jatekos, ellenfel, "Kepesseg")
+    if tortent:
+        return _handled("Utolso Szikra: kozvetlenul 2 sebzest okozott az ellenfel Pecsetjeinek.")
+
+    return _handled("Utolso Szikra: nem volt ellenseges Entitas vagy serulheto Pecset.", partial=True)
+
 
 def on_summon_priority(context):
     unit = context.source

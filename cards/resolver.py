@@ -145,6 +145,7 @@ from cards.priority_handlers import (
     can_activate_meglepetesszeru_ellenakcio,
     can_activate_vegzetes_lepes,
     can_activate_vakito_visszavagas,
+    handle_utolso_szikra,
 )
 
 
@@ -238,6 +239,7 @@ ON_PLAY_HANDLERS = {
     "viz alatti borton": handle_viz_alatti_borton,
     "eletado fopap": handle_eletado_fopap,
     "szent lang inkvizitor": handle_szent_lang_inkvizitor,
+    "utolso szikra": handle_utolso_szikra,
 }
 
 TRAP_HANDLERS = {
@@ -323,6 +325,7 @@ BURST_HANDLERS = {
     "varatlan gyulladas": handle_varatlan_gyulladas,
     "langolo harag": handle_langolo_harag,
     "perzselo csapas": handle_perzselo_csapas,
+    "utolso szikra": handle_utolso_szikra,
 }
 
 

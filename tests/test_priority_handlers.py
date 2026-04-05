@@ -1462,6 +1462,58 @@ class TestPriorityHandlers(unittest.TestCase):
 
         self.assertTrue(result["resolved"])
         self.assertTrue(result["partial"])
+    
+    def test_utolso_szikra_damages_enemy_unit_on_play(self):
+        spell = make_card("Utolso Szikra", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy_unit = CsataEgyseg(make_card("Celpont", atk=2, hp=3))
+        enemy.horizont[0] = enemy_unit
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(enemy_unit.akt_hp, 1)
+
+    def test_utolso_szikra_burst_uses_same_handler(self):
+        spell = make_card("Utolso Szikra", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy_unit = CsataEgyseg(make_card("Burst Celpont", atk=1, hp=2))
+        enemy.horizont[1] = enemy_unit
+
+        result = resolve_card_handler(spell, category="burst", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertIsNone(enemy.horizont[1])
+
+    def test_utolso_szikra_hits_seal_when_no_enemy_unit(self):
+        spell = make_card("Utolso Szikra", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy.pecsetek = [
+            make_card("Pecset 1", card_type="Pecsét"),
+            make_card("Pecset 2", card_type="Pecsét"),
+            make_card("Pecset 3", card_type="Pecsét"),
+        ]
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(len(enemy.pecsetek), 1)
+
+    def test_utolso_szikra_returns_partial_without_enemy_or_seal(self):
+        spell = make_card("Utolso Szikra", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
 
     def test_gyongy_kovacs_buffs_other_allied_unit_on_play(self):
         unit = make_card("Gyongy-Kovacs", card_type="Entitás")
