@@ -509,6 +509,41 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertIsNone(defender.horizont[1])
         self.assertEqual(defender.temeto[-1].nev, "Vedelmezo")
 
+    def test_meglepetesszeru_ellenakcio_activates_on_attack_and_can_kill_attacker(self):
+        trap = make_card("Meglepetesszeru Ellenakcio", card_type="Jel")
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        attacker = CsataEgyseg(make_card("Tamado", atk=3, hp=2))
+        ally = CsataEgyseg(make_card("Vedelmezo", atk=2, hp=4))
+        attacker_owner.horizont[0] = attacker
+        defender.horizont[0] = ally
+
+        self.assertTrue(can_activate_trap(trap, tamado_egyseg=attacker, tamado=attacker_owner, vedo=defender))
+
+        result = resolve_card_handler(
+            trap,
+            category="trap",
+            tamado_egyseg=attacker,
+            tamado=attacker_owner,
+            vedo=defender,
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["consume_trap"])
+        self.assertTrue(result["stop_attack"])
+        self.assertIsNone(attacker_owner.horizont[0])
+        self.assertEqual(attacker_owner.temeto[-1].nev, "Tamado")
+        self.assertEqual(ally.akt_hp, 1)
+
+    def test_meglepetesszeru_ellenakcio_requires_own_unit(self):
+        trap = make_card("Meglepetesszeru Ellenakcio", card_type="Jel")
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        attacker = CsataEgyseg(make_card("Tamado", atk=3, hp=4))
+        attacker_owner.horizont[0] = attacker
+
+        self.assertFalse(can_activate_trap(trap, tamado_egyseg=attacker, tamado=attacker_owner, vedo=defender))
+
     def test_gyar_felugyelo_summons_token(self):
         unit = make_card("GyĂˇr-FelĂĽgyelĹ‘")
         owner = make_player("Caster")
@@ -608,14 +643,165 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertIsNone(owner.zenit[0])
         self.assertEqual(owner.temeto[-1].nev, "Megtorlo Feny")
         self.assertEqual(attacker.akt_hp, 2)
-        self.assertFalse(
-            can_activate_trap(
-                trap,
-                tamado_egyseg=CsataEgyseg(make_card("Tamado")),
-                tamado=make_player("Attacker"),
-                vedo=make_player("Defender"),
-            )
+
+    def test_vakito_fust_sets_enemy_horizon_attack_to_zero_until_turn_end(self):
+        spell = make_card("Vakito Fust", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        target = CsataEgyseg(make_card("Celpont", atk=5, hp=4))
+        enemy.horizont[0] = target
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(target.akt_tamadas, 0)
+        self.assertEqual(getattr(target, "temp_atk_penalty_until_turn_end", 0), 5)
+
+    def test_vakito_fust_burst_uses_same_attack_zero_handler(self):
+        spell = make_card("Vakito Fust", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        target = CsataEgyseg(make_card("Burst Celpont", atk=3, hp=4))
+        enemy.horizont[1] = target
+
+        result = resolve_card_handler(spell, category="burst", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(target.akt_tamadas, 0)
+
+    def test_surgeto_hullam_reactivates_exhausted_ally_but_prevents_attack(self):
+        spell = make_card("Surgeto Hullam", card_type="Ige")
+        owner = make_player("Caster")
+        exhausted = CsataEgyseg(make_card("Faradt Szovetseg", atk=3, hp=4))
+        exhausted.kimerult = True
+        owner.horizont[0] = exhausted
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(exhausted.kimerult)
+        self.assertTrue(exhausted.cannot_attack_until_turn_end)
+
+    def test_surgeto_hullam_burst_uses_same_reactivation_handler(self):
+        spell = make_card("Surgeto Hullam", card_type="Ige")
+        owner = make_player("Caster")
+        exhausted = CsataEgyseg(make_card("Burst Faradt", atk=2, hp=5))
+        exhausted.kimerult = True
+        owner.horizont[1] = exhausted
+
+        result = resolve_card_handler(spell, category="burst", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(exhausted.kimerult)
+        self.assertTrue(exhausted.cannot_attack_until_turn_end)
+
+    def test_fustbomba_moves_own_target_back_to_matching_zenit_and_stops_attack(self):
+        spell = make_card("Fustbomba", card_type="Ige")
+        owner = make_player("Caster")
+        target = CsataEgyseg(make_card("Mentett", atk=3, hp=4))
+        owner.horizont[1] = target
+
+        result = resolve_card_handler(
+            spell,
+            category="burst",
+            jatekos=owner,
+            current_target=("horizont", 1, target),
         )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["stop_attack"])
+        self.assertIsNone(owner.horizont[1])
+        self.assertIs(owner.zenit[1], target)
+
+    def test_fustbomba_returns_partial_when_no_empty_zenit_behind_target(self):
+        spell = make_card("Fustbomba", card_type="Ige")
+        owner = make_player("Caster")
+        target = CsataEgyseg(make_card("Mentett", atk=3, hp=4))
+        blocker = CsataEgyseg(make_card("Hatso", atk=1, hp=2))
+        owner.horizont[0] = target
+        owner.zenit[0] = blocker
+
+        result = resolve_card_handler(
+            spell,
+            category="burst",
+            jatekos=owner,
+            current_target=("horizont", 0, target),
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+        self.assertIs(owner.horizont[0], target)
+        self.assertIs(owner.zenit[0], blocker)
+
+    def test_magma_elemental_deals_one_damage_on_summon(self):
+        unit = make_card("Magma-Elemental")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        target = CsataEgyseg(make_card("Celpont", atk=2, hp=4))
+        enemy.horizont[0] = target
+
+        result = resolve_card_handler(unit, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(target.akt_hp, 3)
+
+    def test_magma_elemental_returns_partial_without_enemy_horizon_target(self):
+        unit = make_card("Magma-Elemental")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+
+        result = resolve_card_handler(unit, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+
+    def test_kodbe_vesz_grants_temporary_ethereal_to_own_horizon_unit(self):
+        spell = make_card("Ködbe Vész", card_type="Ige")
+        owner = make_player("Caster")
+        front = CsataEgyseg(make_card("Vedett", atk=2, hp=3))
+        owner.horizont[0] = front
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertIn("ethereal", getattr(front, "temp_granted_keywords", set()))
+
+    def test_kodbe_vesz_returns_partial_without_own_horizon_unit(self):
+        spell = make_card("Ködbe Vész", card_type="Ige")
+        owner = make_player("Caster")
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+
+    def test_vakito_seregek_buffs_allied_aegis_units_on_horizon(self):
+        spell = make_card("Vakito Seregek", card_type="Ige")
+        owner = make_player("Caster")
+        aegis_unit = CsataEgyseg(make_card("Oltalmazott", atk=2, hp=3))
+        normal_unit = CsataEgyseg(make_card("Sima", atk=3, hp=3))
+        aegis_unit.granted_keywords = {"aegis"}
+        owner.horizont[0] = aegis_unit
+        owner.horizont[1] = normal_unit
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(aegis_unit.akt_tamadas, 4)
+        self.assertEqual(aegis_unit.temp_atk_bonus_until_turn_end, 2)
+        self.assertEqual(normal_unit.akt_tamadas, 3)
+
+    def test_vakito_seregek_returns_partial_without_aegis_unit(self):
+        spell = make_card("Vakito Seregek", card_type="Ige")
+        owner = make_player("Caster")
+        owner.horizont[0] = CsataEgyseg(make_card("Sima", atk=3, hp=3))
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
 
     def test_tulhevult_kazan_triggers_on_own_machine_death(self):
         owner = make_player("Owner")

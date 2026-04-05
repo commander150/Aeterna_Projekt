@@ -96,12 +96,20 @@ def _grant_keyword(unit, keyword, temporary=False):
 
 
 def _unit_has_keyword(unit, keyword):
+    normalized = normalize_lookup_text(keyword)
+    granted = set(getattr(unit, "granted_keywords", set()) or set())
+    temp_granted = set(getattr(unit, "temp_granted_keywords", set()) or set())
+    temp_removed = set(getattr(unit, "temp_removed_keywords", set()) or set())
+    if normalized in temp_removed:
+        return False
+    if normalized in granted or normalized in temp_granted:
+        return True
     lap = getattr(unit, "lap", None)
     if lap is None:
         return False
     if hasattr(lap, "van_kulcsszo"):
         return lap.van_kulcsszo(keyword)
-    return normalize_lookup_text(keyword) in normalize_lookup_text(getattr(lap, "kepesseg", ""))
+    return normalized in normalize_lookup_text(getattr(lap, "kepesseg", ""))
 
 
 def _remove_keyword_temporarily(unit, keyword):
@@ -310,6 +318,20 @@ def handle_vadon_szeme_ijasz(card, jatekos, ellenfel, **_):
     cel = min(celpontok, key=lambda data: (data[2].akt_hp, data[2].akt_tamadas))
     EffectEngine._deal_damage_to_target(card.nev, 2, cel, ellenfel, "Kepesseg", jatekos)
     return _handled(f"Vadon Szeme Ijasz: 2 sebzes kiosztva {cel[2].lap.nev} celpontra.")
+
+
+def handle_magma_elemental(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Magma-Elemental: nem volt ellenfel.", partial=True)
+
+    from engine.effects import EffectEngine
+
+    cel = EffectEngine._select_enemy_target(ellenfel, "weakest", "horizont")
+    if cel is None:
+        return _handled("Magma-Elemental: nem volt ervenyes ellenseges Horizont Entitas.", partial=True)
+
+    EffectEngine._deal_damage_to_target(card.nev, 1, cel, ellenfel, "Kepesseg", jatekos)
+    return _handled(f"Magma-Elemental: 1 sebzes kiosztva {cel[2].lap.nev} celpontra.")
 
 
 def handle_felderito_bagoly(card, jatekos, ellenfel, **_):
@@ -1084,6 +1106,58 @@ def handle_onfelaldozo_esku(card, tamado_egyseg=None, tamado=None, vedo=None, **
     )
 
 
+def can_activate_meglepetesszeru_ellenakcio(card, tamado_egyseg=None, tamado=None, vedo=None, **_):
+    if tamado_egyseg is None or tamado is None or vedo is None:
+        return False
+    if tamado_egyseg not in getattr(tamado, "horizont", []):
+        return False
+    return any(_is_board_entity(unit) for _, _, unit in _allied_units(vedo))
+
+
+def handle_meglepetesszeru_ellenakcio(card, tamado_egyseg=None, tamado=None, vedo=None, **_):
+    if not can_activate_meglepetesszeru_ellenakcio(card, tamado_egyseg=tamado_egyseg, tamado=tamado, vedo=vedo):
+        return {"resolved": False}
+
+    from engine.effects import EffectEngine
+
+    sajat_cel = max(
+        _allied_units(vedo),
+        key=lambda data: (data[2].akt_tamadas, data[2].akt_hp),
+        default=None,
+    )
+    if sajat_cel is None:
+        return {"resolved": False}
+
+    sajat_zona, sajat_index, sajat_egyseg = sajat_cel
+    try:
+        tamado_index = tamado.horizont.index(tamado_egyseg)
+    except ValueError:
+        return {"resolved": False}
+
+    tamado_sebzes = max(0, getattr(tamado_egyseg, "akt_tamadas", 0))
+    vedo_sebzes = max(0, getattr(sajat_egyseg, "akt_tamadas", 0))
+
+    sajat_meghal = sajat_egyseg.serul(tamado_sebzes)
+    tamado_meghal = tamado_egyseg.serul(vedo_sebzes)
+
+    if sajat_meghal:
+        EffectEngine.destroy_unit(vedo, sajat_zona, sajat_index, tamado, "meglepetesszeru_ellenakcio")
+    if tamado_meghal:
+        EffectEngine.destroy_unit(tamado, "horizont", tamado_index, vedo, "meglepetesszeru_ellenakcio")
+
+    if tamado_meghal:
+        return _handled(
+            f"Meglepetesszeru Ellenakcio: {tamado_egyseg.lap.nev} es {sajat_egyseg.lap.nev} harcon kivul megsebeztek egymast, a tamado pedig elpusztult.",
+            consume_trap=True,
+            stop_attack=True,
+        )
+
+    return _handled(
+        f"Meglepetesszeru Ellenakcio: {tamado_egyseg.lap.nev} es {sajat_egyseg.lap.nev} harcon kivul megsebeztek egymast.",
+        consume_trap=True,
+    )
+
+
 def handle_a_melyseg_szeme(card, vedo, tamado, summoned_unit=None, **_):
     if summoned_unit is None or tamado is None or vedo is None:
         return {"resolved": False}
@@ -1322,6 +1396,80 @@ def handle_melytengeri_nyomas(card, jatekos, ellenfel, **_):
     return _handled(f"Melytengeri Nyomas: {unit.lap.nev} ATK-ja {eredeti}-rol {uj}-re csokkent a kor vegeig.")
 
 
+def handle_vakito_fust(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Vakito Fust: nem volt ellenfel.", partial=True)
+    jeloltek = _enemy_horizon_units(ellenfel)
+    if not jeloltek:
+        return _handled("Vakito Fust: nem volt ellenseges Horizont Entitas.", partial=True)
+    _, _, unit = max(jeloltek, key=lambda adat: (adat[2].akt_tamadas, adat[2].akt_hp))
+    if getattr(unit, "protect_atk_from_enemy_until_turn_end", False):
+        return _handled(f"Vakito Fust: {unit.lap.nev} ATK-ja vedett volt a csokkentessel szemben.", partial=True)
+    eredeti = unit.akt_tamadas
+    if eredeti <= 0:
+        return _handled(f"Vakito Fust: {unit.lap.nev} ATK-ja mar 0 volt.", partial=True)
+    unit.akt_tamadas = 0
+    unit.temp_atk_penalty_until_turn_end = getattr(unit, "temp_atk_penalty_until_turn_end", 0) + eredeti
+    return _handled(f"Vakito Fust: {unit.lap.nev} ATK-ja 0-ra csokkent a kor vegeig.")
+
+
+def handle_surgeto_hullam(card, jatekos, **_):
+    if jatekos is None:
+        return _handled("Surgeto Hullam: nem volt jatekos.", partial=True)
+
+    jeloltek = [
+        item
+        for item in _allied_horizon_units(jatekos)
+        if getattr(item[2], "kimerult", False)
+    ]
+    if not jeloltek:
+        return _handled("Surgeto Hullam: nem volt sajat kimerult Horizont Entitas.", partial=True)
+
+    _, _, unit = max(jeloltek, key=lambda adat: (adat[2].akt_tamadas, adat[2].akt_hp))
+    unit.kimerult = False
+    unit.cannot_attack_until_turn_end = True
+    return _handled(
+        f"Surgeto Hullam: {unit.lap.nev} ujra aktivalodott, de ebben a korben nem tamadhat."
+    )
+
+
+def handle_fustbomba(card, jatekos, current_target=None, **_):
+    if jatekos is None:
+        return _handled("Fustbomba: nem volt jatekos.", partial=True)
+
+    cel = None
+    if isinstance(current_target, tuple) and len(current_target) == 3:
+        zone_name, index, unit = current_target
+        if zone_name == "horizont" and _is_board_entity(unit):
+            cel = (zone_name, index, unit)
+
+    if cel is None:
+        jeloltek = [
+            item
+            for item in _allied_horizon_units(jatekos)
+            if jatekos.zenit[item[1]] is None
+        ]
+        if jeloltek:
+            cel = min(jeloltek, key=lambda adat: (adat[2].akt_hp, adat[2].akt_tamadas))
+
+    if cel is None:
+        return _handled("Fustbomba: nem volt visszalepheto sajat Horizont Entitas ures mogotte levo Zenit mezovel.", partial=True)
+
+    zone_name, index, unit = cel
+    if jatekos.zenit[index] is not None:
+        return _handled("Fustbomba: a celpont mogotti Zenit mezo nem volt ures.", partial=True)
+    if not ActionLibrary.move_target_to_zenit(jatekos, zone_name, index, card.nev):
+        return _handled("Fustbomba: a celpont nem tudott a Zenitbe visszalepni.", partial=True)
+
+    mozgatott = jatekos.zenit[index]
+    if _is_board_entity(mozgatott):
+        mozgatott.kimerult = True
+    return _handled(
+        f"Fustbomba: {unit.lap.nev} visszalepett a Zenitbe, es a tamadas megszakadt.",
+        stop_attack=True,
+    )
+
+
 def handle_egi_emeles(card, jatekos, **_):
     egyseg = next(iter(_allied_units(jatekos)), None)
     if egyseg is None:
@@ -1555,6 +1703,24 @@ def handle_hirtelen_dagaly(card, jatekos, **_):
     _, _, unit = cel
     _grant_keyword(unit, "aegis", temporary=True)
     return _handled(f"Hirtelen Dagaly: {unit.lap.nev} megkapta az Oltalom (Aegis) kulcsszot a kor vegeig.")
+
+
+def handle_kodbe_vesz(card, jatekos, **_):
+    cel = min(_allied_horizon_units(jatekos), key=lambda data: (data[2].akt_hp, data[2].akt_tamadas), default=None)
+    if cel is None:
+        return _handled("Kodbe Vesz: nem volt sajat Horizont Entitas a Legies (Ethereal) kulcsszohoz.", partial=True)
+    _, _, unit = cel
+    _grant_keyword(unit, "ethereal", temporary=True)
+    return _handled(f"Kodbe Vesz: {unit.lap.nev} megkapta a Legies (Ethereal) kulcsszot a kor vegeig.")
+
+
+def handle_vakito_seregek(card, jatekos, **_):
+    units = [unit for _, _, unit in _allied_horizon_units(jatekos) if _unit_has_keyword(unit, "aegis")]
+    if not units:
+        return _handled("Vakito Seregek: nem volt sajat Oltalommal (Aegis) rendelkezo egysag a bonuszhoz.", partial=True)
+    for unit in units:
+        _grant_temp_attack(unit, 2)
+    return _handled(f"Vakito Seregek: {len(units)} sajat Oltalommal rendelkezo Entitas +2 ATK-t kapott a kor vegeig.")
 
 
 def can_activate_vakito_visszavagas(card, tamado_egyseg=None, vedo=None, **_):
