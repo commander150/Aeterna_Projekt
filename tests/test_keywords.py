@@ -2,6 +2,7 @@ import unittest
 from types import SimpleNamespace
 
 from engine.keyword_engine import KeywordEngine
+from engine.triggers import trigger_engine
 
 
 class DummyUnit:
@@ -11,6 +12,7 @@ class DummyUnit:
         self.akt_tamadas = 3
         self.akt_hp = 3
         self.bane_target = False
+        self.owner = SimpleNamespace(nev="TesztJatekos")
 
 
 class TestKeywordRules(unittest.TestCase):
@@ -51,6 +53,22 @@ class TestKeywordRules(unittest.TestCase):
 
         self.assertTrue(result)
         self.assertEqual(calls["count"], 1)
+
+    def test_on_damage_dealt_emits_combat_damage_event(self):
+        attacker = DummyUnit("-")
+        defender = DummyUnit("-")
+        seen = []
+
+        def _handler(context):
+            seen.append(context.event_name)
+
+        trigger_engine.register("on_combat_damage_dealt", _handler)
+        try:
+            KeywordEngine.on_damage_dealt(attacker, defender)
+        finally:
+            trigger_engine._handlers["on_combat_damage_dealt"].remove(_handler)
+
+        self.assertIn("on_combat_damage_dealt", seen)
 
 
 if __name__ == "__main__":

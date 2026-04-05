@@ -8,6 +8,12 @@ TRIGGER_ALIASES = {
     "on_manifest_phase": "on_manifestation_phase",
     "on_death": "on_destroyed",
     "death": "on_destroyed",
+    "on_enemy_spell_played": "on_enemy_spell_played",
+    "on_enemy_summon": "on_enemy_summon",
+    "on_breach_phase": "on_breach_phase",
+    "on_combat_phase_start": "on_combat_phase_start",
+    "on_combat_damage_dealt": "on_combat_damage_dealt",
+    "on_first_combat_survived": "on_first_combat_survived",
 }
 
 
