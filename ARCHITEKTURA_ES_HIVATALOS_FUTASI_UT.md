@@ -14,7 +14,7 @@ motorút egyértelmű kijelölése.
 2. `simulation/config.py`
 3. `engine/logging_utils.py`
 4. `simulation/runner.py`
-5. `engine/effect_diagnostics_v2.py`
+5. `engine/effect_diagnostics_v2.py` explicit `install_effect_diagnostics()` hívással
 6. `data/loader.py`
 7. `engine/game.py`
 
@@ -114,8 +114,8 @@ Az alábbi státuszok a jelenlegi, működő architektúrához igazodnak.
 ## Jelenlegi Fő Kockázatok
 
 - `engine/effects.py` még mindig nagy és több korszak logikáját hordozza.
-- `engine/effect_diagnostics_v2.py` side-effect importtal aktiválódik a
-  runnerből, ami rejtett függést jelent.
+- `engine/effect_diagnostics_v2.py` korábban side-effect importtal aktiválódott a
+  runnerből; most az explicit `install_effect_diagnostics()` hívás köti be.
 - A hivatalos effect-útvonal most külön is rögzítve van az
   `EFFECT_RETEG_AKTIV_UTVONAL.md` fájlban.
 - A hivatalos keyword-útvonal most: `engine.keyword_engine.KeywordEngine`.

@@ -19,6 +19,8 @@ from stats.analyzer import stats
 from utils.logger import naplo
 from utils.text import normalize_lookup_text
 
+_INSTALLED = False
+
 
 PASSIVE_HINTS = (
     "[horizont]",
@@ -365,7 +367,18 @@ def _trigger_on_death_with_diagnostics(kartya, jatekos, ellenfel=None):
     return True
 
 
-EffectEngine.trigger_on_play = staticmethod(_trigger_on_play_with_diagnostics)
-EffectEngine.trigger_on_trap = staticmethod(_trigger_on_trap_with_diagnostics)
-EffectEngine.trigger_on_burst = staticmethod(_trigger_on_burst_with_diagnostics)
-EffectEngine.trigger_on_death = staticmethod(_trigger_on_death_with_diagnostics)
+def install_effect_diagnostics():
+    global _INSTALLED
+    if _INSTALLED:
+        return False
+
+    EffectEngine.trigger_on_play = staticmethod(_trigger_on_play_with_diagnostics)
+    EffectEngine.trigger_on_trap = staticmethod(_trigger_on_trap_with_diagnostics)
+    EffectEngine.trigger_on_burst = staticmethod(_trigger_on_burst_with_diagnostics)
+    EffectEngine.trigger_on_death = staticmethod(_trigger_on_death_with_diagnostics)
+    _INSTALLED = True
+    return True
+
+
+def is_effect_diagnostics_installed():
+    return _INSTALLED

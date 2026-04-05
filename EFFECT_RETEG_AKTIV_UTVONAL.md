@@ -30,11 +30,11 @@ A meccs közben innen indulnak az effect-hívások:
 
 ### 2. Diagnostics wrapper bekötés
 
-`simulation/runner.py` side-effect importtal betölti:
+`simulation/runner.py` explicit módon meghívja:
 
-- `engine.effect_diagnostics_v2`
+- `engine.effect_diagnostics_v2.install_effect_diagnostics()`
 
-Ez a modul futáskor felülírja az `EffectEngine` fő trigger belépési pontjait:
+Ez a belépési pont futáskor felülírja az `EffectEngine` fő trigger belépési pontjait:
 
 - `trigger_on_play`
 - `trigger_on_trap`
@@ -80,8 +80,8 @@ Ez a modul futáskor felülírja az `EffectEngine` fő trigger belépési pontja
 - aktív runtime hook
 - nem csak riportol, hanem ténylegesen ő vezeti a structured -> custom -> fallback
   feloldási sorrendet
-- side-effect importtal aktiválódik, tehát rejtett, de jelenleg hivatalos
-  függőség
+- explicit install-hívással aktiválódik, ezért a függés most már látható és
+  követhető
 
 ## Mi Számít Hivatalosnak Most
 
@@ -97,8 +97,8 @@ Ez a modul futáskor felülírja az `EffectEngine` fő trigger belépési pontja
 
 ## Fő Kockázatok
 
-- `engine.effect_diagnostics_v2.py` side-effect importtal aktiválódik, ezért a
-  runtime függés nem látszik közvetlenül a hívási aláírásokból
+- `engine.effect_diagnostics_v2.py` továbbra is monkey-patch jellegű runtime
+  hook, de a bekötése most már explicit install-híváson keresztül történik
 - `engine.structured_effects.py` és `cards/resolver.py` egymás mellett élő
   feloldási réteg, ezért későbbi refaktornál könnyű párhuzamos logikát bent
   hagyni

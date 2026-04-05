@@ -1,6 +1,6 @@
 ﻿import random
 import traceback
-import engine.effect_diagnostics_v2
+from engine.effect_diagnostics_v2 import install_effect_diagnostics
 from engine.config import set_active_engine_config
 from utils.logger import naplo
 from stats.analyzer import stats
@@ -43,6 +43,7 @@ def _resolve_config(config=None, meccsek_szama=3):
 
 def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
     try:
+        install_effect_diagnostics()
         config = _resolve_config(config, meccsek_szama)
         engine_config = set_active_engine_config(config.to_engine_config())
 
