@@ -828,6 +828,69 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertTrue(result["resolved"])
         self.assertTrue(result["partial"])
 
+    def test_langnyelv_adeptus_deals_one_damage_on_play(self):
+        unit = make_card("Langnyelv Adeptus", card_type="Entitás")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy.horizont[0] = CsataEgyseg(make_card("Celpont", atk=2, hp=3))
+
+        result = resolve_card_handler(unit, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(enemy.horizont[0].akt_hp, 2)
+
+    def test_langnyelv_adeptus_returns_partial_without_enemy_horizon_target(self):
+        unit = make_card("Langnyelv Adeptus", card_type="Entitás")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+
+        result = resolve_card_handler(unit, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+
+    def test_varatlan_gyulladas_hits_exhausted_enemy_horizon_unit_for_four(self):
+        spell = make_card("Varatlan Gyulladas", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        target = CsataEgyseg(make_card("Faradt Celpont", atk=2, hp=5))
+        target.kimerult = True
+        enemy.horizont[0] = target
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(target.akt_hp, 1)
+
+    def test_varatlan_gyulladas_burst_uses_same_damage_handler(self):
+        spell = make_card("Varatlan Gyulladas", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        target = CsataEgyseg(make_card("Burst Celpont", atk=3, hp=4))
+        target.kimerult = True
+        enemy.horizont[1] = target
+
+        result = resolve_card_handler(spell, category="burst", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertIsNone(enemy.horizont[1])
+
+    def test_varatlan_gyulladas_returns_partial_without_exhausted_enemy(self):
+        spell = make_card("Varatlan Gyulladas", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        target = CsataEgyseg(make_card("Ep Celpont", atk=2, hp=5))
+        target.kimerult = False
+        enemy.horizont[0] = target
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+
     def test_buborek_pajzs_grants_spell_damage_immunity_until_turn_end(self):
         spell = make_card("Buborek-pajzs", card_type="Ige")
         owner = make_player("Caster")

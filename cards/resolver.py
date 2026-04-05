@@ -69,12 +69,14 @@ from cards.priority_handlers import (
     handle_kodbe_vesz,
     handle_lathatatlan_fal,
     handle_legaramlat_magus,
+    handle_langnyelv_adeptus,
     handle_langnyelvek_tanca,
     handle_magma_elemental,
     handle_martirok_vedelme,
     handle_megtorlo_feny,
     handle_meglepetesszeru_ellenakcio,
     handle_megvesztegetes,
+    handle_varatlan_gyulladas,
     handle_kod_alak,
     handle_lopakodo_felcser_dron,
     handle_szentjanosbogar_raj,
@@ -173,6 +175,7 @@ ON_PLAY_HANDLERS = {
     "szentjanosbogar-raj": handle_szentjanosbogar_raj,
     "vakito szikra": handle_vakito_szikra,
     "vadon szeme ijasz": handle_vadon_szeme_ijasz,
+    "langnyelv adeptus": handle_langnyelv_adeptus,
     "magma-elemental": handle_magma_elemental,
     "magma elemental": handle_magma_elemental,
     "vakito ragyogas": handle_vakito_ragyogas,
@@ -191,6 +194,7 @@ ON_PLAY_HANDLERS = {
     "egi emeles": handle_egi_emeles,
     "langnyelvek tanca": handle_langnyelvek_tanca,
     "pusztito roham": handle_pusztito_roham,
+    "varatlan gyulladas": handle_varatlan_gyulladas,
     "tengeri delibab": handle_tengeri_delibab,
     "kitero manover": handle_kitero_manover,
     "megvesztegetes": handle_megvesztegetes,
@@ -276,6 +280,7 @@ BURST_HANDLERS = {
     "vakito fust": handle_vakito_fust,
     "surgeto hullam": handle_surgeto_hullam,
     "vedelmezo burok": handle_vedelmezo_burok,
+    "varatlan gyulladas": handle_varatlan_gyulladas,
 }
 
 
@@ -307,6 +312,19 @@ def resolve_card_handler(card, category="on_play", **context):
     result.setdefault("category", category)
     result.setdefault("resolved", True)
     return result
+
+
+def has_card_handler(card, category="on_play"):
+    key = _handler_key(card)
+    if category == "on_play":
+        return key in ON_PLAY_HANDLERS
+    if category == "trap":
+        return key in TRAP_HANDLERS
+    if category == "summon_trap":
+        return key in SUMMON_TRAP_HANDLERS
+    if category == "burst":
+        return key in BURST_HANDLERS
+    return False
 
 
 def can_activate_trap(card, **context):

@@ -1,6 +1,6 @@
 ﻿import re
 
-from cards.resolver import resolve_card_handler
+from cards.resolver import has_card_handler, resolve_card_handler
 from engine.effects import EffectEngine
 from engine.keyword_registry import KEYWORD_DEFINITIONS, KeywordRegistry
 from engine.structured_effects import (
@@ -139,6 +139,12 @@ def _trigger_on_play_with_diagnostics(kartya, jatekos, ellenfel, default_handler
     szoveg = EffectEngine._normalize_text(nyers_szoveg)
     if not szoveg or szoveg == "-":
         return None
+
+    if has_card_handler(kartya, "on_play"):
+        custom_result = resolve_card_handler(kartya, category="on_play", jatekos=jatekos, ellenfel=ellenfel)
+        if custom_result.get("resolved"):
+            _record_runtime_result("on_play", kartya, nyers_szoveg, "runtime_supported", "runtime_supported")
+            return None
 
     structured_result = _run_structured(kartya, jatekos, ellenfel, {"category": "on_play"})
     structured_status = structured_result.get("status")
@@ -281,6 +287,12 @@ def _trigger_on_burst_with_diagnostics(kartya, jatekos, ellenfel=None, default_h
     szoveg = EffectEngine._normalize_text(_effect_text(kartya))
     if not szoveg or szoveg == "-":
         return False
+
+    if has_card_handler(kartya, "burst"):
+        custom_result = resolve_card_handler(kartya, category="burst", jatekos=jatekos, ellenfel=ellenfel)
+        if custom_result.get("resolved"):
+            _record_runtime_result("burst", kartya, _effect_text(kartya), "runtime_supported", "runtime_supported")
+            return True
 
     structured_result = _run_structured(kartya, jatekos, ellenfel, {"category": "burst"})
     structured_status = structured_result.get("status")

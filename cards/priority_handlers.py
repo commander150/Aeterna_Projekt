@@ -346,6 +346,35 @@ def handle_magma_elemental(card, jatekos, ellenfel, **_):
     return _handled(f"Magma-Elemental: 1 sebzes kiosztva {cel[2].lap.nev} celpontra.")
 
 
+def handle_langnyelv_adeptus(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Langnyelv Adeptus: nem volt ellenfel.", partial=True)
+
+    from engine.effects import EffectEngine
+
+    cel = EffectEngine._select_enemy_target(ellenfel, "weakest", "horizont")
+    if cel is None:
+        return _handled("Langnyelv Adeptus: nem volt ervenyes ellenseges Horizont Entitas.", partial=True)
+
+    EffectEngine._deal_damage_to_target(card.nev, 1, cel, ellenfel, "Kepesseg", jatekos)
+    return _handled(f"Langnyelv Adeptus: 1 sebzes kiosztva {cel[2].lap.nev} celpontra.")
+
+
+def handle_varatlan_gyulladas(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Varatlan Gyulladas: nem volt ellenfel.", partial=True)
+
+    from engine.effects import EffectEngine
+
+    celpontok = [data for data in _enemy_horizon_units(ellenfel) if getattr(data[2], "kimerult", False)]
+    if not celpontok:
+        return _handled("Varatlan Gyulladas: nem volt kimerult ellenseges Horizont Entitas.", partial=True)
+
+    cel = min(celpontok, key=lambda data: (data[2].akt_hp, data[2].akt_tamadas))
+    EffectEngine._deal_damage_to_target(card.nev, 4, cel, ellenfel, "Kepesseg", jatekos)
+    return _handled(f"Varatlan Gyulladas: {cel[2].lap.nev} 4 sebzest szenvedett el.")
+
+
 def handle_felderito_bagoly(card, jatekos, ellenfel, **_):
     if ellenfel is None or not ellenfel.pakli:
         return _handled(
