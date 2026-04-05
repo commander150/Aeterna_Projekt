@@ -19,7 +19,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from engine.keyword_registry import KEYWORD_DEFINITIONS, KeywordRegistry
-from utils.text import repair_mojibake
+from utils.text import normalize_lookup_text, repair_mojibake
 
 NS = {
     "a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
@@ -54,6 +54,11 @@ TRIGGER_ALIASES = {
 
 KEYWORD_AUDIT_SIMPLE_STATUSES = {
     "passziv_kulcsszo",
+    "passziv_vagy_egyszeru",
+}
+
+SIMPLE_EFFECT_AUDIT_ALLOWED_STATUSES = {
+    "elso_koros_gepi_ertelmezes",
     "passziv_vagy_egyszeru",
 }
 
@@ -112,6 +117,79 @@ KEYWORD_SUPPORT_MATRIX = {
         "partial",
         ["engine/targeting.py", "engine/structured_effects.py"],
         "Celozhatatlansaghoz vannak celzasi allapotok, de a generic keyword-tamogatas nem teljesen keyword-engine alapu.",
+    ),
+}
+
+EFFECT_TAG_SUPPORT_MATRIX = {
+    "deal_damage": (
+        "supported",
+        ["engine/effects.py", "engine/structured_effects.py", "cards/priority_handlers.py"],
+        "Van kozponti sebzes-helper es tobb lokalis/runtime handler ugyanarra a primitive-re.",
+    ),
+    "grant_temp_attack": (
+        "supported",
+        ["cards/priority_handlers.py", "engine/structured_effects.py", "engine/player.py"],
+        "Van kulon ideiglenes ATK-buff helper es korvegi takaritas.",
+    ),
+    "grant_max_hp": (
+        "partial",
+        ["cards/priority_handlers.py", "engine/player.py"],
+        "Van bonus_max_hp hasznalat, de nem teljesen egyseges primitive-kent.",
+    ),
+    "exhaust_target": (
+        "supported",
+        ["engine/actions.py", "engine/structured_effects.py", "cards/priority_handlers.py"],
+        "Van kimeritesi helper/structured ut es tobb kartya-specifikus runtime pelda.",
+    ),
+    "draw_cards": (
+        "supported",
+        ["engine/player.py", "engine/structured_effects.py", "cards/priority_handlers.py"],
+        "Van kozos huzasi motor es strukturalt/runtime draw hasznalat.",
+    ),
+    "move_to_zenit": (
+        "supported",
+        ["engine/actions.py", "engine/structured_effects.py", "cards/priority_handlers.py"],
+        "Van kozos Horizon->Zenit mozgatas helper es tobb runtime pelda.",
+    ),
+    "grant_keyword_temp": (
+        "supported",
+        ["cards/priority_handlers.py", "engine/player.py", "tests/test_priority_handlers.py"],
+        "Van ideiglenes keyword-grant helper, korvegi cleanup es konkret tesztelt peldak.",
+    ),
+    "restrict_attack": (
+        "supported",
+        ["engine/player.py", "engine/game.py", "engine/structured_effects.py", "cards/priority_handlers.py"],
+        "Van cannot_attack flag, combat ellenorzes es korvegi reset.",
+    ),
+    "move_to_horizon": (
+        "partial",
+        ["engine/structured_effects.py", "cards/priority_handlers.py"],
+        "Van support a Horizonra mozgatasra, de kevesbe egyseges primitive-kent.",
+    ),
+    "return_to_hand": (
+        "supported",
+        ["engine/actions.py", "engine/structured_effects.py", "cards/priority_handlers.py"],
+        "Van kozos kezbe visszavevo helper es strukturalt/runtime hasznalat.",
+    ),
+    "reactivate": (
+        "supported",
+        ["engine/player.py", "engine/structured_effects.py", "cards/priority_handlers.py"],
+        "Van kozos ujraaktivalt_egyseget logika es runtime peldak.",
+    ),
+    "heal": (
+        "supported",
+        ["engine/effects.py", "engine/structured_effects.py", "cards/priority_handlers.py"],
+        "Van kozos gyogyitasi runtime es strukturalt tamogatas.",
+    ),
+    "destroy_target": (
+        "supported",
+        ["engine/effects.py", "engine/structured_effects.py", "cards/priority_handlers.py"],
+        "Van kozos destroy primitive es tobb runtime utvonal.",
+    ),
+    "seal_damage": (
+        "supported",
+        ["engine/effects.py", "engine/structured_effects.py"],
+        "Van kozos pecset-sebzes primitive.",
     ),
 }
 
@@ -236,6 +314,81 @@ def _keyword_support(keyword: str):
     )
 
 
+def _parse_effect_tags(value: str) -> list[str]:
+    return [KeywordRegistry.normalize_keyword_name(item) for item in _parse_semicolon_or_csv(value)]
+
+
+def _detect_simple_effect_tags(row: dict[str, str]) -> list[str]:
+    tags = []
+    raw_tags = _parse_effect_tags(row.get("Hatáscímkék", ""))
+    keyword_like = set(KEYWORD_DEFINITIONS)
+    for tag in raw_tags:
+        if tag in keyword_like:
+            continue
+        if tag == "damage" and "deal_damage" not in tags:
+            tags.append("deal_damage")
+        elif tag in {"atk_mod", "atk_buff"} and "grant_temp_attack" not in tags:
+            tags.append("grant_temp_attack")
+        elif tag in {"hp_mod", "hp_buff"} and "grant_max_hp" not in tags:
+            tags.append("grant_max_hp")
+        elif tag == "exhaust" and "exhaust_target" not in tags:
+            tags.append("exhaust_target")
+        elif tag == "draw" and "draw_cards" not in tags:
+            tags.append("draw_cards")
+        elif tag == "move_zenit" and "move_to_zenit" not in tags:
+            tags.append("move_to_zenit")
+        elif tag == "move_horizont" and "move_to_horizon" not in tags:
+            tags.append("move_to_horizon")
+        elif tag == "return_to_hand" and "return_to_hand" not in tags:
+            tags.append("return_to_hand")
+        elif tag == "reactivate" and "reactivate" not in tags:
+            tags.append("reactivate")
+        elif tag == "heal" and "heal" not in tags:
+            tags.append("heal")
+        elif tag == "destroy" and "destroy_target" not in tags:
+            tags.append("destroy_target")
+        elif tag == "cannot_attack" and "restrict_attack" not in tags:
+            tags.append("restrict_attack")
+        elif tag == "seal_damage" and "seal_damage" not in tags:
+            tags.append("seal_damage")
+
+    text = repair_mojibake(str(row.get("Képesség", "") or ""))
+    lower = normalize_lookup_text(text)
+
+    if re.search(r"\+\s*\d+\s*atk", lower) and "grant_temp_attack" not in tags:
+        tags.append("grant_temp_attack")
+    if ("kor veg" in lower or "kor vegeig" in lower) and "megkapja" in lower:
+        if any(
+            KeywordRegistry.has_keyword(text, keyword)
+            for keyword in ("aegis", "ethereal", "celerity", "sundering", "harmonize", "resonance")
+        ) and "grant_keyword_temp" not in tags:
+            tags.append("grant_keyword_temp")
+    if ("okoz" in lower or "sebzest" in lower or "sebzest kap" in lower) and "deal_damage" not in tags:
+        if re.search(r"\b[1-9]\d*\b", lower):
+            tags.append("deal_damage")
+    if "kimerult" in lower and "exhaust_target" not in tags:
+        tags.append("exhaust_target")
+    if ("huzz" in lower or "lapot" in lower) and "draw_cards" not in tags:
+        tags.append("draw_cards")
+    if ("zenitbe" in lower or "zenitbe kerul" in lower or "visszalep a zenitbe" in lower) and "move_to_zenit" not in tags:
+        tags.append("move_to_zenit")
+    if ("nem tamadhat" in lower or "kotelezoen tamadnia kell" in lower) and "restrict_attack" not in tags:
+        tags.append("restrict_attack")
+
+    return tags
+
+
+def _effect_support(tag: str):
+    return EFFECT_TAG_SUPPORT_MATRIX.get(
+        tag,
+        (
+            "uncertain",
+            [],
+            "Ehhez az effekt-primitivhez ebben a korben nem talaltam eleg eros altalanos bizonyitekot.",
+        ),
+    )
+
+
 def _aggregate_support(statuses: list[str]) -> str:
     if not statuses:
         return "missing"
@@ -265,6 +418,118 @@ def _slugify(value: str) -> str:
         text = text.replace(source, target)
     text = re.sub(r"[^a-z0-9]+", "_", text).strip("_")
     return text or "no_clan"
+
+
+def generate_simple_effect_support_audit(path: str, realm: str, clan: str = ""):
+    rows = load_cards_rows(path)
+    clan_value = repair_mojibake(clan or "")
+    scoped_rows = []
+
+    for row in rows:
+        if row.get("Birodalom", "") != realm:
+            continue
+        if row.get("Klán", "") != clan_value:
+            continue
+        if row.get("Értelmezési_Státusz", "") not in SIMPLE_EFFECT_AUDIT_ALLOWED_STATUSES:
+            continue
+
+        detected_keywords = _detect_keywords(row)
+        detected_effect_tags = _detect_simple_effect_tags(row)
+
+        if not detected_keywords:
+            continue
+        if not detected_effect_tags:
+            continue
+        if len(detected_effect_tags) > 2:
+            continue
+        if len(detected_keywords) > 2:
+            continue
+
+        scoped_rows.append((row, detected_keywords, detected_effect_tags))
+
+    audit_rows = []
+    effect_status_counter = collections.Counter()
+
+    for row, detected_keywords, detected_effect_tags in scoped_rows:
+        keyword_statuses = [_keyword_support(keyword)[0] for keyword in detected_keywords]
+        keyword_support_status = _aggregate_support(keyword_statuses) if keyword_statuses else "missing"
+
+        effect_support_details = [_effect_support(tag) for tag in detected_effect_tags]
+        effect_statuses = [detail[0] for detail in effect_support_details]
+        effect_support_status = _aggregate_support(effect_statuses)
+        effect_status_counter.update(effect_statuses)
+
+        evidence_files = sorted(
+            {
+                item
+                for keyword in detected_keywords
+                for item in _keyword_support(keyword)[1]
+            }
+            | {
+                item
+                for _, files, _ in effect_support_details
+                for item in files
+            }
+        )
+
+        notes = []
+        if detected_keywords:
+            notes.append(
+                "keywords: " + "; ".join(
+                    f"{keyword}={_keyword_support(keyword)[0]}"
+                    for keyword in detected_keywords
+                )
+            )
+        if detected_effect_tags:
+            notes.append(
+                "effects: " + "; ".join(
+                    f"{tag}={status}"
+                    for tag, status in zip(detected_effect_tags, effect_statuses)
+                )
+            )
+
+        audit_rows.append(
+            {
+                "card_name": row.get("Kártya név", ""),
+                "realm": row.get("Birodalom", ""),
+                "clan": row.get("Klán", ""),
+                "raw_ability": row.get("Képesség", ""),
+                "detected_keywords": ";".join(detected_keywords),
+                "detected_effect_tags": ";".join(detected_effect_tags),
+                "keyword_support_status": keyword_support_status,
+                "effect_support_status": effect_support_status,
+                "evidence_files": ";".join(evidence_files),
+                "notes": " | ".join(notes),
+            }
+        )
+
+    output_path = pathlib.Path("stats") / f"effect_support_audit_{_slugify(realm)}_{_slugify(clan_value)}_simple.csv"
+    with output_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=[
+                "card_name",
+                "realm",
+                "clan",
+                "raw_ability",
+                "detected_keywords",
+                "detected_effect_tags",
+                "keyword_support_status",
+                "effect_support_status",
+                "evidence_files",
+                "notes",
+            ],
+        )
+        writer.writeheader()
+        writer.writerows(audit_rows)
+
+    return {
+        "output_path": str(output_path),
+        "realm": realm,
+        "clan": clan_value,
+        "cards": audit_rows,
+        "effect_status_counter": effect_status_counter,
+    }
 
 
 def generate_keyword_support_audit(path: str, realm: str, clan: str = ""):
@@ -381,5 +646,17 @@ if __name__ == "__main__":
         print(f"Keywords detected: {result['keyword_count']}")
         for status in ("supported", "partial", "uncertain", "missing"):
             print(f"{status}: {result['status_counter'].get(status, 0)}")
+    elif "--effect-audit-simple" in args:
+        realm = "Ignis"
+        clan = ""
+        if "--realm" in args:
+            realm = args[args.index("--realm") + 1]
+        if "--clan" in args:
+            clan = args[args.index("--clan") + 1]
+        result = generate_simple_effect_support_audit(filepath, realm, clan)
+        print(f"Effect audit generated: {result['output_path']}")
+        print(f"Cards audited: {len(result['cards'])}")
+        for status in ("supported", "partial", "uncertain", "missing"):
+            print(f"{status}: {result['effect_status_counter'].get(status, 0)}")
     else:
         audit_cards_xlsx(filepath)
