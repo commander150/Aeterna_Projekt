@@ -131,7 +131,7 @@ def _run_structured(card, source_player, target_player=None, context=None):
     return resolve_structured_effect(card, source_player, target_player, context or {})
 
 
-def _trigger_on_play_with_diagnostics(kartya, jatekos, ellenfel):
+def _trigger_on_play_with_diagnostics(kartya, jatekos, ellenfel, default_handler=None):
     nyers_szoveg = _effect_text(kartya)
     szoveg = EffectEngine._normalize_text(nyers_szoveg)
     if not szoveg or szoveg == "-":
@@ -184,7 +184,7 @@ def _trigger_on_play_with_diagnostics(kartya, jatekos, ellenfel):
     return None
 
 
-def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo):
+def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo, default_handler=None):
     szoveg = EffectEngine._normalize_text(_effect_text(jel))
     if not szoveg or szoveg == "-":
         return False
@@ -274,7 +274,7 @@ def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo):
     return meghalt
 
 
-def _trigger_on_burst_with_diagnostics(kartya, jatekos, ellenfel=None):
+def _trigger_on_burst_with_diagnostics(kartya, jatekos, ellenfel=None, default_handler=None):
     szoveg = EffectEngine._normalize_text(_effect_text(kartya))
     if not szoveg or szoveg == "-":
         return False
@@ -316,7 +316,7 @@ def _trigger_on_burst_with_diagnostics(kartya, jatekos, ellenfel=None):
     return False
 
 
-def _trigger_on_death_with_diagnostics(kartya, jatekos, ellenfel=None):
+def _trigger_on_death_with_diagnostics(kartya, jatekos, ellenfel=None, default_handler=None):
     szoveg = EffectEngine._normalize_text(_effect_text(kartya))
     if not szoveg or szoveg == "-":
         return False
@@ -372,10 +372,10 @@ def install_effect_diagnostics():
     if _INSTALLED:
         return False
 
-    EffectEngine.trigger_on_play = staticmethod(_trigger_on_play_with_diagnostics)
-    EffectEngine.trigger_on_trap = staticmethod(_trigger_on_trap_with_diagnostics)
-    EffectEngine.trigger_on_burst = staticmethod(_trigger_on_burst_with_diagnostics)
-    EffectEngine.trigger_on_death = staticmethod(_trigger_on_death_with_diagnostics)
+    EffectEngine.install_trigger_adapter("on_play", _trigger_on_play_with_diagnostics)
+    EffectEngine.install_trigger_adapter("trap", _trigger_on_trap_with_diagnostics)
+    EffectEngine.install_trigger_adapter("burst", _trigger_on_burst_with_diagnostics)
+    EffectEngine.install_trigger_adapter("death", _trigger_on_death_with_diagnostics)
     _INSTALLED = True
     return True
 

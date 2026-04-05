@@ -115,7 +115,8 @@ Az alábbi státuszok a jelenlegi, működő architektúrához igazodnak.
 
 - `engine/effects.py` még mindig nagy és több korszak logikáját hordozza.
 - `engine/effect_diagnostics_v2.py` korábban side-effect importtal aktiválódott a
-  runnerből; most az explicit `install_effect_diagnostics()` hívás köti be.
+  runnerből; most az explicit `install_effect_diagnostics()` hívás köti be az
+  `EffectEngine` hivatalos trigger-adapter pontjaira.
 - A hivatalos effect-útvonal most külön is rögzítve van az
   `EFFECT_RETEG_AKTIV_UTVONAL.md` fájlban.
 - A hivatalos keyword-útvonal most: `engine.keyword_engine.KeywordEngine`.

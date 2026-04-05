@@ -14,6 +14,23 @@ from utils.text import normalize_lookup_text
 
 
 class EffectEngine:
+    _trigger_adapters = {}
+
+    @staticmethod
+    def install_trigger_adapter(trigger_name, handler):
+        EffectEngine._trigger_adapters[trigger_name] = handler
+
+    @staticmethod
+    def clear_trigger_adapter(trigger_name):
+        return EffectEngine._trigger_adapters.pop(trigger_name, None) is not None
+
+    @staticmethod
+    def get_trigger_adapter(trigger_name):
+        return EffectEngine._trigger_adapters.get(trigger_name)
+
+    @staticmethod
+    def has_trigger_adapter(trigger_name):
+        return trigger_name in EffectEngine._trigger_adapters
 
     @staticmethod
     def _normalize_text(szoveg):
@@ -833,3 +850,141 @@ class EffectEngine:
             naplo.ir(f"✨ Burst: {kartya.nev} aktiválódott")
 
         return tortent_valami
+
+    @staticmethod
+    def _trigger_on_play_default(kartya, jatekos, ellenfel):
+        nyers_szoveg = kartya.kepesseg
+        szoveg = EffectEngine._normalize_text(nyers_szoveg)
+        if not szoveg or szoveg == "-":
+            return None
+
+        sebzes_engedelyezett = (
+            kartya.kartyatipus in ["Ige", "Rituale", "Rituale"]
+            or "riado" in szoveg
+            or "clarion" in szoveg
+        )
+
+        EffectEngine._resolve_common_effects(
+            kartya, jatekos, ellenfel, szoveg, "Kepesseg", sebzes_engedelyezett
+        )
+        return None
+
+    @staticmethod
+    def trigger_on_play(kartya, jatekos, ellenfel):
+        adapter = EffectEngine.get_trigger_adapter("on_play")
+        if adapter is not None:
+            return adapter(kartya, jatekos, ellenfel, EffectEngine._trigger_on_play_default)
+        return EffectEngine._trigger_on_play_default(kartya, jatekos, ellenfel)
+
+    @staticmethod
+    def _trigger_on_trap_default(jel, tamado_egyseg, tamado, vedo):
+        szoveg = EffectEngine._normalize_text(jel.kepesseg)
+        if not szoveg or szoveg == "-":
+            return False
+
+        tortent_valami = False
+        meghalt = False
+        sebzes = EffectEngine._extract_number(szoveg, [
+            r'(\d+)\s+(?:kozvetlen\s+)?sebzes',
+            r'okoz\s+(\d+)\s+sebzest',
+            r'sebez\s+(\d+)',
+            r'(\d+)\s+damage',
+        ])
+        if sebzes > 0:
+            naplo.ir(f"Trap: {jel.nev} -> {sebzes} sebzest okoz a tamadonak")
+            meghalt = tamado_egyseg.serul(sebzes)
+            tortent_valami = True
+
+        atk_csokkentes = EffectEngine._extract_number(szoveg, [
+            r'-(\d+)\s*atk',
+            r'veszit\s+(\d+)\s*atk',
+            r'csokkenti\s+(\d+)\s*atk',
+        ])
+        if atk_csokkentes > 0:
+            tamado_egyseg.akt_tamadas = max(0, tamado_egyseg.akt_tamadas - atk_csokkentes)
+            tortent_valami = True
+            naplo.ir(f"Trap: {jel.nev} -> -{atk_csokkentes} ATK a tamadonak")
+
+        if "kimerit" in szoveg or "stun" in szoveg or "fagyaszt" in szoveg or "exhaust" in szoveg:
+            tamado_egyseg.kimerult = True
+            tortent_valami = True
+            naplo.ir(f"Trap: {jel.nev} -> a tamado kimerult")
+
+        if "megsemmisit" in szoveg or "elpusztit" in szoveg or "pusztitsd el" in szoveg or "destroy" in szoveg:
+            naplo.ir(f"Trap: {jel.nev} -> a tamado megsemmisul")
+            meghalt = True
+            tortent_valami = True
+
+        tortent_valami |= EffectEngine._resolve_draw(jel, vedo, szoveg, "Csapda")
+        tortent_valami |= EffectEngine._resolve_heal(jel, vedo, szoveg, "Csapda")
+        tortent_valami |= EffectEngine._resolve_buff(jel, vedo, szoveg, "Csapda")
+        tortent_valami |= EffectEngine._resolve_temporary_aura(jel, vedo, szoveg, "Csapda")
+        tortent_valami |= EffectEngine._resolve_reactivate(jel, vedo, szoveg, "Csapda")
+
+        if not tortent_valami:
+            naplo.ir(f"Egyedi Csapda: {jel.nev} aktivalodott, de nem volt ismert konkret hatasa")
+
+        return meghalt
+
+    @staticmethod
+    def trigger_on_trap(jel, tamado_egyseg, tamado, vedo):
+        adapter = EffectEngine.get_trigger_adapter("trap")
+        if adapter is not None:
+            return adapter(jel, tamado_egyseg, tamado, vedo, EffectEngine._trigger_on_trap_default)
+        return EffectEngine._trigger_on_trap_default(jel, tamado_egyseg, tamado, vedo)
+
+    @staticmethod
+    def _trigger_on_burst_default(kartya, jatekos, ellenfel=None):
+        szoveg = EffectEngine._normalize_text(kartya.kepesseg)
+        if not szoveg or szoveg == "-":
+            return False
+
+        tortent_valami = EffectEngine._resolve_common_effects(
+            kartya, jatekos, ellenfel, szoveg, "Burst", True
+        )
+
+        if not tortent_valami:
+            naplo.ir(f"Burst: {kartya.nev} aktivalodott")
+
+        return tortent_valami
+
+    @staticmethod
+    def trigger_on_burst(kartya, jatekos, ellenfel=None):
+        adapter = EffectEngine.get_trigger_adapter("burst")
+        if adapter is not None:
+            return adapter(kartya, jatekos, ellenfel, EffectEngine._trigger_on_burst_default)
+        return EffectEngine._trigger_on_burst_default(kartya, jatekos, ellenfel)
+
+    @staticmethod
+    def _trigger_on_death_default(kartya, jatekos, ellenfel=None):
+        szoveg = EffectEngine._normalize_text(getattr(kartya, "kepesseg", ""))
+        if not szoveg or szoveg == "-":
+            return False
+
+        match = re.search(r'(?:visszhang|echo)\s*[:\-]?\s*(.+)', szoveg)
+        if not match:
+            return False
+
+        death_text = match.group(1).strip()
+        naplo.ir(f"Halal effekt: {kartya.nev} (Echo/Visszhang)")
+
+        if not death_text:
+            return True
+
+        tortent_valami = EffectEngine._resolve_common_effects(
+            kartya, jatekos, ellenfel, death_text, "Halal effekt", True
+        )
+
+        if not tortent_valami:
+            EffectEngine._rogzit_fel_nem_oldott_effektet("death", kartya, death_text)
+            naplo.ir(f"Halal effekt: {kartya.nev} aktivalodott")
+
+        return True
+
+    @staticmethod
+    def trigger_on_death(kartya, jatekos, ellenfel=None):
+        adapter = EffectEngine.get_trigger_adapter("death")
+        if adapter is not None:
+            return adapter(kartya, jatekos, ellenfel, EffectEngine._trigger_on_death_default)
+        return EffectEngine._trigger_on_death_default(kartya, jatekos, ellenfel)
+
