@@ -1279,6 +1279,95 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertTrue(result["resolved"])
         self.assertTrue(result["partial"])
 
+    def test_perzselo_csapas_grants_combat_only_attack_bonus_on_play(self):
+        spell = make_card("Perzselo Csapas", card_type="Ige")
+        owner = make_player("Caster")
+        target = CsataEgyseg(make_card("Harcos", atk=2, hp=3))
+        owner.horizont[0] = target
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(target.akt_tamadas, 5)
+        self.assertEqual(target.temp_atk_bonus_until_combat_end, 3)
+        self.assertEqual(getattr(target, "temp_atk_bonus_until_turn_end", 0), 0)
+
+    def test_perzselo_csapas_burst_uses_same_combat_bonus_handler(self):
+        spell = make_card("Perzselo Csapas", card_type="Ige")
+        owner = make_player("Caster")
+        target = CsataEgyseg(make_card("Burst Harcos", atk=1, hp=3))
+        owner.horizont[1] = target
+
+        result = resolve_card_handler(spell, category="burst", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(target.akt_tamadas, 4)
+        self.assertEqual(target.temp_atk_bonus_until_combat_end, 3)
+
+    def test_langolo_harag_damages_damaged_enemy_unit_on_play(self):
+        spell = make_card("Langolo Harag", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        target = CsataEgyseg(make_card("Serult Celpont", atk=2, hp=3))
+        target.akt_hp = 2
+        enemy.horizont[0] = target
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertIsNone(enemy.horizont[0])
+
+    def test_langolo_harag_burst_uses_same_handler(self):
+        spell = make_card("Langolo Harag", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        target = CsataEgyseg(make_card("Burst Celpont", atk=2, hp=4))
+        target.akt_hp = 1
+        enemy.horizont[1] = target
+
+        result = resolve_card_handler(spell, category="burst", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertIsNone(enemy.horizont[1])
+
+    def test_langolo_harag_returns_partial_without_damaged_enemy(self):
+        spell = make_card("Langolo Harag", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy.horizont[0] = CsataEgyseg(make_card("Egeszseges Celpont", atk=2, hp=4))
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+        self.assertIsNotNone(enemy.horizont[0])
+
+    def test_tuzgyuru_grants_temporary_aegis_and_retribution_flag(self):
+        spell = make_card("Tuzgyuru", card_type="Ige")
+        owner = make_player("Caster")
+        target = CsataEgyseg(make_card("Vedett", atk=2, hp=4))
+        owner.horizont[0] = target
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertIn("aegis", getattr(target, "temp_granted_keywords", set()))
+        self.assertEqual(getattr(target, "retaliate_on_attacked_damage_until_turn_end", 0), 2)
+
+    def test_tuzgyuru_returns_partial_without_allied_target(self):
+        spell = make_card("Tuzgyuru", card_type="Ige")
+        owner = make_player("Caster")
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+
     def test_folyekony_pancel_marks_allied_horizon_units_for_half_damage(self):
         spell = make_card("Folyekony Pancel", card_type="Ige")
         owner = make_player("Caster")

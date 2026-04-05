@@ -326,6 +326,48 @@ class AeternaSzimulacio:
             return uj
         return sebzes
 
+    def _cleanup_combat_attack_bonus(self, unit):
+        if unit is None or not _is_board_entity(unit):
+            return
+        bonus = getattr(unit, "temp_atk_bonus_until_combat_end", 0)
+        if bonus > 0:
+            unit.akt_tamadas = max(0, unit.akt_tamadas - bonus)
+            unit.temp_atk_bonus_until_combat_end = 0
+
+    def _apply_attack_retribution(self, tamado, vedo, tamado_egyseg, vedett_egyseg, lane_index):
+        if not (_is_board_entity(tamado_egyseg) and _is_board_entity(vedett_egyseg)):
+            return False
+
+        visszacsapas = int(getattr(vedett_egyseg, "retaliate_on_attacked_damage_until_turn_end", 0) or 0)
+        if visszacsapas <= 0:
+            return False
+
+        trigger_engine.dispatch(
+            "on_damage_taken",
+            source=vedett_egyseg,
+            owner=vedo,
+            target=tamado_egyseg,
+            payload={
+                "damage": visszacsapas,
+                "zone": "horizont",
+                "target_owner": tamado,
+                "source_zone": "horizont",
+                "source_index": lane_index,
+                "combat": True,
+            },
+        )
+        if getattr(tamado_egyseg, "damage_immunity_until_turn_end", False):
+            naplo.ir(f"Tuzgyuru: {tamado_egyseg.lap.nev} sebzesimmunis volt, a visszacsapas elmaradt.")
+            return False
+
+        naplo.ir(
+            f"Tuzgyuru: {vedett_egyseg.lap.nev} visszacsapott, {tamado_egyseg.lap.nev} {visszacsapas} sebzest kapott a tamadas miatt."
+        )
+        if tamado_egyseg.serul(visszacsapas):
+            self._elpusztit_egyseget(tamado, "horizont", lane_index, "tuzgyuru")
+            return True
+        return False
+
     def harc_fazis(self, tamado, vedo):
         burst_aktivalt_ebben_a_harcban = False
         tamadas_tortent = False
@@ -380,6 +422,10 @@ class AeternaSzimulacio:
                             break
 
                 if jel_megallitotta:
+                    if _is_board_entity(tamado.horizont[i]):
+                        tamado.horizont[i].akt_tamadas = eredeti_atk
+                        tamado.horizont[i].attack_damage_zero_this_combat = False
+                        self._cleanup_combat_attack_bonus(tamado.horizont[i])
                     continue
 
                 blokkolok = KeywordEngine.get_blockers(vedo)
@@ -390,6 +436,14 @@ class AeternaSzimulacio:
                     b.kimerult = True
 
                     naplo.ir(f"Blokkol: {b.lap.nev}")
+
+                    if self._apply_attack_retribution(tamado, vedo, egyseg, b, i):
+                        if _is_board_entity(tamado.horizont[i]):
+                            tamado.horizont[i].akt_tamadas = eredeti_atk
+                            tamado.horizont[i].attack_damage_zero_this_combat = False
+                            self._cleanup_combat_attack_bonus(tamado.horizont[i])
+                        self._cleanup_combat_attack_bonus(b)
+                        continue
 
                     blokkolo_meghalt = False
                     blokkolo_index = vedo.horizont.index(b)
@@ -500,11 +554,24 @@ class AeternaSzimulacio:
                                 self._elpusztit_egyseget(tamado, "horizont", i)
 
                         KeywordEngine.on_damage_dealt(target_unit, egyseg)
+                        if _is_board_entity(tamado.horizont[i]):
+                            tamado.horizont[i].akt_tamadas = eredeti_atk
+                            tamado.horizont[i].attack_damage_zero_this_combat = False
+                            self._cleanup_combat_attack_bonus(tamado.horizont[i])
+                        self._cleanup_combat_attack_bonus(target_unit)
 
                         continue
 
                     if target_kind == "horizont":
                         naplo.ir(f"Kozvetlen tamadas kimerult egysegre: {target_unit.lap.nev}")
+
+                        if self._apply_attack_retribution(tamado, vedo, egyseg, target_unit, i):
+                            if _is_board_entity(tamado.horizont[i]):
+                                tamado.horizont[i].akt_tamadas = eredeti_atk
+                                tamado.horizont[i].attack_damage_zero_this_combat = False
+                                self._cleanup_combat_attack_bonus(tamado.horizont[i])
+                            self._cleanup_combat_attack_bonus(target_unit)
+                            continue
 
                         kozvetlen_sebzes = 0 if getattr(egyseg, "attack_damage_zero_this_combat", False) else self._scaled_combat_damage(target_unit, egyseg.akt_tamadas, "horizont")
                         trigger_engine.dispatch(
@@ -522,6 +589,11 @@ class AeternaSzimulacio:
                                 self._elpusztit_egyseget(vedo, "horizont", target_index)
 
                         KeywordEngine.on_damage_dealt(egyseg, target_unit)
+                        if _is_board_entity(tamado.horizont[i]):
+                            tamado.horizont[i].akt_tamadas = eredeti_atk
+                            tamado.horizont[i].attack_damage_zero_this_combat = False
+                            self._cleanup_combat_attack_bonus(tamado.horizont[i])
+                        self._cleanup_combat_attack_bonus(target_unit)
 
                         continue
 
@@ -543,6 +615,10 @@ class AeternaSzimulacio:
                                 direct_trap_stopped = True
                                 break
                         if direct_trap_stopped:
+                            if _is_board_entity(tamado.horizont[i]):
+                                tamado.horizont[i].akt_tamadas = eredeti_atk
+                                tamado.horizont[i].attack_damage_zero_this_combat = False
+                                self._cleanup_combat_attack_bonus(tamado.horizont[i])
                             continue
 
                     trigger_engine.dispatch(
@@ -566,6 +642,14 @@ class AeternaSzimulacio:
                 if _is_board_entity(tamado.horizont[i]):
                     tamado.horizont[i].akt_tamadas = eredeti_atk
                     tamado.horizont[i].attack_damage_zero_this_combat = False
+                    self._cleanup_combat_attack_bonus(tamado.horizont[i])
+
+                if blokkolok:
+                    self._cleanup_combat_attack_bonus(vedo.horizont[blokkolo_index])
+                elif target_kind in {"horizont", "zenit"} and target_index is not None:
+                    zone = getattr(vedo, target_kind)
+                    if 0 <= target_index < len(zone):
+                        self._cleanup_combat_attack_bonus(zone[target_index])
 
         if tamado.kell_tamadnia_kovetkezo_korben and tamadas_tortent:
             tamado.kell_tamadnia_kovetkezo_korben = False

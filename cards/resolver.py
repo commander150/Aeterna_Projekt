@@ -50,6 +50,7 @@ from cards.priority_handlers import (
     handle_goznyomasos_kiloves,
     handle_melytengeri_nyomas,
     handle_pusztito_roham,
+    handle_perzselo_csapas,
     handle_vakito_fust,
     handle_nagy_aramlas,
     handle_onfelaldozo_esku,
@@ -74,6 +75,8 @@ from cards.priority_handlers import (
     handle_lathatatlan_fal,
     handle_legaramlat_magus,
     handle_langnyelv_adeptus,
+    handle_langolo_harag,
+    handle_tuzgyuru,
     handle_langnyelvek_tanca,
     handle_langolo_visszavagas,
     handle_robbano_pajzs,
@@ -204,7 +207,10 @@ ON_PLAY_HANDLERS = {
     "a tomegtermeles gyara": handle_a_tomegtermeles_gyara,
     "egi emeles": handle_egi_emeles,
     "langnyelvek tanca": handle_langnyelvek_tanca,
+    "langolo harag": handle_langolo_harag,
+    "tuzgyuru": handle_tuzgyuru,
     "pusztito roham": handle_pusztito_roham,
+    "perzselo csapas": handle_perzselo_csapas,
     "ork tabor": handle_ork_tabor,
     "varatlan gyulladas": handle_varatlan_gyulladas,
     "hamuba fojtas": handle_hamuba_fojtas,
@@ -303,6 +309,8 @@ BURST_HANDLERS = {
     "surgeto hullam": handle_surgeto_hullam,
     "vedelmezo burok": handle_vedelmezo_burok,
     "varatlan gyulladas": handle_varatlan_gyulladas,
+    "langolo harag": handle_langolo_harag,
+    "perzselo csapas": handle_perzselo_csapas,
 }
 
 

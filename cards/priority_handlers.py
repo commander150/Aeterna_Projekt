@@ -154,6 +154,13 @@ def _grant_attack_until_owner_turn_end(unit, amount, owner_turn_ends=1):
     unit.temp_atk_bonuses_until_owner_turn_end = bonuses
 
 
+def _grant_attack_until_combat_end(unit, amount):
+    if amount <= 0:
+        return
+    unit.akt_tamadas += amount
+    unit.temp_atk_bonus_until_combat_end = getattr(unit, "temp_atk_bonus_until_combat_end", 0) + amount
+
+
 def _max_hp(unit):
     return getattr(unit.lap, "eletero", 0) + getattr(unit, "bonus_max_hp", 0)
 
@@ -1987,6 +1994,46 @@ def handle_pusztito_roham(card, jatekos, **_):
     return _handled(f"Pusztito Roham: {unit.lap.nev} +3 ATK-t kapott a kor vegeig.")
 
 
+def handle_perzselo_csapas(card, jatekos, **_):
+    cel = max(_allied_units(jatekos), key=lambda data: (data[2].akt_tamadas, data[2].akt_hp), default=None)
+    if cel is None:
+        return _handled("Perzselo Csapas: nem volt sajat egyseg a bonuszhoz.", partial=True)
+    _, _, unit = cel
+    _grant_attack_until_combat_end(unit, 3)
+    return _handled(f"Perzselo Csapas: {unit.lap.nev} +3 ATK-t kapott a harci fazis vegeig.")
+
+
+def handle_langolo_harag(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Langolo Harag: nem volt ellenfel.", partial=True)
+
+    from engine.effects import EffectEngine
+
+    jeloltek = []
+    for zone_name, index, unit in ActionLibrary._all_units(ellenfel):
+        if unit.akt_hp < _max_hp(unit):
+            jeloltek.append((zone_name, index, unit))
+
+    if not jeloltek:
+        return _handled("Langolo Harag: nem volt sebesult ellenseges Entitas.", partial=True)
+
+    cel = min(jeloltek, key=lambda data: (data[2].akt_hp, data[2].akt_tamadas))
+    EffectEngine._deal_damage_to_target(card.nev, 3, cel, ellenfel, "Kepesseg", jatekos)
+    return _handled(f"Langolo Harag: {cel[2].lap.nev} 3 sebzest szenvedett el.")
+
+
+def handle_tuzgyuru(card, jatekos, **_):
+    cel = min(_allied_units(jatekos), key=lambda data: (data[2].akt_hp, data[2].akt_tamadas), default=None)
+    if cel is None:
+        return _handled("Tuzgyuru: nem volt sajat Entitas a vedelemhez.", partial=True)
+    _, _, unit = cel
+    _grant_keyword(unit, "aegis", temporary=True)
+    unit.retaliate_on_attacked_damage_until_turn_end = 2
+    return _handled(
+        f"Tuzgyuru: {unit.lap.nev} megkapta az Oltalom (Aegis) kulcsszot, es a tamadoi 2 sebzest szenvednek ebben a korben."
+    )
+
+
 def can_activate_vakito_visszavagas(card, tamado_egyseg=None, vedo=None, **_):
     if tamado_egyseg is None or vedo is None:
         return False
@@ -2601,6 +2648,7 @@ def on_turn_end_priority(context):
         unit.spell_damage_immunity_until_turn_end = False
         unit.enemy_spell_damage_immunity_until_turn_end = False
         unit.half_damage_on_horizon_until_turn_end = False
+        unit.retaliate_on_attacked_damage_until_turn_end = 0
         unit.temp_granted_keywords = set()
         unit.temp_removed_keywords = set()
 
