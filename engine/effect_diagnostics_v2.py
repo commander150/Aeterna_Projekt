@@ -198,6 +198,25 @@ def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo, default_
     if not szoveg or szoveg == "-":
         return False
 
+    if has_card_handler(jel, "trap"):
+        custom_result = resolve_card_handler(
+            jel,
+            category="trap",
+            tamado_egyseg=tamado_egyseg,
+            tamado=tamado,
+            vedo=vedo,
+        )
+        if custom_result.get("resolved"):
+            if custom_result.get("consume_trap") and not any(
+                custom_result.get(flag) for flag in ("stop_attack", "continue_attack", "prevented_death", "redirected_target", "cancelled_spell", "destroy_summoned")
+            ):
+                _record_runtime_result("trap", jel, _effect_text(jel), "trap_consumed_only", "trap_consumed_only")
+            elif custom_result.get("partial"):
+                _record_runtime_result("trap", jel, _effect_text(jel), "trap_partial", "trap_partial")
+            else:
+                _record_runtime_result("trap", jel, _effect_text(jel), "trap_resolved", "trap_resolved")
+            return custom_result
+
     structured_result = _run_structured(jel, vedo, tamado, {"category": "trap", "tamado_egyseg": tamado_egyseg, "tamado": tamado, "vedo": vedo})
     structured_status = structured_result.get("status")
     pending_partial = structured_status == STRUCTURED_STATUS_PARTIAL

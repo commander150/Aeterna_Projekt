@@ -242,6 +242,66 @@ class TestPriorityHandlers(unittest.TestCase):
             )
         )
 
+    def test_robbano_pajzs_only_activates_when_aegis_unit_is_attacked(self):
+        trap = make_card("Robbano Pajzs", card_type="Jel", text="Aktivalas: ...")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=6))
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        normal_defender = CsataEgyseg(make_card("Vedett", atk=2, hp=5, text="[HORIZONT]"))
+        aegis_defender = CsataEgyseg(make_card("Aegis Vedett", atk=2, hp=5, text="[HORIZONT] Oltalom (Aegis)."))
+
+        attacker_owner.horizont[0] = attacker
+        defender.horizont[0] = normal_defender
+        self.assertFalse(can_activate_trap(trap, tamado_egyseg=attacker, tamado=attacker_owner, vedo=defender))
+
+        defender.horizont[0] = aegis_defender
+        self.assertTrue(can_activate_trap(trap, tamado_egyseg=attacker, tamado=attacker_owner, vedo=defender))
+
+    def test_robbano_pajzs_kills_attacker_when_aegis_lane_is_attacked(self):
+        trap = make_card("Robbano Pajzs", card_type="Jel", text="Aktivalas: ...")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=3))
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        aegis_defender = CsataEgyseg(make_card("Aegis Vedett", atk=2, hp=5, text="[HORIZONT] Oltalom (Aegis)."))
+        attacker_owner.horizont[0] = attacker
+        defender.horizont[0] = aegis_defender
+
+        result = resolve_card_handler(
+            trap,
+            category="trap",
+            tamado_egyseg=attacker,
+            tamado=attacker_owner,
+            vedo=defender,
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["consume_trap"])
+        self.assertTrue(result["stop_attack"])
+        self.assertIsNone(attacker_owner.horizont[0])
+
+    def test_robbano_pajzs_damages_attacker_but_allows_combat_to_continue(self):
+        trap = make_card("Robbano Pajzs", card_type="Jel", text="Aktivalas: ...")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=5))
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        aegis_defender = CsataEgyseg(make_card("Aegis Vedett", atk=2, hp=5, text="[HORIZONT] Oltalom (Aegis)."))
+        attacker_owner.horizont[0] = attacker
+        defender.horizont[0] = aegis_defender
+
+        result = resolve_card_handler(
+            trap,
+            category="trap",
+            tamado_egyseg=attacker,
+            tamado=attacker_owner,
+            vedo=defender,
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["consume_trap"])
+        self.assertTrue(result["continue_attack"])
+        self.assertEqual(attacker.akt_hp, 2)
+        self.assertIs(attacker_owner.horizont[0], attacker)
+
     def test_varatlan_erosites_only_activates_on_open_seal_attack(self):
         trap = make_card("VĂˇratlan ErĹ‘sĂ­tĂ©s", card_type="Jel", text="AktivĂˇlĂˇs: ...")
         attacker_owner = make_player("Attacker")

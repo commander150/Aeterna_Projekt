@@ -5,6 +5,7 @@ from engine.card import CsataEgyseg, Kartya
 from engine.effect_diagnostics_v2 import (
     _trigger_on_burst_with_diagnostics,
     _trigger_on_play_with_diagnostics,
+    _trigger_on_trap_with_diagnostics,
 )
 from stats.analyzer import stats
 
@@ -83,6 +84,43 @@ class TestEffectReportingRuntimePriority(unittest.TestCase):
         self.assertTrue(protected.enemy_spell_damage_immunity_until_turn_end)
         outcome = stats.effect_outcomes["burst"][(card.nev, card.kepesseg)]
         self.assertEqual(outcome["status"], "runtime_supported")
+        self.assertEqual(stats.structured_metrics["attempted"], 0)
+
+
+    def test_runtime_handler_priority_skips_structured_for_robbano_pajzs_trap(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Robbano Pajzs",
+                "tipus": "Jel",
+                "kepesseg": "Aktivalas: Amikor az ellenfel megtamadja egy Oltalom (Aegis) kulcsszoju Entitasodat. Hatas: A tamado Entitas azonnal elszenved 3 sebzest.",
+                "structured_data_available": True,
+            }
+        )
+        owner = _Player()
+        enemy = _Player()
+        attacker = CsataEgyseg(Kartya({"kartya_nev": "Tamado", "tipus": "Entitas", "tamadas": 4, "eletero": 5}))
+        defended = CsataEgyseg(
+            Kartya(
+                {
+                    "kartya_nev": "Vedett",
+                    "tipus": "Entitas",
+                    "tamadas": 2,
+                    "eletero": 4,
+                    "kepesseg": "[HORIZONT] Oltalom (Aegis).",
+                }
+            )
+        )
+        enemy.horizont[0] = attacker
+        owner.horizont[0] = defended
+
+        with patch("engine.effect_diagnostics_v2._run_structured", side_effect=AssertionError("structured should be skipped")):
+            result = _trigger_on_trap_with_diagnostics(card, attacker, enemy, owner)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["continue_attack"])
+        self.assertEqual(attacker.akt_hp, 2)
+        outcome = stats.effect_outcomes["trap"][(card.nev, card.kepesseg)]
+        self.assertEqual(outcome["status"], "trap_resolved")
         self.assertEqual(stats.structured_metrics["attempted"], 0)
 
 

@@ -1922,6 +1922,49 @@ def handle_langolo_visszavagas(card, tamado_egyseg=None, tamado=None, vedo=None,
     )
 
 
+def can_activate_robbano_pajzs(card, tamado_egyseg=None, tamado=None, vedo=None, target_kind=None, **_):
+    if target_kind == "seal" or tamado_egyseg is None or tamado is None or vedo is None:
+        return False
+    try:
+        lane_index = tamado.horizont.index(tamado_egyseg)
+    except ValueError:
+        return False
+
+    vedett = vedo.horizont[lane_index]
+    return _is_board_entity(vedett) and _unit_has_keyword(vedett, "aegis")
+
+
+def handle_robbano_pajzs(card, tamado_egyseg=None, tamado=None, vedo=None, **_):
+    # Rulebook interpretation: the trap triggers when an allied Aegis entity is attacked.
+    # In the current engine this is approximated by inspecting the attacked Horizon lane.
+    from engine.effects import EffectEngine
+
+    if tamado_egyseg is None or tamado is None or vedo is None:
+        return {"resolved": False}
+    try:
+        lane_index = tamado.horizont.index(tamado_egyseg)
+    except ValueError:
+        return {"resolved": False}
+
+    vedett = vedo.horizont[lane_index]
+    if not (_is_board_entity(vedett) and _unit_has_keyword(vedett, "aegis")):
+        return {"resolved": False}
+
+    cel = ("horizont", lane_index, tamado_egyseg)
+    meghalt = EffectEngine._deal_damage_to_target(card.nev, 3, cel, tamado, "Csapda", vedo)
+    if meghalt:
+        return _handled(
+            f"Robbano Pajzs: {tamado_egyseg.lap.nev} 3 sebzest kapott az Aegis vedo megtamadasa miatt, es elpusztult.",
+            consume_trap=True,
+            stop_attack=True,
+        )
+    return _handled(
+        f"Robbano Pajzs: {tamado_egyseg.lap.nev} 3 sebzest kapott az Aegis vedo megtamadasa miatt, de tulelte a csapdat.",
+        consume_trap=True,
+        continue_attack=True,
+    )
+
+
 def handle_vakito_visszavagas(card, tamado_egyseg=None, vedo=None, **_):
     if tamado_egyseg is None or vedo is None:
         return {"resolved": False}
