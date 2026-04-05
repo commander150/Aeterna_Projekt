@@ -213,6 +213,33 @@ def _summon_token(owner, lane_index, name, atk, hp, race="Token", realm="Semlege
     return token_unit
 
 
+def handle_fenykard_csapas(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Fenykard Csapas: nem volt ellenfel.", partial=True)
+
+    from engine.effects import EffectEngine
+
+    cel = EffectEngine._select_enemy_target(ellenfel, "weakest")
+    if cel is None:
+        return _handled("Fenykard Csapas: nem volt ellenseges Entitas.", partial=True)
+
+    elpusztult = EffectEngine._deal_damage_to_target(card.nev, 2, cel, ellenfel, "Kepesseg", jatekos)
+    if not elpusztult:
+        return _handled("Fenykard Csapas: 2 sebzes kiosztva, de a celpont tulelte.")
+
+    sajat = _best_other_allied_unit(jatekos)
+    if sajat is None:
+        return _handled(
+            "Fenykard Csapas: a celpont elpusztult, de nem volt sajat Entitas +1 maximalis HP-hoz.",
+            partial=True,
+        )
+
+    _, _, egyseg = sajat
+    egyseg.bonus_max_hp = getattr(egyseg, "bonus_max_hp", 0) + 1
+    egyseg.akt_hp += 1
+    return _handled(f"Fenykard Csapas: a celpont elpusztult, ezert {egyseg.lap.nev} +1 maximalis HP-t kapott.")
+
+
 def handle_felderito_bagoly(card, jatekos, ellenfel, **_):
     if ellenfel is None or not ellenfel.pakli:
         return _handled(
@@ -841,6 +868,35 @@ def handle_lathatatlan_fal(card, tamado_egyseg=None, tamado=None, vedo=None, **_
     ActionLibrary.return_target_to_hand(tamado, "horizont", tamado_index, card.nev)
     return _handled(
         f"Lathatatlan Fal: {tamado_egyseg.lap.nev} tamadasa ervenytelenitve, a tamado visszakerult kezbe.",
+        consume_trap=True,
+        stop_attack=True,
+    )
+
+
+def can_activate_onfelaldozo_esku(card, target_kind=None, vedo=None, **_):
+    if target_kind != "seal" or vedo is None:
+        return False
+    return any(_is_board_entity(unit) for _, _, unit in _allied_units(vedo))
+
+
+def handle_onfelaldozo_esku(card, tamado_egyseg=None, tamado=None, vedo=None, **_):
+    if tamado_egyseg is None or tamado is None or vedo is None:
+        return {"resolved": False}
+
+    aldozat = max(
+        _allied_units(vedo),
+        key=lambda data: (_max_hp(data[2]), data[2].akt_hp),
+        default=None,
+    )
+    if aldozat is None:
+        return {"resolved": False}
+
+    from engine.effects import EffectEngine
+
+    zona_nev, index, egyseg = aldozat
+    EffectEngine.destroy_unit(vedo, zona_nev, index, tamado, "onfelaldozo_esku")
+    return _handled(
+        f"Onfelaldozo Esku: a Pecsetet ero tamadas ervenytelenitve, {egyseg.lap.nev} pedig onfelaldozassal elpusztult.",
         consume_trap=True,
         stop_attack=True,
     )

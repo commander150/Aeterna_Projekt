@@ -33,6 +33,7 @@ from cards.priority_handlers import (
     handle_csaloka_hullam,
     handle_csapda_a_fustben,
     handle_csapdaallito,
+    handle_fenykard_csapas,
     handle_goblin_taktika,
     handle_egi_emeles,
     handle_kraken_idomar,
@@ -41,6 +42,7 @@ from cards.priority_handlers import (
     handle_goznyomasos_kiloves,
     handle_melytengeri_nyomas,
     handle_nagy_aramlas,
+    handle_onfelaldozo_esku,
     handle_orveny_nyeles,
     can_activate_orveny_nyeles,
     handle_gyar_felugyelo,
@@ -100,12 +102,14 @@ from cards.priority_handlers import (
     resolve_spell_redirect_trap,
     handle_sivatagi_kem_pecset_sebzes,
     can_activate_kagylo_csapda,
+    can_activate_onfelaldozo_esku,
     can_activate_vakito_visszavagas,
 )
 
 
 ON_PLAY_HANDLERS = {
     "goblin taktika": handle_goblin_taktika,
+    "fenykard csapas": handle_fenykard_csapas,
     "felderito bagoly": handle_felderito_bagoly,
     "legaramlat-magus": handle_legaramlat_magus,
     "sikatori zsebtolvaj": handle_sikatori_zsebtolvaj,
@@ -169,6 +173,7 @@ TRAP_HANDLERS = {
     "varatlan erosites": handle_varatlan_erosites,
     "hamis arany": handle_hamis_arany,
     "lathatatlan fal": handle_lathatatlan_fal,
+    "onfelaldozo esku": handle_onfelaldozo_esku,
     "tornado csapda": handle_tornado_csapda,
     "benito fagy": handle_benito_fagy,
     "vakito visszavagas": handle_vakito_visszavagas,
@@ -200,6 +205,8 @@ TRAP_PREVIEW_HANDLERS = {
     "csaloka hullam": lambda *_, **__: False,
     "zart sorkepzes": lambda *_, **__: False,
     "lathatatlan fal": lambda card, target_kind=None, **_: target_kind == "seal",
+    "martirok vedelme": lambda *_, **__: False,
+    "onfelaldozo esku": can_activate_onfelaldozo_esku,
     "tornado csapda": lambda card, tamado_egyseg=None, **_: tamado_egyseg is not None,
     "benito fagy": can_activate_benito_fagy,
     "vakito visszavagas": can_activate_vakito_visszavagas,
@@ -213,6 +220,7 @@ TRAP_PREVIEW_HANDLERS = {
 
 BURST_HANDLERS = {
     "a feny utja": handle_a_feny_utja,
+    "fenykard csapas": handle_fenykard_csapas,
     "vakito ragyogas": handle_vakito_ragyogas,
     "lelekmentes": handle_lelekmentes,
     "hirtelen dagaly": handle_hirtelen_dagaly,
