@@ -41,7 +41,7 @@ class Kartya:
 
         self.canonical_text = normalize_metadata_value(_get(11, "kepesseg_canonical", default="")) or self.kepesseg
         self.keywords = normalized_metadata_list(_get(11, "kulcsszavak_felismerve", default=""))
-        self.triggers = normalized_metadata_list(_get(12, "trigger_felismerve", default=""))
+        self.triggers = normalized_metadata_list(_get(12, "trigger_felismerve", default=""), field_name="trigger")
         self.targets = normalized_metadata_list(_get(13, "celpont_felismerve", default=""))
         self.effect_tags = normalized_metadata_list(_get(14, "hatascimkek", default=""))
         self.interpretation_status = normalize_metadata_value(_get(15, "ertelmezesi_statusz", default=""))

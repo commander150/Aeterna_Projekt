@@ -94,6 +94,19 @@ class TestStructuredEffects(unittest.TestCase):
         self.assertEqual(card.tamadas, 4)
         self.assertEqual(card.eletero, 5)
 
+
+    def test_trigger_aliases_are_normalized_from_sheet_values(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Alias Teszt",
+                "kartyatipus": "Entitas",
+                "trigger_felismerve": "on_manifest_phase; on_death",
+            }
+        )
+
+        self.assertTrue(has_trigger(card, "on_manifestation_phase"))
+        self.assertTrue(has_trigger(card, "on_destroyed"))
+
     def test_structured_damage_hits_enemy_unit(self):
         card = Kartya(
             {
