@@ -64,7 +64,9 @@ def kartyak_betoltese_xlsx(fajl_utvonal):
             if not sor or not sor[0]:
                 continue
 
-            if str(sor[0]).strip() == "Kartya nev" or (len(sor) > 2 and str(sor[2]).strip() == "Birodalom"):
+            first_cell = normalize_lookup_text(str(sor[0]).strip()) if sor[0] is not None else ""
+            third_cell = normalize_lookup_text(str(sor[2]).strip()) if len(sor) > 2 and sor[2] is not None else ""
+            if first_cell in {"kartya_nev", "kartya nev"} or third_cell == "birodalom":
                 continue
 
             sor_mapping = _row_to_mapping(headers, sor)

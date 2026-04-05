@@ -3,6 +3,14 @@ from __future__ import annotations
 from utils.text import normalize_lookup_text, repair_mojibake
 
 
+TRIGGER_ALIASES = {
+    # Spreadsheet shorthand -> engine event names
+    "on_manifest_phase": "on_manifestation_phase",
+    "on_death": "on_destroyed",
+    "death": "on_destroyed",
+}
+
+
 def parse_semicolon_list(value):
     if value is None:
         return []
@@ -25,8 +33,16 @@ def normalize_metadata_value(value):
     return repair_mojibake(str(value)).strip() if value is not None else ""
 
 
-def normalized_metadata_list(value):
-    return [normalize_lookup_text(item) for item in parse_semicolon_list(value)]
+def normalize_trigger_value(value):
+    normalized = normalize_lookup_text(value)
+    return TRIGGER_ALIASES.get(normalized, normalized)
+
+
+def normalized_metadata_list(value, *, field_name=None):
+    items = [normalize_lookup_text(item) for item in parse_semicolon_list(value)]
+    if field_name == "trigger":
+        return [normalize_trigger_value(item) for item in items]
+    return items
 
 
 def has_effect_tag(card, tag):
@@ -41,7 +57,7 @@ def has_keyword(card, keyword):
 
 def has_trigger(card, trigger):
     triggers = set(getattr(card, "triggers_normalized", []) or [])
-    return normalize_lookup_text(trigger) in triggers
+    return normalize_trigger_value(trigger) in triggers
 
 
 def has_target(card, target):
