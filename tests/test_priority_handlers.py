@@ -54,6 +54,8 @@ def make_player(name="P1", realm="Aether"):
         vamszedo_pont_figyelo=None,
         ideiglenes_aura_ebben_a_korben=0,
         rezonancia_aura=0,
+        overflow_vereseg=False,
+        overflow_gyoztes_nev=None,
         ad_ideiglenes_aurat=lambda mennyiseg, forras="": mennyiseg,
         huzas=lambda extra=False, trigger_watch=True: True,
     )
@@ -1306,6 +1308,36 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertIsNone(owner.zenit[0])
         self.assertIsNone(enemy.horizont[0])
         self.assertEqual(enemy.horizont[1].akt_hp, 1)
+
+    def test_tuzes_megtorlas_triggers_when_own_attacker_dies_to_block(self):
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        trap = make_card("Tuzes Megtorlas", card_type="Jel")
+        source_card = make_card("Elesett Tamado", atk=4, hp=1)
+        owner.zenit[0] = trap
+        enemy.pecsetek = [make_card("Pecset 1", card_type="Pecsét"), make_card("Pecset 2", card_type="Pecsét"), make_card("Pecset 3", card_type="Pecsét")]
+
+        trigger_engine.dispatch(
+            "on_destroyed",
+            source=source_card,
+            owner=owner,
+            target=enemy,
+            payload={"zone": "horizont", "combat": True, "was_attacking": True, "blocked_by_owner": enemy, "blocked_by_index": 0, "attack_value": 4},
+        )
+
+        self.assertIsNone(owner.zenit[0])
+        self.assertEqual(len(enemy.pecsetek), 1)
+
+    def test_tuzes_megtorlas_does_not_activate_as_generic_combat_trap(self):
+        trap = make_card("Tuzes Megtorlas", card_type="Jel", text="Aktivalas: ...")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=6))
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        defender_unit = CsataEgyseg(make_card("Vedett", atk=2, hp=5))
+        attacker_owner.horizont[0] = attacker
+        defender.horizont[0] = defender_unit
+
+        self.assertFalse(can_activate_trap(trap, tamado_egyseg=attacker, tamado=attacker_owner, vedo=defender))
 
     def test_goblin_taktika_summons_two_tokens(self):
         spell = make_card("Goblin Taktika", card_type="RituĂˇlĂ©")

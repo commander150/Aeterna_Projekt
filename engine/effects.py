@@ -80,7 +80,7 @@ class EffectEngine:
         raise ValueError(f"Ismeretlen zona: {zona_nev}")
 
     @staticmethod
-    def destroy_unit(jatekos, zona_nev, index, ellenfel=None, ok=None):
+    def destroy_unit(jatekos, zona_nev, index, ellenfel=None, ok=None, extra_payload=None):
         zona = EffectEngine._get_zone(jatekos, zona_nev)
         egyseg = zona[index]
 
@@ -112,12 +112,16 @@ class EffectEngine:
         if ok:
             naplo.ir(f"☠️ {egyseg.lap.nev} elpusztult ({ok})")
 
+        payload = {"zone": zona_nev, "index": index, "reason": ok}
+        if isinstance(extra_payload, dict):
+            payload.update(extra_payload)
+
         trigger_engine.dispatch(
             "on_destroyed",
             source=egyseg.lap,
             owner=jatekos,
             target=ellenfel,
-            payload={"zone": zona_nev, "index": index, "reason": ok},
+            payload=payload,
         )
         EffectEngine.trigger_on_death(egyseg.lap, jatekos, ellenfel)
         return True

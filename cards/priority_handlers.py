@@ -1124,6 +1124,28 @@ def on_destroyed(context):
             naplo.ir(f"Szentjanosbogar-Raj: {unit.lap.nev} veglegesen +2 maximalis HP-t kapott.")
             _record_runtime_status("death", source, getattr(source, "kepesseg", ""), "runtime_supported", "runtime_supported")
 
+    payload = context.payload or {}
+    if payload.get("combat") and payload.get("was_attacking") and payload.get("zone") == "horizont":
+        trap = _consume_named_trap(owner, "Tuzes Megtorlas")
+        if trap is not None:
+            blocker_owner = payload.get("blocked_by_owner") or context.target
+            sebzes = max(0, int(payload.get("attack_value", 0) or 0) // 2)
+            if blocker_owner is None or sebzes <= 0:
+                naplo.ir("Tuzes Megtorlas: nem volt ervenyes pecsetsebzes a blokkolas utani megtorlashoz.")
+                _record_runtime_status("trap", trap, getattr(trap, "kepesseg", ""), "trap_partial", "trap_partial")
+            else:
+                from engine.effects import EffectEngine
+
+                tortent = EffectEngine._deal_direct_seal_damage(trap.nev, sebzes, owner, blocker_owner, "Csapda")
+                if tortent:
+                    naplo.ir(
+                        f"Tuzes Megtorlas: {source.nev} elpusztult blokkolas soran, ezert az ellenfel Pecsetjei {sebzes} sebzest kaptak."
+                    )
+                    _record_runtime_status("trap", trap, getattr(trap, "kepesseg", ""), "trap_resolved", "trap_resolved")
+                else:
+                    naplo.ir("Tuzes Megtorlas: a megtorlas elsult, de nem volt feltorheto ellenseges Pecset.")
+                    _record_runtime_status("trap", trap, getattr(trap, "kepesseg", ""), "trap_partial", "trap_partial")
+
     trap = _consume_named_trap(owner, "Martirok Vedelme")
     if trap is not None and context.payload.get("zone") == "horizont":
         cel_index = context.payload.get("index")
@@ -1963,6 +1985,12 @@ def handle_robbano_pajzs(card, tamado_egyseg=None, tamado=None, vedo=None, **_):
         consume_trap=True,
         continue_attack=True,
     )
+
+
+def can_activate_tuzes_megtorlas(card, **_):
+    # Rulebook basis: this trap does not fire on attack declaration.
+    # It only resolves after a friendly attacking unit dies during blocking.
+    return False
 
 
 def handle_vakito_visszavagas(card, tamado_egyseg=None, vedo=None, **_):

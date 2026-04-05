@@ -177,9 +177,9 @@ class AeternaSzimulacio:
         naplo.ir(f"{tamado.nev} nyert (Overflow)")
         return self._ellenoriz_gyoztest()
 
-    def _elpusztit_egyseget(self, jatekos, zona_nev, index, ok="harc"):
+    def _elpusztit_egyseget(self, jatekos, zona_nev, index, ok="harc", extra_payload=None):
         return EffectEngine.destroy_unit(
-            jatekos, zona_nev, index, self._ellenfel(jatekos), ok
+            jatekos, zona_nev, index, self._ellenfel(jatekos), ok, extra_payload
         )
 
     def _feltor_pecset(self, vedo, burst_aktivalt_ebben_a_harcban, forras=None):
@@ -426,7 +426,19 @@ class AeternaSzimulacio:
                     elif egyseg.serul(visszautes):
                         lethal_result = resolve_lethal_trap(owner=tamado, unit=egyseg, attacker=b, zone_name="horizont", index=i)
                         if not (lethal_result and lethal_result.get("prevented_death")):
-                            self._elpusztit_egyseget(tamado, "horizont", i)
+                            self._elpusztit_egyseget(
+                                tamado,
+                                "horizont",
+                                i,
+                                "harc",
+                                {
+                                    "combat": True,
+                                    "was_attacking": True,
+                                    "blocked_by_owner": vedo,
+                                    "blocked_by_index": blokkolo_index,
+                                    "attack_value": egyseg.akt_tamadas,
+                                },
+                            )
 
                     KeywordEngine.on_damage_dealt(b, egyseg)
 
