@@ -3,6 +3,9 @@ from types import SimpleNamespace
 
 from cards.resolver import can_activate_trap, resolve_card_handler, resolve_spell_redirect
 from engine.card import CsataEgyseg
+from engine.effects import EffectEngine
+from engine.effect_diagnostics_v2 import install_effect_diagnostics
+from engine.game import AeternaSzimulacio
 from engine.triggers import trigger_engine
 
 
@@ -181,6 +184,120 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertIsNone(enemy.horizont[0])
         self.assertEqual(enemy.horizont[1].akt_hp, 1)
 
+    def test_fenykard_csapas_kill_buffs_ally(self):
+        spell = make_card("Fenykard Csapas", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        owner.horizont[0] = CsataEgyseg(make_card("Szovetseg", atk=2, hp=2))
+        enemy.horizont[0] = CsataEgyseg(make_card("Celpont", atk=1, hp=2))
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertIsNone(enemy.horizont[0])
+        self.assertEqual(owner.horizont[0].bonus_max_hp, 1)
+        self.assertEqual(owner.horizont[0].akt_hp, 3)
+
+    def test_apaly_es_dagaly_zero_empty_horizon_draws_zero(self):
+        spell = make_card("Apaly es Dagaly", card_type="Rituale")
+        owner = make_player("Caster")
+        for i in range(6):
+            owner.horizont[i] = CsataEgyseg(make_card(f"E{i}", atk=1, hp=1))
+        huzasok = {"db": 0}
+        owner.huzas = lambda extra=False, trigger_watch=True: huzasok.__setitem__("db", huzasok["db"] + 1) or True
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(huzasok["db"], 0)
+
+    def test_apaly_es_dagaly_draws_for_one_or_two_empty_slots(self):
+        spell = make_card("Apaly es Dagaly", card_type="Rituale")
+        owner = make_player("Caster")
+        owner.horizont[0] = CsataEgyseg(make_card("E0", atk=1, hp=1))
+        owner.horizont[1] = CsataEgyseg(make_card("E1", atk=1, hp=1))
+        owner.horizont[2] = CsataEgyseg(make_card("E2", atk=1, hp=1))
+        owner.horizont[3] = CsataEgyseg(make_card("E3", atk=1, hp=1))
+        huzasok = {"db": 0}
+        owner.huzas = lambda extra=False, trigger_watch=True: huzasok.__setitem__("db", huzasok["db"] + 1) or True
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(huzasok["db"], 2)
+
+    def test_apaly_es_dagaly_caps_at_three_draws(self):
+        spell = make_card("Apaly es Dagaly", card_type="Rituale")
+        owner = make_player("Caster")
+        owner.horizont[0] = CsataEgyseg(make_card("E0", atk=1, hp=1))
+        owner.horizont[1] = CsataEgyseg(make_card("E1", atk=1, hp=1))
+        huzasok = {"db": 0}
+        owner.huzas = lambda extra=False, trigger_watch=True: huzasok.__setitem__("db", huzasok["db"] + 1) or True
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(huzasok["db"], 3)
+
+    def test_koborlo_lelek_puts_top_deck_card_into_graveyard(self):
+        unit = make_card("Koborlo Lelek", text="[DOMINIUM] Clarion ...", atk=1, hp=2)
+        owner = make_player("Caster")
+        owner.pakli = [make_card("Also"), make_card("Felso")]
+
+        result = resolve_card_handler(unit, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(owner.temeto[-1].nev, "Felso")
+        self.assertEqual(owner.pakli[-1].nev, "Also")
+
+    def test_koborlo_lelek_clarion_path_uses_effect_engine_on_summon(self):
+        unit = make_card("Koborlo Lelek", text="[DOMINIUM] Clarion ...", atk=1, hp=2)
+        owner = make_player("Caster")
+        owner.pakli = [make_card("Felso")]
+        enemy = make_player("Enemy")
+        owner.overflow_vereseg = False
+        owner.overflow_gyoztes_nev = None
+        enemy.overflow_vereseg = False
+        enemy.overflow_gyoztes_nev = None
+        game = object.__new__(AeternaSzimulacio)
+        game.p1 = owner
+        game.p2 = enemy
+        install_effect_diagnostics()
+
+        result = game._alkalmaz_kartya_hatast(unit, owner, enemy)
+
+        self.assertIsNone(result)
+        self.assertEqual(owner.temeto[-1].nev, "Felso")
+        self.assertEqual(len(owner.pakli), 0)
+
+    def test_koborlo_lelek_handles_empty_deck_safely(self):
+        unit = make_card("Koborlo Lelek", text="[DOMINIUM] Clarion ...", atk=1, hp=2)
+        owner = make_player("Caster")
+        owner.pakli = []
+
+        result = resolve_card_handler(unit, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+        self.assertEqual(owner.temeto, [])
+
+    def test_vakito_szikra_exhausts_active_enemy_horizon_unit(self):
+        spell = make_card("Vakito Szikra", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        active = CsataEgyseg(make_card("Aktiv", atk=2, hp=2))
+        active.kimerult = False
+        exhausted = CsataEgyseg(make_card("Faradt", atk=1, hp=3))
+        exhausted.kimerult = True
+        enemy.horizont[0] = active
+        enemy.horizont[1] = exhausted
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(enemy.horizont[0].kimerult)
+        self.assertTrue(enemy.horizont[1].kimerult)
+
     def test_visszahivas_az_uressegbol_summons_active_unit(self):
         spell = make_card("VisszahĂ­vĂˇs az ĂśressĂ©gbĹ‘l", card_type="Ige")
         owner = make_player("Caster")
@@ -226,6 +343,42 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertIsNone(attacker_owner.horizont[0])
         self.assertEqual(attacker_owner.kez[0].nev, "TĂˇmadĂł")
 
+    def test_onfelaldozo_esku_only_on_seal_attack_and_kills_highest_hp_ally(self):
+        trap = make_card("Onfelaldozo Esku", card_type="Jel")
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=3))
+        weak = CsataEgyseg(make_card("Gyenge", atk=1, hp=2))
+        strong = CsataEgyseg(make_card("Vedelmezo", atk=2, hp=5))
+        attacker_owner.horizont[0] = attacker
+        defender.horizont[0] = weak
+        defender.horizont[1] = strong
+
+        self.assertFalse(can_activate_trap(trap, tamado_egyseg=attacker, tamado=attacker_owner, vedo=defender))
+        self.assertTrue(
+            can_activate_trap(
+                trap,
+                tamado_egyseg=attacker,
+                tamado=attacker_owner,
+                vedo=defender,
+                target_kind="seal",
+            )
+        )
+
+        result = resolve_card_handler(
+            trap,
+            category="trap",
+            tamado_egyseg=attacker,
+            tamado=attacker_owner,
+            vedo=defender,
+            target_kind="seal",
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["stop_attack"])
+        self.assertIsNone(defender.horizont[1])
+        self.assertEqual(defender.temeto[-1].nev, "Vedelmezo")
+
     def test_gyar_felugyelo_summons_token(self):
         unit = make_card("GyĂˇr-FelĂĽgyelĹ‘")
         owner = make_player("Caster")
@@ -259,6 +412,72 @@ class TestPriorityHandlers(unittest.TestCase):
         trap = make_card("TĂşlhevĂĽlt KazĂˇn", card_type="Jel")
 
         self.assertFalse(can_activate_trap(trap))
+
+    def test_martirok_vedelme_does_not_activate_as_generic_combat_trap_but_returns_on_death(self):
+        trap = make_card("Martirok Vedelme", card_type="Jel")
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        unit = CsataEgyseg(make_card("Vedett", atk=2, hp=3))
+        owner.horizont[1] = unit
+        owner.zenit[0] = trap
+
+        self.assertFalse(can_activate_trap(trap, tamado_egyseg=unit, tamado=enemy, vedo=owner))
+
+        destroyed = EffectEngine.destroy_unit(owner, "horizont", 1, enemy, "teszt")
+
+        self.assertTrue(destroyed)
+        self.assertIsNone(owner.horizont[1])
+        self.assertIsNotNone(owner.zenit[1])
+        self.assertEqual(owner.zenit[1].lap.nev, "Vedett")
+        self.assertEqual(owner.zenit[1].akt_hp, 1)
+        self.assertIn("aegis", getattr(owner.zenit[1], "granted_keywords", set()))
+        self.assertEqual(owner.temeto[-1].nev, "Martirok Vedelme")
+
+    def test_megtorlo_feny_does_not_activate_as_generic_combat_trap(self):
+        trap = make_card("Megtorlo Feny", card_type="Jel")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=4))
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+
+        self.assertFalse(
+            can_activate_trap(
+                trap,
+                tamado_egyseg=attacker,
+                tamado=attacker_owner,
+                vedo=defender,
+            )
+        )
+
+    def test_megtorlo_feny_trap_consumes_on_damage_taken_and_reflects_half_damage(self):
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        trap = make_card("Megtorlo Feny", card_type="Jel")
+        defender = CsataEgyseg(make_card("Vedett", atk=2, hp=5))
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=4))
+        defender.owner = owner
+        attacker.owner = enemy
+        owner.horizont[0] = defender
+        owner.zenit[0] = trap
+        enemy.horizont[0] = attacker
+
+        trigger_engine.dispatch(
+            "on_damage_taken",
+            source=attacker,
+            owner=enemy,
+            target=defender,
+            payload={
+                "damage": 3,
+                "zone": "horizont",
+                "target_owner": owner,
+                "source_zone": "horizont",
+                "source_index": 0,
+                "combat": True,
+            },
+        )
+
+        self.assertIsNone(owner.zenit[0])
+        self.assertEqual(owner.temeto[-1].nev, "Megtorlo Feny")
+        self.assertEqual(attacker.akt_hp, 2)
         self.assertFalse(
             can_activate_trap(
                 trap,
