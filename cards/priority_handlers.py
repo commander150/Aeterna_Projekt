@@ -145,6 +145,15 @@ def _grant_temp_attack(unit, amount):
     unit.temp_atk_bonus_until_turn_end = getattr(unit, "temp_atk_bonus_until_turn_end", 0) + amount
 
 
+def _grant_attack_until_owner_turn_end(unit, amount, owner_turn_ends=1):
+    if amount <= 0:
+        return
+    unit.akt_tamadas += amount
+    bonuses = list(getattr(unit, "temp_atk_bonuses_until_owner_turn_end", []) or [])
+    bonuses.append([amount, max(1, owner_turn_ends)])
+    unit.temp_atk_bonuses_until_owner_turn_end = bonuses
+
+
 def _max_hp(unit):
     return getattr(unit.lap, "eletero", 0) + getattr(unit, "bonus_max_hp", 0)
 
@@ -880,6 +889,19 @@ def can_activate_hamis_bizonyitek(card, spell_card=None, target_owner=None, cast
     return any(_is_board_entity(unit) for unit in caster.horizont + caster.zenit)
 
 
+def can_activate_hamis_parancs(card, tamado_egyseg=None, tamado=None, vedo=None, target_kind=None, **_):
+    if target_kind != "seal":
+        return False
+    if tamado_egyseg is None or tamado is None or vedo is None:
+        return False
+
+    masik_sajat = [
+        item for item in ActionLibrary._all_units(tamado)
+        if item[2] is not tamado_egyseg
+    ]
+    return bool(masik_sajat)
+
+
 def handle_hamis_bizonyitek(card, spell_card=None, target_owner=None, caster=None, **_):
     if not can_activate_hamis_bizonyitek(card, spell_card=spell_card, target_owner=target_owner, caster=caster):
         return {"resolved": False}
@@ -893,6 +915,35 @@ def handle_hamis_bizonyitek(card, spell_card=None, target_owner=None, caster=Non
         f"Hamis Bizonyitek: a {spell_card.nev} celpontja atiranyitva {unit.lap.nev} lapra.",
         consume_trap=True,
         redirected_target=(zone_name, index, unit),
+    )
+
+
+def handle_hamis_parancs(card, tamado_egyseg=None, tamado=None, vedo=None, target_kind=None, **_):
+    if not can_activate_hamis_parancs(
+        card,
+        tamado_egyseg=tamado_egyseg,
+        tamado=tamado,
+        vedo=vedo,
+        target_kind=target_kind,
+    ):
+        return {"resolved": False}
+
+    from engine.effects import EffectEngine
+
+    celpontok = [
+        item for item in ActionLibrary._all_units(tamado)
+        if item[2] is not tamado_egyseg
+    ]
+    if not celpontok:
+        return {"resolved": False}
+
+    zona, index, celpont = min(celpontok, key=lambda data: (data[2].akt_hp, data[2].akt_tamadas))
+    sebzes = max(0, getattr(tamado_egyseg, "akt_tamadas", 0))
+    EffectEngine._deal_damage_to_target(card.nev, sebzes, (zona, index, celpont), tamado, "Csapda", vedo)
+    return _handled(
+        f"Hamis Parancs: a Pecset elleni tamadas {celpont.lap.nev} celpontra terelodott, amely {sebzes} sebzest szenvedett.",
+        consume_trap=True,
+        stop_attack=True,
     )
 
 
@@ -980,6 +1031,20 @@ def handle_eletmento_burok(card, owner, unit, attacker=None, zone_name=None, ind
 
 
 def resolve_spell_redirect_trap(spell_card, caster, target_owner, current_target=None):
+    trap = _consume_named_trap(target_owner, "Izzo Aura")
+    if trap is not None:
+        result = handle_izzo_aura(
+            trap,
+            spell_card=spell_card,
+            target_owner=target_owner,
+            current_target=current_target,
+            caster=caster,
+        )
+        if not result.get("resolved") or result.get("partial"):
+            _restore_consumed_trap(target_owner, trap)
+        else:
+            return result
+
     trap = _consume_named_trap(target_owner, "Hamis Bizonyitek")
     if trap is not None:
         result = handle_hamis_bizonyitek(trap, spell_card=spell_card, target_owner=target_owner, caster=caster)
@@ -1733,6 +1798,27 @@ def handle_vedelmezo_burok(card, jatekos, **_):
     return _handled(f"Vedelmezo Burok: {unit.lap.nev} azonnal {healed} HP-t gyogyult, es teljes HP-ra toltodott vissza.")
 
 
+def handle_izzo_aura(card, spell_card=None, target_owner=None, current_target=None, caster=None, **_):
+    # Rulebook interpretation: when an enemy spell targets a Hamvaskezu unit,
+    # the spell is cancelled and the targeted allied unit gains +2 ATK until the end of your next turn.
+    if spell_card is None or target_owner is None or current_target is None:
+        return {"resolved": False}
+
+    _, _, unit = current_target
+    if not (_is_board_entity(unit) and _unit_matches_trait(unit, "hamvaskezu")):
+        return {"resolved": False}
+
+    _grant_attack_until_owner_turn_end(unit, 2, owner_turn_ends=1)
+    _record_runtime_status("trap", card, getattr(card, "kepesseg", ""), "trap_resolved", "trap_resolved")
+    return _handled(
+        f"Izzo Aura: {spell_card.nev} semlegesitve, {unit.lap.nev} pedig +2 ATK-t kapott a kovetkezo korod vegeig.",
+        consume_trap=True,
+        cancelled_spell=True,
+        redirected_target=current_target,
+        redirect_owner=target_owner,
+    )
+
+
 def handle_uresseg_kutato(card, jatekos, **_):
     jeloltek = [
         lap for lap in jatekos.pakli
@@ -1990,6 +2076,11 @@ def handle_robbano_pajzs(card, tamado_egyseg=None, tamado=None, vedo=None, **_):
 def can_activate_tuzes_megtorlas(card, **_):
     # Rulebook basis: this trap does not fire on attack declaration.
     # It only resolves after a friendly attacking unit dies during blocking.
+    return False
+
+
+def can_activate_izzo_aura(card, **_):
+    # Rulebook basis: spell-target reaction, not a generic combat trap.
     return False
 
 
@@ -2491,6 +2582,16 @@ def on_turn_end_priority(context):
         if bonus > 0:
             unit.akt_tamadas = max(0, unit.akt_tamadas - bonus)
             unit.temp_atk_bonus_until_turn_end = 0
+        delayed_bonuses = list(getattr(unit, "temp_atk_bonuses_until_owner_turn_end", []) or [])
+        if delayed_bonuses:
+            maradek = []
+            for amount, turns_left in delayed_bonuses:
+                turns_left -= 1
+                if turns_left <= 0:
+                    unit.akt_tamadas = max(0, unit.akt_tamadas - amount)
+                else:
+                    maradek.append([amount, turns_left])
+            unit.temp_atk_bonuses_until_owner_turn_end = maradek
         penalty = getattr(unit, "temp_atk_penalty_until_turn_end", 0)
         if penalty > 0:
             unit.akt_tamadas += penalty

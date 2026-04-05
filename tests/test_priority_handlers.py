@@ -304,6 +304,68 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertEqual(attacker.akt_hp, 2)
         self.assertIs(attacker_owner.horizont[0], attacker)
 
+    def test_hamis_parancs_only_activates_on_seal_attack_with_other_attacker_owned_entity(self):
+        trap = make_card("Hamis Parancs", card_type="Jel", text="Aktivalas: ...")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=6))
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        attacker_owner.horizont[0] = attacker
+
+        self.assertFalse(
+            can_activate_trap(
+                trap,
+                tamado_egyseg=attacker,
+                tamado=attacker_owner,
+                vedo=defender,
+                target_kind="seal",
+            )
+        )
+
+        redirected = CsataEgyseg(make_card("Masik Celpont", atk=2, hp=5))
+        attacker_owner.zenit[0] = redirected
+        self.assertTrue(
+            can_activate_trap(
+                trap,
+                tamado_egyseg=attacker,
+                tamado=attacker_owner,
+                vedo=defender,
+                target_kind="seal",
+            )
+        )
+        self.assertFalse(
+            can_activate_trap(
+                trap,
+                tamado_egyseg=attacker,
+                tamado=attacker_owner,
+                vedo=defender,
+                target_kind="horizont",
+            )
+        )
+
+    def test_hamis_parancs_redirects_seal_attack_to_other_attacker_owned_entity(self):
+        trap = make_card("Hamis Parancs", card_type="Jel", text="Aktivalas: ...")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=6))
+        redirected = CsataEgyseg(make_card("Masik Celpont", atk=2, hp=5))
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        attacker_owner.horizont[0] = attacker
+        attacker_owner.zenit[0] = redirected
+
+        result = resolve_card_handler(
+            trap,
+            category="trap",
+            tamado_egyseg=attacker,
+            tamado=attacker_owner,
+            vedo=defender,
+            target_kind="seal",
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["consume_trap"])
+        self.assertTrue(result["stop_attack"])
+        self.assertEqual(redirected.akt_hp, 1)
+        self.assertEqual(attacker.akt_hp, 6)
+
     def test_varatlan_erosites_only_activates_on_open_seal_attack(self):
         trap = make_card("VĂˇratlan ErĹ‘sĂ­tĂ©s", card_type="Jel", text="AktivĂˇlĂˇs: ...")
         attacker_owner = make_player("Attacker")
@@ -1336,6 +1398,61 @@ class TestPriorityHandlers(unittest.TestCase):
         defender_unit = CsataEgyseg(make_card("Vedett", atk=2, hp=5))
         attacker_owner.horizont[0] = attacker
         defender.horizont[0] = defender_unit
+
+        self.assertFalse(can_activate_trap(trap, tamado_egyseg=attacker, tamado=attacker_owner, vedo=defender))
+
+    def test_izzo_aura_cancels_spell_and_buffs_targeted_hamvaskezu(self):
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        trap = make_card("Izzo Aura", card_type="Jel")
+        spell = make_card("Villam", card_type="Ige")
+        target_card = make_card("Hamvaskezu Vedett", atk=2, hp=4)
+        target_card.klan = "Hamvaskezu"
+        target = CsataEgyseg(target_card)
+        owner.horizont[0] = target
+        owner.zenit[0] = trap
+
+        result = resolve_spell_redirect(
+            spell_card=spell,
+            caster=enemy,
+            target_owner=owner,
+            current_target=("horizont", 0, target),
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["cancelled_spell"])
+        self.assertEqual(target.akt_tamadas, 4)
+        self.assertIsNone(owner.zenit[0])
+
+        trigger_engine.dispatch("on_turn_end", source=None, owner=owner, target=enemy, payload={})
+        self.assertEqual(target.akt_tamadas, 2)
+
+    def test_izzo_aura_does_not_trigger_for_non_hamvaskezu_target(self):
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        trap = make_card("Izzo Aura", card_type="Jel")
+        spell = make_card("Villam", card_type="Ige")
+        target = CsataEgyseg(make_card("Nem Hamvas", atk=2, hp=4))
+        owner.horizont[0] = target
+        owner.zenit[0] = trap
+
+        result = resolve_spell_redirect(
+            spell_card=spell,
+            caster=enemy,
+            target_owner=owner,
+            current_target=("horizont", 0, target),
+        )
+
+        self.assertIsNone(result)
+        self.assertIs(owner.zenit[0], trap)
+
+    def test_izzo_aura_does_not_activate_as_generic_combat_trap(self):
+        trap = make_card("Izzo Aura", card_type="Jel", text="Aktivalas: ...")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=6))
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        defender.horizont[0] = CsataEgyseg(make_card("Vedett", atk=2, hp=5))
+        attacker_owner.horizont[0] = attacker
 
         self.assertFalse(can_activate_trap(trap, tamado_egyseg=attacker, tamado=attacker_owner, vedo=defender))
 

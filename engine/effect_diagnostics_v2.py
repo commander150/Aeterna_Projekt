@@ -193,7 +193,7 @@ def _trigger_on_play_with_diagnostics(kartya, jatekos, ellenfel, default_handler
     return None
 
 
-def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo, default_handler=None):
+def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo, default_handler=None, **context):
     szoveg = EffectEngine._normalize_text(_effect_text(jel))
     if not szoveg or szoveg == "-":
         return False
@@ -205,6 +205,7 @@ def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo, default_
             tamado_egyseg=tamado_egyseg,
             tamado=tamado,
             vedo=vedo,
+            **context,
         )
         if custom_result.get("resolved"):
             if custom_result.get("consume_trap") and not any(
@@ -217,7 +218,7 @@ def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo, default_
                 _record_runtime_result("trap", jel, _effect_text(jel), "trap_resolved", "trap_resolved")
             return custom_result
 
-    structured_result = _run_structured(jel, vedo, tamado, {"category": "trap", "tamado_egyseg": tamado_egyseg, "tamado": tamado, "vedo": vedo})
+    structured_result = _run_structured(jel, vedo, tamado, {"category": "trap", "tamado_egyseg": tamado_egyseg, "tamado": tamado, "vedo": vedo, **context})
     structured_status = structured_result.get("status")
     pending_partial = structured_status == STRUCTURED_STATUS_PARTIAL
     if structured_status == STRUCTURED_STATUS_RESOLVED:
@@ -239,6 +240,7 @@ def _trigger_on_trap_with_diagnostics(jel, tamado_egyseg, tamado, vedo, default_
         tamado_egyseg=tamado_egyseg,
         tamado=tamado,
         vedo=vedo,
+        **context,
     )
     if custom_result.get("resolved"):
         if custom_result.get("consume_trap") and not any(

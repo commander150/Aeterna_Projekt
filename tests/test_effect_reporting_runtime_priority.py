@@ -123,6 +123,32 @@ class TestEffectReportingRuntimePriority(unittest.TestCase):
         self.assertEqual(outcome["status"], "trap_resolved")
         self.assertEqual(stats.structured_metrics["attempted"], 0)
 
+    def test_runtime_handler_priority_skips_structured_for_hamis_parancs_trap(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Hamis Parancs",
+                "tipus": "Jel",
+                "kepesseg": "Aktivalas: Amikor az ellenfel sikeres tamadast deklaral a Pecseted ellen. Hatas: A tamadast atiranyitod az ellenfel egy masik, sajat maga altal uralt Entitasara.",
+                "structured_data_available": True,
+            }
+        )
+        owner = _Player()
+        enemy = _Player()
+        attacker = CsataEgyseg(Kartya({"kartya_nev": "Tamado", "tipus": "Entitas", "tamadas": 4, "eletero": 6}))
+        redirected = CsataEgyseg(Kartya({"kartya_nev": "Masik", "tipus": "Entitas", "tamadas": 2, "eletero": 5}))
+        enemy.horizont[0] = attacker
+        enemy.zenit[0] = redirected
+
+        with patch("engine.effect_diagnostics_v2._run_structured", side_effect=AssertionError("structured should be skipped")):
+            result = _trigger_on_trap_with_diagnostics(card, attacker, enemy, owner, target_kind="seal")
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["stop_attack"])
+        self.assertEqual(redirected.akt_hp, 1)
+        outcome = stats.effect_outcomes["trap"][(card.nev, card.kepesseg)]
+        self.assertEqual(outcome["status"], "trap_resolved")
+        self.assertEqual(stats.structured_metrics["attempted"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()
