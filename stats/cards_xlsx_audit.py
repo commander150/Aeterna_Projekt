@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import collections
 import csv
+import inspect
 import pathlib
 import re
 import sys
+import unicodedata
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -321,7 +323,10 @@ def _parse_effect_tags(value: str) -> list[str]:
 def _detect_simple_effect_tags(row: dict[str, str]) -> list[str]:
     tags = []
     raw_tags = _parse_effect_tags(row.get("Hatáscímkék", ""))
+    text = repair_mojibake(str(row.get("Képesség", "") or ""))
+    lower = normalize_lookup_text(text)
     keyword_like = set(KEYWORD_DEFINITIONS)
+
     for tag in raw_tags:
         if tag in keyword_like:
             continue
@@ -330,15 +335,30 @@ def _detect_simple_effect_tags(row: dict[str, str]) -> list[str]:
         elif tag in {"atk_mod", "atk_buff"} and "grant_temp_attack" not in tags:
             tags.append("grant_temp_attack")
         elif tag in {"hp_mod", "hp_buff"} and "grant_max_hp" not in tags:
-            tags.append("grant_max_hp")
+            if any(
+                phrase in lower
+                for phrase in (
+                    "maximalis hp-t kap",
+                    "+1 maximalis hp",
+                    "+2 maximalis hp",
+                    "+3 maximalis hp",
+                    "plusz 1 hp",
+                    "plusz 2 hp",
+                    "plusz 3 hp",
+                )
+            ):
+                tags.append("grant_max_hp")
         elif tag == "exhaust" and "exhaust_target" not in tags:
             tags.append("exhaust_target")
         elif tag == "draw" and "draw_cards" not in tags:
-            tags.append("draw_cards")
+            if "huzz" in lower or "lapot" in lower:
+                tags.append("draw_cards")
         elif tag == "move_zenit" and "move_to_zenit" not in tags:
-            tags.append("move_to_zenit")
+            if "zenitbe" in lower or "visszalep a zenitbe" in lower or "kerul a zenitbe" in lower:
+                tags.append("move_to_zenit")
         elif tag == "move_horizont" and "move_to_horizon" not in tags:
-            tags.append("move_to_horizon")
+            if "horizontra" in lower or "vissza a horizontra" in lower or "ures mezore" in lower:
+                tags.append("move_to_horizon")
         elif tag == "return_to_hand" and "return_to_hand" not in tags:
             tags.append("return_to_hand")
         elif tag == "reactivate" and "reactivate" not in tags:
@@ -346,17 +366,25 @@ def _detect_simple_effect_tags(row: dict[str, str]) -> list[str]:
         elif tag == "heal" and "heal" not in tags:
             tags.append("heal")
         elif tag == "destroy" and "destroy_target" not in tags:
-            tags.append("destroy_target")
+            if any(phrase in lower for phrase in ("semmisits", "pusztitsd el", "ebbe belehal", "ha belehal")):
+                tags.append("destroy_target")
         elif tag == "cannot_attack" and "restrict_attack" not in tags:
             tags.append("restrict_attack")
         elif tag == "seal_damage" and "seal_damage" not in tags:
             tags.append("seal_damage")
 
-    text = repair_mojibake(str(row.get("Képesség", "") or ""))
-    lower = normalize_lookup_text(text)
-
     if re.search(r"\+\s*\d+\s*atk", lower) and "grant_temp_attack" not in tags:
         tags.append("grant_temp_attack")
+    if any(
+        phrase in lower
+        for phrase in (
+            "maximalis hp-t kap",
+            "+1 maximalis hp",
+            "+2 maximalis hp",
+            "+3 maximalis hp",
+        )
+    ) and "grant_max_hp" not in tags:
+        tags.append("grant_max_hp")
     if ("kor veg" in lower or "kor vegeig" in lower) and "megkapja" in lower:
         if any(
             KeywordRegistry.has_keyword(text, keyword)
@@ -418,6 +446,278 @@ def _slugify(value: str) -> str:
         text = text.replace(source, target)
     text = re.sub(r"[^a-z0-9]+", "_", text).strip("_")
     return text or "no_clan"
+
+
+def _safe_slugify(value: str) -> str:
+    text = repair_mojibake(value or "").strip().lower()
+    text = "".join(
+        ch for ch in unicodedata.normalize("NFKD", text)
+        if not unicodedata.combining(ch)
+    )
+    text = re.sub(r"[^a-z0-9]+", "_", text).strip("_")
+    return text or "no_clan"
+
+
+def _resolver_registry_snapshot():
+    import cards.resolver as resolver
+
+    return {
+        "on_play": set(getattr(resolver, "ON_PLAY_HANDLERS", {})),
+        "burst": set(getattr(resolver, "BURST_HANDLERS", {})),
+        "trap": set(getattr(resolver, "TRAP_HANDLERS", {})),
+        "trap_preview": set(getattr(resolver, "TRAP_PREVIEW_HANDLERS", {})),
+        "summon_trap": set(getattr(resolver, "SUMMON_TRAP_HANDLERS", {})),
+    }
+
+
+def _normalized_card_name(row: dict[str, str]) -> str:
+    return normalize_lookup_text(row.get("Kártya név", ""))
+
+
+def _detected_zone_dependency(row: dict[str, str], card_type: str, detected_keywords: list[str]) -> list[str]:
+    raw = repair_mojibake(str(row.get("Képesség", "") or ""))
+    lower = normalize_lookup_text(raw)
+    deps = []
+
+    if "[horizont]" in lower or "horizonton" in lower:
+        deps.append("horizont")
+    if "[zenit]" in lower or "zenitben" in lower or "zenitbe" in lower:
+        deps.append("zenit")
+    if "[dominium]" in lower or "[dominium]" in lower.replace("í", "i") or "dominiumon" in lower:
+        deps.append("dominium")
+    if "burst" in detected_keywords or "reakcio (burst)" in lower or "reakcio burst" in lower:
+        deps.append("surge_only")
+    if card_type == "Sík":
+        deps.append("global")
+
+    seen = []
+    for dep in deps:
+        if dep not in seen:
+            seen.append(dep)
+    return seen
+
+
+def _extract_trap_parts(raw_ability: str) -> tuple[str, str]:
+    text = repair_mojibake(raw_ability or "")
+    match = re.search(r"Aktiválás:\s*(.*?)\.\s*Hatás:\s*(.*)", text, re.IGNORECASE)
+    if not match:
+        match = re.search(r"Aktiválás:\s*(.*?)\s*Hatás:\s*(.*)", text, re.IGNORECASE)
+    if match:
+        return match.group(1).strip(), match.group(2).strip()
+    return "", text
+
+
+def _field_scope(raw_ability: str) -> str:
+    lower = normalize_lookup_text(raw_ability or "")
+    if "mindket jatekos" in lower or "egyik jatekos sem" in lower:
+        return "teljes Dominium"
+    if "minden sajat" in lower or "sajat " in lower:
+        if "horizonton" in lower:
+            return "sajat Horizont"
+        if "zenit" in lower:
+            return "sajat Zenit"
+        return "sajat oldal"
+    if "minden ellenseges" in lower and "horizonton" in lower:
+        return "Horizont mindket terfelen"
+    if "horizonton" in lower:
+        return "Horizont mindket terfelen"
+    if "zenit" in lower:
+        return "Zenit mindket terfelen"
+    return "global"
+
+
+def _card_specific_support(row: dict[str, str], registries: dict[str, set[str]]):
+    card_name = row.get("Kártya név", "")
+    card_type = row.get("Típus", "")
+    raw_ability = row.get("Képesség", "")
+    lower = normalize_lookup_text(raw_ability)
+    normalized_name = _normalized_card_name(row)
+    detected_keywords = _detect_keywords(row)
+    detected_effect_tags = _detect_simple_effect_tags(row)
+
+    keyword_details = [_keyword_support(keyword) for keyword in detected_keywords]
+    effect_details = [_effect_support(tag) for tag in detected_effect_tags]
+    keyword_status = _aggregate_support([detail[0] for detail in keyword_details]) if detected_keywords else "missing"
+    effect_status = _aggregate_support([detail[0] for detail in effect_details]) if detected_effect_tags else "uncertain"
+
+    evidence = {
+        item
+        for _, files, _ in keyword_details
+        for item in files
+    } | {
+        item
+        for _, files, _ in effect_details
+        for item in files
+    }
+
+    notes = []
+    support_status = _aggregate_support(
+        [status for status in (keyword_status, effect_status) if status != "missing"]
+    )
+    if support_status == "missing":
+        support_status = "uncertain"
+
+    has_on_play = normalized_name in registries["on_play"]
+    has_burst = normalized_name in registries["burst"]
+    has_trap = normalized_name in registries["trap"]
+    has_trap_preview = normalized_name in registries["trap_preview"]
+    has_summon_trap = normalized_name in registries["summon_trap"]
+
+    if has_on_play or has_burst or has_trap or has_trap_preview or has_summon_trap:
+        evidence.update({"cards/resolver.py", "cards/priority_handlers.py"})
+
+    zone_dependency = _detected_zone_dependency(row, card_type, detected_keywords)
+
+    if card_type == "Entitás":
+        notes.append(
+            "entity_review: natív keyword, zónafüggés és harci kötés együtt vizsgálva."
+        )
+        if not detected_effect_tags and detected_keywords and keyword_status == "supported":
+            support_status = "supported"
+        elif any(keyword in {"clarion", "echo"} for keyword in detected_keywords):
+            if has_on_play:
+                support_status = "partial"
+                notes.append("clarion_echo: van explicit runtime handler, de a keyword szemantika tovabbra is lap-specifikus.")
+            else:
+                support_status = "partial"
+                notes.append("clarion_echo: parsing van, de explicit kartya-handler nem latszik.")
+        elif any(token in lower for token in ("valahanyszor", "amikor", "ha ", "amig ")):
+            support_status = "partial" if support_status == "supported" else support_status
+            notes.append("combat_condition: triggerelt vagy allandosult harci feltetel, nem tisztan keyword-only.")
+        if "horizont" in zone_dependency or "zenit" in zone_dependency or "dominium" in zone_dependency:
+            notes.append("zone_dependency: " + ", ".join(zone_dependency))
+
+    elif card_type in {"Rituálé", "Ige"}:
+        burst_required = "burst" in detected_keywords or "reakcio (burst)" in lower
+        notes.append("spell_review: normal kijatszas, burst, celzas es egyszeru primitivek szerint ertekelve.")
+        if has_on_play:
+            support_status = "supported" if effect_status == "supported" and not burst_required else "partial"
+            notes.append("runtime_on_play: explicit on_play handler talalhato.")
+        elif effect_status in {"supported", "partial"}:
+            support_status = "partial"
+            notes.append("runtime_on_play: explicit handler nincs, a kep csak strukturalt / altalanos primitiveken all.")
+        else:
+            support_status = "uncertain"
+        if burst_required:
+            if has_burst:
+                evidence.add("cards/resolver.py")
+                notes.append("burst_support: explicit burst handler talalhato.")
+                support_status = "partial" if support_status == "supported" else support_status
+            else:
+                notes.append("burst_support: burst szerepel a szovegben, de explicit burst handler nem latszik.")
+                support_status = "partial" if support_status != "missing" else "uncertain"
+        if "horizont" in zone_dependency or "zenit" in zone_dependency:
+            notes.append("zone_dependency: " + ", ".join(zone_dependency))
+
+    elif card_type == "Jel":
+        activation_condition, effect_resolution = _extract_trap_parts(raw_ability)
+        trigger_tokens = [token.strip() for token in _parse_semicolon_or_csv(row.get("Trigger_Felismerve", ""))]
+        normalized_triggers = [TRIGGER_ALIASES.get(token, token) for token in trigger_tokens]
+        trigger_known = bool(normalized_triggers) and all(token in KNOWN_ENGINE_TRIGGERS for token in normalized_triggers)
+
+        notes.append(f"activation_condition: {activation_condition or 'nem szetbonthato'}")
+        notes.append(f"effect_resolution: {effect_resolution or 'nem szetbonthato'}")
+        notes.append("trap_limit: a jatekban Jel limit es fogyasztasi logika latszik (engine/game.py).")
+        evidence.update({"engine/game.py", "engine/effect_diagnostics_v2.py"})
+
+        if has_summon_trap:
+            notes.append("trigger_dispatch: summon trap registryben van.")
+            support_status = "supported" if effect_status == "supported" and trigger_known else "partial"
+        elif has_trap:
+            notes.append("trigger_dispatch: explicit trap handler talalhato.")
+            support_status = "supported" if effect_status == "supported" and (has_trap_preview or trigger_known) else "partial"
+        elif trigger_known:
+            notes.append("trigger_dispatch: trigger metadata alapjan felismerheto, de explicit trap handler nem latszik.")
+            support_status = "partial"
+        else:
+            notes.append("trigger_dispatch: trigger metadata vagy explicit handler nem eleg eros.")
+            support_status = "uncertain"
+        if has_trap_preview:
+            notes.append("activation_preview: van trap preview feltetel-ellenorzes.")
+
+    elif card_type == "Sík":
+        notes.append(f"field_scope: {_field_scope(raw_ability)}")
+        notes.append("singleton_rule: explicit, dedikalt aktiv Sík slotot nem talaltam; ez jelenleg legfeljebb reszben bizonyitott.")
+        evidence.add("engine/player.py")
+        if has_on_play:
+            notes.append("field_runtime: explicit on_play handler allando flaget allit.")
+            support_status = "partial" if support_status in {"supported", "partial"} else support_status
+        else:
+            notes.append("field_runtime: explicit on_play handler nem latszik.")
+            support_status = "uncertain" if support_status == "supported" else support_status
+
+    if not detected_keywords:
+        notes.append("keywords: none")
+    if not detected_effect_tags:
+        notes.append("effects: none")
+
+    return {
+        "card_name": card_name,
+        "card_type": card_type,
+        "raw_ability": raw_ability,
+        "zone_dependency": ";".join(zone_dependency),
+        "detected_keywords": ";".join(detected_keywords),
+        "detected_effect_tags": ";".join(detected_effect_tags),
+        "support_status": support_status,
+        "evidence_files": sorted(evidence),
+        "notes": notes,
+    }
+
+
+def generate_clan_rule_audit_by_card_type(path: str, realm: str, clan: str = ""):
+    rows = load_cards_rows(path)
+    clan_value = repair_mojibake(clan or "")
+    registries = _resolver_registry_snapshot()
+
+    scoped_rows = [
+        row for row in rows
+        if row.get("Birodalom", "") == realm
+        and normalize_lookup_text(row.get("Klán", "")) == normalize_lookup_text(clan_value)
+    ]
+
+    audit_rows = [_card_specific_support(row, registries) for row in scoped_rows]
+    type_counter = collections.Counter(row["card_type"] for row in audit_rows)
+    status_counter = collections.Counter(row["support_status"] for row in audit_rows)
+    by_type_status = collections.defaultdict(collections.Counter)
+    for row in audit_rows:
+        by_type_status[row["card_type"]][row["support_status"]] += 1
+
+    output_path = pathlib.Path("stats") / f"clan_audit_{_safe_slugify(realm)}_{_safe_slugify(clan_value)}_by_card_type.md"
+    with output_path.open("w", encoding="utf-8") as handle:
+        handle.write(f"# Clan Audit: {realm} / {clan_value}\n\n")
+        handle.write("## Summary\n\n")
+        handle.write(f"- Cards audited: {len(audit_rows)}\n")
+        for card_type in ("Entitás", "Rituálé", "Ige", "Jel", "Sík"):
+            if type_counter.get(card_type):
+                handle.write(f"- {card_type}: {type_counter[card_type]}\n")
+        handle.write("\n### Support Status\n\n")
+        for status in ("supported", "partial", "uncertain", "missing"):
+            handle.write(f"- {status}: {status_counter.get(status, 0)}\n")
+
+        for card_type in ("Entitás", "Rituálé", "Ige", "Jel", "Sík"):
+            typed_rows = [row for row in audit_rows if row["card_type"] == card_type]
+            if not typed_rows:
+                continue
+            handle.write(f"\n## {card_type}\n\n")
+            handle.write("| card_name | card_type | zone_dependency | detected_keywords | detected_effect_tags | support_status | evidence_files | notes |\n")
+            handle.write("| --- | --- | --- | --- | --- | --- | --- | --- |\n")
+            for row in typed_rows:
+                notes = " ; ".join(row["notes"]).replace("\n", " ")
+                raw = row["raw_ability"].replace("\n", " ")
+                evidence = "; ".join(row["evidence_files"])
+                handle.write(
+                    f"| {row['card_name']} | {row['card_type']} | {row['zone_dependency'] or '-'} | {row['detected_keywords'] or '-'} | {row['detected_effect_tags'] or '-'} | {row['support_status']} | {evidence or '-'} | raw_ability: {raw} ; {notes} |\n"
+                )
+
+    return {
+        "output_path": str(output_path),
+        "realm": realm,
+        "clan": clan_value,
+        "cards": audit_rows,
+        "type_counter": type_counter,
+        "status_counter": status_counter,
+        "by_type_status": by_type_status,
+    }
 
 
 def generate_simple_effect_support_audit(path: str, realm: str, clan: str = ""):
@@ -503,7 +803,7 @@ def generate_simple_effect_support_audit(path: str, realm: str, clan: str = ""):
             }
         )
 
-    output_path = pathlib.Path("stats") / f"effect_support_audit_{_slugify(realm)}_{_slugify(clan_value)}_simple.csv"
+    output_path = pathlib.Path("stats") / f"effect_support_audit_{_safe_slugify(realm)}_{_safe_slugify(clan_value)}_simple.csv"
     with output_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(
             handle,
@@ -577,8 +877,8 @@ def generate_keyword_support_audit(path: str, realm: str, clan: str = ""):
             }
         )
 
-    output_clan = _slugify(clan_value)
-    output_realm = _slugify(realm)
+    output_clan = _safe_slugify(clan_value)
+    output_realm = _safe_slugify(realm)
     output_path = pathlib.Path("stats") / f"keyword_support_audit_{output_realm}_{output_clan}.csv"
     with output_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(
@@ -658,5 +958,19 @@ if __name__ == "__main__":
         print(f"Cards audited: {len(result['cards'])}")
         for status in ("supported", "partial", "uncertain", "missing"):
             print(f"{status}: {result['effect_status_counter'].get(status, 0)}")
+    elif "--clan-audit-by-type" in args:
+        realm = "Ignis"
+        clan = ""
+        if "--realm" in args:
+            realm = args[args.index("--realm") + 1]
+        if "--clan" in args:
+            clan = args[args.index("--clan") + 1]
+        result = generate_clan_rule_audit_by_card_type(filepath, realm, clan)
+        print(f"Clan rule audit generated: {result['output_path']}")
+        print(f"Cards audited: {len(result['cards'])}")
+        for card_type in ("Entitás", "Rituálé", "Ige", "Jel", "Sík"):
+            print(f"{card_type}: {result['type_counter'].get(card_type, 0)}")
+        for status in ("supported", "partial", "uncertain", "missing"):
+            print(f"{status}: {result['status_counter'].get(status, 0)}")
     else:
         audit_cards_xlsx(filepath)
