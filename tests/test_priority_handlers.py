@@ -4,6 +4,8 @@ from types import SimpleNamespace
 from cards.resolver import can_activate_trap, resolve_card_handler, resolve_spell_redirect
 from engine.card import CsataEgyseg
 from engine.effects import EffectEngine
+from engine.effect_diagnostics_v2 import install_effect_diagnostics
+from engine.game import AeternaSzimulacio
 from engine.triggers import trigger_engine
 
 
@@ -236,6 +238,48 @@ class TestPriorityHandlers(unittest.TestCase):
 
         self.assertTrue(result["resolved"])
         self.assertEqual(huzasok["db"], 3)
+
+    def test_koborlo_lelek_puts_top_deck_card_into_graveyard(self):
+        unit = make_card("Koborlo Lelek", text="[DOMINIUM] Clarion ...", atk=1, hp=2)
+        owner = make_player("Caster")
+        owner.pakli = [make_card("Also"), make_card("Felso")]
+
+        result = resolve_card_handler(unit, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(owner.temeto[-1].nev, "Felso")
+        self.assertEqual(owner.pakli[-1].nev, "Also")
+
+    def test_koborlo_lelek_clarion_path_uses_effect_engine_on_summon(self):
+        unit = make_card("Koborlo Lelek", text="[DOMINIUM] Clarion ...", atk=1, hp=2)
+        owner = make_player("Caster")
+        owner.pakli = [make_card("Felso")]
+        enemy = make_player("Enemy")
+        owner.overflow_vereseg = False
+        owner.overflow_gyoztes_nev = None
+        enemy.overflow_vereseg = False
+        enemy.overflow_gyoztes_nev = None
+        game = object.__new__(AeternaSzimulacio)
+        game.p1 = owner
+        game.p2 = enemy
+        install_effect_diagnostics()
+
+        result = game._alkalmaz_kartya_hatast(unit, owner, enemy)
+
+        self.assertIsNone(result)
+        self.assertEqual(owner.temeto[-1].nev, "Felso")
+        self.assertEqual(len(owner.pakli), 0)
+
+    def test_koborlo_lelek_handles_empty_deck_safely(self):
+        unit = make_card("Koborlo Lelek", text="[DOMINIUM] Clarion ...", atk=1, hp=2)
+        owner = make_player("Caster")
+        owner.pakli = []
+
+        result = resolve_card_handler(unit, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+        self.assertEqual(owner.temeto, [])
 
     def test_vakito_szikra_exhausts_active_enemy_horizon_unit(self):
         spell = make_card("Vakito Szikra", card_type="Ige")

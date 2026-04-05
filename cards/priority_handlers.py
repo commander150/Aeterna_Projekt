@@ -269,6 +269,18 @@ def handle_apaly_es_dagaly(card, jatekos, **_):
     return _handled(f"Apaly es Dagaly: {ures_mezok} ures Horizont mezo alapjan {sikeres} lap huzva.")
 
 
+def handle_koborlo_lelek(card, jatekos, **_):
+    if jatekos is None:
+        return _handled("Koborlo Lelek: nem volt jatekos.", partial=True)
+
+    if not jatekos.pakli:
+        return _handled("Koborlo Lelek: a pakli ures volt, ezert nem kerult lap az Uressegbe.", partial=True)
+
+    lap = jatekos.pakli.pop()
+    jatekos.temeto.append(lap)
+    return _handled(f"Koborlo Lelek: {lap.nev} a pakli tetejerol egyenesen az Uressegbe kerult.")
+
+
 def handle_vakito_szikra(card, jatekos, ellenfel, **_):
     if ellenfel is None:
         return _handled("Vakito Szikra: nem volt ellenfel.", partial=True)
