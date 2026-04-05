@@ -1511,7 +1511,12 @@ class TestPriorityHandlers(unittest.TestCase):
         enemy = make_player("Enemy")
         enemy.pecsetek = []
 
-        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+        result = resolve_card_handler(
+            spell,
+            category="on_play",
+            jatekos=owner,
+            ellenfel=enemy,
+        )
 
         self.assertTrue(result["resolved"])
         self.assertTrue(result["partial"])
