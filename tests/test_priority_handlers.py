@@ -180,6 +180,78 @@ class TestPriorityHandlers(unittest.TestCase):
 
         self.assertFalse(can_activate_trap(trap))
 
+    def test_vegzetes_lepes_only_on_seal_attack_and_redirects_attacker_damage(self):
+        trap = make_card("Vegzetes Lepes", card_type="Jel")
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=4))
+        other_enemy = CsataEgyseg(make_card("Masik", atk=1, hp=4))
+        aldozat = CsataEgyseg(make_card("Aldozat", atk=1, hp=2))
+        attacker_owner.horizont[0] = attacker
+        attacker_owner.horizont[1] = other_enemy
+        defender.horizont[0] = aldozat
+
+        self.assertFalse(can_activate_trap(trap, tamado_egyseg=attacker, tamado=attacker_owner, vedo=defender))
+        self.assertTrue(
+            can_activate_trap(
+                trap,
+                tamado_egyseg=attacker,
+                tamado=attacker_owner,
+                vedo=defender,
+                target_kind="seal",
+            )
+        )
+
+        result = resolve_card_handler(
+            trap,
+            category="trap",
+            tamado_egyseg=attacker,
+            tamado=attacker_owner,
+            vedo=defender,
+            target_kind="seal",
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["stop_attack"])
+        self.assertTrue(result["consume_trap"])
+        self.assertIsNone(defender.horizont[0])
+        self.assertEqual(defender.temeto[-1].nev, "Aldozat")
+        self.assertIsNone(attacker_owner.horizont[1])
+
+    def test_vegzetes_lepes_partial_when_no_other_enemy_target_exists(self):
+        trap = make_card("Vegzetes Lepes", card_type="Jel")
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=4))
+        aldozat = CsataEgyseg(make_card("Aldozat", atk=1, hp=2))
+        attacker_owner.horizont[0] = attacker
+        defender.horizont[0] = aldozat
+
+        self.assertFalse(
+            can_activate_trap(
+                trap,
+                tamado_egyseg=attacker,
+                tamado=attacker_owner,
+                vedo=defender,
+                target_kind="seal",
+            )
+        )
+
+        result = resolve_card_handler(
+            trap,
+            category="trap",
+            tamado_egyseg=attacker,
+            tamado=attacker_owner,
+            vedo=defender,
+            target_kind="seal",
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+        self.assertTrue(result["stop_attack"])
+        self.assertTrue(result["consume_trap"])
+        self.assertIsNone(defender.horizont[0])
+
     def test_hamis_arany_drains_remaining_aura_after_spell(self):
         trap = make_card("Hamis Arany", card_type="Jel")
         defender = make_player("Defender")

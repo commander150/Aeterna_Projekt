@@ -174,9 +174,32 @@ def _effect_class(card):
     normalized_triggers = set(getattr(card, "triggers_normalized", []) or [])
     normalized_tags = set(_normalized_tags(card))
     normalized_status = normalize_lookup_text(getattr(card, "interpretation_status", ""))
+    normalized_type = normalize_lookup_text(getattr(card, "kartyatipus", ""))
     text = normalize_lookup_text(_canonical_text(card))
+    is_spell_like = any(token in normalized_type for token in ("ige", "rituale", "ritual", "varazslat"))
+    has_active_text = any(
+        token in text
+        for token in (
+            "valassz",
+            "huzz",
+            "lapot",
+            "okoz",
+            "sebz",
+            "kap ",
+            "kapsz",
+            "kap+",
+            "vedd vissza",
+            "tavolits el",
+            "pusztitsd el",
+            "elpusztit",
+            "megsemmisit",
+            "helyezd",
+        )
+    )
 
     if normalized_status in PASSIVE_STATUS_HINTS:
+        if is_spell_like and has_active_text and not normalized_triggers:
+            return "on_play"
         return "passive_static"
 
     if normalized_tags:
@@ -509,6 +532,8 @@ def get_structured_status(card):
     status = normalize_lookup_text(getattr(card, "interpretation_status", ""))
     if status:
         if status in PASSIVE_STATUS_HINTS:
+            if _effect_class(card) == "on_play":
+                return "missing_implementation"
             return "passive_static_ignored"
         if status in {"structured_partial", "partial", "reszleges"}:
             return "structured_partial"

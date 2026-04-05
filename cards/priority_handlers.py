@@ -682,6 +682,59 @@ def handle_viharos_ellencsapas(card, vedo, summoned_unit=None, tamado=None, **_)
     )
 
 
+def can_activate_vegzetes_lepes(card, tamado_egyseg=None, tamado=None, vedo=None, target_kind=None, **_):
+    if target_kind != "seal":
+        return False
+    if tamado_egyseg is None or tamado is None or vedo is None:
+        return False
+
+    sajat_aldozat = [item for item in _allied_units(vedo)]
+    if not sajat_aldozat:
+        return False
+
+    masik_ellenseges = [
+        item for item in ActionLibrary._all_units(tamado)
+        if item[2] is not tamado_egyseg
+    ]
+    return bool(masik_ellenseges)
+
+
+def handle_vegzetes_lepes(card, tamado_egyseg=None, tamado=None, vedo=None, target_kind=None, **_):
+    if target_kind != "seal" or tamado_egyseg is None or tamado is None or vedo is None:
+        return {"resolved": False}
+
+    sajat_aldozatok = [item for item in _allied_units(vedo)]
+    if not sajat_aldozatok:
+        return {"resolved": False}
+
+    aldozat_zona, aldozat_index, aldozat = min(sajat_aldozatok, key=lambda data: (data[2].akt_hp, data[2].akt_tamadas))
+
+    from engine.effects import EffectEngine
+
+    EffectEngine.destroy_unit(vedo, aldozat_zona, aldozat_index, tamado, "vegzetes_lepes_aldozat")
+
+    celpontok = [
+        item for item in ActionLibrary._all_units(tamado)
+        if item[2] is not tamado_egyseg
+    ]
+    if not celpontok:
+        return _handled(
+            f"Vegzetes Lepes: {aldozat.lap.nev} felaldozva, a tamadas ervenytelenitve, de nem volt masik ellenseges Entitas a visszacsapasra.",
+            partial=True,
+            consume_trap=True,
+            stop_attack=True,
+        )
+
+    cel = min(celpontok, key=lambda data: (data[2].akt_hp, data[2].akt_tamadas))
+    sebzes = max(0, getattr(tamado_egyseg, "akt_tamadas", 0))
+    EffectEngine._deal_damage_to_target(card.nev, sebzes, cel, tamado, "Csapda", vedo)
+    return _handled(
+        f"Vegzetes Lepes: {aldozat.lap.nev} felaldozva, a tamadas ervenytelenitve, {cel[2].lap.nev} pedig {sebzes} sebzest kapott.",
+        consume_trap=True,
+        stop_attack=True,
+    )
+
+
 def can_activate_kereskedelmi_embargo(card, vedo=None, summoned_unit=None, tamado=None, **_):
     return vedo is not None and summoned_unit is not None and tamado is not None and getattr(tamado, "megidezett_entitasok_ebben_a_korben", 0) >= 2
 

@@ -76,6 +76,7 @@ from cards.priority_handlers import (
     handle_sirba_teres,
     handle_varatlan_apaly,
     handle_viharos_ellencsapas,
+    handle_vegzetes_lepes,
     handle_sivatagi_kem,
     handle_vizeses_golem,
     handle_szegecsvihar,
@@ -108,6 +109,7 @@ from cards.priority_handlers import (
     handle_sivatagi_kem_pecset_sebzes,
     can_activate_kagylo_csapda,
     can_activate_onfelaldozo_esku,
+    can_activate_vegzetes_lepes,
     can_activate_vakito_visszavagas,
 )
 
@@ -186,6 +188,7 @@ TRAP_HANDLERS = {
     "tornado csapda": handle_tornado_csapda,
     "benito fagy": handle_benito_fagy,
     "vakito visszavagas": handle_vakito_visszavagas,
+    "vegzetes lepes": handle_vegzetes_lepes,
     "csuszos talaj": handle_csuszos_talaj,
     "orveny-nyeles": handle_orveny_nyeles,
     "atkozott orveny": handle_atkozott_orveny,
@@ -218,6 +221,7 @@ TRAP_PREVIEW_HANDLERS = {
     "megtorlo feny": lambda *_, **__: False,
     "martirok vedelme": lambda *_, **__: False,
     "onfelaldozo esku": can_activate_onfelaldozo_esku,
+    "vegzetes lepes": can_activate_vegzetes_lepes,
     "tornado csapda": lambda card, tamado_egyseg=None, **_: tamado_egyseg is not None,
     "benito fagy": can_activate_benito_fagy,
     "vakito visszavagas": can_activate_vakito_visszavagas,

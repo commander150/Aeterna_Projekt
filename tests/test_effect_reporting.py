@@ -57,6 +57,33 @@ class TestEffectReporting(unittest.TestCase):
         result = resolve_structured_effect(card, _Player(), _Player(), {'category': 'on_play'})
         self.assertNotEqual(result.get('status'), STRUCTURED_STATUS_DEFERRED)
 
+    def test_tisztito_eso_active_spell_is_not_classified_passive(self):
+        card = Kartya({
+            'kartya_nev': 'Tisztito Eso',
+            'tipus': 'Rituale',
+            'kepesseg': 'Távolíts el minden negatív hatást és sebzést a saját Aqua Entitásaidról.',
+            'ertelmezesi_statusz': 'passziv_vagy_egyszeru',
+        })
+        self.assertEqual(_classify_unresolved_effect(card, card.kepesseg), 'structured_partial')
+
+    def test_hajnali_imadsag_active_spell_is_not_classified_passive(self):
+        card = Kartya({
+            'kartya_nev': 'Hajnali Imadsag',
+            'tipus': 'Rituale',
+            'kepesseg': 'Húzz 2 lapot. Ha a felhúzott lapok között van Ember vagy Angyal faj, azonnal kapsz 1 ideiglenes Lux Aurát erre a körre.',
+            'ertelmezesi_statusz': 'passziv_vagy_egyszeru',
+        })
+        self.assertEqual(_classify_unresolved_effect(card, card.kepesseg), 'structured_partial')
+
+    def test_oltalom_only_unit_stays_passive(self):
+        card = Kartya({
+            'kartya_nev': 'Pancelos Rak',
+            'tipus': 'Entitas',
+            'kepesseg': '[HORIZONT] Oltalom (Aegis).',
+            'ertelmezesi_statusz': 'passziv_vagy_egyszeru',
+        })
+        self.assertEqual(_classify_unresolved_effect(card, card.kepesseg), 'passive_static_ignored')
+
     def test_outcome_precedence_keeps_runtime_over_missing(self):
         stats = Statisztika()
         stats.rogzit_effekt_kimenetet('on_play', 'Szentjanosbogar-Raj', 'Echo text', 'missing_implementation')
