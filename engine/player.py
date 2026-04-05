@@ -4,6 +4,14 @@ from engine.card import CsataEgyseg
 from engine.board_utils import is_entity, is_zenit_entity
 
 
+def _card_matches_trait(lap, *traits):
+    haystack = " ".join(
+        str(getattr(lap, field, "")).lower()
+        for field in ("nev", "klan", "faj", "kaszt", "birodalom")
+    )
+    return any(trait.lower() in haystack for trait in traits)
+
+
 class Jatekos:
     def __init__(self, nev, birodalom_neve, teljes_kartyatar):
         self.nev = nev
@@ -117,6 +125,9 @@ class Jatekos:
                 koltseg = max(0, koltseg - 1)
         if getattr(lap, "egyseg_e", False) and self.kovetkezo_entitas_kedvezmeny > 0:
             koltseg = max(0, koltseg - self.kovetkezo_entitas_kedvezmeny)
+        if getattr(self, "ork_tabor_aktiv", False) and getattr(lap, "egyseg_e", False):
+            if _card_matches_trait(lap, "ork", "goblin"):
+                koltseg = max(1, koltseg - 1)
         return koltseg
 
     def huzas(self, extra=False, trigger_watch=True):

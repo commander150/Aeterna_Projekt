@@ -6,6 +6,7 @@ from engine.card import CsataEgyseg
 from engine.effects import EffectEngine
 from engine.effect_diagnostics_v2 import install_effect_diagnostics
 from engine.game import AeternaSzimulacio
+from engine.player import Jatekos
 from engine.triggers import trigger_engine
 
 
@@ -59,6 +60,46 @@ def make_player(name="P1", realm="Aether"):
 
 
 class TestPriorityHandlers(unittest.TestCase):
+    def test_ork_tabor_activates_persistent_discount(self):
+        card = make_card("Ork Tabor", card_type="Sik", text="Amig aktiv...")
+        owner = make_player("Ignis", realm="Ignis")
+
+        result = resolve_card_handler(card, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(owner.ork_tabor_aktiv)
+
+    def test_ork_tabor_reduces_ork_and_goblin_entity_cost_but_not_below_one(self):
+        owner = Jatekos.__new__(Jatekos)
+        owner.kovetkezo_jel_kedvezmeny = 0
+        owner.kovetkezo_gepezet_kedvezmeny = 0
+        owner.kovetkezo_entitas_kedvezmeny = 0
+        owner.ork_tabor_aktiv = True
+
+        ork = make_card("Perzselt-pancelos Ork", aura=2, realm="Ignis")
+        ork.egyseg_e = True
+        ork.faj = "Ork Harcos"
+
+        goblin = make_card("Goblin Felderito", aura=1, realm="Ignis")
+        goblin.egyseg_e = True
+        goblin.faj = "Goblin"
+
+        self.assertEqual(owner.effektiv_aura_koltseg(ork), 1)
+        self.assertEqual(owner.effektiv_aura_koltseg(goblin), 1)
+
+    def test_ork_tabor_does_not_reduce_non_ork_non_goblin_entity_cost(self):
+        owner = Jatekos.__new__(Jatekos)
+        owner.kovetkezo_jel_kedvezmeny = 0
+        owner.kovetkezo_gepezet_kedvezmeny = 0
+        owner.kovetkezo_entitas_kedvezmeny = 0
+        owner.ork_tabor_aktiv = True
+
+        unit = make_card("Langkopo Gyik", aura=3, realm="Ignis")
+        unit.egyseg_e = True
+        unit.faj = "Bestia"
+
+        self.assertEqual(owner.effektiv_aura_koltseg(unit), 3)
+
     def test_felderito_bagoly_handles_opponent_topdeck(self):
         bagoly = make_card("FelderĂ­tĹ‘ Bagoly", text="[DOMĂŤNIUM] RiadĂł (Clarion): NĂ©zd meg...")
         owner = make_player("P1")
@@ -885,6 +926,33 @@ class TestPriorityHandlers(unittest.TestCase):
         target = CsataEgyseg(make_card("Ep Celpont", atk=2, hp=5))
         target.kimerult = False
         enemy.horizont[0] = target
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+
+    def test_hamuba_fojtas_exhausts_active_enemy_zenit_unit(self):
+        spell = make_card("Hamuba Fojtas", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        target = CsataEgyseg(make_card("Zenit Celpont", atk=3, hp=4))
+        target.kimerult = False
+        enemy.zenit[0] = target
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertTrue(target.kimerult)
+
+    def test_hamuba_fojtas_returns_partial_without_active_enemy_zenit_unit(self):
+        spell = make_card("Hamuba Fojtas", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        target = CsataEgyseg(make_card("Faradt Zenit Celpont", atk=3, hp=4))
+        target.kimerult = True
+        enemy.zenit[0] = target
 
         result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
 

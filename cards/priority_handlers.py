@@ -43,6 +43,14 @@ def _enemy_horizon_units(player):
     ]
 
 
+def _enemy_zenit_units(player):
+    return [
+        (zone_name, index, unit)
+        for zone_name, index, unit in ActionLibrary._all_units(player)
+        if zone_name == "zenit"
+    ]
+
+
 def _allied_horizon_units(player):
     return [
         (zone_name, index, unit)
@@ -375,6 +383,19 @@ def handle_varatlan_gyulladas(card, jatekos, ellenfel, **_):
     return _handled(f"Varatlan Gyulladas: {cel[2].lap.nev} 4 sebzest szenvedett el.")
 
 
+def handle_hamuba_fojtas(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Hamuba Fojtas: nem volt ellenfel.", partial=True)
+
+    jeloltek = [data for data in _enemy_zenit_units(ellenfel) if not getattr(data[2], "kimerult", False)]
+    if not jeloltek:
+        return _handled("Hamuba Fojtas: nem volt aktiv ellenseges Zenit Entitas.", partial=True)
+
+    _, _, unit = max(jeloltek, key=lambda data: (data[2].akt_tamadas, data[2].akt_hp))
+    unit.kimerult = True
+    return _handled(f"Hamuba Fojtas: {unit.lap.nev} kimerult allapotba kerult a Zenitben.")
+
+
 def handle_felderito_bagoly(card, jatekos, ellenfel, **_):
     if ellenfel is None or not ellenfel.pakli:
         return _handled(
@@ -439,6 +460,13 @@ def handle_csapdaallito(card, jatekos, **_):
     setattr(jatekos, "kovetkezo_jel_kedvezmeny", aktualis)
     return _handled(
         f"Csapdaallito: {jatekos.nev} kovetkezo Jel kartyaja 1 auraval olcsobb lesz."
+    )
+
+
+def handle_ork_tabor(card, jatekos, **_):
+    setattr(jatekos, "ork_tabor_aktiv", True)
+    return _handled(
+        f"Ork Tabor: {jatekos.nev} Ork es Goblin Entitasai 1 Ignis auraval olcsobbak, de legalabb 1-be kerulnek."
     )
 
 
