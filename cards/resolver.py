@@ -211,6 +211,7 @@ TRAP_PREVIEW_HANDLERS = {
     "csaloka hullam": lambda *_, **__: False,
     "zart sorkepzes": lambda *_, **__: False,
     "lathatatlan fal": lambda card, target_kind=None, **_: target_kind == "seal",
+    "megtorlo feny": lambda *_, **__: False,
     "martirok vedelme": lambda *_, **__: False,
     "onfelaldozo esku": can_activate_onfelaldozo_esku,
     "tornado csapda": lambda card, tamado_egyseg=None, **_: tamado_egyseg is not None,

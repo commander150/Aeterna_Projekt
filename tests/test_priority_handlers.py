@@ -432,6 +432,52 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertEqual(owner.zenit[1].akt_hp, 1)
         self.assertIn("aegis", getattr(owner.zenit[1], "granted_keywords", set()))
         self.assertEqual(owner.temeto[-1].nev, "Martirok Vedelme")
+
+    def test_megtorlo_feny_does_not_activate_as_generic_combat_trap(self):
+        trap = make_card("Megtorlo Feny", card_type="Jel")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=4))
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+
+        self.assertFalse(
+            can_activate_trap(
+                trap,
+                tamado_egyseg=attacker,
+                tamado=attacker_owner,
+                vedo=defender,
+            )
+        )
+
+    def test_megtorlo_feny_trap_consumes_on_damage_taken_and_reflects_half_damage(self):
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        trap = make_card("Megtorlo Feny", card_type="Jel")
+        defender = CsataEgyseg(make_card("Vedett", atk=2, hp=5))
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=4))
+        defender.owner = owner
+        attacker.owner = enemy
+        owner.horizont[0] = defender
+        owner.zenit[0] = trap
+        enemy.horizont[0] = attacker
+
+        trigger_engine.dispatch(
+            "on_damage_taken",
+            source=attacker,
+            owner=enemy,
+            target=defender,
+            payload={
+                "damage": 3,
+                "zone": "horizont",
+                "target_owner": owner,
+                "source_zone": "horizont",
+                "source_index": 0,
+                "combat": True,
+            },
+        )
+
+        self.assertIsNone(owner.zenit[0])
+        self.assertEqual(owner.temeto[-1].nev, "Megtorlo Feny")
+        self.assertEqual(attacker.akt_hp, 2)
         self.assertFalse(
             can_activate_trap(
                 trap,
