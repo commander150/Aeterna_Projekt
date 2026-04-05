@@ -28,6 +28,9 @@ from cards.priority_handlers import (
     handle_a_vilagok_keresztezodese,
     handle_benito_fagy,
     handle_buborek_pajzs,
+    handle_langok_vedelme,
+    handle_folyekony_pancel,
+    handle_vedelmezo_burok,
     can_activate_atkozott_orveny,
     can_activate_benito_fagy,
     handle_csuszos_talaj,
@@ -174,6 +177,9 @@ ON_PLAY_HANDLERS = {
     "vakito ragyogas": handle_vakito_ragyogas,
     "buborek-pajzs": handle_buborek_pajzs,
     "buborek pajzs": handle_buborek_pajzs,
+    "langok vedelme": handle_langok_vedelme,
+    "folyekony pancel": handle_folyekony_pancel,
+    "vedelmezo burok": handle_vedelmezo_burok,
     "uresseg-kutato": handle_uresseg_kutato,
     "lelekmentes": handle_lelekmentes,
     "tuzeso": handle_tuzeso,
@@ -262,10 +268,12 @@ BURST_HANDLERS = {
     "fustbomba": handle_fustbomba,
     "vakito szikra": handle_vakito_szikra,
     "vakito ragyogas": handle_vakito_ragyogas,
+    "langok vedelme": handle_langok_vedelme,
     "lelekmentes": handle_lelekmentes,
     "hirtelen dagaly": handle_hirtelen_dagaly,
     "vakito fust": handle_vakito_fust,
     "surgeto hullam": handle_surgeto_hullam,
+    "vedelmezo burok": handle_vedelmezo_burok,
 }
 
 

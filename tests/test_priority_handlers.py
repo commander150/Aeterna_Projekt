@@ -854,6 +854,118 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertFalse(destroyed)
         self.assertEqual(protected.akt_hp, 4)
 
+    def test_langok_vedelme_grants_enemy_spell_damage_immunity_until_turn_end(self):
+        spell = make_card("Langok Vedelme", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        protected = CsataEgyseg(make_card("Vedett", atk=2, hp=4))
+        owner.horizont[0] = protected
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertTrue(protected.enemy_spell_damage_immunity_until_turn_end)
+
+    def test_langok_vedelme_blocks_only_enemy_spell_damage(self):
+        spell = make_card("Langok Vedelme", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        protected = CsataEgyseg(make_card("Vedett", atk=2, hp=4))
+        owner.horizont[0] = protected
+
+        resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+        enemy_result = EffectEngine._deal_damage_to_target("Ellenseges Villam", 3, ("horizont", 0, protected), owner, "Kepesseg", enemy)
+        self.assertFalse(enemy_result)
+        self.assertEqual(protected.akt_hp, 4)
+
+        owner_result = EffectEngine._deal_damage_to_target("Sajat Villam", 1, ("horizont", 0, protected), owner, "Kepesseg", owner)
+        self.assertFalse(owner_result)
+        self.assertEqual(protected.akt_hp, 3)
+
+    def test_langok_vedelme_burst_uses_same_handler(self):
+        spell = make_card("Langok Vedelme", card_type="Ige")
+        owner = make_player("Caster")
+        protected = CsataEgyseg(make_card("Burst Vedett", atk=1, hp=4))
+        owner.horizont[1] = protected
+
+        result = resolve_card_handler(spell, category="burst", jatekos=owner, ellenfel=make_player("Enemy"))
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertTrue(protected.enemy_spell_damage_immunity_until_turn_end)
+
+    def test_folyekony_pancel_marks_allied_horizon_units_for_half_damage(self):
+        spell = make_card("Folyekony Pancel", card_type="Ige")
+        owner = make_player("Caster")
+        front = CsataEgyseg(make_card("Elso", atk=2, hp=4))
+        back = CsataEgyseg(make_card("Masodik", atk=1, hp=3))
+        zenit = CsataEgyseg(make_card("Hatso", atk=1, hp=2))
+        owner.horizont[0] = front
+        owner.horizont[1] = back
+        owner.zenit[0] = zenit
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertTrue(front.half_damage_on_horizon_until_turn_end)
+        self.assertTrue(back.half_damage_on_horizon_until_turn_end)
+        self.assertFalse(getattr(zenit, "half_damage_on_horizon_until_turn_end", False))
+
+    def test_folyekony_pancel_halves_spell_damage_on_horizon(self):
+        spell = make_card("Folyekony Pancel", card_type="Ige")
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        protected = CsataEgyseg(make_card("Vedett", atk=2, hp=4))
+        owner.horizont[0] = protected
+
+        resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=enemy)
+        destroyed = EffectEngine._deal_damage_to_target("Villam", 3, ("horizont", 0, protected), owner, "Kepesseg", enemy)
+
+        self.assertFalse(destroyed)
+        self.assertEqual(protected.akt_hp, 3)
+
+    def test_vedelmezo_burok_fully_heals_damaged_allied_aegis_unit(self):
+        spell = make_card("Vedelmezo Burok", card_type="Ige")
+        owner = make_player("Caster")
+        protected = CsataEgyseg(make_card("Vedett", atk=2, hp=5))
+        protected.granted_keywords = {"aegis"}
+        protected.akt_hp = 2
+        owner.horizont[0] = protected
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(protected.akt_hp, 5)
+
+    def test_vedelmezo_burok_burst_uses_same_heal_handler(self):
+        spell = make_card("Vedelmezo Burok", card_type="Ige")
+        owner = make_player("Caster")
+        protected = CsataEgyseg(make_card("Burst Vedett", atk=1, hp=4))
+        protected.granted_keywords = {"aegis"}
+        protected.akt_hp = 1
+        owner.horizont[1] = protected
+
+        result = resolve_card_handler(spell, category="burst", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(protected.akt_hp, 4)
+
+    def test_vedelmezo_burok_returns_partial_without_damaged_aegis_unit(self):
+        spell = make_card("Vedelmezo Burok", card_type="Ige")
+        owner = make_player("Caster")
+        protected = CsataEgyseg(make_card("Ep Vedett", atk=2, hp=5))
+        protected.granted_keywords = {"aegis"}
+        owner.horizont[0] = protected
+
+        result = resolve_card_handler(spell, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+
     def test_tulhevult_kazan_triggers_on_own_machine_death(self):
         owner = make_player("Owner")
         enemy = make_player("Enemy")

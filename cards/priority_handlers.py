@@ -1577,6 +1577,49 @@ def handle_buborek_pajzs(card, jatekos, **_):
     return _handled(f"Buborek-pajzs: {unit.lap.nev} a kor vegeig nem kaphat sebzest Igekbol vagy Ritualekbol.")
 
 
+def handle_langok_vedelme(card, jatekos, **_):
+    cel = min(_allied_units(jatekos), key=lambda data: (data[2].akt_hp, data[2].akt_tamadas), default=None)
+    if cel is None:
+        return _handled("Langok Vedelme: nem volt sajat Entitas a vedelemhez.", partial=True)
+    _, _, unit = cel
+    unit.enemy_spell_damage_immunity_until_turn_end = True
+    return _handled(
+        f"Langok Vedelme: {unit.lap.nev} a kor vegeig nem kaphat sebzest ellenseges Igekbol vagy Ritualekbol."
+    )
+
+
+def handle_folyekony_pancel(card, jatekos, **_):
+    units = [unit for _, _, unit in _allied_horizon_units(jatekos)]
+    if not units:
+        return _handled("Folyekony Pancel: nem volt sajat Horizont Entitas a vedelemhez.", partial=True)
+    for unit in units:
+        unit.half_damage_on_horizon_until_turn_end = True
+    return _handled(
+        f"Folyekony Pancel: {len(units)} sajat Horizont Entitas a kor vegeig felezett sebzest szenved el."
+    )
+
+
+def handle_vedelmezo_burok(card, jatekos, **_):
+    cel = min(
+        [
+            data for data in _allied_units(jatekos)
+            if _unit_has_keyword(data[2], "aegis") and data[2].akt_hp < _max_hp(data[2])
+        ],
+        key=lambda data: (data[2].akt_hp, data[2].akt_tamadas),
+        default=None,
+    )
+    if cel is None:
+        return _handled(
+            "Vedelmezo Burok: nem volt serult, Oltalommal (Aegis) rendelkezo sajat Entitas.",
+            partial=True,
+        )
+    _, _, unit = cel
+    before = unit.akt_hp
+    unit.akt_hp = _max_hp(unit)
+    healed = max(0, unit.akt_hp - before)
+    return _handled(f"Vedelmezo Burok: {unit.lap.nev} azonnal {healed} HP-t gyogyult, es teljes HP-ra toltodott vissza.")
+
+
 def handle_uresseg_kutato(card, jatekos, **_):
     jeloltek = [
         lap for lap in jatekos.pakli
@@ -2243,6 +2286,8 @@ def on_turn_end_priority(context):
         unit.survival_shield_until_turn_end = False
         unit.damage_immunity_until_turn_end = False
         unit.spell_damage_immunity_until_turn_end = False
+        unit.enemy_spell_damage_immunity_until_turn_end = False
+        unit.half_damage_on_horizon_until_turn_end = False
         unit.temp_granted_keywords = set()
         unit.temp_removed_keywords = set()
 

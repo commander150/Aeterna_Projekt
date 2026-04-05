@@ -122,6 +122,29 @@ class TestGameFlow(unittest.TestCase):
 
         self.assertTrue(golem.kimerult)
 
+    def test_folyekony_pancel_halves_combat_damage_on_horizon(self):
+        sim = object.__new__(AeternaSzimulacio)
+        sim.kor = 1
+        sim._feltor_pecset = lambda vedo, burst=False, *args, **kwargs: (True, burst)
+        sim._ellenoriz_gyoztest = lambda: None
+        sim._jelol_harc_overflowot = lambda tamado, vedo: (None, None)
+        sim._elpusztit_egyseget = lambda *args, **kwargs: False
+
+        attacker_player = make_player("Attacker")
+        defender_player = make_player("Defender")
+        attacker = make_unit("Tamado", atk=4, hp=5, kingdom="Ignis", exhausted=False)
+        defender = make_unit("Vedett", atk=1, hp=5, kingdom="Aqua", exhausted=False)
+        attacker.owner = attacker_player
+        defender.owner = defender_player
+        defender.half_damage_on_horizon_until_turn_end = True
+        attacker_player.horizont[0] = attacker
+        defender_player.horizont[0] = defender
+
+        with patch("engine.game.trigger_engine.dispatch", Mock(return_value=None)):
+            AeternaSzimulacio.harc_fazis(sim, attacker_player, defender_player)
+
+        self.assertEqual(defender.akt_hp, 3)
+
 
 if __name__ == "__main__":
     unittest.main()
