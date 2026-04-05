@@ -36,7 +36,7 @@ Korábban az `engine.effect_diagnostics_v2` közvetlenül átírta az
 Most:
 
 1. a runtime továbbra is az `EffectEngine.trigger_*` belépési pontokat hívja
-2. ezek a metódusok először megnézik, van-e regisztrált adapter
+2. ezek a metódusok egy közös belső adapter-dispatch helperen át megnézik, van-e regisztrált adapter
 3. ha van, az adapter fut le
 4. ha nincs, a default effect-logika fut le
 
@@ -51,3 +51,4 @@ Most:
 
 - az `engine.effects.py` belső duplikált trigger-definícióinak tisztítása
 - az adapterek esetleges egységes pipeline-objektumba emelése
+- az `engine.effects.py` korábbi, régi trigger-definícióinak teljes eltávolítása

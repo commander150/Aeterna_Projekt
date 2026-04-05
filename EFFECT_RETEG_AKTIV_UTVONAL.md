@@ -50,6 +50,9 @@ Ez a belépési pont futáskor beregisztrálja a diagnostics réteget az
 2. név-alapú custom handler (`cards.resolver` -> `cards.priority_handlers`)
 3. text fallback / common resolver (`engine.effects`)
 
+Az `EffectEngine.trigger_*` belépési pontjai most közös belső adapter-dispatch
+helperen keresztül kérdezik le a regisztrált diagnostics adaptert.
+
 ## Rétegek Szerepe
 
 ### `engine/effects.py`

@@ -870,11 +870,21 @@ class EffectEngine:
         return None
 
     @staticmethod
-    def trigger_on_play(kartya, jatekos, ellenfel):
-        adapter = EffectEngine.get_trigger_adapter("on_play")
+    def _run_trigger_with_adapter(trigger_name, default_handler, *args):
+        adapter = EffectEngine.get_trigger_adapter(trigger_name)
         if adapter is not None:
-            return adapter(kartya, jatekos, ellenfel, EffectEngine._trigger_on_play_default)
-        return EffectEngine._trigger_on_play_default(kartya, jatekos, ellenfel)
+            return adapter(*args, default_handler)
+        return default_handler(*args)
+
+    @staticmethod
+    def trigger_on_play(kartya, jatekos, ellenfel):
+        return EffectEngine._run_trigger_with_adapter(
+            "on_play",
+            EffectEngine._trigger_on_play_default,
+            kartya,
+            jatekos,
+            ellenfel,
+        )
 
     @staticmethod
     def _trigger_on_trap_default(jel, tamado_egyseg, tamado, vedo):
@@ -928,10 +938,14 @@ class EffectEngine:
 
     @staticmethod
     def trigger_on_trap(jel, tamado_egyseg, tamado, vedo):
-        adapter = EffectEngine.get_trigger_adapter("trap")
-        if adapter is not None:
-            return adapter(jel, tamado_egyseg, tamado, vedo, EffectEngine._trigger_on_trap_default)
-        return EffectEngine._trigger_on_trap_default(jel, tamado_egyseg, tamado, vedo)
+        return EffectEngine._run_trigger_with_adapter(
+            "trap",
+            EffectEngine._trigger_on_trap_default,
+            jel,
+            tamado_egyseg,
+            tamado,
+            vedo,
+        )
 
     @staticmethod
     def _trigger_on_burst_default(kartya, jatekos, ellenfel=None):
@@ -950,10 +964,13 @@ class EffectEngine:
 
     @staticmethod
     def trigger_on_burst(kartya, jatekos, ellenfel=None):
-        adapter = EffectEngine.get_trigger_adapter("burst")
-        if adapter is not None:
-            return adapter(kartya, jatekos, ellenfel, EffectEngine._trigger_on_burst_default)
-        return EffectEngine._trigger_on_burst_default(kartya, jatekos, ellenfel)
+        return EffectEngine._run_trigger_with_adapter(
+            "burst",
+            EffectEngine._trigger_on_burst_default,
+            kartya,
+            jatekos,
+            ellenfel,
+        )
 
     @staticmethod
     def _trigger_on_death_default(kartya, jatekos, ellenfel=None):
@@ -983,8 +1000,11 @@ class EffectEngine:
 
     @staticmethod
     def trigger_on_death(kartya, jatekos, ellenfel=None):
-        adapter = EffectEngine.get_trigger_adapter("death")
-        if adapter is not None:
-            return adapter(kartya, jatekos, ellenfel, EffectEngine._trigger_on_death_default)
-        return EffectEngine._trigger_on_death_default(kartya, jatekos, ellenfel)
+        return EffectEngine._run_trigger_with_adapter(
+            "death",
+            EffectEngine._trigger_on_death_default,
+            kartya,
+            jatekos,
+            ellenfel,
+        )
 
