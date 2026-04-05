@@ -2076,6 +2076,19 @@ def handle_parazs_szilank(card, jatekos, ellenfel, **_):
     return _handled(f"Parazs-Szilank: {cel[2].lap.nev} 1 sebzest kapott, es 1 lap huzva.")
 
 
+def handle_gyongy_kovacs(card, jatekos, **_):
+    sajat_unit = next((unit for _, _, unit in _allied_units(jatekos) if getattr(unit, "lap", None) is card), None)
+    cel = _best_other_allied_unit(jatekos, excluded_unit=sajat_unit)
+    if cel is None:
+        return _handled("Gyongy-Kovacs: nem volt masik sajat Entitas a bonuszhoz.", partial=True)
+
+    _, _, unit = cel
+    _grant_temp_attack(unit, 1)
+    unit.bonus_max_hp = getattr(unit, "bonus_max_hp", 0) + 1
+    unit.akt_hp += 1
+    return _handled(f"Gyongy-Kovacs: {unit.lap.nev} +1 ATK-t es +1 maximalis HP-t kapott a merkozes vegeig.")
+
+
 def can_activate_vakito_visszavagas(card, tamado_egyseg=None, vedo=None, **_):
     if tamado_egyseg is None or vedo is None:
         return False

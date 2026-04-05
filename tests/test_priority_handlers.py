@@ -1463,6 +1463,34 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertTrue(result["resolved"])
         self.assertTrue(result["partial"])
 
+    def test_gyongy_kovacs_buffs_other_allied_unit_on_play(self):
+        unit = make_card("Gyongy-Kovacs", card_type="Entitás")
+        owner = make_player("Caster")
+        gyongy = CsataEgyseg(unit)
+        target = CsataEgyseg(make_card("Masik", atk=2, hp=3))
+        owner.horizont[0] = gyongy
+        owner.horizont[1] = target
+
+        result = resolve_card_handler(unit, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertEqual(target.akt_tamadas, 3)
+        self.assertEqual(getattr(target, "temp_atk_bonus_until_turn_end", 0), 1)
+        self.assertEqual(getattr(target, "bonus_max_hp", 0), 1)
+        self.assertEqual(target.akt_hp, 4)
+        self.assertEqual(gyongy.akt_tamadas, 1)
+
+    def test_gyongy_kovacs_returns_partial_without_other_allied_unit(self):
+        unit = make_card("Gyongy-Kovacs", card_type="Entitás")
+        owner = make_player("Caster")
+        owner.horizont[0] = CsataEgyseg(unit)
+
+        result = resolve_card_handler(unit, category="on_play", jatekos=owner, ellenfel=None)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+
     def test_folyekony_pancel_marks_allied_horizon_units_for_half_damage(self):
         spell = make_card("Folyekony Pancel", card_type="Ige")
         owner = make_player("Caster")
