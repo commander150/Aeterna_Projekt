@@ -70,7 +70,6 @@ modulhelyek, nem a fő viselkedés elsődleges hordozói:
 - `engine/game_state.py`
 - `engine/phases.py`
 - `engine/combat.py`
-- `engine/effects_core.py`
 - `engine/keywords_core.py`
 - `engine/effects_expansions.py`
 - `expansions/` alatti placeholder modulok
@@ -78,11 +77,6 @@ modulhelyek, nem a fő viselkedés elsődleges hordozói:
 ## Wrapper Státuszdöntések
 
 Az alábbi státuszok a jelenlegi, működő architektúrához igazodnak.
-
-- `engine/effects_core.py`
-  - státusz: wrapper marad átmenetileg
-  - indok: tiszta re-export az `engine.effects` fölött, nem zavarja a runtime-ot,
-    de önálló viselkedése nincs
 
 - `engine/keywords_core.py`
   - státusz: wrapper marad átmenetileg
@@ -122,6 +116,8 @@ Az alábbi státuszok a jelenlegi, működő architektúrához igazodnak.
 - `engine/effects.py` még mindig nagy és több korszak logikáját hordozza.
 - `engine/effect_diagnostics_v2.py` side-effect importtal aktiválódik a
   runnerből, ami rejtett függést jelent.
+- A hivatalos effect-útvonal most külön is rögzítve van az
+  `EFFECT_RETEG_AKTIV_UTVONAL.md` fájlban.
 - A hivatalos keyword-útvonal most: `engine.keyword_engine.KeywordEngine`.
   Az `engine.keywords` csak kompatibilitási wrapper.
 - A `game_state/phases/combat` szétválasztás jelenleg még vékony wrapper-szintű,
