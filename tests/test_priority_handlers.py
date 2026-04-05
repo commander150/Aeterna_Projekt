@@ -281,6 +281,37 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertTrue(result["partial"])
         self.assertEqual(owner.temeto, [])
 
+    def test_vadon_szeme_ijasz_damages_exhausted_enemy_on_clarion(self):
+        unit = make_card("Vadon Szeme Ijasz", text="[DOMINIUM] Clarion: 2 damage to exhausted enemy", atk=2, hp=2)
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        exhausted = CsataEgyseg(make_card("Faradt", atk=2, hp=2))
+        exhausted.kimerult = True
+        active = CsataEgyseg(make_card("Aktiv", atk=2, hp=3))
+        active.kimerult = False
+        enemy.horizont[0] = exhausted
+        enemy.horizont[1] = active
+
+        result = resolve_card_handler(unit, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertIsNone(enemy.horizont[0])
+        self.assertIsNotNone(enemy.horizont[1])
+
+    def test_vadon_szeme_ijasz_handles_missing_exhausted_target(self):
+        unit = make_card("Vadon Szeme Ijasz", text="[DOMINIUM] Clarion: 2 damage to exhausted enemy", atk=2, hp=2)
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        active = CsataEgyseg(make_card("Aktiv", atk=2, hp=3))
+        active.kimerult = False
+        enemy.horizont[0] = active
+
+        result = resolve_card_handler(unit, category="on_play", jatekos=owner, ellenfel=enemy)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+        self.assertIs(enemy.horizont[0], active)
+
     def test_vakito_szikra_exhausts_active_enemy_horizon_unit(self):
         spell = make_card("Vakito Szikra", card_type="Ige")
         owner = make_player("Caster")

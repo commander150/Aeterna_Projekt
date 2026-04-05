@@ -294,6 +294,24 @@ def handle_vakito_szikra(card, jatekos, ellenfel, **_):
     return _handled(f"Vakito Szikra: {egyseg.lap.nev} kimerult allapotba kerult.")
 
 
+def handle_vadon_szeme_ijasz(card, jatekos, ellenfel, **_):
+    if ellenfel is None:
+        return _handled("Vadon Szeme Ijasz: nem volt ellenfel.", partial=True)
+
+    from engine.effects import EffectEngine
+
+    celpontok = [item for item in _enemy_horizon_units(ellenfel) if item[2].kimerult]
+    if not celpontok:
+        return _handled(
+            "Vadon Szeme Ijasz: nem volt kimerult ellenseges Horizont Entitas.",
+            partial=True,
+        )
+
+    cel = min(celpontok, key=lambda data: (data[2].akt_hp, data[2].akt_tamadas))
+    EffectEngine._deal_damage_to_target(card.nev, 2, cel, ellenfel, "Kepesseg", jatekos)
+    return _handled(f"Vadon Szeme Ijasz: 2 sebzes kiosztva {cel[2].lap.nev} celpontra.")
+
+
 def handle_felderito_bagoly(card, jatekos, ellenfel, **_):
     if ellenfel is None or not ellenfel.pakli:
         return _handled(

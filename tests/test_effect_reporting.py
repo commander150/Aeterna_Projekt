@@ -2,6 +2,7 @@
 
 from engine.card import Kartya
 from engine.card_metadata import parse_semicolon_list
+from engine.effect_diagnostics_v2 import _classify_unresolved_effect
 from engine.structured_effects import STRUCTURED_STATUS_DEFERRED, resolve_structured_effect
 from stats.analyzer import Statisztika
 
@@ -33,6 +34,15 @@ class _Player:
 
 
 class TestEffectReporting(unittest.TestCase):
+    def test_no_ability_card_is_not_classified_missing(self):
+        card = Kartya({
+            'kartya_nev': 'Gepiesitett Baka',
+            'tipus': 'Entitas',
+            'kepesseg': '[HORIZONT] Nincs képessége.',
+            'ertelmezesi_statusz': 'passziv_vagy_egyszeru',
+        })
+        self.assertIsNone(_classify_unresolved_effect(card, card.kepesseg))
+
     def test_parse_semicolon_list_supports_commas(self):
         self.assertEqual(parse_semicolon_list('draw, hp_mod, move_horizont'), ['draw', 'hp_mod', 'move_horizont'])
 

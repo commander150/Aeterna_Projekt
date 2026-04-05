@@ -88,6 +88,9 @@ def _classify_unresolved_effect(card, text):
     if normalized in {"nincs kepessege", "no ability"}:
         return None
 
+    if "nincs kepessege" in normalized or "no ability" in normalized:
+        return None
+
     if is_passive_structured_card(card):
         return "passive_static_ignored"
 
