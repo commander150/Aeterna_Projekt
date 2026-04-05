@@ -1,0 +1,351 @@
+sheet,card_name,existing_trigger,suggested_trigger,existing_target,suggested_target,tags,status
+IGNIS,Lángoló Pörölyös,,,,enemy_entity,atk_mod; exhaust; sundering,elso_koros_gepi_ertelmezes
+IGNIS,Parázsfarkas,,on_summon,,enemy_entity,atk_mod; clarion; move_horizont,elso_koros_gepi_ertelmezes
+IGNIS,Ignis Csonttörő,,on_summon,enemy_entity,,clarion; exhaust; move_horizont,elso_koros_gepi_ertelmezes
+IGNIS,Vakmerő Hamuszóró,on_attack_declared; on_combat_damage_dealt; on_combat_phase_start,,,enemy_entity,damage; heal,elso_koros_gepi_ertelmezes
+IGNIS,Vörösréz Pajzsos,,,,enemy_entity,aegis; damage,passziv_vagy_egyszeru
+IGNIS,Lángsörényű Oroszlán,,,,own_entity,atk_mod; flow_related,passziv_vagy_egyszeru
+IGNIS,Hamvaskezű Seregvezér,,,,own_entity,aegis,passziv_vagy_egyszeru
+IGNIS,Hamvaskezű Kivégző,,,,own_entity,atk_mod; celerity; hp_mod,elso_koros_gepi_ertelmezes
+IGNIS,Tűzvihar Bajnoka,on_summon,,,enemy_entity,atk_mod; clarion; hp_mod; move_horizont,elso_koros_gepi_ertelmezes
+IGNIS,Élő Meteor,,on_summon,,enemy_entity,clarion; damage,passziv_vagy_egyszeru
+IGNIS,Hamu-Goblin Raj,,,,own_entity,atk_mod; celerity,passziv_vagy_egyszeru
+IGNIS,Parázs-Ork Martalóc,,,,enemy_entity,celerity; damage,passziv_vagy_egyszeru
+IGNIS,Törp Lávakovács,,,,enemy_entity,aegis; atk_mod; damage,elso_koros_gepi_ertelmezes
+IGNIS,Goblin Robbanómester,,on_summon,enemy_entity,,clarion; damage,passziv_vagy_egyszeru
+IGNIS,Perzselt-páncélos Ork,,,,own_entity,aegis; harmonize,passziv_vagy_egyszeru
+IGNIS,Hamvaskezű Toborzó,,on_summon,,,clarion,passziv_vagy_egyszeru
+IGNIS,Törp Magmakalapácsos,,,,own_entity,atk_mod; sundering,passziv_vagy_egyszeru
+IGNIS,Lángvérű Berserker,,,,own_entity,atk_mod; hp_mod; sundering,elso_koros_gepi_ertelmezes
+IGNIS,Ork Hadúr,,,,enemy_entity,atk_mod; celerity; move_horizont,elso_koros_gepi_ertelmezes
+IGNIS,Pokol-kutyák Ura,,on_summon,enemy_entity,,clarion,passziv_vagy_egyszeru
+IGNIS,Tűzhegy Titánja,,,,own_entity,aegis; atk_mod; attack_or_block_restrict; sundering,elso_koros_gepi_ertelmezes
+IGNIS,Ignatar a Hamvaskezű,,on_summon,enemy_entity,,celerity; clarion,passziv_vagy_egyszeru
+IGNIS,Pusztító Roham,,,,enemy_entity,atk_mod; move_horizont,passziv_vagy_egyszeru
+IGNIS,Vérforraló Üvöltés,,,,own_entity,atk_mod; celerity,passziv_vagy_egyszeru
+IGNIS,Csapda a Füstben,on_enemy_summon,,,enemy_entity,exhaust; trap,elso_koros_gepi_ertelmezes
+IGNIS,Tüzes Megtorlás,,on_destroyed,attacking_entity; seals,,atk_mod; destroy; trap,elso_koros_gepi_ertelmezes
+IGNIS,Csapda a Hamuban,on_enemy_summon,,,enemy_entity,damage; move_horizont; trap,elso_koros_gepi_ertelmezes
+IGNIS,Izzó Aura,,,,own_entity,atk_mod; trap,passziv_vagy_egyszeru
+IGNIS,A Megperzselt Küzdőtér,,,,enemy_entity,move_zenit; resonance,passziv_vagy_egyszeru
+IGNIS,Ork Tábor,,on_summon,,,,passziv_vagy_egyszeru
+IGNIS,Parázstáncos Nővér,on_enemy_spell_played,,,own_entity,atk_mod,elso_koros_gepi_ertelmezes
+IGNIS,Lángnyelv Adeptus,,on_summon,enemy_entity,,clarion; damage; harmonize,elso_koros_gepi_ertelmezes
+IGNIS,Füstbeburkolt Illúzió,,on_destroyed,seals,,damage; destroy; echo,elso_koros_gepi_ertelmezes
+IGNIS,Tűzfal-Kántáló,,,,own_entity,aegis; hp_mod,passziv_vagy_egyszeru
+IGNIS,Hamufőnix,on_awakening_phase; on_destroyed,,,enemy_entity,destroy; echo; ethereal; exhaust,elso_koros_gepi_ertelmezes
+IGNIS,A Katlan Őrzője,,,,enemy_entity,damage,passziv_vagy_egyszeru
+IGNIS,Tűzkatlan Főmágusa,,on_summon,,enemy_entity,damage; return_to_hand,passziv_vagy_egyszeru
+IGNIS,Inferno Leviatán,,on_attack_declared,,,sundering,passziv_vagy_egyszeru
+IGNIS,Tünde Tűz-Novícius,,on_summon,,,clarion,passziv_vagy_egyszeru
+IGNIS,Magma-Elementál,,on_summon,enemy_entity,,clarion; damage; move_horizont,elso_koros_gepi_ertelmezes
+IGNIS,Tünde Pyromanta,,,,enemy_entity,damage; resonance,passziv_vagy_egyszeru
+IGNIS,Obszidián Gólem,,,,own_entity,aegis; atk_mod,passziv_vagy_egyszeru
+IGNIS,Sámán a Hamuból,,on_summon,,,clarion; return_to_hand,passziv_vagy_egyszeru
+IGNIS,Tűz-Lidérc,on_enemy_spell_played,,,own_entity,atk_mod; ethereal,elso_koros_gepi_ertelmezes
+IGNIS,Démoni Lángidéző,,on_summon,enemy_entity; seals,,clarion; damage; move_horizont,elso_koros_gepi_ertelmezes
+IGNIS,Főnix-Lovas,on_awakening_phase,,,enemy_entity,aegis; destroy; echo; exhaust; move_horizont,elso_koros_gepi_ertelmezes
+IGNIS,Ignis Oltár-Gólem,,,,own_entity,aegis; atk_mod,passziv_vagy_egyszeru
+IGNIS,Pyros az Élő Láng,,on_summon,,,clarion; resonance,passziv_vagy_egyszeru
+IGNIS,Tűzeső,,,,enemy_entity,damage,passziv_vagy_egyszeru
+IGNIS,Tudás a Hamuból,,,,enemy_entity,destroy; draw; exhaust,elso_koros_gepi_ertelmezes
+IGNIS,Tűzvihar Megidézése,,,,enemy_entity,damage; flow_related,passziv_vagy_egyszeru
+IGNIS,Hamvakból Felszálló,,,,enemy_entity,exhaust,passziv_vagy_egyszeru
+IGNIS,Pernye-Fátyol,,,,enemy_entity,damage; move_zenit,passziv_vagy_egyszeru
+IGNIS,Égő Visszhang,,on_destroyed,own_entity,,damage; destroy; flow_related; move_zenit; trap,elso_koros_gepi_ertelmezes
+IGNIS,Védelmező Tűzfal,,,,enemy_entity,hp_mod; move_horizont; trap,elso_koros_gepi_ertelmezes
+IGNIS,Visszacsapó Láng,,,,enemy_entity,damage; move_horizont; move_zenit; trap,elso_koros_gepi_ertelmezes
+IGNIS,Hamis Menedék,,on_summon,,enemy_entity,damage; move_zenit; trap,elso_koros_gepi_ertelmezes
+IGNIS,Vulkáni Kráter,,,,enemy_entity,damage,passziv_vagy_egyszeru
+AQUA,Kagylópáncélos Őrszem,,,,own_entity,aegis,passziv_vagy_egyszeru
+AQUA,Kagylópajzsos Védelmező,,,,own_entity,aegis,passziv_vagy_egyszeru
+AQUA,Zafírszemű Dajka,,,,own_entity,atk_mod; harmonize; hp_mod,elso_koros_gepi_ertelmezes
+AQUA,Árapály-Mágus,,,,own_entity,atk_mod; harmonize; hp_mod,elso_koros_gepi_ertelmezes
+AQUA,Mélységi Gólem,on_breach_phase,,,own_entity,aegis,elso_koros_gepi_ertelmezes
+AQUA,Abisszális Ős-Teknős,,,,own_entity,aegis; untargetable,passziv_vagy_egyszeru
+AQUA,Leviátán Főpap,,,,enemy_entity,aegis; atk_mod; move_horizont; resonance,elso_koros_gepi_ertelmezes
+AQUA,Az Őstenger Akarata,on_breach_phase,,,enemy_entity,aegis; atk_mod; damage,elso_koros_gepi_ertelmezes
+AQUA,Zátony-felderítő,on_first_combat_survived,,,own_entity,hp_mod,elso_koros_gepi_ertelmezes
+AQUA,Tengeri Szivacs,,,,own_entity,aegis,passziv_vagy_egyszeru
+AQUA,Páncélos Rák,,,,own_entity,aegis,passziv_vagy_egyszeru
+AQUA,Korall-Lovag,,,,own_entity,aegis,passziv_vagy_egyszeru
+AQUA,Víz-Elementál Góliát,,,,enemy_entity,aegis; atk_mod; damage,elso_koros_gepi_ertelmezes
+AQUA,Atlantisz Utolsó Királya,on_awakening_phase,,,own_entity,aegis; resonance,elso_koros_gepi_ertelmezes
+AQUA,Az Ősforrás Lelke,,,,own_entity,burst; untargetable,passziv_vagy_egyszeru
+AQUA,A Mélység Bölcsessége,,,,enemy_entity,aegis; draw; move_horizont,elso_koros_gepi_ertelmezes
+AQUA,Védelmező Burok,,,,own_entity,aegis; burst,passziv_vagy_egyszeru
+AQUA,Megtörhetetlen Hullám,,,,own_entity,burst; hp_mod,passziv_vagy_egyszeru
+AQUA,Folyékony Páncél,,,,enemy_entity,damage,passziv_vagy_egyszeru
+AQUA,Fagyos Tükröződés,on_enemy_spell_played,,,enemy_entity,damage; trap,elso_koros_gepi_ertelmezes
+AQUA,A Végtelen Óceán,,,,own_entity,atk_mod; hp_mod,passziv_vagy_egyszeru
+AQUA,A Nyugalom Tengere,,on_summon,,enemy_entity,atk_mod; exhaust,passziv_vagy_egyszeru
+AQUA,Elfeledett Atlantisz,,,,own_entity,aegis; hp_mod,passziv_vagy_egyszeru
+AQUA,Cseppfolyós Orgyilkos,,,,enemy_entity,aegis; move_horizont; untargetable,elso_koros_gepi_ertelmezes
+AQUA,Áramlás-szövő Sellő,,on_attack_declared,enemy_entity,,damage; move_zenit,passziv_vagy_egyszeru
+AQUA,Örvény-Vadász,,,,enemy_entity,move_horizont; sundering,passziv_vagy_egyszeru
+AQUA,Viharhozó Elementál,on_summon,,,enemy_entity,clarion; move_horizont,elso_koros_gepi_ertelmezes
+AQUA,Hullámtáncos Leviatán,,,,enemy_entity,damage,passziv_vagy_egyszeru
+AQUA,Tengerkígyó az Áramlatok Ura,,,,enemy_entity,celerity; exhaust,passziv_vagy_egyszeru
+AQUA,Zátony-Vívó,,,,enemy_entity,celerity; move_horizont,passziv_vagy_egyszeru
+AQUA,Tajték-Zsoldos,,on_summon,,own_entity,atk_mod; clarion,passziv_vagy_egyszeru
+AQUA,Hullámverő Kos,,on_attack_declared,,enemy_entity,damage; sundering,passziv_vagy_egyszeru
+AQUA,Áramlat-Lovag,,,,enemy_entity,aegis; move_horizont; swap,elso_koros_gepi_ertelmezes
+AQUA,Mélységi Szirén,on_manifestation_phase,,,enemy_entity,harmonize; move_horizont,elso_koros_gepi_ertelmezes
+AQUA,Örvény-Gólem,,,,own_entity,aegis; swap,passziv_vagy_egyszeru
+AQUA,Viharszárnyú Hal,,,,enemy_entity,ethereal; exhaust; move_horizont,elso_koros_gepi_ertelmezes
+AQUA,Abisszális Alakváltó,,on_summon,,own_entity,atk_mod; clarion,passziv_vagy_egyszeru
+AQUA,Tengeristen Megtestesülése,,,,enemy_entity,damage; move_zenit,passziv_vagy_egyszeru
+AQUA,Nagy Áramlás,,,,enemy_entity,move_horizont; swap,passziv_vagy_egyszeru
+AQUA,Tisztító Eső,,,,enemy_entity,damage,passziv_vagy_egyszeru
+AQUA,Tengeri Délibáb,,on_destroyed,own_entity,,atk_mod; destroy,passziv_vagy_egyszeru
+AQUA,Buborék-pajzs,,,,enemy_entity,damage,passziv_vagy_egyszeru
+AQUA,Korall-csapda,,,,enemy_entity,damage; trap,passziv_vagy_egyszeru
+AQUA,Tükörvíz Csapda,,,,enemy_entity,hp_mod; move_horizont; move_zenit; swap; trap,elso_koros_gepi_ertelmezes
+AQUA,A Mélység Szeme,on_enemy_summon,,,enemy_entity,atk_mod; move_horizont; swap; trap,elso_koros_gepi_ertelmezes
+AQUA,Átkozott Örvény,,,,enemy_entity,move_zenit; trap,passziv_vagy_egyszeru
+AQUA,A Szüntelen Áramlások Folyója,,,,enemy_entity,move_horizont,passziv_vagy_egyszeru
+AQUA,Tengeri Szélcsatorna,,on_summon,,enemy_entity,celerity; damage; move_horizont,elso_koros_gepi_ertelmezes
+TERRA,Rügyező Csemete,,on_destroyed,,enemy_entity,destroy; echo; exhaust,elso_koros_gepi_ertelmezes
+TERRA,Gyökér-szövő Novícius,,on_summon,,,clarion; draw,passziv_vagy_egyszeru
+TERRA,Vadonjáró Őrszem,,,,own_entity,aegis; harmonize,passziv_vagy_egyszeru
+TERRA,Gombaspóra-Hordozó,on_destroyed,,,enemy_entity,atk_mod; destroy; echo; hp_mod; move_horizont,elso_koros_gepi_ertelmezes
+TERRA,Életfa-Kertész,on_manifestation_phase,,,own_entity,flow_related; hp_mod; resonance,elso_koros_gepi_ertelmezes
+TERRA,Tölgyfa-Bölcs,,,,own_entity,aegis; resonance,passziv_vagy_egyszeru
+TERRA,Sziklahátú Medve,,,,own_entity,aegis,passziv_vagy_egyszeru
+TERRA,Mohahátú Védelmező,,,,own_entity,aegis; atk_mod,passziv_vagy_egyszeru
+TERRA,A Földanya Hangja,,on_summon,,,clarion; search_deck,passziv_vagy_egyszeru
+TERRA,Góliát Fanyűvő,,,,enemy_entity,celerity; move_horizont; untargetable,elso_koros_gepi_ertelmezes
+TERRA,Ős-Druida Főpap,,on_summon,,,,passziv_vagy_egyszeru
+TERRA,Yggdrasil Sarja,,,,own_entity,atk_mod; attack_or_block_restrict; hp_mod,elso_koros_gepi_ertelmezes
+TERRA,Napfény-Gyűjtő,on_awakening_phase,,,own_entity,heal; resonance,elso_koros_gepi_ertelmezes
+TERRA,Mohagólem-Kölyök,,,,own_entity,aegis,passziv_vagy_egyszeru
+TERRA,Páncélos Szarvas,,,,own_entity,aegis; atk_mod,passziv_vagy_egyszeru
+TERRA,Földsárkány Fióka,,,,own_entity,hp_mod,passziv_vagy_egyszeru
+TERRA,Természet-Alakító,,,,own_entity,atk_mod; harmonize,passziv_vagy_egyszeru
+TERRA,Föld-Elementál,,,,own_entity,aegis,passziv_vagy_egyszeru
+TERRA,Ébredő Treant,,,,enemy_entity,aegis; move_horizont,passziv_vagy_egyszeru
+TERRA,Smaragdhátú Teknős,,,,enemy_entity,aegis; damage,passziv_vagy_egyszeru
+TERRA,Smaragd Pikkelyes Őr,,,,enemy_entity,move_zenit; sundering,passziv_vagy_egyszeru
+TERRA,Szeizmikus Lökés,,,,enemy_entity,exhaust; flow_related; swap,elso_koros_gepi_ertelmezes
+TERRA,Gyökerek Ébredése,,,,enemy_entity,draw; exhaust,passziv_vagy_egyszeru
+TERRA,Természetes Kiválasztódás,,on_destroyed,,enemy_entity,destroy; hp_mod,passziv_vagy_egyszeru
+TERRA,Rengés,,,,enemy_entity,damage; trap,passziv_vagy_egyszeru
+TERRA,Süllyedő Homok,,,,enemy_entity,attack_or_block_restrict; exhaust; move_horizont; trap,elso_koros_gepi_ertelmezes
+TERRA,Töviscsapda,,,,enemy_entity,damage,passziv_vagy_egyszeru
+TERRA,Az Ébredő Erdő,,,,enemy_entity,move_zenit,passziv_vagy_egyszeru
+TERRA,Titánok Temetője,,on_destroyed,,enemy_entity,destroy; exhaust; move_horizont,elso_koros_gepi_ertelmezes
+TERRA,Szunnyadó Vulkanikus Föld,,,,own_entity,atk_mod,passziv_vagy_egyszeru
+TERRA,Farkasvérű Nyomkereső,,on_summon,,,clarion,passziv_vagy_egyszeru
+TERRA,Szirti Sólyom,,,,own_entity,celerity; untargetable,passziv_vagy_egyszeru
+TERRA,Falkavezér Vadász,,,,enemy_entity,damage; harmonize; move_horizont,elso_koros_gepi_ertelmezes
+TERRA,Vadon Szeme Íjász,,on_summon,enemy_entity,,clarion; damage; exhaust,elso_koros_gepi_ertelmezes
+TERRA,Tüskés Vaddisznó,on_breach_phase,,,enemy_entity,move_zenit; sundering,elso_koros_gepi_ertelmezes
+TERRA,Páncélos Vadkan,,,,own_entity,aegis; atk_mod,passziv_vagy_egyszeru
+TERRA,Árnyékpárduc,,,,enemy_entity,move_horizont; untargetable,passziv_vagy_egyszeru
+TERRA,Koponyatörő Gorilla,,,,enemy_entity,move_zenit; sundering,passziv_vagy_egyszeru
+TERRA,Csontmaszkos Sámánvadász,,,,enemy_entity,move_horizont; resonance,passziv_vagy_egyszeru
+TERRA,Kardfogú Ragadozó,,,,enemy_entity,move_horizont; untargetable,passziv_vagy_egyszeru
+TERRA,Törzsi Fővadász,,,,enemy_entity,atk_mod; hp_mod; move_horizont; resonance,elso_koros_gepi_ertelmezes
+TERRA,Csúcsragadozó Mantikór,,on_summon,enemy_entity,,atk_mod; clarion; destroy,elso_koros_gepi_ertelmezes
+TERRA,Felderítő Bagoly,,on_summon,,,clarion; deck_manipulation,passziv_vagy_egyszeru
+TERRA,Csapdaállító,,on_summon,,,clarion; trap,passziv_vagy_egyszeru
+TERRA,Dühöngő Rozsomák,,,,enemy_entity,atk_mod; damage; sundering,elso_koros_gepi_ertelmezes
+TERRA,Csontpáncélos Krokodil,,,,own_entity,aegis,passziv_vagy_egyszeru
+TERRA,Alfa Hím,,,,own_entity,atk_mod; hp_mod; sundering,elso_koros_gepi_ertelmezes
+TERRA,Ösztönös Kitérés,,,,enemy_entity,exhaust; return_to_hand,passziv_vagy_egyszeru
+TERRA,A Falka Dühöngése,,,,own_entity,atk_mod; burst,passziv_vagy_egyszeru
+TERRA,Rejtett Verem,,on_destroyed,,enemy_entity,destroy; trap,passziv_vagy_egyszeru
+TERRA,Vadászok Lesben,on_enemy_summon,,,enemy_entity,move_horizont; trap,elso_koros_gepi_ertelmezes
+TERRA,Kifárasztás,,,,enemy_entity,damage; trap,passziv_vagy_egyszeru
+TERRA,Méregtövis,,on_summon,,enemy_entity,atk_mod; move_horizont; trap,elso_koros_gepi_ertelmezes
+TERRA,Véráztatta Vadászterület,,on_destroyed,enemy_entity,,atk_mod; destroy; move_horizont,elso_koros_gepi_ertelmezes
+TERRA,Rejtett Bestia-Odú,,,,enemy_entity,move_zenit; untargetable,passziv_vagy_egyszeru
+LUX,Hajnalpír Papnő,on_manifestation_phase,,,own_entity,draw; flow_related; harmonize; hp_mod,elso_koros_gepi_ertelmezes
+LUX,Naphívó Zászlós,,,,own_entity,draw; harmonize; hp_mod,elso_koros_gepi_ertelmezes
+LUX,Pajzshordozó Templomos,,,,enemy_entity,aegis; attack_or_block_restrict; draw; hp_mod; move_horizont,elso_koros_gepi_ertelmezes
+LUX,Ezüstpáncélos Védelmező,,,,own_entity,aegis; atk_mod; draw; hp_mod,elso_koros_gepi_ertelmezes
+LUX,Napkitörés Griff,,,,enemy_entity,celerity; move_zenit,passziv_vagy_egyszeru
+LUX,Templomi Kántáló,,on_summon,own_entity,,clarion; hp_mod; resonance,elso_koros_gepi_ertelmezes
+LUX,Igazságosztó Lovagkapitány,on_manifestation_phase,,,enemy_entity,aegis; atk_mod; move_horizont,elso_koros_gepi_ertelmezes
+LUX,Szent Láng Inkvizítor,,on_summon,enemy_entity,,clarion; damage; move_horizont,elso_koros_gepi_ertelmezes
+LUX,Gábriel a Fényhozó Arkangyal,,on_summon,own_entity,,aegis; clarion; hp_mod,elso_koros_gepi_ertelmezes
+LUX,Fénylő Fegyverhordozó,,,,own_entity,atk_mod,passziv_vagy_egyszeru
+LUX,Égi Lándzsás,,,,enemy_entity,aegis; attack_or_block_restrict; exhaust; sundering,elso_koros_gepi_ertelmezes
+LUX,Oltárvédő Gólem,,,,enemy_entity,aegis; exhaust,passziv_vagy_egyszeru
+LUX,Napfény Szamuráj,,,,own_entity,atk_mod; celerity; hp_mod,elso_koros_gepi_ertelmezes
+LUX,Fényhozó Hadvezér,,on_summon,,enemy_entity,hp_mod; move_horizont; resonance,elso_koros_gepi_ertelmezes
+LUX,Sugárzó Szeráf,,on_summon,own_entity,,clarion; heal,passziv_vagy_egyszeru
+LUX,Hajnalpír Sárkány,,on_destroyed,enemy_entity; own_entity,,aegis; destroy; move_horizont,elso_koros_gepi_ertelmezes
+LUX,Mennyei Tisztítótűz,,on_destroyed,enemy_entity,,damage; destroy; move_horizont,elso_koros_gepi_ertelmezes
+LUX,Fénykard Csapás,,on_destroyed,enemy_entity; own_entity,,burst; damage; destroy; hp_mod,elso_koros_gepi_ertelmezes
+LUX,Vakító Seregek,,,,own_entity,aegis; atk_mod,passziv_vagy_egyszeru
+LUX,Szent Ítélet,,on_destroyed,enemy_entity,,damage; destroy; exhaust,elso_koros_gepi_ertelmezes
+LUX,Pajzsfal,,,,own_entity,aegis; trap,passziv_vagy_egyszeru
+LUX,Égi Erősítés,,on_destroyed,own_entity,,aegis; destroy; move_horizont; move_zenit; trap,elso_koros_gepi_ertelmezes
+LUX,Vakító Visszavágás,on_attack_declared; on_awakening_phase,,,enemy_entity,aegis; damage; trap,elso_koros_gepi_ertelmezes
+LUX,A Fény Citadellája,,,,enemy_entity,aegis; atk_mod; hp_mod; move_horizont,elso_koros_gepi_ertelmezes
+LUX,Aranykapu,,on_summon,,own_entity,hp_mod,passziv_vagy_egyszeru
+LUX,A Nap Trónterme,,,,enemy_entity,move_horizont,passziv_vagy_egyszeru
+LUX,Kegyhely-őrző Szerzetes,,on_destroyed,own_entity,,echo; hp_mod,passziv_vagy_egyszeru
+LUX,Szent Szózat Kántálója,,,,enemy_entity,move_zenit; resonance,passziv_vagy_egyszeru
+LUX,Lélekidéző Főpapnő,,,,enemy_entity,damage; harmonize; move_horizont; move_zenit,elso_koros_gepi_ertelmezes
+LUX,Szent Sírbolt Őrzője,,,,own_entity,aegis,passziv_vagy_egyszeru
+LUX,Aeterna Prófétája,,on_destroyed,seals,,destroy; echo,passziv_vagy_egyszeru
+LUX,Seraphiel az Élet Fénye,,on_summon,own_entity; seals,,clarion; destroy; hp_mod,elso_koros_gepi_ertelmezes
+LUX,Temetői Koldus,,on_destroyed,,,echo,passziv_vagy_egyszeru
+LUX,Hitbuzgó Zarándok,,,,own_entity,atk_mod,passziv_vagy_egyszeru
+LUX,Lélek-Lámpás,on_breach_phase,,,own_entity,aegis,elso_koros_gepi_ertelmezes
+LUX,Aeterna Diakónusa,,on_destroyed,,enemy_entity,destroy; harmonize,passziv_vagy_egyszeru
+LUX,Üresség-Kutató,,on_summon,spell_in_deck,,clarion; search_deck,passziv_vagy_egyszeru
+LUX,Sírkő-Gólem,,,,own_entity,aegis; heal; hp_mod,elso_koros_gepi_ertelmezes
+LUX,Angyali Hírnök,,on_summon,,,clarion; ethereal,passziv_vagy_egyszeru
+LUX,Feltámasztott Bajnok,,on_summon,,own_entity,aegis; atk_mod; sundering,elso_koros_gepi_ertelmezes
+LUX,Aeterna Oltárvédő Sárkánya,,on_destroyed,seals,,celerity; destroy,passziv_vagy_egyszeru
+LUX,Fényhozó Láng,,on_destroyed,enemy_entity; seals,,damage; destroy; heal,elso_koros_gepi_ertelmezes
+LUX,Visszahívó Rúna,,on_summon,own_entity,,damage; move_zenit; trap,elso_koros_gepi_ertelmezes
+LUX,Aeterna Haragja,,on_summon,seals,,move_horizont; trap,passziv_vagy_egyszeru
+LUX,Mártírok Védelme,,on_destroyed,own_entity,,aegis; destroy; move_horizont; move_zenit; trap,elso_koros_gepi_ertelmezes
+LUX,Az Örök Élet Temploma,,on_awakening_phase,all_own_entities; own_entity,,hp_mod,passziv_vagy_egyszeru
+UMBRA,Városi Patkányraj,,on_destroyed,,enemy_entity,destroy; echo,passziv_vagy_egyszeru
+UMBRA,Árnyba Burkolt Kém,,,,own_entity,atk_mod; untargetable,passziv_vagy_egyszeru
+UMBRA,Éjszemű Varjú,,,,own_entity,harmonize; untargetable,passziv_vagy_egyszeru
+UMBRA,Az Árnyékok Szeme,,,,enemy_entity,move_zenit; resonance; trap,elso_koros_gepi_ertelmezes
+UMBRA,Szindikátusi Zsaroló,,on_summon,,,clarion; draw,passziv_vagy_egyszeru
+UMBRA,Néma Bérgyilkos,,,,enemy_entity,move_horizont; untargetable,passziv_vagy_egyszeru
+UMBRA,Arctalan Végrehajtó,on_summon,,,enemy_entity,celerity; clarion; move_zenit,elso_koros_gepi_ertelmezes
+UMBRA,Szindikátus Keresztapa,,on_summon,,enemy_entity,clarion; destroy; move_zenit,elso_koros_gepi_ertelmezes
+UMBRA,Noctis az Árnyak Ura,,on_summon,,enemy_entity,bane; clarion; move_zenit; search_deck; untargetable,elso_koros_gepi_ertelmezes
+UMBRA,Sikátori Zsebtolvaj,,on_summon,,,clarion,passziv_vagy_egyszeru
+UMBRA,Alvilági Csempész,,,,own_entity,atk_mod,passziv_vagy_egyszeru
+UMBRA,Hamiskártyás,,on_destroyed,,enemy_entity,destroy; draw; echo,elso_koros_gepi_ertelmezes
+UMBRA,Bérgyilkos Mester,,,,own_entity,untargetable,passziv_vagy_egyszeru
+UMBRA,Szindikátusi Testőr,,,,own_entity,aegis,passziv_vagy_egyszeru
+UMBRA,Bársonyköpenyes Szélhámos,,on_summon,,,clarion,passziv_vagy_egyszeru
+UMBRA,Árnyék-Gólem,,,,enemy_entity,aegis; atk_mod; move_zenit,elso_koros_gepi_ertelmezes
+UMBRA,Az Éjszaka Királynője,,on_summon,,,resonance,passziv_vagy_egyszeru
+UMBRA,Árnyék-Ugrás,,on_summon,own_entity,,,passziv_vagy_egyszeru
+UMBRA,Alvilági Kapcsolatok,,,,enemy_entity,move_zenit; search_deck,passziv_vagy_egyszeru
+UMBRA,Titkos Találkozó,,,,enemy_entity,move_zenit,passziv_vagy_egyszeru
+UMBRA,Tömeges Zsarolás,,,,enemy_entity,atk_mod; move_horizont; sacrifice,elso_koros_gepi_ertelmezes
+UMBRA,Bérgyilkos-szerződés,,on_destroyed,enemy_entity,,destroy; move_horizont,passziv_vagy_egyszeru
+UMBRA,Mérgezett Tőrök,on_enemy_summon,,,enemy_entity,damage; move_horizont; trap,elso_koros_gepi_ertelmezes
+UMBRA,Kettős Ügynök,,on_summon,own_entity,,clarion; trap,passziv_vagy_egyszeru
+UMBRA,A Tolvajok Céhe,,on_summon,,,,passziv_vagy_egyszeru
+UMBRA,Üresség-szülte Koldus,,on_destroyed,,enemy_entity,destroy; draw; echo,elso_koros_gepi_ertelmezes
+UMBRA,Kriptapatkány,,on_destroyed,,enemy_entity,damage; destroy; echo,elso_koros_gepi_ertelmezes
+UMBRA,Nyughatatlan Kísértet,on_awakening_phase,,,enemy_entity,destroy; echo; ethereal; revive,elso_koros_gepi_ertelmezes
+UMBRA,Feltámadt Csonttörő,on_awakening_phase; on_destroyed,,,enemy_entity,celerity; destroy; echo; exhaust; move_zenit; revive,elso_koros_gepi_ertelmezes
+UMBRA,Kárhozott Lovag,,on_summon,,enemy_entity,celerity; destroy,passziv_vagy_egyszeru
+UMBRA,Sírkerti Gólem,,on_destroyed,own_entity,,atk_mod; destroy; sacrifice,elso_koros_gepi_ertelmezes
+UMBRA,Vérszomjas Vámpírúr,,on_destroyed,own_entity,,atk_mod; destroy; hp_mod; sundering,elso_koros_gepi_ertelmezes
+UMBRA,Temetői Sírásó,,on_summon,,own_entity,clarion; hp_mod,passziv_vagy_egyszeru
+UMBRA,Kripta-Pók,,on_destroyed,enemy_entity,,atk_mod; bane; destroy; echo,elso_koros_gepi_ertelmezes
+UMBRA,Átkozott Kultista,,on_destroyed,,enemy_entity,destroy; harmonize,passziv_vagy_egyszeru
+UMBRA,Lelkek Pásztora,on_manifestation_phase,,,enemy_entity,exhaust,elso_koros_gepi_ertelmezes
+UMBRA,Ősi Vámpír,,,,own_entity,atk_mod; bane,passziv_vagy_egyszeru
+UMBRA,Csontsárkány,on_awakening_phase; on_destroyed,,,enemy_entity,destroy; echo; hp_mod; move_horizont,elso_koros_gepi_ertelmezes
+UMBRA,Azaroth a Kaszás,,on_summon,,,clarion; sundering,passziv_vagy_egyszeru
+UMBRA,Erőszakos Végzet,,on_destroyed,own_entity,,destroy; move_horizont,passziv_vagy_egyszeru
+UMBRA,Kínzó Visszhang,,on_destroyed,enemy_entity; own_entity,,damage; destroy; sacrifice,elso_koros_gepi_ertelmezes
+UMBRA,Sötét Alku,,,,enemy_entity,draw; exhaust,passziv_vagy_egyszeru
+UMBRA,Haláltusa,,on_destroyed,own_entity,,damage; destroy; draw; move_horizont,elso_koros_gepi_ertelmezes
+UMBRA,Feltámadás az Árnyakból,,,,enemy_entity,exhaust,passziv_vagy_egyszeru
+UMBRA,A Halál Várakozása,,on_destroyed,attacking_entity; enemy_entity; own_entity,,damage; destroy; move_horizont; trap,elso_koros_gepi_ertelmezes
+UMBRA,Sírkő-Csapda,,on_summon,,enemy_entity,exhaust; move_horizont; trap,elso_koros_gepi_ertelmezes
+UMBRA,Halálos Ölelés,,on_destroyed,attacking_entity; enemy_entity; own_entity,,damage; destroy; trap,elso_koros_gepi_ertelmezes
+UMBRA,A Végtelen Temető,,,,own_entity,hp_mod,passziv_vagy_egyszeru
+VENTUS,Ciklonlovas Cserkész,,,,enemy_entity,celerity; draw; exhaust,elso_koros_gepi_ertelmezes
+VENTUS,Villámlépésű Kardforgató,,,,enemy_entity,atk_mod; exhaust,passziv_vagy_egyszeru
+VENTUS,Szelekszárnyú Íjász,,,,enemy_entity,flow_related; harmonize; move_horizont,elso_koros_gepi_ertelmezes
+VENTUS,Ciklon-Idéző Sámán,,,,enemy_entity,exhaust; harmonize; move_horizont; move_zenit,elso_koros_gepi_ertelmezes
+VENTUS,Zephyros a Vihar Ura,on_summon,,,enemy_entity,celerity; clarion; exhaust,elso_koros_gepi_ertelmezes
+VENTUS,Viharfutó Újonc,,on_summon,,own_entity,atk_mod; clarion,passziv_vagy_egyszeru
+VENTUS,Villámvágta Huszár,,,,enemy_entity,aegis; exhaust,passziv_vagy_egyszeru
+VENTUS,Széllökések Mestere,,,,enemy_entity,move_zenit; resonance,passziv_vagy_egyszeru
+VENTUS,Förgeteg-Hozó Sámán,,on_summon,enemy_entity,,clarion; move_horizont; move_zenit,elso_koros_gepi_ertelmezes
+VENTUS,Viharmadár Idéző,,,,enemy_entity,move_horizont,passziv_vagy_egyszeru
+VENTUS,Vihar-Pajzsos Őrző,,,,own_entity,aegis,passziv_vagy_egyszeru
+VENTUS,Égi Szikra,,on_summon,own_entity,,clarion; draw; move_horizont,elso_koros_gepi_ertelmezes
+VENTUS,Villámcsapás-Mágus,on_manifestation_phase,,,enemy_entity,damage; resonance,elso_koros_gepi_ertelmezes
+VENTUS,Villámcsapás,,on_destroyed,enemy_entity; own_exhausted_entity,,damage; destroy; exhaust,elso_koros_gepi_ertelmezes
+VENTUS,Viharos Düh,,,,enemy_entity,atk_mod; move_horizont; sundering,elso_koros_gepi_ertelmezes
+VENTUS,A Vihar Szeme,,,,enemy_entity,atk_mod; exhaust,passziv_vagy_egyszeru
+VENTUS,Villám Háló,,,,enemy_entity,exhaust,passziv_vagy_egyszeru
+VENTUS,Égi Visszhang,,on_summon,,,clarion,passziv_vagy_egyszeru
+VENTUS,Kiszámíthatatlan Légáramlat,on_enemy_spell_played,,,enemy_entity,draw; exhaust; trap,elso_koros_gepi_ertelmezes
+VENTUS,Viharos Ellencsapás,,on_summon,own_exhausted_entity,,atk_mod; exhaust; trap,elso_koros_gepi_ertelmezes
+VENTUS,Viharos Visszavágó,,,,enemy_entity,damage; move_horizont; trap,elso_koros_gepi_ertelmezes
+VENTUS,A Végtelen Viharok Fennsíkja,,on_summon,,,,passziv_vagy_egyszeru
+VENTUS,Felleghasító Fióka,,on_destroyed,,enemy_entity,destroy; echo; ethereal,elso_koros_gepi_ertelmezes
+VENTUS,Felhőtáncos Szirén,,,,own_entity,hp_mod; resonance,passziv_vagy_egyszeru
+VENTUS,Légáramlat-Mágus,,on_summon,enemy_entity,,clarion; move_horizont,passziv_vagy_egyszeru
+VENTUS,Zephyr az Égi Dzsinn,,,,own_entity,atk_mod; ethereal,passziv_vagy_egyszeru
+VENTUS,Felhő-Kóborló,,on_destroyed,,,echo; ethereal,passziv_vagy_egyszeru
+VENTUS,Fellegek Papnője,,on_summon,,,resonance,passziv_vagy_egyszeru
+VENTUS,Délibáb Szövő,,on_summon,,own_entity,clarion; untargetable,passziv_vagy_egyszeru
+VENTUS,Égi Csempész,,on_summon,,,clarion; draw,passziv_vagy_egyszeru
+VENTUS,Szárnyas Oroszlán,,,,enemy_entity,damage; ethereal; move_horizont,elso_koros_gepi_ertelmezes
+VENTUS,Viharos Lovag,,,,own_entity,aegis; ethereal,passziv_vagy_egyszeru
+VENTUS,Végtelen Ég Sárkánya,,on_summon,,,clarion; ethereal; sundering,elso_koros_gepi_ertelmezes
+VENTUS,Viharfellegek Ura,,on_summon,,,clarion; ethereal,passziv_vagy_egyszeru
+VENTUS,Égi Emelés,,on_summon,own_entity,,,passziv_vagy_egyszeru
+VENTUS,Szélvihar Erejével,,,,enemy_entity,damage; ethereal,passziv_vagy_egyszeru
+VENTUS,Viharos Eltűnés,,on_summon,enemy_entity,,,passziv_vagy_egyszeru
+VENTUS,Ciklon Söprés,,,,enemy_entity,flow_related; move_horizont; move_zenit,elso_koros_gepi_ertelmezes
+VENTUS,Köd Fal,,,,enemy_entity,damage; ethereal; trap,elso_koros_gepi_ertelmezes
+VENTUS,A Lebegő Szigetek,,,,own_entity,atk_mod; ethereal,passziv_vagy_egyszeru
+VENTUS,Az Égi Citadella,,,,enemy_entity,ethereal; move_horizont,passziv_vagy_egyszeru
+AETHER,Adaptív Felderítő Drón,on_summon,,,own_entity,aegis; atk_mod; clarion; hp_mod,elso_koros_gepi_ertelmezes
+AETHER,Lopakodó Felcser-Drón,on_manifestation_phase,,,own_entity,flow_related; hp_mod; untargetable,elso_koros_gepi_ertelmezes
+AETHER,Bronzfal Gólem,,,,own_entity,aegis; draw,passziv_vagy_egyszeru
+AETHER,Aether-Generátor,,,,enemy_entity,damage; flow_related; resonance,elso_koros_gepi_ertelmezes
+AETHER,Páncélozott Juggernaut,,,,own_entity,aegis; draw,passziv_vagy_egyszeru
+AETHER,Titánpáncélos Gólem,,,,own_entity,aegis; hp_mod,passziv_vagy_egyszeru
+AETHER,Újrahasznosító Egység,on_destroyed,,,enemy_entity,destroy; echo,elso_koros_gepi_ertelmezes
+AETHER,Omega Fogaskerék-Kolosszus,,,,enemy_entity,aegis; damage,passziv_vagy_egyszeru
+AETHER,Goliath a Sétaerőd,,,,enemy_entity,aegis; damage; sundering,elso_koros_gepi_ertelmezes
+AETHER,Fogaskerék-Szerelő,,on_summon,,own_entity,clarion; heal,passziv_vagy_egyszeru
+AETHER,Fémkereső Robotkutya,,on_summon,,,clarion; draw,passziv_vagy_egyszeru
+AETHER,Olajozó Drón,,,,own_entity,harmonize; heal,passziv_vagy_egyszeru
+AETHER,Automata Őrszem,,,,own_entity,aegis,passziv_vagy_egyszeru
+AETHER,Páncélkovács Mester,on_manifestation_phase,,,own_entity,hp_mod; resonance,elso_koros_gepi_ertelmezes
+AETHER,Gyár-Felügyelő,,on_summon,,,clarion,passziv_vagy_egyszeru
+AETHER,Réz Gólem,on_enemy_spell_played,,,own_entity,aegis; atk_mod,elso_koros_gepi_ertelmezes
+AETHER,Kibernetikus Hadvezér,,,,enemy_entity,atk_mod; move_horizont; move_zenit; resonance,elso_koros_gepi_ertelmezes
+AETHER,Vaskastély Őre,,,,own_entity,aegis,passziv_vagy_egyszeru
+AETHER,Mechanikus Wyrm,,,,enemy_entity,damage,passziv_vagy_egyszeru
+AETHER,Az Első Alkotás,,on_summon,,enemy_entity,aegis; clarion; destroy; exhaust,elso_koros_gepi_ertelmezes
+AETHER,Túlvezérelt Védőmező,,,,enemy_entity,burst; hp_mod; move_horizont,elso_koros_gepi_ertelmezes
+AETHER,Tartalék Alkatrész,,,,own_entity,aegis; flow_related,passziv_vagy_egyszeru
+AETHER,Rendszer-Kalibrálás,,,,own_entity,atk_mod; burst; hp_mod,elso_koros_gepi_ertelmezes
+AETHER,Rendszer-Újraindítás,,,,enemy_entity,exhaust; move_horizont,passziv_vagy_egyszeru
+AETHER,Fogaskerék-Olajozás,,,,own_entity,draw; hp_mod,passziv_vagy_egyszeru
+AETHER,Túlterhelés,,on_destroyed,own_entity,,atk_mod; celerity; destroy; move_horizont,elso_koros_gepi_ertelmezes
+AETHER,Gőznyomásos Kilövés,,on_destroyed,enemy_entity; seals,,damage; destroy; move_horizont,elso_koros_gepi_ertelmezes
+AETHER,Gépiesítés,,,,own_entity,atk_mod; hp_mod,passziv_vagy_egyszeru
+AETHER,Alkatrész-Gyűjtés,,on_destroyed,,enemy_entity,destroy; draw,passziv_vagy_egyszeru
+AETHER,Teljes Megsemmisítés,,on_destroyed,,enemy_entity,destroy; draw; move_horizont,elso_koros_gepi_ertelmezes
+AETHER,Rövidzárlat,,,,enemy_entity,damage; exhaust; trap,elso_koros_gepi_ertelmezes
+AETHER,Túlhevült Kazán,,on_destroyed,,enemy_entity,damage; destroy; move_horizont; trap,elso_koros_gepi_ertelmezes
+AETHER,Önmegsemmisítő Protokoll,,on_destroyed,attacking_entity; enemy_entity; own_entity,,atk_mod; damage; destroy; move_horizont; trap,elso_koros_gepi_ertelmezes
+AETHER,A Fogaskerekek Városa,on_manifestation_phase,,,own_entity,hp_mod; sacrifice,elso_koros_gepi_ertelmezes
+AETHER,A Tömegtermelés Gyára,,on_summon,,,,passziv_vagy_egyszeru
+AETHER,A Hulladéktelep,,on_summon,,,,passziv_vagy_egyszeru
+AETHER,Kincskereső Kalandor,,on_summon,,,draw; resonance,passziv_vagy_egyszeru
+AETHER,Árnyékos Sikátor Csempésze,,,,own_entity,untargetable,passziv_vagy_egyszeru
+AETHER,Szerencsevadász Kalandor,on_destroyed,,,enemy_entity,destroy; echo,elso_koros_gepi_ertelmezes
+AETHER,Bérenc Testőr,,,,own_entity,aegis,passziv_vagy_egyszeru
+AETHER,Karaván Őrparancsnok,,,,enemy_entity,damage,passziv_vagy_egyszeru
+AETHER,Sivatagi Karavánvezér,on_destroyed,,,enemy_entity,destroy; echo,elso_koros_gepi_ertelmezes
+AETHER,Zsoldoskirály,,on_summon,,,celerity; clarion; search_deck,elso_koros_gepi_ertelmezes
+AETHER,Piaci Koldus,,on_summon,,,clarion; draw,passziv_vagy_egyszeru
+AETHER,Hátbaszúró,,,,enemy_entity,atk_mod; bane; move_horizont,elso_koros_gepi_ertelmezes
+AETHER,Talizmán-Árus,,,,own_entity,aegis; draw; resonance,elso_koros_gepi_ertelmezes
+AETHER,Testőrkutya,,,,own_entity,aegis,passziv_vagy_egyszeru
+AETHER,Csempész-Hajós,on_destroyed,,,enemy_entity,destroy; draw; echo,elso_koros_gepi_ertelmezes
+AETHER,Homokféreg,,,,enemy_entity,move_horizont; sundering; untargetable,elso_koros_gepi_ertelmezes
+AETHER,A Sivatag Ura,,on_summon,,enemy_entity,clarion; destroy; move_zenit; sundering,elso_koros_gepi_ertelmezes
+AETHER,Gyors Szerződés,,,,own_entity,atk_mod; burst,passziv_vagy_egyszeru
+AETHER,Zsoldosok Toborzása,,,,enemy_entity,exhaust,passziv_vagy_egyszeru
+AETHER,Kígyóverem,,,,enemy_entity,bane; damage; move_horizont; trap,elso_koros_gepi_ertelmezes
+AETHER,Kereskedelmi Embargó,,on_summon,,,trap,passziv_vagy_egyszeru

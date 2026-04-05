@@ -5,7 +5,13 @@ from dataclasses import dataclass, field
 EVENT_NAMES = (
     "on_play",
     "on_summon",
+    "on_enemy_summon",
+    "on_enemy_spell_played",
     "on_attack_declared",
+    "on_combat_phase_start",
+    "on_combat_damage_dealt",
+    "on_first_combat_survived",
+    "on_breach_phase",
     "on_spell_targeted",
     "on_damage_taken",
     "on_destroyed",

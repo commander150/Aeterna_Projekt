@@ -77,6 +77,7 @@ class Jatekos:
                 self.horizont[i].cannot_block_until_turn_end = False
                 self.horizont[i].protect_keywords_until_turn_end = False
                 self.horizont[i].protect_atk_from_enemy_until_turn_end = False
+                self.horizont[i]._first_combat_survived_emitted = False
             if is_zenit_entity(self.zenit[i]):
                 if getattr(self.zenit[i], "extra_exhausted_turns", 0) > 0:
                     self.zenit[i].extra_exhausted_turns -= 1
@@ -87,6 +88,7 @@ class Jatekos:
                 self.zenit[i].cannot_block_until_turn_end = False
                 self.zenit[i].protect_keywords_until_turn_end = False
                 self.zenit[i].protect_atk_from_enemy_until_turn_end = False
+                self.zenit[i]._first_combat_survived_emitted = False
 
         self.hasznalt_jelek_ebben_a_korben = 0
         self.rezonancia_aura = 0

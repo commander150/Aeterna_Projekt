@@ -83,6 +83,31 @@ class KeywordEngine:
 
     @staticmethod
     def on_damage_dealt(attacker, defender):
+        owner = getattr(attacker, "owner", None)
+        target_owner = getattr(defender, "owner", None) if defender is not None else None
+        trigger_engine.dispatch(
+            "on_combat_damage_dealt",
+            source=attacker,
+            owner=owner,
+            target=target_owner,
+            payload={"attacker": attacker, "defender": defender},
+        )
+
+        if (
+            owner is not None
+            and attacker is not None
+            and getattr(attacker, "akt_hp", 0) > 0
+            and not getattr(attacker, "_first_combat_survived_emitted", False)
+        ):
+            attacker._first_combat_survived_emitted = True
+            trigger_engine.dispatch(
+                "on_first_combat_survived",
+                source=attacker,
+                owner=owner,
+                target=target_owner,
+                payload={"attacker": attacker, "defender": defender},
+            )
+
         if KeywordEngine._has_keyword(attacker, "sundering"):
             naplo.ir("Hasitas aktivalodik")
         if KeywordEngine._has_keyword(attacker, "bane") and defender is not None:

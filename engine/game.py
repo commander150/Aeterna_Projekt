@@ -81,6 +81,13 @@ class AeternaSzimulacio:
                             payload={"zone": zona_nev},
                         )
                         ellenfel = self.p2 if jatekos == self.p1 else self.p1
+                        trigger_engine.dispatch(
+                            "on_enemy_summon",
+                            source=egyseg,
+                            owner=ellenfel,
+                            target=jatekos,
+                            payload={"zone": zona_nev, "summoner": jatekos},
+                        )
                         self._resolve_summon_traps(egyseg, jatekos, ellenfel)
                         if getattr(jatekos, zona_nev)[i] is None:
                             break
@@ -153,6 +160,14 @@ class AeternaSzimulacio:
 
     def _alkalmaz_kartya_hatast(self, lap, jatekos, ellenfel):
         trigger_engine.dispatch("on_play", source=lap, owner=jatekos, target=ellenfel)
+        if not lap.egyseg_e:
+            trigger_engine.dispatch(
+                "on_enemy_spell_played",
+                source=lap,
+                owner=ellenfel,
+                target=jatekos,
+                payload={"caster": jatekos},
+            )
         EffectEngine.trigger_on_play(lap, jatekos, ellenfel)
         return self._ellenoriz_gyoztest()
 
@@ -273,6 +288,7 @@ class AeternaSzimulacio:
     def harc_fazis(self, tamado, vedo):
         burst_aktivalt_ebben_a_harcban = False
         tamadas_tortent = False
+        trigger_engine.dispatch("on_combat_phase_start", owner=tamado, target=vedo, payload={"turn": self.kor})
 
         for i in range(6):
             egyseg = tamado.horizont[i]
@@ -467,6 +483,13 @@ class AeternaSzimulacio:
                         if direct_trap_stopped:
                             continue
 
+                    trigger_engine.dispatch(
+                        "on_breach_phase",
+                        source=egyseg,
+                        owner=tamado,
+                        target=vedo,
+                        payload={"lane_index": i},
+                    )
                     pecset_tort, burst_aktivalt_ebben_a_harcban = self._feltor_pecset(
                         vedo, burst_aktivalt_ebben_a_harcban
                     )
