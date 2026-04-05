@@ -833,6 +833,39 @@ def handle_fa_oleles(card, owner, unit, attacker=None, zone_name=None, index=Non
     )
 
 
+def handle_eletmento_burok(card, owner, unit, attacker=None, zone_name=None, index=None, **_):
+    if owner is None or unit is None or index is None or zone_name not in {"horizont", "zenit"}:
+        return {"resolved": False}
+
+    unit.akt_hp = 1
+    moved = False
+    if 0 <= index < len(owner.zenit) and owner.zenit[index] is None:
+        if zone_name == "horizont":
+            set_zone_slot(owner, "zenit", index, unit, "eletmento_burok")
+            set_zone_slot(owner, "horizont", index, None, "eletmento_burok")
+            trigger_engine.dispatch("on_position_changed", source=unit.lap, owner=owner, payload={"from": "horizont", "to": "zenit"})
+            moved = True
+        elif zone_name == "zenit":
+            moved = False
+    unit.kimerult = True
+
+    if moved:
+        return _handled(
+            f"Eletmento Burok: {unit.lap.nev} tulelte a vegzetes sebzest 1 HP-n, es azonnal a Zenitbe huzodott vissza.",
+            consume_trap=True,
+            prevented_death=True,
+            stop_attack=True,
+        )
+
+    return _handled(
+        f"Eletmento Burok: {unit.lap.nev} tulelte a vegzetes sebzest 1 HP-n, de nem volt ures Zenit mezo a visszahuzodashoz.",
+        consume_trap=True,
+        prevented_death=True,
+        stop_attack=True,
+        partial=True,
+    )
+
+
 def resolve_spell_redirect_trap(spell_card, caster, target_owner, current_target=None):
     trap = _consume_named_trap(target_owner, "Hamis Bizonyitek")
     if trap is not None:
@@ -866,6 +899,7 @@ def resolve_combat_lethal_trap(owner, unit, attacker, zone_name, index):
     for trap_name, handler in (
         ("Angyali Beavatkozas", handle_angyali_beavatkozas),
         ("Hamis Halal", handle_hamis_halal),
+        ("Eletmento Burok", handle_eletmento_burok),
         ("Fa-oleles", handle_fa_oleles),
     ):
         trap = _consume_named_trap(owner, trap_name)

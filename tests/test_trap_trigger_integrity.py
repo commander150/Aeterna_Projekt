@@ -77,6 +77,44 @@ class TestTrapTriggerIntegrity(unittest.TestCase):
         self.assertIs(owner.zenit[0], unit)
         self.assertEqual(unit.akt_hp, 1)
 
+    def test_eletmento_burok_does_not_activate_as_generic_combat_trap(self):
+        trap = make_card("Eletmento Burok", card_type="Jel")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=4))
+        attacker_owner = make_player("Attacker")
+        defender = make_player("Defender")
+
+        self.assertFalse(
+            can_activate_trap(
+                trap,
+                tamado_egyseg=attacker,
+                tamado=attacker_owner,
+                vedo=defender,
+            )
+        )
+
+    def test_eletmento_burok_lethal_trap_moves_unit_to_zenit_and_prevents_death(self):
+        owner = make_player("Owner")
+        attacker = CsataEgyseg(make_card("Tamado", atk=4, hp=4))
+        unit = CsataEgyseg(make_card("Vedett", atk=2, hp=2))
+        owner.horizont[0] = unit
+        owner.zenit[0] = make_card("Eletmento Burok", card_type="Jel")
+
+        result = resolve_lethal_trap(
+            owner=owner,
+            unit=unit,
+            attacker=attacker,
+            zone_name="horizont",
+            index=0,
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["prevented_death"])
+        self.assertTrue(result["stop_attack"])
+        self.assertIsNone(owner.horizont[0])
+        self.assertIs(owner.zenit[0], unit)
+        self.assertEqual(unit.akt_hp, 1)
+        self.assertTrue(unit.kimerult)
+
 
 if __name__ == "__main__":
     unittest.main()
