@@ -169,6 +169,27 @@ class TestStructuredEffects(unittest.TestCase):
         self.assertIs(enemy.zenit[0], target)
         self.assertTrue(enemy.zenit[0].kimerult)
 
+    def test_structured_damage_prefers_zone_from_recognized_zone_metadata(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Zenit Csapas",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Okozz 2 sebzest egy ellenseges Zenit Entitasnak.",
+                "hatascimkek": "Sebzes",
+                "zona_felismerve": "zenit",
+            }
+        )
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy.horizont[0] = CsataEgyseg(Kartya({"kartya_nev": "Front", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 5}))
+        enemy.zenit[0] = CsataEgyseg(Kartya({"kartya_nev": "Back", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2}))
+
+        result = resolve_structured_effect(card, owner, enemy, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertIsNotNone(enemy.horizont[0])
+        self.assertIsNone(enemy.zenit[0])
+
 
 if __name__ == "__main__":
     unittest.main()

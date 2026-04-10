@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from engine.actions import ActionLibrary
 from engine.board_utils import _is_board_entity, is_zenit_entity
-from engine.card_metadata import has_effect_tag, has_keyword, has_target, has_trigger
+from engine.card_metadata import has_effect_tag, has_keyword, has_target, has_trigger, has_zone, has_duration
 from engine.triggers import trigger_engine
 from utils.logger import naplo
 from utils.text import normalize_lookup_text
@@ -21,6 +21,7 @@ TAG_ALIASES = {
     "draw": "draw",
     "sebzes": "damage",
     "damage": "damage",
+    "deal_damage": "damage",
     "megsemmisites": "destroy",
     "destroy": "destroy",
     "kimerites": "exhaust",
@@ -29,22 +30,32 @@ TAG_ALIASES = {
     "reactivate": "reactivate",
     "atk_buff": "atk_buff",
     "atk_mod": "atk_buff",
+    "grant_attack": "atk_buff",
+    "grant_temp_attack": "atk_buff",
     "hp_buff": "hp_buff",
     "hp_mod": "hp_buff",
+    "grant_hp": "hp_buff",
+    "grant_max_hp": "hp_buff",
     "gyogyitas": "heal",
     "heal": "heal",
     "poziciocsere": "swap_position",
     "swap": "swap_position",
     "mozgatas_zenitbe": "move_to_zenit",
     "move_zenit": "move_to_zenit",
+    "move_to_zenit": "move_to_zenit",
     "mozgatas_horizontra": "move_to_horizon",
     "move_horizont": "move_to_horizon",
+    "move_to_horizon": "move_to_horizon",
     "tamadassemlegesites": "cancel_attack",
     "sebzessemlegesites": "cancel_damage",
+    "damage_prevention": "cancel_damage",
     "felallastiltas": "no_ready",
     "paklitetejere": "put_on_deck_top",
     "visszavetelkezbe": "return_to_hand",
+    "return_to_hand": "return_to_hand",
     "attack_or_block_restrict": "cannot_attack",
+    "attack_restrict": "cannot_attack",
+    "block_restrict": "cannot_attack",
     "search_deck": "draw",
     "sacrifice": "destroy",
     "revive": "move_to_horizon",
@@ -270,7 +281,9 @@ def _resolve_damage(card, source_player, target_player, context):
     if _find_matching_tag(card, "seal_damage") or has_target(card, "pecset") or has_target(card, "jatekos") or has_target(card, "wards"):
         return EffectEngine._deal_direct_seal_damage(card.nev, amount, source_player, target_player, "Structured")
 
-    prefer_zone = "horizont" if has_target(card, "horizont") else None
+    prefer_zone = "horizont" if has_target(card, "horizont") or has_zone(card, "horizont") else None
+    if has_target(card, "zenit") or has_zone(card, "zenit"):
+        prefer_zone = "zenit"
     cel = EffectEngine._select_enemy_target(target_player, text, prefer_zone)
     if cel is None:
         naplo.ir(f"Structured effect: {card.nev} -> nincs ervenyes sebzes-celpont.")
@@ -294,7 +307,10 @@ def _resolve_destroy(card, source_player, target_player, context):
 def _resolve_exhaust(card, source_player, target_player, context):
     if not _find_matching_tag(card, "exhaust"):
         return False
-    units = _enemy_units(target_player, "horizont")
+    prefer_zone = "horizont" if has_zone(card, "horizont") or has_target(card, "enemy_horizont_entity") else "horizont"
+    if has_zone(card, "zenit") or has_target(card, "enemy_zenit_entity"):
+        prefer_zone = "zenit"
+    units = _enemy_units(target_player, prefer_zone)
     cel = _pick_unit(units)
     if cel is None:
         naplo.ir(f"Structured effect: {card.nev} -> nincs kimeritheto celpont.")
@@ -326,7 +342,10 @@ def _resolve_buff(card, source_player, context):
     if _find_matching_tag(card, "atk_buff"):
         amount = max(1, _extract_number(text, 1))
         unit.akt_tamadas += amount
-        unit.temp_atk_bonus_until_turn_end = getattr(unit, "temp_atk_bonus_until_turn_end", 0) + amount
+        if has_duration(card, "until_end_of_combat"):
+            unit.temp_atk_bonus_until_combat_end = getattr(unit, "temp_atk_bonus_until_combat_end", 0) + amount
+        else:
+            unit.temp_atk_bonus_until_turn_end = getattr(unit, "temp_atk_bonus_until_turn_end", 0) + amount
         naplo.ir(f"Structured effect: {card.nev} -> {unit.lap.nev} +{amount} ATK.")
         did = True
     if _find_matching_tag(card, "hp_buff"):
@@ -393,7 +412,8 @@ def _resolve_move_to_zenit(card, source_player, target_player, context):
         return False
     from engine.effects import EffectEngine
 
-    cel = EffectEngine._select_enemy_target(target_player, "horizont", "horizont")
+    prefer_zone = "horizont" if has_zone(card, "horizont") or not has_zone(card, "zenit") else "zenit"
+    cel = EffectEngine._select_enemy_target(target_player, prefer_zone, prefer_zone)
     if cel is None:
         return False
     zone_name, index, _ = cel

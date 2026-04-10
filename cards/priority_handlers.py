@@ -2563,6 +2563,9 @@ def handle_utolso_szikra(card, jatekos, ellenfel, **_):
         EffectEngine._deal_damage_to_target(card.nev, 2, cel, ellenfel, "Kepesseg", jatekos)
         return _handled(f"Utolso Szikra: {cel[2].lap.nev} 2 sebzest szenvedett el.")
 
+    if not getattr(ellenfel, "pecsetek", None):
+        return _handled("Utolso Szikra: nem volt ellenseges Entitas vagy serulheto Pecset.", partial=True)
+
     tortent = EffectEngine._deal_direct_seal_damage(card.nev, 2, jatekos, ellenfel, "Kepesseg")
     if tortent:
         return _handled("Utolso Szikra: kozvetlenul 2 sebzest okozott az ellenfel Pecsetjeinek.")

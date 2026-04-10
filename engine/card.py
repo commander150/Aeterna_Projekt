@@ -1,9 +1,13 @@
 from engine.card_metadata import (
     has_effect_tag,
+    has_condition,
     has_keyword,
     has_target,
     has_trigger,
+    has_zone,
     normalize_metadata_value,
+    normalize_status_value,
+    normalize_condition_value,
     normalized_metadata_list,
 )
 
@@ -40,32 +44,60 @@ class Kartya:
         self.kepesseg = normalize_metadata_value(_get(10, "kepesseg", default=""))
 
         self.canonical_text = normalize_metadata_value(_get(11, "kepesseg_canonical", default="")) or self.kepesseg
-        self.keywords = normalized_metadata_list(_get(11, "kulcsszavak_felismerve", default=""))
-        self.triggers = normalized_metadata_list(_get(12, "trigger_felismerve", default=""), field_name="trigger")
-        self.targets = normalized_metadata_list(_get(13, "celpont_felismerve", default=""))
-        self.effect_tags = normalized_metadata_list(_get(14, "hatascimkek", default=""))
-        self.interpretation_status = normalize_metadata_value(_get(15, "ertelmezesi_statusz", default=""))
+        self.recognized_zones = normalized_metadata_list(_get(12, "zona_felismerve", default=""), field_name="zone")
+        self.keywords = normalized_metadata_list(_get(13, "kulcsszavak_felismerve", default=""))
+        self.triggers = normalized_metadata_list(_get(14, "trigger_felismerve", default=""), field_name="trigger")
+        self.targets = normalized_metadata_list(_get(15, "celpont_felismerve", default=""), field_name="target")
+        self.effect_tags = normalized_metadata_list(_get(16, "hatascimkek", default=""), field_name="effect_tag")
+        self.duration = normalize_metadata_value(_get(17, "idotartam_felismerve", default=""))
+        self.condition = normalize_metadata_value(_get(18, "feltetel_felismerve", default=""))
+        self.machine_description = normalize_metadata_value(_get(19, "gepi_leiras", default=""))
+        self.interpretation_status = normalize_status_value(_get(20, "ertelmezesi_statusz", default=""))
+        self.engine_notes = normalize_metadata_value(_get(21, "engine_megjegyzes", default=""))
 
         if self.keywords and self.canonical_text == self.kepesseg and "kepesseg_canonical" not in row:
             self.canonical_text = self.kepesseg
 
+        self.zones_normalized = list(self.recognized_zones)
         self.keywords_normalized = list(self.keywords)
         self.triggers_normalized = list(self.triggers)
         self.targets_normalized = list(self.targets)
         self.effect_tags_normalized = list(self.effect_tags)
+        self.durations_normalized = normalized_metadata_list(self.duration, field_name="duration")
+        normalized_condition = normalize_condition_value(self.condition)
+        self.conditions_normalized = [normalized_condition] if normalized_condition else []
         self.structured_data_available = any(
             (
                 bool(self.canonical_text and self.canonical_text != self.kepesseg),
+                bool(self.recognized_zones),
                 bool(self.keywords),
                 bool(self.triggers),
                 bool(self.targets),
                 bool(self.effect_tags),
+                bool(self.durations_normalized),
+                bool(self.conditions_normalized),
+                bool(self.machine_description),
                 bool(self.interpretation_status),
+                bool(self.engine_notes),
             )
         )
 
+        self.kepesseg_canonical = self.canonical_text
+        self.zona_felismerve = list(self.recognized_zones)
+        self.kulcsszavak_felismerve = list(self.keywords)
+        self.trigger_felismerve = list(self.triggers)
+        self.celpont_felismerve = list(self.targets)
+        self.hatascimkek = list(self.effect_tags)
+        self.idotartam_felismerve = self.duration
+        self.feltetel_felismerve = self.condition
+        self.gepi_leiras = self.machine_description
+        self.ertelmezesi_statusz = self.interpretation_status
+        self.engine_megjegyzes = self.engine_notes
+
         self.egyseg_e = "entit" in self.kartyatipus.lower()
         self.jel_e = "jel" in self.kartyatipus.lower()
+        self.sik_e = "sik" in self.kartyatipus.lower()
+        self.spell_e = any(token in self.kartyatipus.lower() for token in ("ige", "rituale", "ritual"))
         self.reakcio_e = (
             "reakci" in self.kepesseg.lower()
             or "burst" in self.kepesseg.lower()
@@ -83,6 +115,12 @@ class Kartya:
 
     def has_target(self, target):
         return has_target(self, target)
+
+    def has_zone(self, zone):
+        return has_zone(self, zone)
+
+    def has_condition(self, condition):
+        return has_condition(self, condition)
 
 
 class CsataEgyseg:
