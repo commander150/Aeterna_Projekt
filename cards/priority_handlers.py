@@ -97,10 +97,7 @@ def _is_machine_card(card):
 
 
 def _grant_keyword(unit, keyword, temporary=False):
-    attr = "temp_granted_keywords" if temporary else "granted_keywords"
-    values = set(getattr(unit, attr, set()) or set())
-    values.add(normalize_lookup_text(keyword))
-    setattr(unit, attr, values)
+    ActionLibrary.grant_keyword(unit, keyword, temporary=temporary)
 
 
 def _unit_has_keyword(unit, keyword):

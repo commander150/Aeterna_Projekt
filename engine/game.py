@@ -182,6 +182,24 @@ class AeternaSzimulacio:
             jatekos, zona_nev, index, self._ellenfel(jatekos), ok, extra_payload
         )
 
+    def _dispatch_damage_events(self, source, owner, target, payload):
+        event_payload = dict(payload or {})
+        trigger_engine.dispatch(
+            "on_damage_taken",
+            source=source,
+            owner=owner,
+            target=target,
+            payload=event_payload,
+        )
+        if event_payload.get("combat"):
+            trigger_engine.dispatch(
+                "on_combat_damage_taken",
+                source=source,
+                owner=owner,
+                target=target,
+                payload=event_payload,
+            )
+
     def _feltor_pecset(self, vedo, burst_aktivalt_ebben_a_harcban, forras=None):
         if not vedo.pecsetek:
             return False, burst_aktivalt_ebben_a_harcban
@@ -201,6 +219,14 @@ class AeternaSzimulacio:
                 naplo.ir(f"{forras}: extra pecset tort ({p.nev})")
             else:
                 naplo.ir(f"Pecset feltort: {p.nev}")
+
+        trigger_engine.dispatch(
+            "on_seal_break",
+            source=p,
+            owner=vedo,
+            target=vedo,
+            payload={"seal": p, "source": forras},
+        )
 
         if p.reakcio_e and not burst_aktivalt_ebben_a_harcban:
             self._aktivalhato_burst(vedo, p)
@@ -663,7 +689,9 @@ class AeternaSzimulacio:
         for index, (akt, ell) in enumerate([(self.p1, self.p2), (self.p2, self.p1)]):
             akt.uj_kor_inditasa()
             trigger_engine.dispatch("on_turn_start", owner=akt, target=ell, payload={"turn": self.kor})
+            trigger_engine.dispatch("on_start_of_turn", owner=akt, target=ell, payload={"turn": self.kor})
             trigger_engine.dispatch("on_awakening_phase", owner=akt, target=ell, payload={"turn": self.kor})
+            trigger_engine.dispatch("on_next_own_awakening", owner=akt, target=ell, payload={"turn": self.kor})
 
             if akt.kell_tamadnia_kovetkezo_korben:
                 naplo.ir(f"{akt.nev} Kenyszerites/Provoke hatas alatt all: ha tud, tamadnia kell ebben a korben.")

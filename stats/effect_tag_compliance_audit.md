@@ -1,0 +1,153 @@
+# Effect Tag Compliance Audit
+
+Scope: `Hatáscímkék`
+
+Method:
+- Canonical effect tag list comes from [kartya_tabla_szabvany_frissett.md](/e:/Letöltések/Aeterna/Aeterna_Projekt/kartya_tabla_szabvany_frissett.md).
+- Loader/validator acceptance is checked against [data/loader.py](/e:/Letöltések/Aeterna/Aeterna_Projekt/data/loader.py) and [engine/card_metadata.py](/e:/Letöltések/Aeterna/Aeterna_Projekt/engine/card_metadata.py).
+- Runtime support is judged conservatively from generic structured resolution in [engine/structured_effects.py](/e:/Letöltések/Aeterna/Aeterna_Projekt/engine/structured_effects.py), text/runtime fallback logic in [engine/effects.py](/e:/Letöltések/Aeterna/Aeterna_Projekt/engine/effects.py), card-local handlers in [cards/priority_handlers.py](/e:/Letöltések/Aeterna/Aeterna_Projekt/cards/priority_handlers.py), and related tests.
+- Fresh runtime logs were also checked as secondary evidence. They still show many effect-heavy cards as `structured_deferred` or `fallback_text_resolved`, which supports conservative `partial` and `recognized_only` statuses for the broader tags.
+
+Note: the standard document also allows `blank` as an explicit placeholder, but this audit only covers the actual canonical effect tags themselves.
+
+| effect_tag | in_standard_doc | accepted_by_loader | accepted_by_validator | aliases | runtime_supported | implementation_location | test_coverage | cards_using_it | current_status | exact_runtime_meaning | missing_parts | recommended_next_step |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `damage` | yes | yes | yes | `sebzes`, `deal_damage` | yes | `engine/structured_effects.py`, `engine/effects.py`, `cards/priority_handlers.py`, `tests/test_structured_effects.py`, `tests/test_priority_handlers.py` | good | `104 cards; examples: Vakmerő Hamuszóró, Vörösréz Pajzsos, Élő Meteor, Lángköpő Gyík` | `fully_working` | Generic runtime can select targets and apply entity damage through both structured and fallback paths; many concrete cards and traps use the same core damage routines. | No major effect-tag-level gap. Remaining issues are target-specific or card-specific. | Keep as the reference implementation for direct active effects. |
+| `seal_damage` | yes | yes | yes | `pecsetsebzes` | yes | `engine/structured_effects.py`, `engine/effects.py`, `cards/priority_handlers.py`, `tests/test_structured_effects.py`, `tests/test_priority_handlers.py` | good | `19 cards; examples: Páncéltörő Csapás, Vér és Hamu, Utolsó Szikra, Tüzes Megtorlás` | `fully_working` | Generic runtime can break seals directly through the shared seal-damage routine, including burst-on-break interactions. | No major effect-tag-level gap. | Keep as the reference implementation for direct player/seal damage. |
+| `draw` | yes | yes | yes | `laphuzas`, `huzas` | yes | `engine/structured_effects.py`, `engine/effects.py`, `cards/priority_handlers.py`, `tests/test_priority_handlers.py` | good | `105 cards; examples: Kirobbanó Erő, A Végtelen Harc Mezeje, Lángoló Elme, Füst-Tolvaj` | `fully_working` | Generic structured and fallback routes can draw cards, and many card handlers build on the same `huzas` behavior. | No major effect-tag-level gap. | Keep as a reference resource/card-advantage primitive. |
+| `heal` | yes | yes | yes | `gyogyitas` | yes | `engine/structured_effects.py`, `engine/effects.py`, `cards/priority_handlers.py`, `tests/test_priority_handlers.py` | good | `25 cards; examples: Lángoló Öklű Bajnok, Vakmerő Hamuszóró, Óceáni Sámán, A Zátony Éneke` | `fully_working` | Generic runtime can heal the strongest/weakest eligible allied entity or all allies in some structured cases, and many cards use the shared HP restoration patterns. | Event-level `on_heal` support is separate and still weak, but the effect itself works. | Keep as a reference primitive for positive HP effects. |
+| `reveal` | yes | yes | yes | `none` | partial | `engine/effects.py`, `cards/priority_handlers.py` | partial | `8 cards; examples: Farkasvérű Nyomkereső, Felderítő Bagoly, A Falka Hívása, Szélörvény` | `partially_implemented` | The engine can inspect top cards, opponent hand, or reveal-searched cards in specific action paths. | No unified canonical reveal effect layer exists yet; current behavior is mostly text/fallback or card-local. | Add a small shared reveal helper with explicit reveal target and destination semantics. |
+| `atk_mod` | yes | yes | yes | `grant_attack`, `grant_temp_attack`, `atk_buff` | yes | `engine/structured_effects.py`, `engine/effects.py`, `cards/priority_handlers.py`, `tests/test_priority_handlers.py`, `tests/test_game_flow.py` | good | `113 cards; examples: Lángoló Pörölyös, Parázsfarkas, Lángsörényű Oroszlán, Hamvaskezű Seregvezér` | `fully_working` | Generic runtime can grant ATK bonuses and clean up temporary combat/turn-end attack buffs, while many specific handlers rely on the same underlying state fields. | No major effect-tag-level gap. | Keep as a core stat-modification reference. |
+| `hp_mod` | yes | yes | yes | `grant_hp`, `grant_max_hp`, `hp_buff` | yes | `engine/structured_effects.py`, `engine/effects.py`, `cards/priority_handlers.py`, `tests/test_priority_handlers.py` | good | `79 cards; examples: Tűzvihar Bajnoka, Perzselt-páncélos Ork, Tűzfal-Kántáló, Védelmező Tűzfal` | `fully_working` | Generic runtime can add max HP and immediate HP together, and many concrete cards use the same `bonus_max_hp`/`akt_hp` pattern. | The event-side `on_stat_gain` trigger is still weak, but the effect itself is real. | Keep as a core stat-modification reference. |
+| `exhaust` | yes | yes | yes | `kimerites` | yes | `engine/structured_effects.py`, `engine/effects.py`, `cards/priority_handlers.py`, `tests/test_priority_handlers.py` | good | `57 cards; examples: Ignis Csonttörő, Vakító Szikra, Hamuba Fojtás, Csapda a Füstben` | `fully_working` | Generic runtime can exhaust enemy targets, and many summon traps and spells already use the same exhaustion mechanics. | No major effect-tag-level gap. | Keep as a core control primitive. |
+| `summon` | yes | yes | yes | `none` | partial | `cards/priority_handlers.py`, `engine/effects.py`, `engine/game.py` | partial | `23 cards; examples: Hamufőnix, Főnix-Lovas, Hamvakból Felszálló, Tengeri Áldozat` | `partially_implemented` | Runtime can place real units on board and some effects revive or put cards onto the board through local handlers. | There is no unified generic structured summon effect covering all summon sources, zones, readiness states, and ownership rules. | Add a shared summon-from-card helper before expanding summon-heavy cards. |
+| `destroy` | yes | yes | yes | `megsemmisites`, `pusztitas` | yes | `engine/structured_effects.py`, `engine/effects.py`, `cards/priority_handlers.py`, `tests/test_priority_handlers.py` | good | `27 cards; examples: Hamuvá Zúzás, Tudás a Hamuból, Megperzselt Föld, Tengeri Délibáb` | `fully_working` | Generic runtime can target and destroy units through a common destroy path that also emits death-side follow-up behavior. | No major effect-tag-level gap. | Keep as a core removal reference. |
+| `discard` | yes | yes | yes | `none` | partial | `engine/effects.py`, `cards/priority_handlers.py` | partial | `17 cards; examples: A Katlan Őrzője, Tűzkatlan Főmágusa, Hablovas Hírnök, Pecsétvédő Csapda` | `partially_implemented` | Discard outcomes already exist in several local effects and fallback routines. | No shared discard-effect layer or discard event pipeline exists yet. | Add a unified discard helper once hand-targeting work is prioritized. |
+| `counterspell` | yes | yes | yes | `none` | partial | `cards/resolver.py`, `cards/priority_handlers.py`, `engine/effects.py`, `tests/test_priority_handlers.py` | partial | `18 cards; examples: Izzó Aura, Láng-Pajzs, Megtört Áramlat, Korall-csapda` | `partially_implemented` | Counterspell behavior exists in explicit spell-target traps and redirect/cancel handlers. | There is no generic metadata-driven counterspell effect resolver yet; most real behavior is still card-local. | Build a shared counterspell helper on top of the proven spell-target cancellation path. |
+| `redirect` | yes | yes | yes | `none` | partial | `cards/resolver.py`, `cards/priority_handlers.py`, `tests/test_priority_handlers.py`, `tests/test_effect_reporting_runtime_priority.py` | partial | `5 cards; examples: Hamis Parancs, Lángoló Tükör, Csalóka Hullám, Hamis Bizonyíték` | `partially_implemented` | Redirection exists for spell targets and some attack/seal traps through explicit local handlers. | No generic redirect effect tag layer exists; the semantics differ between spell redirect and attack redirect. | Keep using the existing resolver path, then generalize once two or three redirect families can share code. |
+| `cost_mod` | yes | yes | yes | `aura_modositas` | partial | `engine/effects.py`, `cards/priority_handlers.py` | partial | `28 cards; examples: Ork Tábor, Tünde Tűz-Novícius, Tünde Főmágus, A Lángidézők Tornya` | `partially_implemented` | Temporary and persistent aura/cost adjustments exist in several local handlers and player-side state. | No single generic cost modifier object or metadata-driven evaluator is in place yet. | Add a small shared cost-mod state container before expanding the tag further. |
+| `resource_gain` | yes | yes | yes | `none` | partial | `engine/effects.py`, `cards/priority_handlers.py` | partial | `40 cards; examples: Parázsló Tanítvány, Pyros az Élő Láng, A Főnix Könnye, A Korallzátony Szíve` | `partially_implemented` | The engine can grant temporary aura/resources and several cards already use that at runtime. | Gain semantics are not fully centralized across permanent, temporary, and source-based resource changes. | Consolidate temporary and permanent resource gain helpers under one tag-level path. |
+| `resource_drain` | yes | yes | yes | `none` | partial | `engine/effects.py`, `cards/priority_handlers.py` | none | `1 card; example: Hamis Arany` | `partially_implemented` | Enemy aura exhaustion/drain-like effects exist in local logic. | No generic resource drain effect primitive is exposed yet. | Add only after `resource_gain` and `resource_spend` are standardized. |
+| `resource_acceleration` | yes | yes | yes | `none` | partial | `cards/priority_handlers.py`, `engine/effects.py` | none | `1 card; example: Sivatagi Karavánvezér` | `partially_implemented` | The engine already has some aura acceleration style state transitions in local handlers. | No generic acceleration primitive is exposed as a reusable effect-tag handler. | Fold into the same resource-system cleanup as `resource_gain`. |
+| `resource_spend` | yes | yes | yes | `none` | partial | `engine/effects.py`, `cards/priority_handlers.py` | none | `2 cards; examples: A Fogaskerekek Városa, Karaván Őrparancsnok` | `partially_implemented` | Resource-spend semantics exist because the engine already pays costs and can mark aura as used. | There is no generic "effect spends aura/resource" tag resolver exposed separately from play-cost logic. | Add only if cards start using spend-as-effect more heavily. |
+| `move_horizont` | yes | yes | yes | `move_to_horizon`, `mozgatas_horizontra` | partial | `engine/structured_effects.py`, `cards/priority_handlers.py`, `engine/actions.py`, `tests/test_priority_handlers.py` | partial | `25 cards; examples: Perzselő Akarat, Hullámlovas Fürgél, Áramlás-szövő Sellő, Illúzió-Szirén` | `partially_implemented` | Runtime can move entities into Horizont through action helpers and some structured positioning logic. | The generic effect layer is still narrow and does not uniformly cover all move-to-Horizont variants. | Expand the action-helper based movement adapter instead of writing more per-card movement logic. |
+| `move_zenit` | yes | yes | yes | `move_to_zenit`, `mozgatas_zenitbe` | partial | `engine/structured_effects.py`, `cards/priority_handlers.py`, `engine/actions.py`, `tests/test_priority_handlers.py` | partial | `32 cards; examples: Hamufőnix, Főnix-Lovas, Víz alatti Börtön, Életmentő Burok` | `partially_implemented` | Runtime can move targets to Zenit through action helpers and local handlers. | Coverage is not yet uniform across enemy movement, self-retreat, triggered return, and delayed return patterns. | Continue consolidating movement on top of `ActionLibrary.move_entity_between_zones`. |
+| `graveyard_recursion` | yes | yes | yes | `none` | partial | `engine/effects.py`, `cards/priority_handlers.py`, `tests/test_priority_handlers.py` | partial | `23 cards; examples: Tűzkatlan Főmágusa, Sámán a Hamuból, Hamvakból Felszálló, Visszatérés az Ősforrásból` | `partially_implemented` | The engine can return certain cards from graveyard to hand/board/source through local or fallback paths. | There is no generic recursion layer that distinguishes destination, timing, and eligibility rules in a structured way. | Build a shared graveyard-move helper before widening recursion coverage. |
+| `graveyard_replacement` | yes | yes | yes | `none` | no | `engine/card_metadata.py`, `data/loader.py` | none | `1 card; example: Sivatagi Karavánvezér` | `missing_implementation` | The tag is recognized by the data layer only. | Missing replacement-effect support for "goes somewhere else instead of graveyard" semantics. | This should wait until replacement/prevention mechanics become a priority. |
+| `grant_keyword` | yes | yes | yes | `keyword_adas`, `kulcsszoadas` | partial | `cards/priority_handlers.py`, `engine/keyword_engine.py`, `tests/test_priority_handlers.py` | partial | `57 cards; examples: Lángvérű Berserker, Ork Hadúr, A Lángok Haragja, Vérforraló Üvöltés` | `partially_implemented` | Temporary and permanent keyword granting already works through local helpers and unit state fields. | There is no single generic metadata-driven grant/remove keyword resolver across all targets and durations. | Promote the existing `_grant_keyword` helper into a generic effect-tag primitive. |
+| `type_change` | yes | yes | yes | `none` | no | `engine/card_metadata.py`, `data/loader.py` | none | `1 card; example: Gépiesítés` | `missing_implementation` | The tag is accepted structurally only. | Missing runtime model for temporary or permanent type mutation. | Leave for later; this likely needs broader state-model work. |
+| `stat_reset` | yes | yes | yes | `none` | no | `engine/card_metadata.py`, `data/loader.py` | none | `1 card; example: Rövidzárlat` | `missing_implementation` | The tag exists only in metadata. | Missing a generic reset-to-base-stats or clear-modifiers primitive. | Implement later together with a more formal stat-layer model. |
+| `trap_immunity` | yes | yes | yes | `none` | no | `engine/card_metadata.py`, `data/loader.py` | none | `1 card; example: Utazó Bárd` | `missing_implementation` | The tag is accepted by the loader and validator only. | Missing trap-targeting/immunity enforcement in the runtime. | This can piggyback on the same state-model pass as `damage_immunity` and `untargetable`. |
+| `damage_immunity` | yes | yes | yes | `none` | partial | `cards/priority_handlers.py`, `engine/effects.py`, `tests/test_priority_handlers.py`, `tests/test_effect_reporting_runtime_priority.py` | partial | `7 cards; examples: Lángok Védelme, Pernye-Fátyol, Buborék-pajzs, Tengeri Szélcsatorna` | `partially_implemented` | Runtime already supports several damage-immunity flags on units, and direct damage resolution respects them. | The semantics are still fragmented across generic, spell-only, and enemy-spell-only variants rather than one shared immunity system. | Consolidate the existing flags behind one generic damage-immunity helper. |
+| `damage_bonus` | yes | yes | yes | `reflect_damage`, `retaliation_damage` | partial | `cards/priority_handlers.py`, `engine/effects.py`, `tests/test_priority_handlers.py`, `tests/test_game_flow.py` | partial | `6 cards; examples: A Katlan Őrzője, Tünde Pyromanta, Vulkáni Kráter, Célpont Kijelölése` | `partially_implemented` | Runtime already supports retaliation-like and spell-damage-plus patterns via local state/handlers. | No generic damage-bonus layer exists; current implementations are specialized by source and timing. | Generalize only after the main damage family is fully canonicalized. |
+| `damage_prevention` | yes | yes | yes | `sebzessemlegesites`, `stat_protection` | partial | `cards/priority_handlers.py`, `engine/effects.py`, `tests/test_priority_handlers.py`, `tests/test_game_flow.py` | partial | `39 cards; examples: Törp Magmakalapácsos, A Katlan Őrzője, Tűzkatlan Főmágusa, Ignis Oltár-Gólem` | `partially_implemented` | Prevention-style behavior exists for survival shields, half damage, attack cancellation, and some trap responses. | The runtime lacks one unified prevention/replacement model, so many prevention cards are still ad hoc. | Keep the current local fixes, but plan a shared prevention helper before broader rollout. |
+| `overflow_damage` | yes | yes | yes | `none` | partial | `cards/priority_handlers.py`, `engine/effects.py`, `tests/test_priority_handlers.py` | partial | `1 card; example: Gőznyomásos Kilövés` | `partially_implemented` | Overflow damage to Zenit or seals already exists in at least one explicit runtime handler. | No generic overflow propagation primitive exists yet. | Add only if more overflow cards arrive; otherwise keep local. |
+| `stat_protection` | yes | yes | yes | `none` | no | `engine/card_metadata.py`, `data/loader.py` | none | `0 cards` | `recognized_only` | The tag is standard and accepted, but not currently used by observed cards or runtime. | No runtime semantics have been implemented. | Leave as recognized-only until real card usage appears. |
+| `sacrifice` | yes | yes | yes | `none` | partial | `engine/effects.py`, `cards/priority_handlers.py` | partial | `24 cards; examples: Kirobbanó Erő, Vér és Hamu, Démoni Lángidéző, A Főnix Könnye` | `partially_implemented` | Self-destruction and own-unit destruction as payment/effect already exists in local and fallback logic. | There is no generic sacrifice selection and validation layer. | Introduce a shared "destroy own target as cost/effect" helper when sacrifice cards become a larger cluster. |
+| `free_cast` | yes | yes | yes | `none` | partial | `cards/priority_handlers.py`, `engine/effects.py` | partial | `11 cards; examples: Ignis Varázsszövő, Tengeri Áldozat, Visszahívó Rúna, Szindikátus Keresztapa` | `partially_implemented` | Some effects can place cards for free or reduce/play around normal cost routing through local handlers. | No generic free-cast permission model is exposed yet. | Add only after cost-mod handling is more centralized. |
+| `tutor` | yes | yes | yes | `none` | partial | `engine/effects.py`, `cards/priority_handlers.py` | partial | `16 cards; examples: Mélységi Behívó, A Földanya Hangja, A Természet Szava, Farkasvérű Nyomkereső` | `partially_implemented` | Search effects already exist through deck-inspection and explicit search helpers. | Search criteria, reveal, placement destination, and shuffling are not yet unified under one structured tutor layer. | A small shared tutor helper would be a good medium-cost cleanup. |
+| `untargetable` | yes | yes | yes | `celozhatatlan` | partial | `engine/structured_effects.py`, `cards/priority_handlers.py`, `engine/targeting.py` | partial | `24 cards; examples: Lángoló Elme, Vulkáni Orákulum, A Lángok Szentélye, Abisszális Ős-Teknős` | `partially_implemented` | Runtime can mark units as not spell-targetable in some paths, and targeting checks already consult state. | Broader "cannot be targeted by X/Y" semantics are still fragmented and often card-local. | Consolidate all target-negation flags into one shared target-state API. |
+| `return_to_hand` | yes | yes | yes | `visszavetelkezbe`, `kezbe_vetel` | partial | `engine/structured_effects.py`, `engine/actions.py`, `cards/priority_handlers.py`, `tests/test_priority_handlers.py` | partial | `52 cards; examples: Visszaáramlás, Cunami Visszacsapás, Kagylócsapda, Viharhozó Elementál` | `partially_implemented` | The engine can return units to hand through action helpers and several proven local handlers. | The effect is broad and still split across bounce, rescue, self-return, and enemy-return patterns. | Continue consolidating on top of the shared return-to-hand action helper. |
+| `summon_token` | yes | yes | yes | `none` | partial | `cards/priority_handlers.py`, `tests/test_priority_handlers.py` | partial | `11 cards; examples: Hamvaskezű Toborzó, Goblin Taktika, Tengeri Délibáb, Aeterna Haragja` | `partially_implemented` | Token summoning is proven through the local `_summon_token` helper and multiple tests. | There is no generic metadata-driven token spec/constructor yet. | Promote `_summon_token` into a reusable token-effect primitive when token diversity grows. |
+| `attack_restrict` | yes | yes | yes | `tamadastiltas` | partial | `engine/structured_effects.py`, `engine/effects.py`, `cards/priority_handlers.py` | partial | `28 cards; examples: Vulkáni Gólem, Füstkéses Nindzsa, Hamvaskezű Bestia-lovas, Pokol-kutyák Ura` | `partially_implemented` | Runtime can mark units as unable to attack until end of turn in several paths. | Restrictions are not yet centralized by source, scope, or duration. | A shared attack-restriction state helper would give this tag a clean generic meaning. |
+| `summon_restrict` | yes | yes | yes | `none` | no | `engine/card_metadata.py`, `data/loader.py` | none | `1 card; example: A Megperzselt Küzdőtér` | `missing_implementation` | The tag is recognized structurally only. | Missing runtime enforcement for "cannot be summoned" conditions. | This likely needs board/attempt-to-summon validation hooks; defer until summon system cleanup. |
+| `block_restrict` | yes | yes | yes | `blokktiltas` | partial | `engine/structured_effects.py`, `engine/effects.py`, `cards/priority_handlers.py` | partial | `12 cards; examples: Tűzhegy Titánja, Füstté Válás, Yggdrasil Sarja, Árnyékpárduc` | `partially_implemented` | Some cards can already forbid blocks or bypass specific blockers in local combat logic. | The generic structured layer still collapses this too aggressively into attack prevention, and blocker-specific semantics are not unified. | Add an explicit block-restriction state instead of reusing attack restriction. |
+| `control_change` | yes | yes | yes | `none` | no | `engine/card_metadata.py`, `data/loader.py` | none | `2 cards; examples: Sellők Dala, Visszautasíthatatlan Ajánlat` | `missing_implementation` | The tag is accepted only structurally. | Missing temporary/permanent control transfer in the engine state model. | Defer; this is a genuine deeper mechanic, not a cheap adapter. |
+| `ready` | yes | yes | yes | `reactivate` | partial | `engine/effects.py`, `cards/priority_handlers.py`, `tests/test_priority_handlers.py` | partial | `22 cards; examples: Fényhozó Apród, Oltárvédő Gólem, Életadó Főpap, Könnyező Arkangyal` | `partially_implemented` | Units can already be readied from exhausted state through local and fallback helpers. | The canonical effect tag does not yet have a clean generic structured handler; runtime still leans on legacy reactivation wording. | Promote ready/reactivate into one shared canonical effect helper. |
+| `return_to_deck` | yes | yes | yes | `none` | partial | `cards/priority_handlers.py`, `engine/structured_effects.py`, `engine/effects.py` | partial | `6 cards; examples: Örvény-nyelés, Aeterna Oltárvédő Sárkánya, Információszivárogtatás, Kódolt Üzenet` | `partially_implemented` | Some cards already put targets back into deck in explicit local paths. | No generic deck-placement effect layer exists that distinguishes top, bottom, shuffle-in, and owner. | Add only after `deck_bottom` is handled in the same family. |
+| `deck_bottom` | yes | yes | yes | `return_to_deck_bottom` | partial | `cards/priority_handlers.py`, `engine/structured_effects.py` | partial | `6 cards; examples: A Mélység Hívása, Felderítő Bagoly, Rejtett Csapóajtó, Szélhámos Kártyavető` | `partially_implemented` | Bottom-of-deck placement exists in some local handlers and generic misc-state helpers. | The generic routing is still narrow and not consistently metadata-driven. | Unify top/bottom deck placement under one small deck-manipulation helper. |
+| `move_to_source` | yes | yes | yes | `none` | partial | `cards/priority_handlers.py`, `engine/effects.py` | partial | `14 cards; examples: Az Örök Tűz Szentélye, Rügyező Csemete, Gyökér-szövő Novícius, Titánok Temetője` | `partially_implemented` | Some cards already move units or cards into source through explicit handlers. | No generic source-placement effect primitive is exposed yet. | Fold into a broader source/board/graveyard movement helper family. |
+| `source_manipulation` | yes | yes | yes | `none` | partial | `cards/priority_handlers.py`, `engine/effects.py` | none | `12 cards; examples: Napkitörés Sárkány, Inferno Leviatán, Hullámlovas Fürgél, Hullámtáncos Leviatán` | `partially_implemented` | Source-adjacent manipulation exists in local cards and effect text routing. | There is no generic structured meaning yet for the tag. | Define a narrower internal subfamily first before broad generic support. |
+| `cleanse` | yes | yes | yes | `none` | no | `engine/card_metadata.py`, `data/loader.py` | none | `3 cards; examples: Tisztító Eső, Tisztító Zápor, Megtisztulás` | `missing_implementation` | The tag is recognized, but no shared runtime cleansing/removal-of-negative-state primitive was found. | Missing status/buff/debuff cleanup model. | This becomes cheaper after buffs, locks, and immunities are more centralized. |
+| `copy_stats` | yes | yes | yes | `none` | no | `engine/card_metadata.py`, `data/loader.py` | none | `2 cards; examples: Abisszális Alakváltó, Tengeri Délibáb` | `missing_implementation` | The tag is currently metadata only. | Missing copy-layer semantics for current/base stats. | Defer; this likely needs a fuller continuous-effect model. |
+| `copy_keywords` | yes | yes | yes | `none` | no | `engine/card_metadata.py`, `data/loader.py` | none | `1 card; example: Abisszális Alakváltó` | `missing_implementation` | The tag exists structurally only. | Missing keyword-copy runtime semantics and temporary layering rules. | Defer with `copy_stats`; likely same mechanic family. |
+| `position_lock` | yes | yes | yes | `none` | partial | `cards/priority_handlers.py`, `tests/test_priority_handlers.py` | partial | `4 cards; examples: Föld-Elementál, Kővé Válás, Förgeteg-Hozó Sámán, Villám Háló` | `partially_implemented` | Runtime already has `position_lock_awakenings` style local state and cleanup. | There is no generic structured handler yet; current support is explicit and card-local. | Promote the existing lock-state fields into a small reusable primitive. |
+| `attack_nullify` | yes | yes | yes | `none` | partial | `cards/priority_handlers.py`, `engine/structured_effects.py`, `tests/test_priority_handlers.py` | partial | `20 cards; examples: Bénító Fagy, Örvénycsapda, Elmosott Nyomok, Örvény-nyelés` | `partially_implemented` | Runtime can already cancel attacks in several trap and reaction handlers. | The effect is not yet generalized under a single canonical tag-level handler. | Build on the proven trap stop-attack path instead of new bespoke logic. |
+| `ability_lock` | yes | yes | yes | `none` | partial | `cards/priority_handlers.py`, `engine/effects.py` | none | `27 cards; examples: Hullámtörő Gólem, Az Ősforrás Lelke, Korall-Kém, Bestiális Üvöltés` | `partially_implemented` | Some cards already suppress abilities or remove keywords in explicit ways. | There is no unified "cannot activate abilities" state in the engine yet. | Narrow the tag to a shared silence/lock state before wider use. |
+| `random_discard` | yes | yes | yes | `none` | partial | `cards/priority_handlers.py`, `engine/effects.py` | none | `5 cards; examples: Túlhevült Mana, Árapály-visszacsapás, Városi Patkányraj, Sötét Behálózás` | `partially_implemented` | Random discard style behavior exists in some concrete card handlers. | No generic hand-randomization/discard helper is exposed yet. | Add only after ordinary discard handling is standardized. |
+| `choice` | yes | yes | yes | `poziciocsere` was legacy-internal for another meaning, but no canonical alias for the tag itself | partial | `cards/priority_handlers.py`, `engine/effects.py` | partial | `9 cards; examples: Könnyező Arkangyal, Temetői Koldus, Szindikátusi Zsaroló, Tömeges Zsarolás` | `partially_implemented` | Several multi-option cards already resolve through explicit branching handlers. | There is no generic choice presentation/execution layer in the engine. | Keep local for now; generic choice support only becomes worthwhile if option cards grow. |
+
+## Summary
+
+### Actually working
+
+- `damage`
+- `seal_damage`
+- `draw`
+- `heal`
+- `atk_mod`
+- `hp_mod`
+- `exhaust`
+- `destroy`
+
+### Recognized only
+
+- `stat_protection`
+
+### Partial
+
+- `reveal`
+- `summon`
+- `discard`
+- `counterspell`
+- `redirect`
+- `cost_mod`
+- `resource_gain`
+- `resource_drain`
+- `resource_acceleration`
+- `resource_spend`
+- `move_horizont`
+- `move_zenit`
+- `graveyard_recursion`
+- `grant_keyword`
+- `damage_immunity`
+- `damage_bonus`
+- `damage_prevention`
+- `overflow_damage`
+- `sacrifice`
+- `free_cast`
+- `tutor`
+- `untargetable`
+- `return_to_hand`
+- `summon_token`
+- `attack_restrict`
+- `block_restrict`
+- `ready`
+- `return_to_deck`
+- `deck_bottom`
+- `move_to_source`
+- `source_manipulation`
+- `position_lock`
+- `attack_nullify`
+- `ability_lock`
+- `random_discard`
+- `choice`
+
+### Missing
+
+- `graveyard_replacement`
+- `type_change`
+- `stat_reset`
+- `trap_immunity`
+- `summon_restrict`
+- `control_change`
+- `cleanse`
+- `copy_stats`
+- `copy_keywords`
+
+## Best implementation order
+
+1. `grant_keyword`
+   Reason: the runtime already has local keyword-grant helpers, so a canonical shared adapter looks cheap and high-impact.
+2. `ready`
+   Reason: the engine already readies units in several places; this is mostly canonicalization and reuse.
+3. `return_to_hand`
+   Reason: the action helper already exists, and many cards use this family.
+4. `move_horizont` / `move_zenit`
+   Reason: movement infrastructure already exists, but effect-tag routing is still fragmented.
+5. `counterspell`
+   Reason: spell cancellation is proven in runtime, but still too card-local.
+6. `attack_restrict` / `block_restrict`
+   Reason: several combat-control cards would benefit from one shared restriction-state layer.
+7. `graveyard_recursion`
+   Reason: many cards use it, but the semantics are broader and slightly more stateful than the earlier wins.

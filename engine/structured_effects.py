@@ -3,6 +3,7 @@ from __future__ import annotations
 from engine.actions import ActionLibrary
 from engine.board_utils import _is_board_entity, is_zenit_entity
 from engine.card_metadata import has_effect_tag, has_keyword, has_target, has_trigger, has_zone, has_duration
+from engine.keyword_registry import KEYWORD_DEFINITIONS, KeywordRegistry
 from engine.triggers import trigger_engine
 from utils.logger import naplo
 from utils.text import normalize_lookup_text
@@ -162,6 +163,30 @@ def _pick_unit(units, weakest=False):
     return max(units, key=lambda item: (item[2].akt_tamadas, item[2].akt_hp))
 
 
+def _select_target_by_metadata(card, source_player, target_player, *, keys, source=None, weakest=False, lane_index=None):
+    for key in keys:
+        if has_target(card, key):
+            return ActionLibrary.select_target_for_key(
+                source_player,
+                target_player,
+                key,
+                source=source,
+                lane_index=lane_index,
+                weakest=weakest,
+            )
+    return None
+
+
+def _extract_keyword_name(text):
+    normalized = normalize_lookup_text(text)
+    for keyword_key, definition in KEYWORD_DEFINITIONS.items():
+        if keyword_key in normalized:
+            return keyword_key
+        if any(normalize_lookup_text(alias) in normalized for alias in definition.aliases):
+            return keyword_key
+    return ""
+
+
 def _find_matching_tag(card, name):
     return name in _normalized_tags(card)
 
@@ -281,10 +306,19 @@ def _resolve_damage(card, source_player, target_player, context):
     if _find_matching_tag(card, "seal_damage") or has_target(card, "pecset") or has_target(card, "jatekos") or has_target(card, "wards"):
         return EffectEngine._deal_direct_seal_damage(card.nev, amount, source_player, target_player, "Structured")
 
-    prefer_zone = "horizont" if has_target(card, "horizont") or has_zone(card, "horizont") else None
-    if has_target(card, "zenit") or has_zone(card, "zenit"):
-        prefer_zone = "zenit"
-    cel = EffectEngine._select_enemy_target(target_player, text, prefer_zone)
+    cel = _select_target_by_metadata(
+        card,
+        source_player,
+        target_player,
+        keys=("opposing_entity", "enemy_horizont_entity", "enemy_zenit_entity", "enemy_entity"),
+        source=context.get("source_unit") if isinstance(context, dict) else None,
+        lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+    )
+    if cel is None:
+        prefer_zone = "horizont" if has_zone(card, "horizont") else None
+        if has_zone(card, "zenit"):
+            prefer_zone = "zenit"
+        cel = EffectEngine._select_enemy_target(target_player, text, prefer_zone)
     if cel is None:
         naplo.ir(f"Structured effect: {card.nev} -> nincs ervenyes sebzes-celpont.")
         return False
@@ -297,7 +331,16 @@ def _resolve_destroy(card, source_player, target_player, context):
         return False
     from engine.effects import EffectEngine
 
-    cel = EffectEngine._select_enemy_target(target_player, normalize_lookup_text(_canonical_text(card)))
+    cel = _select_target_by_metadata(
+        card,
+        source_player,
+        target_player,
+        keys=("opposing_entity", "enemy_horizont_entity", "enemy_zenit_entity", "enemy_entity"),
+        source=context.get("source_unit") if isinstance(context, dict) else None,
+        lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+    )
+    if cel is None:
+        cel = EffectEngine._select_enemy_target(target_player, normalize_lookup_text(_canonical_text(card)))
     if cel is None:
         naplo.ir(f"Structured effect: {card.nev} -> nincs megsemmisitheto celpont.")
         return False
@@ -307,11 +350,20 @@ def _resolve_destroy(card, source_player, target_player, context):
 def _resolve_exhaust(card, source_player, target_player, context):
     if not _find_matching_tag(card, "exhaust"):
         return False
-    prefer_zone = "horizont" if has_zone(card, "horizont") or has_target(card, "enemy_horizont_entity") else "horizont"
-    if has_zone(card, "zenit") or has_target(card, "enemy_zenit_entity"):
-        prefer_zone = "zenit"
-    units = _enemy_units(target_player, prefer_zone)
-    cel = _pick_unit(units)
+    cel = _select_target_by_metadata(
+        card,
+        source_player,
+        target_player,
+        keys=("opposing_entity", "enemy_horizont_entity", "enemy_zenit_entity", "enemy_entity"),
+        source=context.get("source_unit") if isinstance(context, dict) else None,
+        lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+    )
+    if cel is None:
+        prefer_zone = "horizont" if has_zone(card, "horizont") or has_target(card, "enemy_horizont_entity") else "horizont"
+        if has_zone(card, "zenit") or has_target(card, "enemy_zenit_entity"):
+            prefer_zone = "zenit"
+        units = _enemy_units(target_player, prefer_zone)
+        cel = _pick_unit(units)
     if cel is None:
         naplo.ir(f"Structured effect: {card.nev} -> nincs kimeritheto celpont.")
         return False
@@ -322,20 +374,43 @@ def _resolve_exhaust(card, source_player, target_player, context):
 
 
 def _resolve_reactivate(card, source_player, context):
-    if not _find_matching_tag(card, "reactivate"):
+    if not (_find_matching_tag(card, "reactivate") or _find_matching_tag(card, "ready")):
         return False
-    units = [item for item in _allied_units(source_player) if item[2].kimerult]
-    cel = _pick_unit(units)
+    source_unit = context.get("source_unit") if isinstance(context, dict) else None
+    cel = _select_target_by_metadata(
+        card,
+        source_player,
+        None,
+        keys=("other_own_entity", "own_horizont_entity", "own_zenit_entity", "own_entity", "self"),
+        source=source_unit,
+    )
+    if cel is None or not cel[2].kimerult:
+        units = [item for item in _allied_units(source_player) if item[2].kimerult]
+        cel = _pick_unit(units)
     if cel is None:
         naplo.ir(f"Structured effect: {card.nev} -> nincs ujraaktiválható celpont.")
         return False
-    return source_player.ujraaktivalt_egyseget(cel[2], f"Structured: {card.nev}")
+    return ActionLibrary.ready_unit(
+        cel[2],
+        f"Structured: {card.nev}",
+        owner=source_player,
+        source=source_unit or cel[2],
+    )
 
 
 def _resolve_buff(card, source_player, context):
     text = _canonical_text(card)
     did = False
-    cel = _pick_unit(_allied_units(source_player))
+    source_unit = context.get("source_unit") if isinstance(context, dict) else None
+    cel = _select_target_by_metadata(
+        card,
+        source_player,
+        None,
+        keys=("other_own_entity", "own_horizont_entity", "own_zenit_entity", "own_entity", "self"),
+        source=source_unit,
+    )
+    if cel is None:
+        cel = _pick_unit(_allied_units(source_player))
     if cel is None:
         return False
     _, _, unit = cel
@@ -355,6 +430,30 @@ def _resolve_buff(card, source_player, context):
         naplo.ir(f"Structured effect: {card.nev} -> {unit.lap.nev} +{amount} HP.")
         did = True
     return did
+
+
+def _resolve_grant_keyword(card, source_player, context):
+    if not _find_matching_tag(card, "grant_keyword"):
+        return False
+    keyword_name = _extract_keyword_name(_canonical_text(card))
+    if not keyword_name:
+        return False
+    source_unit = context.get("source_unit") if isinstance(context, dict) else None
+    cel = _select_target_by_metadata(
+        card,
+        source_player,
+        None,
+        keys=("other_own_entity", "own_horizont_entity", "own_zenit_entity", "own_entity", "self"),
+        source=source_unit,
+    )
+    if cel is None:
+        cel = _pick_unit(_allied_units(source_player))
+    if cel is None:
+        return False
+    temporary = has_duration(card, "until_turn_end") or has_duration(card, "during_combat")
+    ActionLibrary.grant_keyword(cel[2], keyword_name, temporary=temporary)
+    naplo.ir(f"Structured effect: {card.nev} -> {cel[2].lap.nev} megkapta a(z) {keyword_name} kulcsszot.")
+    return True
 
 
 def _resolve_heal(card, source_player, context):
@@ -412,8 +511,17 @@ def _resolve_move_to_zenit(card, source_player, target_player, context):
         return False
     from engine.effects import EffectEngine
 
-    prefer_zone = "horizont" if has_zone(card, "horizont") or not has_zone(card, "zenit") else "zenit"
-    cel = EffectEngine._select_enemy_target(target_player, prefer_zone, prefer_zone)
+    cel = _select_target_by_metadata(
+        card,
+        source_player,
+        target_player,
+        keys=("enemy_horizont_entity", "enemy_entity", "opposing_entity"),
+        source=context.get("source_unit") if isinstance(context, dict) else None,
+        lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+    )
+    if cel is None:
+        prefer_zone = "horizont" if has_zone(card, "horizont") or not has_zone(card, "zenit") else "zenit"
+        cel = EffectEngine._select_enemy_target(target_player, prefer_zone, prefer_zone)
     if cel is None:
         return False
     zone_name, index, _ = cel
@@ -423,10 +531,22 @@ def _resolve_move_to_zenit(card, source_player, target_player, context):
 def _resolve_move_to_horizont(card, source_player, target_player, context):
     if not _find_matching_tag(card, "move_to_horizon"):
         return False
+    cel = _select_target_by_metadata(
+        card,
+        source_player,
+        target_player,
+        keys=("enemy_zenit_entity",),
+        source=context.get("source_unit") if isinstance(context, dict) else None,
+        lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+    )
+    if cel is not None:
+        _, index, _ = cel
+        if target_player.horizont[index] is None:
+            return ActionLibrary.move_target_to_horizont(target_player, "zenit", index, card.nev, exhausted=True)
     units = _enemy_units(target_player, "zenit")
     for _, index, unit in units:
         if target_player.horizont[index] is None:
-            return ActionLibrary.move_entity_between_zones(target_player, "zenit", index, "horizont", index, card.nev, exhausted=True)
+            return ActionLibrary.move_target_to_horizont(target_player, "zenit", index, card.nev, exhausted=True)
     return False
 
 
@@ -468,8 +588,27 @@ def _resolve_misc_state(card, source_player, target_player, context):
             naplo.ir(f"Structured effect: {card.nev} -> {unit.lap.nev} a pakli tetejere kerult.")
             did = True
     if _find_matching_tag(card, "return_to_hand"):
-        units = _enemy_units(target_player) if target_player is not None else _allied_units(source_player)
-        cel = _pick_unit(units)
+        source_unit = context.get("source_unit") if isinstance(context, dict) else None
+        cel = _select_target_by_metadata(
+            card,
+            source_player,
+            target_player,
+            keys=(
+                "other_own_entity",
+                "own_horizont_entity",
+                "own_zenit_entity",
+                "own_entity",
+                "enemy_horizont_entity",
+                "enemy_zenit_entity",
+                "enemy_entity",
+                "self",
+            ),
+            source=source_unit,
+            lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+        )
+        if cel is None:
+            units = _enemy_units(target_player) if target_player is not None else _allied_units(source_player)
+            cel = _pick_unit(units)
         if cel is not None:
             did |= ActionLibrary.return_target_to_hand(target_player or source_player, cel[0], cel[1], card.nev)
     if _find_matching_tag(card, "immunity"):
@@ -513,6 +652,7 @@ def resolve_structured_effect(card, source_player, target_player=None, context=N
         lambda: _resolve_exhaust(card, source_player, target_player, context),
         lambda: _resolve_reactivate(card, source_player, context),
         lambda: _resolve_buff(card, source_player, context),
+        lambda: _resolve_grant_keyword(card, source_player, context),
         lambda: _resolve_heal(card, source_player, context),
         lambda: _resolve_position_change(card, source_player, target_player, context),
         lambda: _resolve_combat_control(card, source_player, target_player, context),

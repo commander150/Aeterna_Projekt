@@ -9,6 +9,7 @@ from engine.board_utils import (
 )
 from engine.triggers import trigger_engine
 from utils.logger import naplo
+from utils.text import normalize_lookup_text
 
 
 class ActionLibrary:
@@ -44,6 +45,14 @@ class ActionLibrary:
         if exhausted is not None:
             entity.kimerult = exhausted
         trigger_engine.dispatch("on_position_changed", source=entity.lap, owner=owner, payload={"from": from_zone, "to": to_zone})
+        if from_zone == "zenit" and to_zone == "horizont":
+            trigger_engine.dispatch(
+                "on_move_zenit_to_horizont",
+                source=entity,
+                owner=owner,
+                target=entity,
+                payload={"from": from_zone, "to": to_zone, "index": to_index, "reason": reason},
+            )
         naplo.ir(f"{entity.lap.nev} atkerult {from_zone} -> {to_zone} ({reason})")
         return True
 
@@ -56,6 +65,77 @@ class ActionLibrary:
                 if _is_board_entity(unit):
                     result.append((zone_name, index, unit))
         return result
+
+    @staticmethod
+    def _units_in_zone(player, zone_name):
+        return [
+            (current_zone, index, unit)
+            for current_zone, index, unit in ActionLibrary._all_units(player)
+            if current_zone == zone_name
+        ]
+
+    @staticmethod
+    def targets_for_key(owner, opponent, target_key, source=None, lane_index=None):
+        key = normalize_lookup_text(target_key)
+        source_unit = source if _is_board_entity(source) else None
+
+        if key == "self":
+            return [(None, None, source_unit)] if source_unit is not None else []
+
+        if key == "own_entity":
+            return ActionLibrary._all_units(owner)
+        if key == "other_own_entity":
+            return [item for item in ActionLibrary._all_units(owner) if item[2] is not source_unit]
+        if key == "own_horizont_entity":
+            return ActionLibrary._units_in_zone(owner, "horizont")
+        if key == "own_zenit_entity":
+            return ActionLibrary._units_in_zone(owner, "zenit")
+        if key == "own_entities":
+            return ActionLibrary._all_units(owner)
+        if key == "own_horizont_entities":
+            return ActionLibrary._units_in_zone(owner, "horizont")
+        if key == "own_zenit_entities":
+            return ActionLibrary._units_in_zone(owner, "zenit")
+
+        if key == "enemy_entity":
+            return ActionLibrary._all_units(opponent)
+        if key == "enemy_horizont_entity":
+            return ActionLibrary._units_in_zone(opponent, "horizont")
+        if key == "enemy_zenit_entity":
+            return ActionLibrary._units_in_zone(opponent, "zenit")
+        if key == "enemy_entities":
+            return ActionLibrary._all_units(opponent)
+        if key == "enemy_horizont_entities":
+            return ActionLibrary._units_in_zone(opponent, "horizont")
+        if key == "enemy_zenit_entities":
+            return ActionLibrary._units_in_zone(opponent, "zenit")
+
+        if key == "opposing_entity" and opponent is not None and lane_index is not None:
+            if 0 <= lane_index < len(getattr(opponent, "horizont", [])):
+                front = opponent.horizont[lane_index]
+                if _is_board_entity(front):
+                    return [("horizont", lane_index, front)]
+            if 0 <= lane_index < len(getattr(opponent, "zenit", [])):
+                back = opponent.zenit[lane_index]
+                if _is_board_entity(back):
+                    return [("zenit", lane_index, back)]
+
+        return []
+
+    @staticmethod
+    def select_target_for_key(owner, opponent, target_key, source=None, lane_index=None, weakest=False):
+        targets = ActionLibrary.targets_for_key(
+            owner,
+            opponent,
+            target_key,
+            source=source,
+            lane_index=lane_index,
+        )
+        if not targets:
+            return None
+        if weakest:
+            return min(targets, key=lambda item: (item[2].akt_hp, item[2].akt_tamadas))
+        return max(targets, key=lambda item: (item[2].akt_tamadas, item[2].akt_hp))
 
     @staticmethod
     def select_target(player, prefer_enemy=True, exhausted_only=False, weakest=False):
@@ -72,6 +152,30 @@ class ActionLibrary:
     def exhaust_target(target, reason):
         target.kimerult = True
         naplo.ir(f"{target.lap.nev} kimerult ({reason})")
+        return True
+
+    @staticmethod
+    def grant_keyword(target, keyword, temporary=False):
+        attr = "temp_granted_keywords" if temporary else "granted_keywords"
+        values = set(getattr(target, attr, set()) or set())
+        values.add(normalize_lookup_text(keyword))
+        setattr(target, attr, values)
+        return True
+
+    @staticmethod
+    def ready_unit(target, reason="", owner=None, source=None):
+        was_exhausted = bool(getattr(target, "kimerult", False))
+        target.kimerult = False
+        if was_exhausted:
+            trigger_engine.dispatch(
+                "on_ready_from_exhausted",
+                source=source or target,
+                owner=owner or getattr(target, "owner", None),
+                target=target,
+                payload={"reason": reason},
+            )
+        if reason:
+            naplo.ir(f"{target.lap.nev} ujra aktivalodott ({reason})")
         return True
 
     @staticmethod
@@ -118,6 +222,20 @@ class ActionLibrary:
         trigger_engine.dispatch("on_position_changed", source=front.lap, owner=owner, payload={"from": "horizont", "to": "zenit"})
         naplo.ir(f"{front.lap.nev} a Zenitbe kerult ({reason})")
         return True
+
+    @staticmethod
+    def move_target_to_horizont(owner, zone_name, index, reason, exhausted=True):
+        if zone_name != "zenit":
+            return False
+        return ActionLibrary.move_entity_between_zones(
+            owner,
+            "zenit",
+            index,
+            "horizont",
+            index,
+            reason,
+            exhausted=exhausted,
+        )
 
     @staticmethod
     def revive_from_graveyard(owner, predicate, to_hand=True, reason="revive"):
