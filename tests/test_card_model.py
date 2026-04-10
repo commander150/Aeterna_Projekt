@@ -53,10 +53,10 @@ class TestKartyaModel(unittest.TestCase):
             "kepesseg_canonical": "target allied entity gains +2 atk until end of turn",
             "zona_felismerve": "horizont, zenit",
             "kulcsszavak_felismerve": "Burst, Clarion",
-            "trigger_felismerve": "on_play, on_spell_targeted",
+            "trigger_felismerve": "on_spell_targeted, on_destroyed",
             "celpont_felismerve": "own_entity, enemy_spell",
-            "hatascimkek": "atk_buff, damage",
-            "idotartam_felismerve": "kor_vegeig",
+            "hatascimkek": "grant_attack, damage",
+            "idotartam_felismerve": "until_end_of_turn",
             "feltetel_felismerve": "none",
             "gepi_leiras": "Simple buff spell",
             "ertelmezesi_statusz": "structured",
@@ -68,10 +68,10 @@ class TestKartyaModel(unittest.TestCase):
         self.assertEqual(card.canonical_text, "target allied entity gains +2 atk until end of turn")
         self.assertEqual(card.zones_normalized, ["horizont", "zenit"])
         self.assertEqual(card.keywords_normalized, ["burst", "clarion"])
-        self.assertEqual(card.triggers_normalized, ["on_play", "on_enemy_spell_target"])
+        self.assertEqual(card.triggers_normalized, ["on_enemy_spell_target", "on_death"])
         self.assertEqual(card.targets_normalized, ["own_entity", "enemy_spell"])
-        self.assertEqual(card.effect_tags_normalized, ["grant_attack", "damage"])
-        self.assertEqual(card.durations_normalized, ["until_end_of_turn"])
+        self.assertEqual(card.effect_tags_normalized, ["atk_mod", "damage"])
+        self.assertEqual(card.durations_normalized, ["until_turn_end"])
         self.assertEqual(card.machine_description, "Simple buff spell")
         self.assertEqual(card.engine_notes, "teszt")
 
@@ -92,7 +92,7 @@ class TestKartyaModel(unittest.TestCase):
                 "kepesseg_canonical": "blank",
                 "zona_felismerve": "horizont; zenit | blank",
                 "kulcsszavak_felismerve": "Burst, Clarion",
-                "trigger_felismerve": "on_play; none",
+                "trigger_felismerve": "on_destroyed; none",
                 "celpont_felismerve": "own_entity, blank",
                 "hatascimkek": "damage; draw",
                 "idotartam_felismerve": "none",
@@ -109,6 +109,8 @@ class TestKartyaModel(unittest.TestCase):
         self.assertEqual(row["eletero"], 0)
         self.assertEqual(row["zona_felismerve"], "horizont, zenit")
         self.assertEqual(row["kulcsszavak_felismerve"], "burst, clarion")
+        self.assertEqual(row["trigger_felismerve"], "on_death")
+        self.assertEqual(row["idotartam_felismerve"], "")
 
     def test_loader_validation_flags_missing_required_fields(self):
         issues = validate_row_mapping(
@@ -161,7 +163,7 @@ class TestKartyaModel(unittest.TestCase):
                 "kepesseg_canonical": "",
                 "zona_felismerve": "horizont, valami",
                 "kulcsszavak_felismerve": "burst, valami",
-                "trigger_felismerve": "on_play, valami",
+                "trigger_felismerve": "on_destroyed, valami",
                 "celpont_felismerve": "enemy_entity, rossz",
                 "hatascimkek": "damage, rossz",
                 "idotartam_felismerve": "rossz",
@@ -174,9 +176,44 @@ class TestKartyaModel(unittest.TestCase):
             sheet_name="Teszt",
         )
 
-        self.assertTrue(any("ismeretlen_ertek:zona_felismerve:valami" in issue for issue in issues))
-        self.assertTrue(any("ismeretlen_ertek:kulcsszavak_felismerve:valami" in issue for issue in issues))
-        self.assertTrue(any("ismeretlen_ertek:hatascimkek:rossz" in issue for issue in issues))
+        self.assertTrue(any("unknown_enum_value:zona_felismerve:valami" in issue for issue in issues))
+        self.assertTrue(any("unknown_enum_value:kulcsszavak_felismerve:valami" in issue for issue in issues))
+        self.assertTrue(any("unknown_enum_value:hatascimkek:rossz" in issue for issue in issues))
+
+    def test_loader_validation_distinguishes_alias_from_legacy_internal(self):
+        issues = validate_row_mapping(
+            {
+                "kartya_nev": "Teszt",
+                "kartyatipus": "Ige",
+                "birodalom": "Ignis",
+                "klan": "",
+                "faj": "",
+                "kaszt": "",
+                "magnitudo": 1,
+                "aura_koltseg": 1,
+                "tamadas": 0,
+                "eletero": 0,
+                "kepesseg": "Teszt",
+                "kepesseg_canonical": "",
+                "zona_felismerve": "pecset",
+                "kulcsszavak_felismerve": "burst",
+                "trigger_felismerve": "on_destroyed, on_play",
+                "celpont_felismerve": "enemy_entity",
+                "hatascimkek": "grant_attack, damage",
+                "idotartam_felismerve": "until_end_of_turn",
+                "feltetel_felismerve": "",
+                "gepi_leiras": "",
+                "ertelmezesi_statusz": "",
+                "engine_megjegyzes": "",
+            },
+            row_index=4,
+            sheet_name="Teszt",
+        )
+
+        self.assertTrue(any("alias_normalizable:zona_felismerve:pecset->seal_row" in issue for issue in issues))
+        self.assertTrue(any("legacy_internal_value:trigger_felismerve:on_play" in issue for issue in issues))
+        self.assertTrue(any("alias_normalizable:hatascimkek:grant_attack->atk_mod" in issue for issue in issues))
+        self.assertTrue(any("alias_normalizable:idotartam_felismerve:until_end_of_turn->until_turn_end" in issue for issue in issues))
 
 
 if __name__ == "__main__":

@@ -100,11 +100,11 @@ class TestStructuredEffects(unittest.TestCase):
             {
                 "kartya_nev": "Alias Teszt",
                 "kartyatipus": "Entitas",
-                "trigger_felismerve": "on_manifest_phase; on_death",
+                "trigger_felismerve": "on_spell_targeted; on_destroyed",
             }
         )
 
-        self.assertTrue(has_trigger(card, "on_manifestation_phase"))
+        self.assertTrue(has_trigger(card, "on_enemy_spell_target"))
         self.assertTrue(has_trigger(card, "on_destroyed"))
 
     def test_structured_damage_hits_enemy_unit(self):

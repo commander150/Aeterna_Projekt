@@ -1,8 +1,20 @@
 import os
 from openpyxl import load_workbook
 from engine.card_metadata import (
+    DURATION_ALIASES,
+    EFFECT_TAG_ALIASES,
+    LEGACY_INTERNAL_VALUES,
+    STANDARD_FIELD_VALUES,
+    TARGET_ALIASES,
+    TRIGGER_ALIASES,
+    ZONE_ALIASES,
     normalize_condition_value,
+    normalize_duration_value,
+    normalize_effect_tag_value,
     normalize_status_value,
+    normalize_target_value,
+    normalize_trigger_value,
+    normalize_zone_value,
     normalized_metadata_list,
 )
 from utils.text import normalize_lookup_text
@@ -86,47 +98,42 @@ REQUIRED_TEXT_FIELDS = {
     "kepesseg",
 }
 
-ALLOWED_ZONES = {
-    "horizont", "zenit", "dominium", "graveyard", "hand", "deck", "source", "seal_row", "aeternal", "lane",
+ALLOWED_ZONES = set(STANDARD_FIELD_VALUES["zone"])
+ALLOWED_KEYWORDS = set(STANDARD_FIELD_VALUES["keyword"])
+ALLOWED_TRIGGERS = set(STANDARD_FIELD_VALUES["trigger"])
+ALLOWED_TARGETS = set(STANDARD_FIELD_VALUES["target"])
+ALLOWED_EFFECT_TAGS = set(STANDARD_FIELD_VALUES["effect_tag"])
+ALLOWED_DURATIONS = set(STANDARD_FIELD_VALUES["duration"])
+
+FIELD_NORMALIZERS = {
+    "zona_felismerve": normalize_zone_value,
+    "trigger_felismerve": normalize_trigger_value,
+    "celpont_felismerve": normalize_target_value,
+    "hatascimkek": normalize_effect_tag_value,
+    "idotartam_felismerve": normalize_duration_value,
 }
 
-ALLOWED_KEYWORDS = {
-    "aegis", "bane", "burst", "celerity", "clarion", "echo", "ethereal", "harmonize", "resonance", "sundering", "taunt",
+FIELD_ALIASES = {
+    "zona_felismerve": ZONE_ALIASES,
+    "trigger_felismerve": TRIGGER_ALIASES,
+    "celpont_felismerve": TARGET_ALIASES,
+    "hatascimkek": EFFECT_TAG_ALIASES,
+    "idotartam_felismerve": DURATION_ALIASES,
 }
 
-ALLOWED_TRIGGERS = {
-    "static", "on_play", "on_summon", "on_enemy_summon", "on_enemy_zenit_summon", "on_death", "on_destroyed",
-    "on_attack_declared", "on_attack_hits", "on_combat_damage_dealt", "on_combat_damage_taken",
-    "on_block_survived", "on_damage_survived", "on_enemy_spell_target", "on_enemy_spell_or_ritual_played",
-    "on_enemy_spell_played", "on_spell_targeted",
-    "on_enemy_extra_draw", "on_enemy_third_draw_in_turn", "on_turn_end", "on_next_own_awakening",
-    "on_influx_phase", "on_heal", "on_enemy_ability_activated", "on_enemy_multiple_draws",
-    "on_enemy_horizont_threshold", "on_move_zenit_to_horizont", "on_leave_board", "on_spell_cast_by_owner",
-    "on_position_swap", "on_entity_enters_horizont", "on_source_placement", "on_seal_break", "on_bounce",
-    "on_trap_triggered", "on_ready_from_exhausted", "on_stat_gain", "on_gain_keyword", "on_discard",
-    "on_enemy_card_played", "on_enemy_second_summon_in_turn", "on_start_of_turn",
-    "on_manifestation_phase", "on_awakening_phase",
+FIELD_STANDARD_VALUES = {
+    "zona_felismerve": ALLOWED_ZONES,
+    "kulcsszavak_felismerve": ALLOWED_KEYWORDS,
+    "trigger_felismerve": ALLOWED_TRIGGERS,
+    "celpont_felismerve": ALLOWED_TARGETS,
+    "hatascimkek": ALLOWED_EFFECT_TAGS,
+    "idotartam_felismerve": ALLOWED_DURATIONS,
 }
 
-ALLOWED_TARGETS = {
-    "self", "own_entity", "other_own_entity", "enemy_entity", "own_horizont_entity", "enemy_horizont_entity",
-    "own_zenit_entity", "enemy_zenit_entity", "own_entities", "enemy_entities", "own_horizont_entities",
-    "enemy_horizont_entities", "own_zenit_entities", "enemy_zenit_entities", "own_seal", "enemy_seal",
-    "own_seals", "enemy_seals", "own_aeternal", "enemy_aeternal", "own_hand", "enemy_hand", "own_deck",
-    "own_graveyard_entity", "enemy_spell", "enemy_spell_or_ritual", "enemy_hand_card", "enemy_face_down_trap",
-    "own_face_down_trap", "own_graveyard", "opponent", "lane", "source_card", "own_source_card",
-    "enemy_source_card", "opposing_entity",
-}
-
-ALLOWED_EFFECT_TAGS = {
-    "damage", "deal_damage", "heal", "draw", "discard", "destroy", "return_to_hand", "seal_damage",
-    "move_horizont", "move_zenit", "exhaust", "grant_keyword", "cost_mod", "graveyard_recursion",
-    "damage_prevention", "attack_restrict", "block_restrict", "once_per_turn", "grant_attack",
-    "grant_temp_attack", "grant_hp", "grant_max_hp", "swap_position", "reactivate", "immunity",
-}
-
-ALLOWED_DURATIONS = {
-    "until_end_of_turn", "until_end_of_next_own_turn", "until_end_of_combat", "permanent", "static", "instant",
+FIELD_LEGACY_VALUES = {
+    "trigger_felismerve": LEGACY_INTERNAL_VALUES["trigger"],
+    "hatascimkek": LEGACY_INTERNAL_VALUES["effect_tag"],
+    "idotartam_felismerve": LEGACY_INTERNAL_VALUES["duration"],
 }
 
 
@@ -195,6 +202,30 @@ def _split_normalized_csv(value):
     return [item.strip() for item in str(value).split(",") if item.strip()]
 
 
+def classify_enum_token(field_name, token):
+    normalized = normalize_lookup_text(token)
+    allowed = FIELD_STANDARD_VALUES.get(field_name, set())
+    if normalized in allowed:
+        return ("standard", normalized)
+
+    alias_map = FIELD_ALIASES.get(field_name, {})
+    canonical = alias_map.get(normalized)
+    if canonical in allowed:
+        return ("alias_normalizable", canonical)
+
+    if normalized in FIELD_LEGACY_VALUES.get(field_name, set()):
+        canonical = FIELD_NORMALIZERS.get(field_name, lambda value: normalized)(normalized)
+        return ("legacy_internal", canonical if canonical in allowed else "")
+
+    if " " in str(token).strip():
+        canonical = FIELD_NORMALIZERS.get(field_name, lambda value: normalized)(normalized)
+        if canonical in allowed:
+            return ("alias_normalizable", canonical)
+        return ("invalid_delimiter_or_format", "")
+
+    return ("unknown_enum_value", "")
+
+
 def normalize_row_mapping(mapping):
     normalized = {}
     for field_name in STANDARD_COLUMN_ORDER:
@@ -217,25 +248,37 @@ def validate_row_mapping(mapping, row_index=None, sheet_name=None):
     if mapping.get("kartyatipus") and normalize_lookup_text(mapping["kartyatipus"]) == "entitas":
         if int(mapping.get("eletero", 0) or 0) <= 0:
             issues.append("entitas_hp_hianyzik")
-    enum_checks = (
-        ("zona_felismerve", ALLOWED_ZONES),
-        ("kulcsszavak_felismerve", ALLOWED_KEYWORDS),
-        ("trigger_felismerve", ALLOWED_TRIGGERS),
-        ("celpont_felismerve", ALLOWED_TARGETS),
-        ("hatascimkek", ALLOWED_EFFECT_TAGS),
-        ("idotartam_felismerve", ALLOWED_DURATIONS),
+    enum_fields = (
+        "zona_felismerve",
+        "kulcsszavak_felismerve",
+        "trigger_felismerve",
+        "celpont_felismerve",
+        "hatascimkek",
+        "idotartam_felismerve",
     )
-    for field_name, allowed in enum_checks:
+    for field_name in enum_fields:
         for token in _split_normalized_csv(mapping.get(field_name, "")):
-            if normalize_lookup_text(token) not in allowed:
-                issues.append(f"ismeretlen_ertek:{field_name}:{token}")
+            issue_type, canonical = classify_enum_token(field_name, token)
+            if issue_type == "standard":
+                continue
+            if issue_type == "alias_normalizable":
+                issues.append(f"alias_normalizable:{field_name}:{token}->{canonical}")
+            elif issue_type == "legacy_internal":
+                if canonical:
+                    issues.append(f"legacy_internal_value:{field_name}:{token}->{canonical}")
+                else:
+                    issues.append(f"legacy_internal_value:{field_name}:{token}")
+            elif issue_type == "invalid_delimiter_or_format":
+                issues.append(f"invalid_delimiter_or_format:{field_name}:{token}")
+            else:
+                issues.append(f"unknown_enum_value:{field_name}:{token}")
     if normalize_lookup_text(mapping.get("kartyatipus", "")) == "entitas":
         suspicious_targets = {"enemy_spell", "enemy_spell_or_ritual", "own_hand", "enemy_hand"}
         for token in _split_normalized_csv(mapping.get("celpont_felismerve", "")):
             if normalize_lookup_text(token) in suspicious_targets:
-                issues.append(f"gyanus_target_tipus_kombinacio:{token}")
+                issues.append(f"suspicious_field_combination:gyanus_target_tipus_kombinacio:{token}")
     if mapping.get("idotartam_felismerve") and not mapping.get("hatascimkek"):
-        issues.append("idotartam_hatascimke_nelkul")
+        issues.append("suspicious_field_combination:idotartam_hatascimke_nelkul")
     prefix = []
     if sheet_name:
         prefix.append(f"sheet={sheet_name}")

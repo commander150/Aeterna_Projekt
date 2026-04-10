@@ -6,16 +6,10 @@ from utils.text import normalize_lookup_text, repair_mojibake
 STANDARD_EMPTY_VALUES = {"", "blank", "none", "-", "n/a"}
 
 TRIGGER_ALIASES = {
-    "on_manifest_phase": "on_manifestation_phase",
-    "on_death": "on_destroyed",
-    "death": "on_destroyed",
-    "on_enemy_spell_played": "on_enemy_spell_played",
-    "on_enemy_summon": "on_enemy_summon",
-    "on_breach_phase": "on_breach_phase",
-    "on_combat_phase_start": "on_combat_phase_start",
-    "on_combat_damage_dealt": "on_combat_damage_dealt",
-    "on_first_combat_survived": "on_first_combat_survived",
+    "death": "on_death",
+    "on_destroyed": "on_death",
     "on_spell_targeted": "on_enemy_spell_target",
+    "on_ready": "on_ready_from_exhausted",
 }
 
 ZONE_ALIASES = {
@@ -48,6 +42,7 @@ TARGET_ALIASES = {
 
 EFFECT_TAG_ALIASES = {
     "sebzes": "damage",
+    "deal_damage": "damage",
     "pecsetsebzes": "seal_damage",
     "laphuzas": "draw",
     "huzas": "draw",
@@ -57,12 +52,17 @@ EFFECT_TAG_ALIASES = {
     "visszavetelkezbe": "return_to_hand",
     "kezbe_vetel": "return_to_hand",
     "mozgatas_horizontra": "move_horizont",
+    "move_to_horizon": "move_horizont",
+    "move_to_horizont": "move_horizont",
     "mozgatas_zenitbe": "move_zenit",
-    "poziciocsere": "swap_position",
-    "atk_buff": "grant_attack",
-    "atk_mod": "grant_attack",
-    "hp_buff": "grant_hp",
-    "hp_mod": "grant_hp",
+    "move_to_zenit": "move_zenit",
+    "poziciocsere": "choice",
+    "atk_buff": "atk_mod",
+    "grant_attack": "atk_mod",
+    "grant_temp_attack": "atk_mod",
+    "hp_buff": "hp_mod",
+    "grant_hp": "hp_mod",
+    "grant_max_hp": "hp_mod",
     "keyword_adas": "grant_keyword",
     "kulcsszoadas": "grant_keyword",
     "aura_modositas": "cost_mod",
@@ -70,34 +70,38 @@ EFFECT_TAG_ALIASES = {
     "tamadastiltas": "attack_restrict",
     "blokktiltas": "block_restrict",
     "sebzessemlegesites": "damage_prevention",
-    "summon_token": "summon",
-    "counterspell": "counterspell",
     "stat_protection": "damage_prevention",
-    "damage_immunity": "damage_prevention",
-    "ready": "reactivate",
+    "reactivate": "ready",
+    "return_to_deck_bottom": "deck_bottom",
+    "reflect_damage": "damage_bonus",
+    "retaliation_damage": "damage_bonus",
 }
 
 DURATION_ALIASES = {
-    "kor_vegeig": "until_end_of_turn",
-    "a_kor_vegeig": "until_end_of_turn",
-    "until_end_of_turn": "until_end_of_turn",
-    "until_turn_end": "until_end_of_turn",
-    "kovetkezo_kor_vegeig": "until_end_of_next_own_turn",
-    "until_end_of_next_turn": "until_end_of_next_own_turn",
-    "until_next_own_turn_end": "until_end_of_next_own_turn",
-    "harc_vegeig": "until_end_of_combat",
-    "harc_idejere": "until_end_of_combat",
-    "until_end_of_combat": "until_end_of_combat",
-    "during_combat": "until_end_of_combat",
-    "allando": "permanent",
-    "permanent": "permanent",
-    "until_match_end": "permanent",
-    "statikus": "static",
-    "static": "static",
-    "static_while_on_board": "static",
-    "while_active": "static",
+    "kor_vegeig": "until_turn_end",
+    "a_kor_vegeig": "until_turn_end",
+    "until_end_of_turn": "until_turn_end",
+    "until_turn_end": "until_turn_end",
+    "kovetkezo_kor_vegeig": "until_next_own_turn_end",
+    "until_end_of_next_turn": "until_next_own_turn_end",
+    "until_end_of_next_own_turn": "until_next_own_turn_end",
+    "until_next_own_turn_end": "until_next_own_turn_end",
+    "harc_vegeig": "during_combat",
+    "harc_idejere": "during_combat",
+    "until_end_of_combat": "during_combat",
+    "during_combat": "during_combat",
+    "allando": "until_match_end",
+    "permanent": "until_match_end",
+    "until_match_end": "until_match_end",
+    "statikus": "static_while_on_board",
+    "static": "static_while_on_board",
+    "static_while_on_board": "static_while_on_board",
+    "while_active": "while_active",
     "azonnali": "instant",
     "instant": "instant",
+    "next_own_awakening": "next_own_awakening",
+    "next_own_turn_start": "next_own_turn_start",
+    "until_next_enemy_turn": "until_next_enemy_turn",
 }
 
 CONDITION_ALIASES = {
@@ -113,6 +117,56 @@ STATUS_ALIASES = {
     "structured_partial": "structured_partial",
     "fallback_text_resolved": "fallback_text_resolved",
     "runtime_supported": "runtime_supported",
+}
+
+STANDARD_FIELD_VALUES = {
+    "zone": {
+        "horizont", "zenit", "dominium", "graveyard", "hand", "deck", "source", "seal_row", "aeternal", "lane", "blank",
+    },
+    "keyword": {
+        "aegis", "bane", "burst", "celerity", "clarion", "echo", "ethereal", "harmonize", "resonance", "sundering", "taunt", "blank",
+    },
+    "trigger": {
+        "static", "on_summon", "on_death", "on_attack_declared", "on_attack_hits", "on_combat_damage_dealt",
+        "on_combat_damage_taken", "on_block_survived", "on_damage_survived", "on_enemy_spell_target",
+        "on_enemy_spell_or_ritual_played", "on_enemy_summon", "on_enemy_zenit_summon", "on_enemy_extra_draw",
+        "on_enemy_third_draw_in_turn", "on_turn_end", "on_next_own_awakening", "on_influx_phase", "on_heal",
+        "on_enemy_ability_activated", "on_enemy_multiple_draws", "on_enemy_horizont_threshold",
+        "on_move_zenit_to_horizont", "on_leave_board", "on_spell_cast_by_owner", "on_position_swap",
+        "on_entity_enters_horizont", "on_source_placement", "on_seal_break", "on_bounce", "on_trap_triggered",
+        "on_ready_from_exhausted", "on_stat_gain", "on_gain_keyword", "on_destroy", "on_discard",
+        "on_enemy_card_played", "on_enemy_second_summon_in_turn", "on_start_of_turn", "blank",
+    },
+    "target": {
+        "self", "own_entity", "other_own_entity", "enemy_entity", "own_horizont_entity", "enemy_horizont_entity",
+        "own_zenit_entity", "enemy_zenit_entity", "own_entities", "enemy_entities", "own_horizont_entities",
+        "enemy_horizont_entities", "own_zenit_entities", "enemy_zenit_entities", "own_seal", "enemy_seal",
+        "own_seals", "enemy_seals", "own_aeternal", "enemy_aeternal", "own_hand", "enemy_hand", "own_deck",
+        "own_graveyard_entity", "enemy_spell", "enemy_spell_or_ritual", "enemy_hand_card", "enemy_face_down_trap",
+        "own_face_down_trap", "own_graveyard", "opponent", "lane", "source_card", "own_source_card",
+        "enemy_source_card", "opposing_entity", "blank",
+    },
+    "effect_tag": {
+        "damage", "seal_damage", "draw", "heal", "reveal", "atk_mod", "hp_mod", "exhaust", "summon", "destroy",
+        "discard", "counterspell", "redirect", "cost_mod", "resource_gain", "resource_drain", "resource_acceleration",
+        "resource_spend", "move_horizont", "move_zenit", "graveyard_recursion", "graveyard_replacement",
+        "grant_keyword", "type_change", "stat_reset", "trap_immunity", "damage_immunity", "damage_bonus",
+        "damage_prevention", "overflow_damage", "stat_protection", "sacrifice", "free_cast", "tutor",
+        "untargetable", "return_to_hand", "summon_token", "attack_restrict", "summon_restrict", "block_restrict",
+        "control_change", "ready", "return_to_deck", "deck_bottom", "move_to_source", "source_manipulation",
+        "cleanse", "copy_stats", "copy_keywords", "position_lock", "attack_nullify", "ability_lock",
+        "random_discard", "choice", "blank",
+    },
+    "duration": {
+        "instant", "during_combat", "until_turn_end", "until_next_own_turn_end", "until_next_enemy_turn",
+        "until_match_end", "static_while_on_board", "while_active", "next_own_awakening", "next_own_turn_start", "blank",
+    },
+}
+
+LEGACY_INTERNAL_VALUES = {
+    "trigger": {"on_play", "on_destroyed", "on_ready", "on_burst", "on_enemy_manifestation_start", "on_graveyard_recursion", "on_infusion_phase", "on_lane_filled"},
+    "effect_tag": {"grant_attack", "grant_temp_attack", "grant_hp", "grant_max_hp", "reactivate", "move_to_horizon", "move_to_zenit", "deal_damage", "reflect_damage", "retaliation_damage"},
+    "duration": {"until_end_of_turn", "until_end_of_next_own_turn", "until_end_of_combat", "permanent", "static"},
 }
 
 
