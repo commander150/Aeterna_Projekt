@@ -112,7 +112,12 @@ class EffectEngine:
         if ok:
             naplo.ir(f"☠️ {egyseg.lap.nev} elpusztult ({ok})")
 
-        payload = {"zone": zona_nev, "index": index, "reason": ok}
+        payload = {
+            "zone": zona_nev,
+            "index": index,
+            "reason": ok,
+            "ability_locked": bool(getattr(egyseg, "abilities_locked_until_turn_end", False)),
+        }
         if isinstance(extra_payload, dict):
             payload.update(extra_payload)
 
@@ -316,10 +321,25 @@ class EffectEngine:
 
         if p.magnitudo > len(vedo.osforras):
             vedo.osforras.append({"lap": p, "hasznalt": False})
+            trigger_engine.dispatch(
+                "on_source_placement",
+                source=p,
+                owner=vedo,
+                target=vedo,
+                payload={"from": "seal_row", "to": "osforras", "reason": kartya_nev},
+            )
             naplo.ir(f"✨ {kontextus}: {kartya_nev} + Gondviselés ({p.nev})")
         else:
             vedo.kez.append(p)
             naplo.ir(f"💔 {kontextus}: {kartya_nev} feltört egy Pecsétet ({p.nev})")
+
+        trigger_engine.dispatch(
+            "on_seal_break",
+            source=p,
+            owner=vedo,
+            target=vedo,
+            payload={"seal": p, "source": kartya_nev},
+        )
 
         if p.reakcio_e and not burst_aktivalt:
             naplo.ir("✨ Reakció (Burst) aktiválódik")
@@ -622,6 +642,8 @@ class EffectEngine:
 
         if "kap" not in szoveg and "letrehoz" not in szoveg and "hozzaad" not in szoveg:
             return False
+
+        return ActionLibrary.grant_resource(jatekos, 1, f"{kontextus}: {kartya.nev}") > 0
 
         lap = jatekos.pakli.pop()
         jatekos.osforras.append({"lap": lap, "hasznalt": False})

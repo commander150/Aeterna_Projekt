@@ -89,6 +89,18 @@ class TestKeywordRules(unittest.TestCase):
 
         self.assertEqual(blockers, [normal_blocker])
 
+    def test_taunt_remains_primary_under_ethereal_block_filtering(self):
+        attacker = DummyUnit("LĂ©gies")
+        taunt_non_ethereal = DummyUnit("Taunt")
+        taunt_ethereal = DummyUnit("Taunt LĂ©gies")
+        free_ethereal = DummyUnit("LĂ©gies")
+        defender = SimpleNamespace(horizont=[taunt_non_ethereal, taunt_ethereal, free_ethereal, None, None, None])
+
+        blockers = KeywordEngine.get_blockers(defender)
+        filtered = KeywordEngine.filter_blockers_for_attacker(attacker, blockers)
+
+        self.assertEqual(filtered, [taunt_ethereal])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -242,6 +242,13 @@ class AeternaSzimulacio:
 
         if p.magnitudo > len(vedo.osforras):
             vedo.osforras.append({"lap": p, "hasznalt": False})
+            trigger_engine.dispatch(
+                "on_source_placement",
+                source=p,
+                owner=vedo,
+                target=vedo,
+                payload={"from": "seal_row", "to": "osforras", "reason": forras},
+            )
             if forras:
                 naplo.ir(f"{forras} + Gondviseles")
             else:

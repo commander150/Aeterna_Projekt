@@ -65,6 +65,9 @@ class ActionLibrary:
         entity = source_zone[from_index]
         if not _is_board_entity(entity):
             return False
+        if getattr(entity, "position_lock_awakenings", 0) > 0:
+            naplo.ir(f"{entity.lap.nev} nem valthat poziciot ({reason})")
+            return False
         if target_zone[to_index] is not None:
             return False
 
@@ -217,6 +220,10 @@ class ActionLibrary:
         return max(units, key=lambda item: (item[2].akt_tamadas, item[2].akt_hp))
 
     @staticmethod
+    def abilities_locked(target):
+        return bool(getattr(target, "abilities_locked_until_turn_end", False))
+
+    @staticmethod
     def exhaust_target(target, reason):
         target.kimerult = True
         naplo.ir(f"{target.lap.nev} kimerult ({reason})")
@@ -313,6 +320,12 @@ class ActionLibrary:
                     f"[DEBUG:RETURN_TO_HAND_SKIPPED] {getattr(owner, 'nev', 'ismeretlen')} | {zone_name}[{index}] | tipus={_object_type(unit)} | nev={_object_name(unit)} | reason={reason}"
                 )
             return False
+        from engine.targeting import TargetingEngine
+
+        valid, _ = TargetingEngine.validate(unit, "return_to_hand")
+        if not valid:
+            naplo.ir(f"{unit.lap.nev} nem kuldheto vissza kezbe ({reason})")
+            return False
         owner.kez.append(unit.lap)
         set_zone_slot(owner, zone_name, index, None, f"return_to_hand:{reason}")
         trigger_engine.dispatch("on_position_changed", source=unit.lap, owner=owner, payload={"from": zone_name, "to": "kez"})
@@ -339,11 +352,20 @@ class ActionLibrary:
         front = owner.horizont[index]
         if not _is_board_entity(front):
             return False
+        from engine.targeting import TargetingEngine
+
+        valid, _ = TargetingEngine.validate(front, "spell")
+        if not valid:
+            naplo.ir(f"{front.lap.nev} nem mozgathato a Zenitbe ({reason})")
+            return False
         if getattr(front, "position_lock_awakenings", 0) > 0:
             naplo.ir(f"{front.lap.nev} nem valthat poziciot ({reason})")
             return False
 
         back = owner.zenit[index]
+        if _is_board_entity(back) and getattr(back, "position_lock_awakenings", 0) > 0:
+            naplo.ir(f"{back.lap.nev} nem valthat poziciot ({reason})")
+            return False
         if back is None:
             set_zone_slot(owner, "zenit", index, front, f"move_to_zenit:{reason}")
             set_zone_slot(owner, "horizont", index, None, f"move_to_zenit:{reason}")
@@ -425,6 +447,13 @@ class ActionLibrary:
         item = zone[index]
         if item is None:
             return False
+        from engine.targeting import TargetingEngine
+
+        if _is_board_entity(item):
+            valid, _ = TargetingEngine.validate(item, "spell")
+            if not valid:
+                naplo.ir(f"{item.lap.nev} nem mozgathato pakliba ({reason})")
+                return False
         card = item.lap if _is_board_entity(item) else item
         if zone_name == "osforras":
             zone.pop(index)
@@ -450,6 +479,13 @@ class ActionLibrary:
         item = zone[index]
         if item is None:
             return False
+        from engine.targeting import TargetingEngine
+
+        if _is_board_entity(item):
+            valid, _ = TargetingEngine.validate(item, "spell")
+            if not valid:
+                naplo.ir(f"{item.lap.nev} nem mozgathato osforrasba ({reason})")
+                return False
         card = item.lap if _is_board_entity(item) else item
         if zone_name == "osforras":
             zone.pop(index)

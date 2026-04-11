@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 from engine.actions import ActionLibrary
 from engine.card import CsataEgyseg
 from engine.game import AeternaSzimulacio
+from engine.targeting import TargetingEngine
 
 
 def make_card(name, card_type="Entitas", magnitude=1, aura=1):
@@ -449,6 +450,29 @@ class TestGameFlow(unittest.TestCase):
 
         self.assertIn("on_attack_hits", seen)
 
+    def test_harc_fazis_emits_on_attack_hits_for_blocker_hit(self):
+        sim = object.__new__(AeternaSzimulacio)
+        sim.kor = 1
+        sim._feltor_pecset = lambda vedo, burst=False, *args, **kwargs: (True, burst)
+        sim._ellenoriz_gyoztest = lambda: None
+        sim._jelol_harc_overflowot = lambda tamado, vedo: (None, None)
+        sim._elpusztit_egyseget = lambda *args, **kwargs: False
+
+        attacker_player = make_player("Attacker")
+        defender_player = make_player("Defender")
+        attacker = make_unit("Tamado", atk=3, hp=4, exhausted=False)
+        blocker = make_unit("Blokkolo", atk=1, hp=5, exhausted=False)
+        attacker.owner = attacker_player
+        blocker.owner = defender_player
+        attacker_player.horizont[0] = attacker
+        defender_player.horizont[0] = blocker
+        seen = []
+
+        with patch("engine.game.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            AeternaSzimulacio.harc_fazis(sim, attacker_player, defender_player)
+
+        self.assertIn("on_attack_hits", seen)
+
     def test_heal_unit_emits_on_heal(self):
         owner = make_player("Owner")
         target = make_unit("Serult", hp=5)
@@ -551,6 +575,71 @@ class TestGameFlow(unittest.TestCase):
 
         self.assertTrue(granted)
         self.assertIn("on_gain_keyword", seen)
+
+    def test_return_to_hand_respects_untargetable_enforcement(self):
+        owner = make_player("Owner")
+        target = make_unit("Vedett")
+        target.owner = owner
+        owner.horizont[0] = target
+        ActionLibrary.grant_untargetable(target, "Teszt", owner=owner, source=target)
+
+        returned = ActionLibrary.return_target_to_hand(owner, "horizont", 0, "Teszt")
+
+        self.assertFalse(returned)
+        self.assertIs(owner.horizont[0], target)
+
+    def test_position_lock_blocks_move_to_horizont(self):
+        owner = make_player("Owner")
+        target = make_unit("Hatso")
+        target.owner = owner
+        target.position_lock_awakenings = 1
+        owner.zenit[0] = target
+
+        moved = ActionLibrary.move_target_to_horizont(owner, "zenit", 0, "Teszt", exhausted=True)
+
+        self.assertFalse(moved)
+        self.assertIs(owner.zenit[0], target)
+        self.assertIsNone(owner.horizont[0])
+
+    def test_locked_summon_ability_does_not_apply_priority_effect(self):
+        from cards.priority_handlers import on_summon_priority
+
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        unit = make_unit("Lopakodo Felcser-Dron")
+        unit.owner = owner
+        unit.abilities_locked_until_turn_end = True
+
+        on_summon_priority(SimpleNamespace(source=unit, owner=owner, target=enemy, payload={}))
+
+        self.assertFalse(TargetingEngine.target_state(unit).spell_negate)
+
+    def test_feltor_pecset_emits_on_source_placement_when_guardianship_moves_to_source(self):
+        sim = object.__new__(AeternaSzimulacio)
+        defender = make_player("Defender")
+        seal = make_card("Pecset", card_type="PecsĂ©t", magnitude=3, aura=0)
+        defender.pecsetek = [seal]
+        seen = []
+
+        with patch("engine.game.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            broken, _ = AeternaSzimulacio._feltor_pecset(sim, defender, False, "Teszt")
+
+        self.assertTrue(broken)
+        self.assertIn("on_source_placement", seen)
+
+    def test_direct_seal_damage_emits_on_seal_break(self):
+        from engine.effects import EffectEngine
+
+        caster = make_player("Caster")
+        defender = make_player("Defender")
+        defender.pecsetek = [make_card("Pecset", card_type="PecsĂ©t", magnitude=1, aura=0)]
+        seen = []
+
+        with patch("engine.effects.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            resolved = EffectEngine._deal_direct_seal_damage("Teszt", 1, caster, defender, "Structured")
+
+        self.assertTrue(resolved)
+        self.assertIn("on_seal_break", seen)
 
 
 if __name__ == "__main__":

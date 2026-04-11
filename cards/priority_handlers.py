@@ -100,6 +100,10 @@ def _grant_keyword(unit, keyword, temporary=False):
     ActionLibrary.grant_keyword(unit, keyword, temporary=temporary)
 
 
+def _abilities_available(unit):
+    return not ActionLibrary.abilities_locked(unit)
+
+
 def _unit_has_keyword(unit, keyword):
     normalized = normalize_lookup_text(keyword)
     granted = set(getattr(unit, "granted_keywords", set()) or set())
@@ -1144,6 +1148,8 @@ def on_destroyed(context):
     owner = context.owner
     source = context.source
     if owner is None or source is None:
+        return
+    if context.payload.get("ability_locked"):
         return
     if not getattr(owner, "hulladektelep_aktiv", False):
         pass
@@ -2556,6 +2562,8 @@ def on_summon_priority(context):
     owner = context.owner
     if unit is None or owner is None:
         return
+    if not _abilities_available(unit):
+        return
 
     if _is_named(unit, "Lopakodo Felcser-Dron"):
         state = TargetingEngine.target_state(unit)
@@ -2583,6 +2591,8 @@ def on_spell_targeted_priority(context):
     target = context.target
     owner = context.payload.get("target_owner")
     if target is None or owner is None:
+        return
+    if not _abilities_available(target):
         return
 
     if _is_named(target, "Kod-Alak"):
