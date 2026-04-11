@@ -5,6 +5,7 @@ from engine.board_utils import _is_board_entity, is_zenit_entity
 from engine.card_metadata import has_effect_tag, has_keyword, has_target, has_trigger, has_zone, has_duration
 from engine.keyword_registry import KEYWORD_DEFINITIONS
 from engine.triggers import trigger_engine
+from engine.logging_utils import log_block_reason
 from utils.logger import naplo
 from utils.text import normalize_lookup_text
 
@@ -371,6 +372,7 @@ def _resolve_damage(card, source_player, target_player, context):
             prefer_zone = "zenit"
         cel = EffectEngine._select_enemy_target(target_player, text, prefer_zone)
     if cel is None:
+        log_block_reason("TARGET", f"{card.nev} | structured_damage | no_valid_target")
         naplo.ir(f"Structured effect: {card.nev} -> nincs ervenyes sebzes-celpont.")
         return False
     EffectEngine._deal_damage_to_target(card.nev, amount, cel, target_player, "Structured", source_player)
@@ -393,6 +395,7 @@ def _resolve_destroy(card, source_player, target_player, context):
     if cel is None:
         cel = EffectEngine._select_enemy_target(target_player, normalize_lookup_text(_canonical_text(card)))
     if cel is None:
+        log_block_reason("TARGET", f"{card.nev} | structured_destroy | no_valid_target")
         naplo.ir(f"Structured effect: {card.nev} -> nincs megsemmisitheto celpont.")
         return False
     return EffectEngine._destroy_target(cel, source_player, target_player, "Structured")
@@ -416,6 +419,7 @@ def _resolve_exhaust(card, source_player, target_player, context):
         units = _enemy_units(target_player, prefer_zone)
         cel = _pick_unit(units)
     if cel is None:
+        log_block_reason("TARGET", f"{card.nev} | structured_exhaust | no_valid_target")
         naplo.ir(f"Structured effect: {card.nev} -> nincs kimeritheto celpont.")
         return False
     _, _, unit = cel
@@ -439,6 +443,7 @@ def _resolve_reactivate(card, source_player, context):
         units = [item for item in _allied_units(source_player) if item[2].kimerult]
         cel = _pick_unit(units)
     if cel is None:
+        log_block_reason("TARGET", f"{card.nev} | structured_ready | no_valid_target")
         naplo.ir(f"Structured effect: {card.nev} -> nincs ujraaktiválható celpont.")
         return False
     return ActionLibrary.ready_unit(

@@ -10,6 +10,7 @@ from engine.triggers import trigger_engine
 from stats.analyzer import stats
 from utils.logger import naplo
 from utils.text import normalize_lookup_text
+from engine.logging_utils import log_block_reason
 
 
 def _handled(message=None, partial=False, **extra):
@@ -311,6 +312,7 @@ def handle_vakito_szikra(card, jatekos, ellenfel, **_):
 
     celpontok = [item for item in _enemy_horizon_units(ellenfel) if not item[2].kimerult]
     if not celpontok:
+        log_block_reason("TARGET", "Vakito Szikra | no_active_enemy_horizont_entity")
         return _handled("Vakito Szikra: nem volt aktiv ellenseges Horizont Entitas.", partial=True)
 
     _, _, egyseg = min(celpontok, key=lambda data: (data[2].akt_hp, data[2].akt_tamadas))
@@ -385,6 +387,7 @@ def handle_hamuba_fojtas(card, jatekos, ellenfel, **_):
 
     jeloltek = [data for data in _enemy_zenit_units(ellenfel) if not getattr(data[2], "kimerult", False)]
     if not jeloltek:
+        log_block_reason("TARGET", "Hamuba Fojtas | no_active_enemy_zenit_entity")
         return _handled("Hamuba Fojtas: nem volt aktiv ellenseges Zenit Entitas.", partial=True)
 
     _, _, unit = max(jeloltek, key=lambda data: (data[2].akt_tamadas, data[2].akt_hp))
@@ -1959,6 +1962,7 @@ def handle_pusztito_roham(card, jatekos, **_):
         default=None,
     )
     if cel is None:
+        log_block_reason("TARGET", "Pusztito Roham | no_friendly_hamvaskezu_horizont_entity")
         return _handled("Pusztito Roham: nem volt sajat Hamvaskezu Entitas a Horizonon.", partial=True)
     _, _, unit = cel
     _grant_temp_attack(unit, 3)

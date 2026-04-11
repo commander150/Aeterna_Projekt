@@ -11,6 +11,7 @@ from engine.triggers import trigger_engine
 from stats.analyzer import stats
 from utils.logger import naplo
 from utils.text import normalize_lookup_text
+from engine.logging_utils import log_block_reason
 
 
 class EffectEngine:
@@ -318,6 +319,8 @@ class EffectEngine:
 
         p = vedo.pecsetek.pop()
         stats.feltort_pecsetek += 1
+        if tamado is not None and hasattr(tamado, "jatek") and getattr(tamado.jatek, "log_metrics", None) is not None:
+            tamado.jatek.log_metrics["seal_breaks"] += 1
 
         if p.magnitudo > len(vedo.osforras):
             ActionLibrary.place_card_in_source(vedo, p, "seal_row", kartya_nev)
@@ -464,6 +467,7 @@ class EffectEngine:
 
         cel = EffectEngine._select_enemy_target(ellenfel, szoveg)
         if cel is None:
+            log_block_reason("TARGET", f"{kartya.nev} | destroy | no_valid_target")
             naplo.ir(f"{kontextus}: {kartya.nev} -> Nem volt megsemmisitheto celpont.")
             return False
 
@@ -483,6 +487,7 @@ class EffectEngine:
 
         cel = EffectEngine._select_enemy_target(ellenfel, "strongest")
         if cel is None:
+            log_block_reason("TARGET", f"{kartya.nev} | exhaust | no_valid_target")
             naplo.ir(f"{kontextus}: {kartya.nev} -> Nem volt kimeritheto celpont.")
             return False
 
@@ -548,6 +553,7 @@ class EffectEngine:
         prefer_zone = "horizont" if any(k in szoveg for k in ["horizont", "front", "elso sor"]) else None
         cel = EffectEngine._select_enemy_target(ellenfel, szoveg, prefer_zone)
         if cel is None:
+            log_block_reason("TARGET", f"{kartya.nev} | damage | no_valid_target")
             naplo.ir(f"🔥 {kontextus}: {kartya.nev} -> Nem volt érvényes célpont.")
             return False
 
@@ -582,6 +588,7 @@ class EffectEngine:
 
         cel = EffectEngine._find_matching_ally(jatekos, kartya)
         if cel is None:
+            log_block_reason("TARGET", f"{kartya.nev} | buff | no_friendly_target")
             naplo.ir(f"✨ {kontextus}: {kartya.nev} -> Nincs saját egység a bónuszhoz.")
             return False
 
@@ -611,6 +618,7 @@ class EffectEngine:
 
         cel = EffectEngine._find_matching_ally(jatekos, kartya)
         if cel is None:
+            log_block_reason("TARGET", f"{kartya.nev} | heal | no_friendly_target")
             naplo.ir(f"✨ {kontextus}: {kartya.nev} -> Nem volt gyógyítható saját egység.")
             return False
 
