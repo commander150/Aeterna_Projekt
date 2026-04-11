@@ -1,5 +1,6 @@
 ﻿import unittest
 
+from engine.actions import ActionLibrary
 from engine.card import Kartya, CsataEgyseg
 from engine.card_metadata import has_effect_tag, has_keyword, has_trigger, parse_semicolon_list
 from engine.structured_effects import resolve_structured_effect
@@ -189,6 +190,382 @@ class TestStructuredEffects(unittest.TestCase):
         self.assertTrue(result["resolved"])
         self.assertIsNotNone(enemy.horizont[0])
         self.assertIsNone(enemy.zenit[0])
+
+    def test_structured_grant_keyword_uses_canonical_tag_and_target_selector(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Provokalo Kialtas",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Adj Taunt kulcsszot egy masik sajat Entitasnak a kor vegeig.",
+                "hatascimkek": "grant_keyword",
+                "celpont_felismerve": "other_own_entity",
+                "idotartam_felismerve": "until_turn_end",
+            }
+        )
+        owner = make_player("Caster")
+        source = CsataEgyseg(Kartya({"kartya_nev": "Forras", "kartyatipus": "Entitas", "tamadas": 2, "eletero": 3}))
+        other = CsataEgyseg(Kartya({"kartya_nev": "Cel", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 4}))
+        source.owner = owner
+        other.owner = owner
+        owner.horizont[0] = source
+        owner.horizont[1] = other
+
+        result = resolve_structured_effect(card, owner, None, {"category": "on_play", "source_unit": source})
+
+        self.assertTrue(result["resolved"])
+        self.assertIn("taunt", getattr(other, "temp_granted_keywords", set()))
+        self.assertNotIn("taunt", getattr(source, "temp_granted_keywords", set()))
+
+    def test_structured_ready_uses_canonical_tag(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Ujra Ebredes",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Kesits fel egy sajat Entitast.",
+                "hatascimkek": "ready",
+                "celpont_felismerve": "own_entity",
+            }
+        )
+        owner = make_player("Caster")
+        target = CsataEgyseg(Kartya({"kartya_nev": "Faradt", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2}))
+        target.owner = owner
+        target.kimerult = True
+        owner.horizont[0] = target
+
+        result = resolve_structured_effect(card, owner, None, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(target.kimerult)
+
+    def test_structured_return_to_hand_can_target_own_entity(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Mentolanc",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Vedd vissza egy sajat Horizont Entitasodat a kezedbe.",
+                "hatascimkek": "return_to_hand",
+                "celpont_felismerve": "own_horizont_entity",
+            }
+        )
+        owner = make_player("Caster")
+        target = CsataEgyseg(Kartya({"kartya_nev": "Szovetseg", "kartyatipus": "Entitas", "tamadas": 2, "eletero": 2}))
+        target.owner = owner
+        owner.horizont[0] = target
+
+        result = resolve_structured_effect(card, owner, make_player("Enemy"), {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertIsNone(owner.horizont[0])
+        self.assertEqual(owner.kez[-1].nev, "Szovetseg")
+
+    def test_structured_move_to_horizont_uses_enemy_zenit_selector(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Lehivas",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Mozgasd az ellenseges Zenit Entitast a Horizontra.",
+                "hatascimkek": "move_horizont",
+                "celpont_felismerve": "enemy_zenit_entity",
+            }
+        )
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        target = CsataEgyseg(Kartya({"kartya_nev": "Hatso Vedo", "kartyatipus": "Entitas", "tamadas": 2, "eletero": 3}))
+        target.owner = enemy
+        enemy.zenit[0] = target
+
+        result = resolve_structured_effect(card, owner, enemy, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertIs(enemy.horizont[0], target)
+        self.assertIsNone(enemy.zenit[0])
+        self.assertTrue(target.kimerult)
+
+    def test_structured_damage_uses_opposing_entity_selector(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Soron Tulel",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Okozz 2 sebzest a szemben allo Entitasnak.",
+                "hatascimkek": "damage",
+                "celpont_felismerve": "opposing_entity",
+            }
+        )
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        source = CsataEgyseg(Kartya({"kartya_nev": "Tamado", "kartyatipus": "Entitas", "tamadas": 2, "eletero": 2}))
+        target = CsataEgyseg(Kartya({"kartya_nev": "Vedett", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2}))
+        source.owner = owner
+        target.owner = enemy
+        owner.horizont[1] = source
+        enemy.horizont[1] = target
+
+        result = resolve_structured_effect(card, owner, enemy, {"category": "on_play", "source_unit": source, "lane_index": 1})
+
+        self.assertTrue(result["resolved"])
+        self.assertIsNone(enemy.horizont[1])
+
+    def test_canonical_plural_target_selectors_return_expected_units(self):
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        own_front = CsataEgyseg(Kartya({"kartya_nev": "OwnFront", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2}))
+        own_back = CsataEgyseg(Kartya({"kartya_nev": "OwnBack", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2}))
+        enemy_front = CsataEgyseg(Kartya({"kartya_nev": "EnemyFront", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2}))
+        enemy_back = CsataEgyseg(Kartya({"kartya_nev": "EnemyBack", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2}))
+        owner.horizont[0] = own_front
+        owner.zenit[0] = own_back
+        enemy.horizont[0] = enemy_front
+        enemy.zenit[0] = enemy_back
+
+        self.assertEqual(len(ActionLibrary.targets_for_key(owner, enemy, "own_entities")), 2)
+        self.assertEqual(len(ActionLibrary.targets_for_key(owner, enemy, "enemy_entities")), 2)
+        self.assertEqual(len(ActionLibrary.targets_for_key(owner, enemy, "own_horizont_entities")), 1)
+        self.assertEqual(len(ActionLibrary.targets_for_key(owner, enemy, "enemy_horizont_entities")), 1)
+        self.assertIs(ActionLibrary.targets_for_key(owner, enemy, "own_zenit_entity")[0][2], own_back)
+        self.assertIs(ActionLibrary.targets_for_key(owner, enemy, "own_zenit_entities")[0][2], own_back)
+
+    def test_structured_attack_restrict_uses_enemy_entities_selector(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Tamadastilto Hullam",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Az osszes ellenseges Entitas nem tamadhat ebben a korben.",
+                "hatascimkek": "attack_restrict",
+                "celpont_felismerve": "enemy_entities",
+            }
+        )
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        enemy.horizont[0] = CsataEgyseg(Kartya({"kartya_nev": "A", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2}))
+        enemy.zenit[0] = CsataEgyseg(Kartya({"kartya_nev": "B", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2}))
+
+        result = resolve_structured_effect(card, owner, enemy, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(enemy.horizont[0].cannot_attack_until_turn_end)
+        self.assertTrue(enemy.zenit[0].cannot_attack_until_turn_end)
+
+    def test_structured_block_restrict_uses_own_zenit_entity_selector(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Hatso Zar",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Egy sajat Zenit Entitas nem blokkolhat ebben a korben.",
+                "hatascimkek": "block_restrict",
+                "celpont_felismerve": "own_zenit_entity",
+            }
+        )
+        owner = make_player("Owner")
+        owner.zenit[0] = CsataEgyseg(Kartya({"kartya_nev": "Vedett", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2}))
+
+        result = resolve_structured_effect(card, owner, None, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(owner.zenit[0].cannot_block_until_turn_end)
+
+    def test_structured_graveyard_recursion_summons_entity_from_graveyard(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Siri Visszahivas",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Hozz vissza egy Entitast az Uressegbol a Horizontra.",
+                "hatascimkek": "graveyard_recursion",
+            }
+        )
+        owner = make_player("Owner")
+        fallen = Kartya({"kartya_nev": "Elesett", "kartyatipus": "Entitas", "tamadas": 2, "eletero": 3})
+        owner.temeto.append(fallen)
+
+        result = resolve_structured_effect(card, owner, None, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertIsNotNone(owner.horizont[0])
+        self.assertEqual(owner.horizont[0].lap.nev, "Elesett")
+
+    def test_structured_summon_uses_shared_context_card(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Azonnali Idezes",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Idezz meg egy Entitast a Horizontra.",
+                "hatascimkek": "summon",
+            }
+        )
+        owner = make_player("Owner")
+        summon_card = Kartya({"kartya_nev": "Erkezo", "kartyatipus": "Entitas", "tamadas": 3, "eletero": 2})
+
+        result = resolve_structured_effect(card, owner, None, {"category": "on_play", "summon_card": summon_card, "lane_index": 2, "summon_exhausted": False})
+
+        self.assertTrue(result["resolved"])
+        self.assertIsNotNone(owner.horizont[2])
+        self.assertEqual(owner.horizont[2].lap.nev, "Erkezo")
+        self.assertFalse(owner.horizont[2].kimerult)
+
+    def test_structured_summon_token_uses_shared_helper(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Token Hivas",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Idezz meg 2 tokent a Horizontra.",
+                "hatascimkek": "summon_token",
+            }
+        )
+        owner = make_player("Owner")
+
+        result = resolve_structured_effect(
+            card,
+            owner,
+            None,
+            {"category": "on_play", "token_name": "Goblin Token", "token_atk": 1, "token_hp": 1, "token_race": "Goblin"},
+        )
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(sum(1 for unit in owner.horizont if unit is not None), 2)
+
+    def test_structured_counterspell_marks_context_cancelled(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Semlegesito Jel",
+                "kartyatipus": "Jel",
+                "kepesseg_canonical": "Semlegesits egy Iget.",
+                "hatascimkek": "counterspell",
+            }
+        )
+        owner = make_player("Owner")
+        ctx = {"category": "trap", "spell_card": Kartya({"kartya_nev": "Villam", "kartyatipus": "Ige"})}
+
+        result = resolve_structured_effect(card, owner, make_player("Enemy"), ctx)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(ctx["cancelled_spell"])
+
+    def test_collection_target_selectors_cover_batch_three_targets(self):
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        owner.kez = [Kartya({"kartya_nev": "OwnHandCard", "kartyatipus": "Ige"})]
+        owner.pakli = [Kartya({"kartya_nev": "OwnDeckCard", "kartyatipus": "Ige"})]
+        owner.temeto = [Kartya({"kartya_nev": "OwnDeadUnit", "kartyatipus": "Entitas"})]
+        enemy.kez = [Kartya({"kartya_nev": "EnemyHandCard", "kartyatipus": "Ige"})]
+        enemy_spell = Kartya({"kartya_nev": "EnemySpell", "kartyatipus": "Ige"})
+
+        self.assertEqual(ActionLibrary.targets_for_key(owner, enemy, "own_hand")[0][2].nev, "OwnHandCard")
+        self.assertEqual(ActionLibrary.targets_for_key(owner, enemy, "own_deck")[0][2].nev, "OwnDeckCard")
+        self.assertEqual(ActionLibrary.targets_for_key(owner, enemy, "own_graveyard_entity")[0][2].nev, "OwnDeadUnit")
+        self.assertEqual(ActionLibrary.targets_for_key(owner, enemy, "enemy_hand")[0][2].nev, "EnemyHandCard")
+        self.assertEqual(ActionLibrary.targets_for_key(owner, enemy, "enemy_spell", source=enemy_spell)[0][2].nev, "EnemySpell")
+        self.assertEqual(ActionLibrary.targets_for_key(owner, enemy, "enemy_spell_or_ritual", source=enemy_spell)[0][2].nev, "EnemySpell")
+
+    def test_structured_return_to_deck_moves_own_hand_card_to_top(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Visszakeveres",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Tedd vissza egy sajat kezben levo lapodat a pakli tetejere.",
+                "hatascimkek": "return_to_deck",
+                "celpont_felismerve": "own_hand",
+            }
+        )
+        owner = make_player("Owner")
+        owner.kez = [Kartya({"kartya_nev": "Kezben", "kartyatipus": "Ige"})]
+
+        result = resolve_structured_effect(card, owner, None, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(len(owner.kez), 0)
+        self.assertEqual(owner.pakli[-1].nev, "Kezben")
+
+    def test_structured_deck_bottom_moves_enemy_hand_card_to_bottom(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Aljara Kuldes",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Tedd az ellenfel kezebol egy lapot a pakli aljara.",
+                "hatascimkek": "deck_bottom",
+                "celpont_felismerve": "enemy_hand",
+            }
+        )
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        enemy.kez = [Kartya({"kartya_nev": "Ellenseges Lap", "kartyatipus": "Ige"})]
+
+        result = resolve_structured_effect(card, owner, enemy, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(len(enemy.kez), 0)
+        self.assertEqual(enemy.pakli[0].nev, "Ellenseges Lap")
+
+    def test_structured_move_to_source_uses_own_graveyard_entity(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Forrasba Emeles",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Helyezz egy sajat Entitast az Uressegbol az Osforrasaid koze.",
+                "hatascimkek": "move_to_source",
+                "celpont_felismerve": "own_graveyard_entity",
+            }
+        )
+        owner = make_player("Owner")
+        owner.temeto = [Kartya({"kartya_nev": "Elesett", "kartyatipus": "Entitas"})]
+
+        result = resolve_structured_effect(card, owner, None, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(len(owner.temeto), 0)
+        self.assertEqual(owner.osforras[-1]["lap"].nev, "Elesett")
+
+    def test_structured_resource_gain_uses_shared_helper(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Forrasnyeres",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Kapj 2 osforrast.",
+                "hatascimkek": "resource_gain",
+            }
+        )
+        owner = make_player("Owner")
+        owner.pakli = [
+            Kartya({"kartya_nev": "F1", "kartyatipus": "Ige"}),
+            Kartya({"kartya_nev": "F2", "kartyatipus": "Ige"}),
+        ]
+
+        result = resolve_structured_effect(card, owner, None, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(len(owner.osforras), 2)
+
+    def test_structured_cost_mod_uses_shared_helper(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Olcsositas",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "A kovetkezo Entitasod 2 auraval olcsobb.",
+                "hatascimkek": "cost_mod",
+            }
+        )
+        owner = make_player("Owner")
+
+        result = resolve_structured_effect(card, owner, None, {"category": "on_play", "cost_mod_scope": "entity"})
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(owner.kovetkezo_entitas_kedvezmeny, 2)
+
+    def test_structured_untargetable_uses_shared_helper(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Rejto Fatyol",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Egy sajat Entitas nem celozhato.",
+                "hatascimkek": "untargetable",
+                "celpont_felismerve": "own_entity",
+            }
+        )
+        owner = make_player("Owner")
+        owner.horizont[0] = CsataEgyseg(Kartya({"kartya_nev": "Vedett", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2}))
+
+        result = resolve_structured_effect(card, owner, None, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(owner.horizont[0].targeting_state_override.untargetable)
 
 
 if __name__ == "__main__":

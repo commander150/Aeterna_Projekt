@@ -70,6 +70,25 @@ class TestKeywordRules(unittest.TestCase):
 
         self.assertIn("on_combat_damage_dealt", seen)
 
+    def test_taunt_blockers_are_mandatory(self):
+        taunt_blocker = DummyUnit("Taunt")
+        normal_blocker = DummyUnit("-")
+        defender = SimpleNamespace(horizont=[taunt_blocker, normal_blocker, None, None, None, None])
+
+        blockers = KeywordEngine.get_blockers(defender)
+
+        self.assertEqual(blockers, [taunt_blocker])
+
+    def test_exhausted_taunt_does_not_remain_forced_blocker(self):
+        taunt_blocker = DummyUnit("Taunt")
+        taunt_blocker.kimerult = True
+        normal_blocker = DummyUnit("-")
+        defender = SimpleNamespace(horizont=[taunt_blocker, normal_blocker, None, None, None, None])
+
+        blockers = KeywordEngine.get_blockers(defender)
+
+        self.assertEqual(blockers, [normal_blocker])
+
 
 if __name__ == "__main__":
     unittest.main()

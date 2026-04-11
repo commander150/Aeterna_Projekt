@@ -3,7 +3,7 @@ from __future__ import annotations
 from engine.actions import ActionLibrary
 from engine.board_utils import _is_board_entity, is_zenit_entity
 from engine.card_metadata import has_effect_tag, has_keyword, has_target, has_trigger, has_zone, has_duration
-from engine.keyword_registry import KEYWORD_DEFINITIONS, KeywordRegistry
+from engine.keyword_registry import KEYWORD_DEFINITIONS
 from engine.triggers import trigger_engine
 from utils.logger import naplo
 from utils.text import normalize_lookup_text
@@ -27,6 +27,7 @@ TAG_ALIASES = {
     "destroy": "destroy",
     "kimerites": "exhaust",
     "exhaust": "exhaust",
+    "ready": "ready",
     "visszaallitas": "reactivate",
     "reactivate": "reactivate",
     "atk_buff": "atk_buff",
@@ -37,6 +38,7 @@ TAG_ALIASES = {
     "hp_mod": "hp_buff",
     "grant_hp": "hp_buff",
     "grant_max_hp": "hp_buff",
+    "grant_keyword": "grant_keyword",
     "gyogyitas": "heal",
     "heal": "heal",
     "poziciocsere": "swap_position",
@@ -54,9 +56,18 @@ TAG_ALIASES = {
     "paklitetejere": "put_on_deck_top",
     "visszavetelkezbe": "return_to_hand",
     "return_to_hand": "return_to_hand",
-    "attack_or_block_restrict": "cannot_attack",
-    "attack_restrict": "cannot_attack",
-    "block_restrict": "cannot_attack",
+    "counterspell": "counterspell",
+    "attack_or_block_restrict": "attack_restrict",
+    "attack_restrict": "attack_restrict",
+    "block_restrict": "block_restrict",
+    "graveyard_recursion": "graveyard_recursion",
+    "summon": "summon",
+    "summon_token": "summon_token",
+    "return_to_deck": "return_to_deck",
+    "deck_bottom": "deck_bottom",
+    "move_to_source": "move_to_source",
+    "resource_gain": "resource_gain",
+    "cost_mod": "cost_mod",
     "search_deck": "draw",
     "sacrifice": "destroy",
     "revive": "move_to_horizon",
@@ -90,6 +101,7 @@ PASSIVE_KEYWORDS = {
     "burst",
     "echo",
     "visszhang",
+    "taunt",
 }
 
 PASSIVE_STATUS_HINTS = {
@@ -175,6 +187,19 @@ def _select_target_by_metadata(card, source_player, target_player, *, keys, sour
                 weakest=weakest,
             )
     return None
+
+
+def _select_targets_by_metadata(card, source_player, target_player, *, keys, source=None, lane_index=None):
+    for key in keys:
+        if has_target(card, key):
+            return ActionLibrary.targets_for_key(
+                source_player,
+                target_player,
+                key,
+                source=source,
+                lane_index=lane_index,
+            )
+    return []
 
 
 def _extract_keyword_name(text):
@@ -461,13 +486,20 @@ def _resolve_heal(card, source_player, context):
         return False
     amount = max(1, _extract_number(_canonical_text(card), 1))
     units = _allied_units(source_player)
-    if has_target(card, "osszes_sajat") or has_target(card, "minden_sajat"):
+    multi_targets = _select_targets_by_metadata(
+        card,
+        source_player,
+        None,
+        keys=("own_horizont_entities", "own_zenit_entities", "own_entities"),
+        source=context.get("source_unit") if isinstance(context, dict) else None,
+        lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+    )
+    if multi_targets:
+        units = multi_targets
+    if multi_targets or has_target(card, "osszes_sajat") or has_target(card, "minden_sajat"):
         healed = 0
         for _, _, unit in units:
-            max_hp = getattr(unit.lap, "eletero", 0) + getattr(unit, "bonus_max_hp", 0)
-            before = unit.akt_hp
-            unit.akt_hp = min(max_hp, unit.akt_hp + amount)
-            healed += max(0, unit.akt_hp - before)
+            healed += ActionLibrary.heal_unit(unit, amount, f"Structured: {card.nev}", owner=source_player, source=context.get("source_unit") if isinstance(context, dict) else None)
         if healed > 0:
             naplo.ir(f"Structured effect: {card.nev} -> osszesen {healed} HP gyogyitas.")
             return True
@@ -477,11 +509,9 @@ def _resolve_heal(card, source_player, context):
     if cel is None:
         return False
     _, _, unit = cel
-    max_hp = getattr(unit.lap, "eletero", 0) + getattr(unit, "bonus_max_hp", 0)
-    before = unit.akt_hp
-    unit.akt_hp = min(max_hp, unit.akt_hp + amount)
-    if unit.akt_hp > before:
-        naplo.ir(f"Structured effect: {card.nev} -> {unit.lap.nev} gyogyult {unit.akt_hp - before} HP-t.")
+    healed = ActionLibrary.heal_unit(unit, amount, f"Structured: {card.nev}", owner=source_player, source=context.get("source_unit") if isinstance(context, dict) else None)
+    if healed > 0:
+        naplo.ir(f"Structured effect: {card.nev} -> {unit.lap.nev} gyogyult {healed} HP-t.")
         return True
     return False
 
@@ -501,6 +531,13 @@ def _resolve_swap(card, source_player, target_player, context):
         target_player.horizont[index], target_player.zenit[index] = back, front
         trigger_engine.dispatch("on_position_changed", source=front.lap, owner=target_player, payload={"from": "horizont", "to": "zenit"})
         trigger_engine.dispatch("on_position_changed", source=back.lap, owner=target_player, payload={"from": "zenit", "to": "horizont"})
+        trigger_engine.dispatch(
+            "on_position_swap",
+            source=front,
+            owner=target_player,
+            target=back,
+            payload={"index": index, "reason": card.nev},
+        )
         naplo.ir(f"Structured effect: {card.nev} -> poziciocsere tortent a {index + 1}. aramlatban.")
         return True
     return False
@@ -564,20 +601,57 @@ def _resolve_position_change(card, source_player, target_player, context):
 def _resolve_combat_control(card, source_player, target_player, context):
     did = False
     attacker = context.get("tamado_egyseg") if isinstance(context, dict) else None
+    source_unit = context.get("source_unit") if isinstance(context, dict) else None
     if _find_matching_tag(card, "cancel_attack") and attacker is not None:
         naplo.ir(f"Structured effect: {card.nev} -> tamadas semlegesitve.")
         did = True
     if _find_matching_tag(card, "no_ready") and attacker is not None:
         attacker.extra_exhausted_turns = getattr(attacker, "extra_exhausted_turns", 0) + 1
         did = True
-    if _find_matching_tag(card, "cannot_attack") and attacker is not None:
-        attacker.cannot_attack_until_turn_end = True
-        did = True
+    restrict_targets = _select_targets_by_metadata(
+        card,
+        source_player,
+        target_player,
+        keys=(
+            "enemy_horizont_entities",
+            "enemy_entities",
+            "enemy_horizont_entity",
+            "enemy_entity",
+            "own_horizont_entities",
+            "own_zenit_entities",
+            "own_entities",
+            "own_horizont_entity",
+            "own_zenit_entity",
+            "own_entity",
+            "self",
+        ),
+        source=source_unit,
+        lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+    )
+    if not restrict_targets and attacker is not None:
+        restrict_targets = [(None, None, attacker)]
+    if _find_matching_tag(card, "attack_restrict"):
+        for _, _, unit in restrict_targets:
+            did |= ActionLibrary.restrict_attack(unit, f"Structured: {card.nev}")
+    if _find_matching_tag(card, "block_restrict"):
+        for _, _, unit in restrict_targets:
+            did |= ActionLibrary.restrict_block(unit, f"Structured: {card.nev}")
     return did
 
 
 def _resolve_misc_state(card, source_player, target_player, context):
     did = False
+    spell_target = _select_target_by_metadata(
+        card,
+        source_player,
+        target_player,
+        keys=("enemy_spell_or_ritual", "enemy_spell"),
+        source=context.get("spell_card") if isinstance(context, dict) else None,
+    )
+    if _find_matching_tag(card, "counterspell") and (spell_target is not None or context.get("spell_card") is not None):
+        context["cancelled_spell"] = True
+        naplo.ir(f"Structured effect: {card.nev} -> varazslat semlegesitve.")
+        did = True
     if _find_matching_tag(card, "put_on_deck_top"):
         units = _enemy_units(target_player, "horizont")
         cel = _pick_unit(units)
@@ -610,7 +684,10 @@ def _resolve_misc_state(card, source_player, target_player, context):
             units = _enemy_units(target_player) if target_player is not None else _allied_units(source_player)
             cel = _pick_unit(units)
         if cel is not None:
-            did |= ActionLibrary.return_target_to_hand(target_player or source_player, cel[0], cel[1], card.nev)
+            target_owner = getattr(cel[2], "owner", None)
+            if target_owner is None:
+                target_owner = source_player if cel[2] is source_unit or cel[2] in [item[2] for item in _allied_units(source_player)] else (target_player or source_player)
+            did |= ActionLibrary.return_target_to_hand(target_owner, cel[0], cel[1], card.nev)
     if _find_matching_tag(card, "immunity"):
         cel = _pick_unit(_allied_units(source_player), weakest=True)
         if cel is not None:
@@ -618,15 +695,132 @@ def _resolve_misc_state(card, source_player, target_player, context):
             naplo.ir(f"Structured effect: {card.nev} -> {cel[2].lap.nev} sebzesimmunitas a kor vegeig.")
             did = True
     if _find_matching_tag(card, "untargetable"):
-        cel = _pick_unit(_allied_units(source_player))
+        cel = _select_target_by_metadata(
+            card,
+            source_player,
+            None,
+            keys=("own_horizont_entity", "own_zenit_entity", "own_entity", "self"),
+            source=context.get("source_unit") if isinstance(context, dict) else None,
+        )
+        if cel is None:
+            cel = _pick_unit(_allied_units(source_player))
         if cel is not None:
-            state = getattr(cel[2], "targeting_state_override", None)
-            if state is None:
-                from engine.targeting import TargetingEngine
-                state = TargetingEngine.target_state(cel[2])
-            state.spell_negate = True
-            naplo.ir(f"Structured effect: {card.nev} -> {cel[2].lap.nev} nem celozhato.")
+            did |= ActionLibrary.grant_untargetable(cel[2], f"Structured: {card.nev}", owner=source_player, source=context.get("source_unit") if isinstance(context, dict) else None)
+    if _find_matching_tag(card, "graveyard_recursion"):
+        grave_target = _select_target_by_metadata(card, source_player, None, keys=("own_graveyard_entity",))
+        if grave_target is not None:
+            card_to_revive = grave_target[2]
+            to_hand = has_target(card, "own_hand") or has_zone(card, "hand")
+            if card_to_revive in getattr(source_player, "temeto", []):
+                source_player.temeto.remove(card_to_revive)
+                if to_hand:
+                    source_player.kez.append(card_to_revive)
+                    did = True
+                else:
+                    did |= ActionLibrary.summon_card_to_horizont(
+                        source_player,
+                        card_to_revive,
+                        lane_index=ActionLibrary.first_empty_slot(source_player, "horizont"),
+                        reason=f"revive:{card.nev}",
+                        exhausted=False,
+                        payload={"revived": True, "structured": True},
+                    ) is not None
+            else:
+                did |= ActionLibrary.revive_from_graveyard(
+                    source_player,
+                    lambda grave_card: "entitas" in normalize_lookup_text(getattr(grave_card, "kartyatipus", "")),
+                    to_hand=to_hand,
+                    reason=card.nev,
+                )
+        else:
+            to_hand = has_target(card, "own_hand") or has_zone(card, "hand")
+            did |= ActionLibrary.revive_from_graveyard(
+                source_player,
+                lambda grave_card: "entitas" in normalize_lookup_text(getattr(grave_card, "kartyatipus", "")),
+                to_hand=to_hand,
+                reason=card.nev,
+            )
+    if _find_matching_tag(card, "summon"):
+        summon_card = context.get("summon_card")
+        lane_index = context.get("lane_index") if isinstance(context, dict) else None
+        if summon_card is not None:
+            did |= ActionLibrary.summon_card_to_horizont(
+                source_player,
+                summon_card,
+                lane_index=lane_index,
+                reason=card.nev,
+                exhausted=context.get("summon_exhausted", True),
+                payload={"structured": True},
+            ) is not None
+    if _find_matching_tag(card, "summon_token"):
+        amount = max(1, _extract_number(_canonical_text(card), 1))
+        lane = context.get("lane_index") if isinstance(context, dict) else None
+        summoned = 0
+        for _ in range(amount):
+            if lane is None:
+                lane = ActionLibrary.first_empty_slot(source_player, "horizont")
+            if lane is None:
+                break
+            token = ActionLibrary.summon_token_to_horizont(
+                source_player,
+                lane,
+                context.get("token_name", "Token"),
+                context.get("token_atk", 1),
+                context.get("token_hp", 1),
+                race=context.get("token_race", "Token"),
+                realm=getattr(source_player, "birodalom", "Semleges"),
+                exhausted=context.get("summon_exhausted", True),
+            )
+            if token is None:
+                break
+            summoned += 1
+            lane = None
+        if summoned > 0:
+            naplo.ir(f"Structured effect: {card.nev} -> {summoned} token a Horizontra kerult.")
             did = True
+    if _find_matching_tag(card, "return_to_deck") or _find_matching_tag(card, "deck_bottom"):
+        cel = _select_target_by_metadata(
+            card,
+            source_player,
+            target_player,
+            keys=("own_hand", "enemy_hand", "own_graveyard_entity", "own_horizont_entity", "own_zenit_entity", "enemy_horizont_entity", "enemy_zenit_entity"),
+            source=context.get("spell_card") if isinstance(context, dict) else None,
+            lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+        )
+        if cel is not None:
+            zone_name, index, item = cel
+            owner = source_player if zone_name in {"kez", "pakli", "temeto", "horizont", "zenit"} and item in (
+                list(getattr(source_player, "kez", []))
+                + list(getattr(source_player, "pakli", []))
+                + list(getattr(source_player, "temeto", []))
+                + [u for _, _, u in _allied_units(source_player)]
+            ) else target_player
+            did |= ActionLibrary.move_target_to_deck(
+                owner,
+                zone_name,
+                index,
+                card.nev,
+                to_bottom=_find_matching_tag(card, "deck_bottom"),
+            )
+    if _find_matching_tag(card, "move_to_source"):
+        cel = _select_target_by_metadata(
+            card,
+            source_player,
+            target_player,
+            keys=("own_hand", "own_graveyard_entity", "own_horizont_entity", "own_zenit_entity"),
+            source=context.get("source_unit") if isinstance(context, dict) else None,
+        )
+        if cel is not None:
+            did |= ActionLibrary.move_target_to_source(source_player, cel[0], cel[1], card.nev)
+        elif getattr(source_player, "temeto", None):
+            did |= ActionLibrary.move_target_to_source(source_player, "temeto", 0, card.nev)
+    if _find_matching_tag(card, "resource_gain"):
+        amount = max(1, _extract_number(_canonical_text(card), 1))
+        did |= ActionLibrary.grant_resource(source_player, amount, card.nev) > 0
+    if _find_matching_tag(card, "cost_mod"):
+        amount = max(1, _extract_number(_canonical_text(card), 1))
+        scope = context.get("cost_mod_scope", "entity")
+        did |= ActionLibrary.apply_cost_mod(source_player, amount, scope=scope, reason=card.nev)
     return did
 
 

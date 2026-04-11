@@ -2,6 +2,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from engine.actions import ActionLibrary
 from engine.card import CsataEgyseg
 from engine.game import AeternaSzimulacio
 
@@ -289,6 +290,217 @@ class TestGameFlow(unittest.TestCase):
         on_turn_end_priority(SimpleNamespace(owner=defender_player))
         self.assertEqual(getattr(defender, "retaliate_on_attacked_damage_until_turn_end", 0), 0)
         self.assertNotIn("aegis", getattr(defender, "temp_granted_keywords", set()))
+
+    def test_dispatch_damage_events_emits_canonical_combat_damage_taken(self):
+        sim = object.__new__(AeternaSzimulacio)
+        source = make_unit("Tamado")
+        target = make_unit("Vedett")
+        owner = make_player("Owner")
+        seen = []
+
+        with patch("engine.game.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            AeternaSzimulacio._dispatch_damage_events(
+                sim,
+                source,
+                owner,
+                target,
+                {"damage": 2, "combat": True},
+            )
+
+        self.assertIn("on_damage_taken", seen)
+        self.assertIn("on_combat_damage_taken", seen)
+
+    def test_feltor_pecset_emits_on_seal_break(self):
+        sim = object.__new__(AeternaSzimulacio)
+        defender = make_player("Defender")
+        seal = make_card("Pecset", card_type="Pecset", magnitude=1, aura=0)
+        defender.pecsetek = [seal]
+        seen = []
+
+        with patch("engine.game.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            broken, _ = AeternaSzimulacio._feltor_pecset(sim, defender, False, "Teszt")
+
+        self.assertTrue(broken)
+        self.assertIn("on_seal_break", seen)
+
+    def test_move_target_to_horizont_emits_canonical_move_trigger(self):
+        owner = make_player("Owner")
+        target = make_unit("Hatso", exhausted=False)
+        target.owner = owner
+        owner.zenit[0] = target
+        seen = []
+
+        with patch("engine.actions.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            moved = ActionLibrary.move_target_to_horizont(owner, "zenit", 0, "Teszt", exhausted=True)
+
+        self.assertTrue(moved)
+        self.assertIn("on_move_zenit_to_horizont", seen)
+        self.assertIs(owner.horizont[0], target)
+
+    def test_kor_futtatasa_emits_canonical_turn_adapters(self):
+        sim = object.__new__(AeternaSzimulacio)
+        sim.kor = 1
+
+        def _player(name):
+            return SimpleNamespace(
+                nev=name,
+                kell_tamadnia_kovetkezo_korben=False,
+                horizont=[None] * 6,
+                uj_kor_inditasa=lambda: None,
+                huzas=lambda: None,
+                osforras_bovites=lambda: None,
+                kor_vegi_heal=lambda: None,
+            )
+
+        sim.p1 = _player("P1")
+        sim.p2 = _player("P2")
+        sim.state = SimpleNamespace(kor=1)
+        sim.phase_runner = SimpleNamespace(run_play_phase=lambda akt: None)
+        sim.combat_resolver = SimpleNamespace(resolve_attack_phase=lambda akt, ell: None)
+
+        seen = []
+        with patch("engine.game.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            result = AeternaSzimulacio.kor_futtatasa(sim)
+
+        self.assertIsNone(result)
+        self.assertIn("on_start_of_turn", seen)
+        self.assertIn("on_next_own_awakening", seen)
+
+    def test_alkalmaz_kartya_hatast_emits_enemy_spell_or_ritual_played(self):
+        sim = object.__new__(AeternaSzimulacio)
+        caster = make_player("Caster")
+        defender = make_player("Defender")
+        spell = make_card("Villam", card_type="Ige", magnitude=1, aura=1)
+        sim.p1 = caster
+        sim.p2 = defender
+        seen = []
+
+        with patch("engine.game.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            with patch("engine.game.EffectEngine.trigger_on_play", return_value=None):
+                result = AeternaSzimulacio._alkalmaz_kartya_hatast(sim, spell, caster, defender)
+
+        self.assertIsNone(result)
+        self.assertIn("on_enemy_spell_or_ritual_played", seen)
+
+    def test_kijatszas_fazis_emits_enemy_zenit_summon(self):
+        sim = object.__new__(AeternaSzimulacio)
+        unit_card = make_card("Zenit Entitas", card_type="Entitas", magnitude=1, aura=1)
+        caster = SimpleNamespace(
+            nev="Caster",
+            kez=[unit_card],
+            horizont=[None] * 6,
+            zenit=[None] * 6,
+            osforras=[{"lap": make_card("Forras"), "hasznalt": False}],
+            megidezett_entitasok_ebben_a_korben=0,
+            elerheto_aura=lambda: 1,
+            effektiv_aura_koltseg=lambda lap: 1,
+            fizet=lambda lap: True,
+        )
+        defender = make_player("Defender")
+        sim.p1 = caster
+        sim.p2 = defender
+        sim._resolve_summon_traps = Mock(return_value=False)
+        sim._alkalmaz_kartya_hatast = Mock(return_value=None)
+        seen = []
+
+        with patch("engine.game.random.choice", return_value=unit_card):
+            with patch("engine.game.random.random", return_value=0.95):
+                with patch("engine.game.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+                    result = AeternaSzimulacio.kijatszas_fazis(sim, caster)
+
+        self.assertIsNone(result)
+        self.assertIn("on_enemy_zenit_summon", seen)
+
+    def test_resolve_spell_cast_traps_emits_on_trap_triggered(self):
+        sim = object.__new__(AeternaSzimulacio)
+        caster = make_player("Caster")
+        defender = make_player("Defender")
+        defender.hasznalt_jelek_ebben_a_korben = 0
+        trap = make_card("Teszt Jel", card_type="Jel")
+        spell = make_card("Villam", card_type="Ige")
+        defender.zenit[0] = trap
+        seen = []
+
+        with patch("engine.game.resolve_spell_cast_trap", return_value={"consume_trap": True}):
+            with patch("engine.game.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+                result = AeternaSzimulacio._resolve_spell_cast_traps(sim, spell, caster, defender)
+
+        self.assertTrue(result["consume_trap"])
+        self.assertIn("on_trap_triggered", seen)
+
+    def test_harc_fazis_emits_on_attack_hits_for_seal_hit(self):
+        sim = object.__new__(AeternaSzimulacio)
+        sim.kor = 1
+        sim._feltor_pecset = lambda vedo, burst=False, *args, **kwargs: (True, burst)
+        sim._ellenoriz_gyoztest = lambda: None
+        sim._jelol_harc_overflowot = lambda tamado, vedo: (None, None)
+        sim._elpusztit_egyseget = lambda *args, **kwargs: False
+
+        attacker_player = make_player("Attacker")
+        defender_player = make_player("Defender")
+        attacker = make_unit("Tamado", atk=3, hp=3, exhausted=False)
+        attacker.owner = attacker_player
+        attacker_player.horizont[0] = attacker
+        defender_player.pecsetek = [make_card("Pecset", card_type="Pecset")]
+        seen = []
+
+        with patch("engine.game.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            AeternaSzimulacio.harc_fazis(sim, attacker_player, defender_player)
+
+        self.assertIn("on_attack_hits", seen)
+
+    def test_heal_unit_emits_on_heal(self):
+        owner = make_player("Owner")
+        target = make_unit("Serult", hp=5)
+        target.owner = owner
+        target.akt_hp = 2
+        seen = []
+
+        with patch("engine.actions.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            healed = ActionLibrary.heal_unit(target, 2, "Teszt", owner=owner, source=target)
+
+        self.assertEqual(healed, 2)
+        self.assertIn("on_heal", seen)
+
+    def test_return_target_to_hand_emits_on_bounce(self):
+        owner = make_player("Owner")
+        target = make_unit("Visszatero")
+        target.owner = owner
+        owner.horizont[0] = target
+        seen = []
+
+        with patch("engine.actions.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            returned = ActionLibrary.return_target_to_hand(owner, "horizont", 0, "Teszt")
+
+        self.assertTrue(returned)
+        self.assertIn("on_bounce", seen)
+
+    def test_move_target_to_zenit_swap_emits_on_position_swap(self):
+        owner = make_player("Owner")
+        front = make_unit("Front", exhausted=False)
+        back = make_unit("Back", exhausted=False)
+        front.owner = owner
+        back.owner = owner
+        owner.horizont[0] = front
+        owner.zenit[0] = back
+        seen = []
+
+        with patch("engine.actions.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            moved = ActionLibrary.move_target_to_zenit(owner, "horizont", 0, "Teszt")
+
+        self.assertTrue(moved)
+        self.assertIn("on_position_swap", seen)
+
+    def test_summon_card_to_horizont_emits_on_entity_enters_horizont(self):
+        owner = make_player("Owner")
+        card = make_card("Erkezo", card_type="Entitas")
+        seen = []
+
+        with patch("engine.actions.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            unit = ActionLibrary.summon_card_to_horizont(owner, card, lane_index=1, reason="Teszt", exhausted=False)
+
+        self.assertIsNotNone(unit)
+        self.assertIn("on_entity_enters_horizont", seen)
 
 
 if __name__ == "__main__":

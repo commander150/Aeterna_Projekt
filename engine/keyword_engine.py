@@ -131,6 +131,14 @@ class KeywordEngine:
                 continue
             valid_blockers.append(entity)
 
+        taunt_blockers = [
+            entity for entity in valid_blockers
+            if KeywordEngine._has_keyword(entity, "taunt")
+        ]
+        if taunt_blockers:
+            naplo.ir("Taunt kotelezo blokk")
+            valid_blockers = taunt_blockers
+
         aegis = [
             entity for entity in valid_blockers
             if KeywordEngine._has_keyword(entity, "aegis")

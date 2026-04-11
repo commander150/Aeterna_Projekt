@@ -21,6 +21,7 @@ KEYWORD_DEFINITIONS = {
     "clarion": KeywordDefinition("clarion", ("clarion", "riado", "riadó")),
     "echo": KeywordDefinition("echo", ("echo", "visszhang")),
     "burst": KeywordDefinition("burst", ("burst", "reakcio", "reakció")),
+    "taunt": KeywordDefinition("taunt", ("taunt", "provoke", "kenyszerites", "kenyszerites")),
 }
 
 

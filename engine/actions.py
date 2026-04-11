@@ -14,6 +14,18 @@ from utils.text import normalize_lookup_text
 
 class ActionLibrary:
     @staticmethod
+    def _collection_targets(player, collection_name, predicate=None):
+        collection = getattr(player, collection_name, None)
+        if collection is None:
+            return []
+        result = []
+        for index, item in enumerate(collection):
+            if predicate is not None and not predicate(item):
+                continue
+            result.append((collection_name, index, item))
+        return result
+
+    @staticmethod
     def first_empty_slot(player, zone_name):
         zone = getattr(player, zone_name, None)
         if zone is None:
@@ -45,6 +57,14 @@ class ActionLibrary:
         if exhausted is not None:
             entity.kimerult = exhausted
         trigger_engine.dispatch("on_position_changed", source=entity.lap, owner=owner, payload={"from": from_zone, "to": to_zone})
+        if to_zone == "horizont":
+            trigger_engine.dispatch(
+                "on_entity_enters_horizont",
+                source=entity,
+                owner=owner,
+                target=entity,
+                payload={"from": from_zone, "to": to_zone, "index": to_index, "reason": reason},
+            )
         if from_zone == "zenit" and to_zone == "horizont":
             trigger_engine.dispatch(
                 "on_move_zenit_to_horizont",
@@ -96,6 +116,16 @@ class ActionLibrary:
             return ActionLibrary._units_in_zone(owner, "horizont")
         if key == "own_zenit_entities":
             return ActionLibrary._units_in_zone(owner, "zenit")
+        if key == "own_hand":
+            return ActionLibrary._collection_targets(owner, "kez")
+        if key == "own_deck":
+            return ActionLibrary._collection_targets(owner, "pakli")
+        if key == "own_graveyard_entity":
+            return ActionLibrary._collection_targets(
+                owner,
+                "temeto",
+                predicate=lambda card: "entitas" in normalize_lookup_text(getattr(card, "kartyatipus", "")),
+            )
 
         if key == "enemy_entity":
             return ActionLibrary._all_units(opponent)
@@ -109,6 +139,16 @@ class ActionLibrary:
             return ActionLibrary._units_in_zone(opponent, "horizont")
         if key == "enemy_zenit_entities":
             return ActionLibrary._units_in_zone(opponent, "zenit")
+        if key == "enemy_hand":
+            return ActionLibrary._collection_targets(opponent, "kez")
+        if key == "enemy_spell" and source is not None and opponent is not None:
+            card_type = normalize_lookup_text(getattr(source, "kartyatipus", ""))
+            if any(token in card_type for token in ("ige", "rituale", "ritual")):
+                return [("spell_stack", 0, source)]
+        if key == "enemy_spell_or_ritual" and source is not None and opponent is not None:
+            card_type = normalize_lookup_text(getattr(source, "kartyatipus", ""))
+            if any(token in card_type for token in ("ige", "rituale", "ritual")):
+                return [("spell_stack", 0, source)]
 
         if key == "opposing_entity" and opponent is not None and lane_index is not None:
             if 0 <= lane_index < len(getattr(opponent, "horizont", [])):
@@ -133,6 +173,8 @@ class ActionLibrary:
         )
         if not targets:
             return None
+        if not _is_board_entity(targets[0][2]):
+            return targets[0]
         if weakest:
             return min(targets, key=lambda item: (item[2].akt_hp, item[2].akt_tamadas))
         return max(targets, key=lambda item: (item[2].akt_tamadas, item[2].akt_hp))
@@ -163,6 +205,20 @@ class ActionLibrary:
         return True
 
     @staticmethod
+    def restrict_attack(target, reason):
+        target.cannot_attack_until_turn_end = True
+        if reason:
+            naplo.ir(f"{target.lap.nev} ebben a korben nem tamadhat ({reason})")
+        return True
+
+    @staticmethod
+    def restrict_block(target, reason):
+        target.cannot_block_until_turn_end = True
+        if reason:
+            naplo.ir(f"{target.lap.nev} ebben a korben nem blokkolhat ({reason})")
+        return True
+
+    @staticmethod
     def ready_unit(target, reason="", owner=None, source=None):
         was_exhausted = bool(getattr(target, "kimerult", False))
         target.kimerult = False
@@ -179,6 +235,39 @@ class ActionLibrary:
         return True
 
     @staticmethod
+    def heal_unit(target, amount, reason="", owner=None, source=None):
+        if amount <= 0 or not _is_board_entity(target):
+            return 0
+        max_hp = getattr(target.lap, "eletero", 0) + getattr(target, "bonus_max_hp", 0)
+        before = getattr(target, "akt_hp", 0)
+        target.akt_hp = min(max_hp, before + amount)
+        healed = max(0, target.akt_hp - before)
+        if healed > 0:
+            trigger_engine.dispatch(
+                "on_heal",
+                source=source or target,
+                owner=owner or getattr(target, "owner", None),
+                target=target,
+                payload={"amount": healed, "reason": reason},
+            )
+            if reason:
+                naplo.ir(f"{target.lap.nev} gyogyult {healed} HP-t ({reason})")
+        return healed
+
+    @staticmethod
+    def grant_untargetable(target, reason="", owner=None, source=None):
+        if not _is_board_entity(target):
+            return False
+        from engine.targeting import TargetingEngine
+
+        state = TargetingEngine.target_state(target)
+        target.targeting_state_override = state
+        state.untargetable = True
+        if reason:
+            naplo.ir(f"{target.lap.nev} nem celozhato ({reason})")
+        return True
+
+    @staticmethod
     def return_target_to_hand(owner, zone_name, index, reason):
         zone = getattr(owner, zone_name)
         unit = zone[index]
@@ -191,6 +280,7 @@ class ActionLibrary:
         owner.kez.append(unit.lap)
         set_zone_slot(owner, zone_name, index, None, f"return_to_hand:{reason}")
         trigger_engine.dispatch("on_position_changed", source=unit.lap, owner=owner, payload={"from": zone_name, "to": "kez"})
+        trigger_engine.dispatch("on_bounce", source=unit.lap, owner=owner, target=unit, payload={"from": zone_name, "to": "kez", "reason": reason})
         naplo.ir(f"{unit.lap.nev} visszakerult kezbe ({reason})")
         return True
 
@@ -212,6 +302,13 @@ class ActionLibrary:
         elif is_zenit_entity(back):
             set_zone_slot(owner, "horizont", index, back, f"swap_from_zenit:{reason}")
             set_zone_slot(owner, "zenit", index, front, f"swap_to_zenit:{reason}")
+            trigger_engine.dispatch(
+                "on_position_swap",
+                source=front,
+                owner=owner,
+                target=back,
+                payload={"index": index, "reason": reason},
+            )
         else:
             log_zone_write(owner, "zenit", index, back, f"blocked_swap_non_entity:{reason}")
             naplo.ir(
@@ -238,6 +335,139 @@ class ActionLibrary:
         )
 
     @staticmethod
+    def summon_card_to_horizont(owner, card, lane_index=None, reason="summon", exhausted=True, payload=None):
+        if owner is None or card is None:
+            return None
+        if lane_index is None:
+            lane_index = ActionLibrary.first_empty_slot(owner, "horizont")
+        if lane_index is None:
+            return None
+        if owner.horizont[lane_index] is not None:
+            return None
+
+        for collection_name in ("kez", "pakli", "temeto"):
+            collection = getattr(owner, collection_name, None)
+            if isinstance(collection, list) and card in collection:
+                collection.remove(card)
+                break
+
+        unit = CsataEgyseg(card)
+        unit.owner = owner
+        unit.kimerult = exhausted
+        set_zone_slot(owner, "horizont", lane_index, unit, f"summon:{reason}")
+        summon_payload = {"zone": "horizont"}
+        if isinstance(payload, dict):
+            summon_payload.update(payload)
+        trigger_engine.dispatch("on_summon", source=unit, owner=owner, payload=summon_payload)
+        trigger_engine.dispatch(
+            "on_entity_enters_horizont",
+            source=unit,
+            owner=owner,
+            target=unit,
+            payload={"from": "external", "to": "horizont", "index": lane_index, "reason": reason},
+        )
+        naplo.ir(f"{unit.lap.nev} a Horizontra kerult ({reason})")
+        return unit
+
+    @staticmethod
+    def move_target_to_deck(owner, zone_name, index, reason, to_bottom=False):
+        zone = getattr(owner, zone_name, None)
+        if zone is None or not (0 <= index < len(zone)):
+            return False
+        item = zone[index]
+        if item is None:
+            return False
+        card = item.lap if _is_board_entity(item) else item
+        if zone_name in {"kez", "pakli", "temeto"}:
+            zone.pop(index)
+        else:
+            zone[index] = None
+        if to_bottom:
+            owner.pakli.insert(0, card)
+            destination = "pakli_alja"
+        else:
+            owner.pakli.append(card)
+            destination = "pakli_teteje"
+        trigger_engine.dispatch("on_position_changed", source=card, owner=owner, payload={"from": zone_name, "to": destination})
+        naplo.ir(f"{card.nev} visszakerult a {destination} ({reason})")
+        return True
+
+    @staticmethod
+    def move_target_to_source(owner, zone_name, index, reason):
+        zone = getattr(owner, zone_name, None)
+        if zone is None or not (0 <= index < len(zone)):
+            return False
+        item = zone[index]
+        if item is None:
+            return False
+        card = item.lap if _is_board_entity(item) else item
+        if zone_name in {"kez", "pakli", "temeto"}:
+            zone.pop(index)
+        else:
+            zone[index] = None
+        owner.osforras.append({"lap": card, "hasznalt": False})
+        trigger_engine.dispatch("on_position_changed", source=card, owner=owner, payload={"from": zone_name, "to": "osforras"})
+        naplo.ir(f"{card.nev} az osforrasok koze kerult ({reason})")
+        return True
+
+    @staticmethod
+    def grant_resource(owner, amount, reason):
+        gained = 0
+        for _ in range(max(0, amount)):
+            if not getattr(owner, "pakli", None):
+                break
+            card = owner.pakli.pop()
+            owner.osforras.append({"lap": card, "hasznalt": False})
+            gained += 1
+        if gained > 0:
+            naplo.ir(f"{owner.nev} {gained} osforrast kapott ({reason})")
+        return gained
+
+    @staticmethod
+    def apply_cost_mod(owner, amount, scope="entity", reason=""):
+        if amount <= 0:
+            return False
+        normalized_scope = normalize_lookup_text(scope)
+        if normalized_scope == "trap":
+            owner.kovetkezo_jel_kedvezmeny = getattr(owner, "kovetkezo_jel_kedvezmeny", 0) + amount
+        elif normalized_scope == "machine":
+            owner.kovetkezo_gepezet_kedvezmeny = getattr(owner, "kovetkezo_gepezet_kedvezmeny", 0) + amount
+        else:
+            owner.kovetkezo_entitas_kedvezmeny = getattr(owner, "kovetkezo_entitas_kedvezmeny", 0) + amount
+        if reason:
+            naplo.ir(f"{owner.nev} {amount} koltsegcsokkentest kapott ({reason}, {normalized_scope})")
+        return True
+
+    @staticmethod
+    def summon_token_to_horizont(owner, lane_index, name, atk, hp, race="Token", realm="Semleges", exhausted=True):
+        from types import SimpleNamespace
+
+        token_card = SimpleNamespace(
+            nev=name,
+            kartyatipus="Entitas",
+            birodalom=realm,
+            klan="",
+            faj=race,
+            kaszt="",
+            magnitudo=1,
+            aura_koltseg=0,
+            tamadas=atk,
+            eletero=hp,
+            kepesseg="",
+            egyseg_e=True,
+            jel_e=False,
+            reakcio_e=False,
+        )
+        return ActionLibrary.summon_card_to_horizont(
+            owner,
+            token_card,
+            lane_index=lane_index,
+            reason=f"token:{name}",
+            exhausted=exhausted,
+            payload={"token": True},
+        )
+
+    @staticmethod
     def revive_from_graveyard(owner, predicate, to_hand=True, reason="revive"):
         matches = [card for card in owner.temeto if predicate(card)]
         if not matches:
@@ -248,16 +478,18 @@ class ActionLibrary:
             owner.kez.append(card)
             dest = "kez"
         else:
-            for i in range(6):
-                if owner.horizont[i] is None:
-                    revived = CsataEgyseg(card)
-                    revived.owner = owner
-                    set_zone_slot(owner, "horizont", i, revived, f"revive_from_graveyard:{reason}")
-                    dest = "horizont"
-                    break
-            else:
+            revived = ActionLibrary.summon_card_to_horizont(
+                owner,
+                card,
+                lane_index=ActionLibrary.first_empty_slot(owner, "horizont"),
+                reason=f"revive_from_graveyard:{reason}",
+                exhausted=False,
+                payload={"revived": True},
+            )
+            if revived is None:
                 owner.temeto.append(card)
                 return False
+            dest = "horizont"
         naplo.ir(f"{card.nev} visszatert a {dest} zonaba ({reason})")
         return True
 
@@ -293,7 +525,7 @@ class ActionLibrary:
 
     @staticmethod
     def prohibit_attack_or_block(target, reason):
-        setattr(target, "cannot_attack_until_turn_end", True)
-        setattr(target, "cannot_block_until_turn_end", True)
+        ActionLibrary.restrict_attack(target, "")
+        ActionLibrary.restrict_block(target, "")
         naplo.ir(f"{target.lap.nev} ebben a korben nem tamadhat es nem blokkolhat ({reason})")
         return True

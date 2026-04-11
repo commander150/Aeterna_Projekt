@@ -89,6 +89,14 @@ class AeternaSzimulacio:
                             target=jatekos,
                             payload={"zone": zona_nev, "summoner": jatekos},
                         )
+                        if zona_nev == "zenit":
+                            trigger_engine.dispatch(
+                                "on_enemy_zenit_summon",
+                                source=egyseg,
+                                owner=ellenfel,
+                                target=jatekos,
+                                payload={"zone": zona_nev, "summoner": jatekos},
+                            )
                         self._resolve_summon_traps(egyseg, jatekos, ellenfel)
                         if getattr(jatekos, zona_nev)[i] is None:
                             break
@@ -169,6 +177,13 @@ class AeternaSzimulacio:
                 target=jatekos,
                 payload={"caster": jatekos},
             )
+            trigger_engine.dispatch(
+                "on_enemy_spell_or_ritual_played",
+                source=lap,
+                owner=ellenfel,
+                target=jatekos,
+                payload={"caster": jatekos},
+            )
         EffectEngine.trigger_on_play(lap, jatekos, ellenfel)
         return self._ellenoriz_gyoztest()
 
@@ -199,6 +214,24 @@ class AeternaSzimulacio:
                 target=target,
                 payload=event_payload,
             )
+
+    def _dispatch_attack_hit(self, attacker, owner, defender, payload=None):
+        trigger_engine.dispatch(
+            "on_attack_hits",
+            source=attacker,
+            owner=owner,
+            target=defender,
+            payload=dict(payload or {}),
+        )
+
+    def _dispatch_trap_triggered(self, trap, owner, opponent=None, payload=None):
+        trigger_engine.dispatch(
+            "on_trap_triggered",
+            source=trap,
+            owner=owner,
+            target=opponent,
+            payload=dict(payload or {}),
+        )
 
     def _feltor_pecset(self, vedo, burst_aktivalt_ebben_a_harcban, forras=None):
         if not vedo.pecsetek:
@@ -250,6 +283,12 @@ class AeternaSzimulacio:
                 summoned_unit=summoned_unit,
             )
             if result.get("consume_trap"):
+                self._dispatch_trap_triggered(
+                    trap,
+                    opponent,
+                    owner,
+                    {"category": "summon_trap", "summoned_unit": summoned_unit},
+                )
                 opponent.temeto.append(trap)
                 set_zone_slot(opponent, "zenit", index, None, f"summon_trap_consumed:{getattr(trap, 'nev', 'ismeretlen')}")
                 opponent.hasznalt_jelek_ebben_a_korben += 1
@@ -278,6 +317,12 @@ class AeternaSzimulacio:
                 ellenfel=caster,
             )
             if result.get("consume_trap"):
+                self._dispatch_trap_triggered(
+                    trap,
+                    defender,
+                    caster,
+                    {"category": "trap", "spell_card": spell_card},
+                )
                 defender.temeto.append(trap)
                 set_zone_slot(defender, "zenit", index, None, f"spell_trap_consumed:{getattr(trap, 'nev', 'ismeretlen')}")
                 defender.hasznalt_jelek_ebben_a_korben += 1
@@ -368,12 +413,11 @@ class AeternaSzimulacio:
         if visszacsapas <= 0:
             return False
 
-        trigger_engine.dispatch(
-            "on_damage_taken",
-            source=vedett_egyseg,
-            owner=vedo,
-            target=tamado_egyseg,
-            payload={
+        self._dispatch_damage_events(
+            vedett_egyseg,
+            vedo,
+            tamado_egyseg,
+            {
                 "damage": visszacsapas,
                 "zone": "horizont",
                 "target_owner": tamado,
@@ -431,6 +475,12 @@ class AeternaSzimulacio:
                             jel = vedo.zenit[j]
                             if not can_activate_trap(jel, tamado_egyseg=egyseg, tamado=tamado, vedo=vedo):
                                 continue
+                            self._dispatch_trap_triggered(
+                                jel,
+                                vedo,
+                                tamado,
+                                {"category": "trap", "attacker": egyseg},
+                            )
                             set_zone_slot(vedo, "zenit", j, None, f"combat_trap_consumed:{getattr(jel, 'nev', 'ismeretlen')}")
                             vedo.temeto.append(jel)
 
@@ -475,12 +525,11 @@ class AeternaSzimulacio:
                     blokkolo_index = vedo.horizont.index(b)
 
                     bejovo_sebzes = 0 if getattr(egyseg, "attack_damage_zero_this_combat", False) else self._scaled_combat_damage(b, egyseg.akt_tamadas, "horizont")
-                    trigger_engine.dispatch(
-                        "on_damage_taken",
-                        source=egyseg,
-                        owner=tamado,
-                        target=b,
-                        payload={"damage": bejovo_sebzes, "zone": "horizont", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
+                    self._dispatch_damage_events(
+                        egyseg,
+                        tamado,
+                        b,
+                        {"damage": bejovo_sebzes, "zone": "horizont", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
                     )
                     if getattr(b, "damage_immunity_until_turn_end", False):
                         naplo.ir(f"Vakito Ragyogas: {b.lap.nev} sebzesimmunis volt, a harci sebzes elmaradt.")
@@ -490,16 +539,22 @@ class AeternaSzimulacio:
                             blokkolo_meghalt = False
                         else:
                             blokkolo_meghalt = self._elpusztit_egyseget(vedo, "horizont", blokkolo_index)
+                    if bejovo_sebzes > 0:
+                        self._dispatch_attack_hit(
+                            egyseg,
+                            tamado,
+                            vedo,
+                            {"lane_index": i, "target_kind": "blocker", "target_zone": "horizont", "target_index": blokkolo_index},
+                        )
 
                     KeywordEngine.on_damage_dealt(egyseg, b)
 
                     visszautes = self._scaled_combat_damage(egyseg, b.akt_tamadas, "horizont")
-                    trigger_engine.dispatch(
-                        "on_damage_taken",
-                        source=b,
-                        owner=vedo,
-                        target=egyseg,
-                        payload={"damage": visszautes, "zone": "horizont", "target_owner": tamado, "source_zone": "horizont", "source_index": blokkolo_index, "combat": True},
+                    self._dispatch_damage_events(
+                        b,
+                        vedo,
+                        egyseg,
+                        {"damage": visszautes, "zone": "horizont", "target_owner": tamado, "source_zone": "horizont", "source_index": blokkolo_index, "combat": True},
                     )
                     if getattr(egyseg, "damage_immunity_until_turn_end", False):
                         naplo.ir(f"Vakito Ragyogas: {egyseg.lap.nev} sebzesimmunis volt, a visszautes elmaradt.")
@@ -548,12 +603,11 @@ class AeternaSzimulacio:
                         naplo.ir(f"Zenit tamadas: {z.lap.nev}")
 
                         zenit_sebzes = 0 if getattr(egyseg, "attack_damage_zero_this_combat", False) else egyseg.akt_tamadas
-                        trigger_engine.dispatch(
-                            "on_damage_taken",
-                            source=egyseg,
-                            owner=tamado,
-                            target=target_unit,
-                            payload={"damage": zenit_sebzes, "zone": "zenit", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
+                        self._dispatch_damage_events(
+                            egyseg,
+                            tamado,
+                            target_unit,
+                            {"damage": zenit_sebzes, "zone": "zenit", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
                         )
                         if getattr(target_unit, "damage_immunity_until_turn_end", False):
                             naplo.ir(f"Vakito Ragyogas: {target_unit.lap.nev} sebzesimmunis volt, a Zenit sebzes elmaradt.")
@@ -561,16 +615,22 @@ class AeternaSzimulacio:
                             lethal_result = resolve_lethal_trap(owner=vedo, unit=target_unit, attacker=egyseg, zone_name="zenit", index=target_index)
                             if not (lethal_result and lethal_result.get("prevented_death")):
                                 self._elpusztit_egyseget(vedo, "zenit", target_index)
+                        if zenit_sebzes > 0:
+                            self._dispatch_attack_hit(
+                                egyseg,
+                                tamado,
+                                vedo,
+                                {"lane_index": i, "target_kind": "zenit", "target_zone": "zenit", "target_index": target_index},
+                            )
 
                         KeywordEngine.on_damage_dealt(egyseg, target_unit)
 
                         zenit_visszautes = self._scaled_combat_damage(egyseg, target_unit.akt_tamadas, "horizont")
-                        trigger_engine.dispatch(
-                            "on_damage_taken",
-                            source=target_unit,
-                            owner=vedo,
-                            target=egyseg,
-                            payload={"damage": zenit_visszautes, "zone": "horizont", "target_owner": tamado, "source_zone": "zenit", "source_index": target_index, "combat": True},
+                        self._dispatch_damage_events(
+                            target_unit,
+                            vedo,
+                            egyseg,
+                            {"damage": zenit_visszautes, "zone": "horizont", "target_owner": tamado, "source_zone": "zenit", "source_index": target_index, "combat": True},
                         )
                         if getattr(egyseg, "damage_immunity_until_turn_end", False):
                             naplo.ir(f"Vakito Ragyogas: {egyseg.lap.nev} sebzesimmunis volt, a Zenit visszautes elmaradt.")
@@ -600,12 +660,11 @@ class AeternaSzimulacio:
                             continue
 
                         kozvetlen_sebzes = 0 if getattr(egyseg, "attack_damage_zero_this_combat", False) else self._scaled_combat_damage(target_unit, egyseg.akt_tamadas, "horizont")
-                        trigger_engine.dispatch(
-                            "on_damage_taken",
-                            source=egyseg,
-                            owner=tamado,
-                            target=target_unit,
-                            payload={"damage": kozvetlen_sebzes, "zone": "horizont", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
+                        self._dispatch_damage_events(
+                            egyseg,
+                            tamado,
+                            target_unit,
+                            {"damage": kozvetlen_sebzes, "zone": "horizont", "target_owner": vedo, "source_zone": "horizont", "source_index": i, "combat": True},
                         )
                         if getattr(target_unit, "damage_immunity_until_turn_end", False):
                             naplo.ir(f"Vakito Ragyogas: {target_unit.lap.nev} sebzesimmunis volt, a direkt sebzes elmaradt.")
@@ -613,6 +672,13 @@ class AeternaSzimulacio:
                             lethal_result = resolve_lethal_trap(owner=vedo, unit=target_unit, attacker=egyseg, zone_name="horizont", index=target_index)
                             if not (lethal_result and lethal_result.get("prevented_death")):
                                 self._elpusztit_egyseget(vedo, "horizont", target_index)
+                        if kozvetlen_sebzes > 0:
+                            self._dispatch_attack_hit(
+                                egyseg,
+                                tamado,
+                                vedo,
+                                {"lane_index": i, "target_kind": "horizont", "target_zone": "horizont", "target_index": target_index},
+                            )
 
                         KeywordEngine.on_damage_dealt(egyseg, target_unit)
                         if _is_board_entity(tamado.horizont[i]):
@@ -633,6 +699,12 @@ class AeternaSzimulacio:
                                 continue
                             result = resolve_card_handler(jel, category="trap", tamado_egyseg=egyseg, tamado=tamado, vedo=vedo, target_kind="seal")
                             if result.get("consume_trap"):
+                                self._dispatch_trap_triggered(
+                                    jel,
+                                    vedo,
+                                    tamado,
+                                    {"category": "trap", "target_kind": "seal", "attacker": egyseg},
+                                )
                                 vedo.temeto.append(jel)
                                 set_zone_slot(vedo, "zenit", j, None, f"direct_attack_trap_consumed:{getattr(jel, 'nev', 'ismeretlen')}")
                                 vedo.hasznalt_jelek_ebben_a_korben += 1
@@ -653,6 +725,12 @@ class AeternaSzimulacio:
                         owner=tamado,
                         target=vedo,
                         payload={"lane_index": i},
+                    )
+                    self._dispatch_attack_hit(
+                        egyseg,
+                        tamado,
+                        vedo,
+                        {"lane_index": i, "target_kind": "seal"},
                     )
                     pecset_tort, burst_aktivalt_ebben_a_harcban = self._feltor_pecset(
                         vedo, burst_aktivalt_ebben_a_harcban

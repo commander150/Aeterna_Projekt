@@ -225,33 +225,16 @@ def _restore_consumed_trap(player, trap):
 
 
 def _summon_token(owner, lane_index, name, atk, hp, race="Token", realm="Semleges", exhausted=True):
-    token_card = SimpleNamespace(
-        nev=name,
-        kartyatipus="Entitas",
-        birodalom=realm,
-        klan="",
-        faj=race,
-        kaszt="",
-        magnitudo=1,
-        aura_koltseg=0,
-        tamadas=atk,
-        eletero=hp,
-        kepesseg="",
-        egyseg_e=True,
-        jel_e=False,
-        reakcio_e=False,
+    return ActionLibrary.summon_token_to_horizont(
+        owner,
+        lane_index,
+        name,
+        atk,
+        hp,
+        race=race,
+        realm=realm,
+        exhausted=exhausted,
     )
-    token_unit = CsataEgyseg(token_card)
-    token_unit.owner = owner
-    token_unit.kimerult = exhausted
-    set_zone_slot(owner, "horizont", lane_index, token_unit, f"token_summon:{name}")
-    trigger_engine.dispatch(
-        "on_summon",
-        source=token_unit,
-        owner=owner,
-        payload={"zone": "horizont", "token": True},
-    )
-    return token_unit
 
 
 def handle_fenykard_csapas(card, jatekos, ellenfel, **_):
