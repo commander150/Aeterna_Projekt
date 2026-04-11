@@ -455,6 +455,23 @@ class TestStructuredEffects(unittest.TestCase):
         self.assertEqual(ActionLibrary.targets_for_key(owner, enemy, "enemy_spell", source=enemy_spell)[0][2].nev, "EnemySpell")
         self.assertEqual(ActionLibrary.targets_for_key(owner, enemy, "enemy_spell_or_ritual", source=enemy_spell)[0][2].nev, "EnemySpell")
 
+    def test_collection_target_selectors_cover_batch_four_targets(self):
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        owner.temeto = [
+            Kartya({"kartya_nev": "OwnDeadSpell", "kartyatipus": "Ige"}),
+            Kartya({"kartya_nev": "OwnDeadUnit", "kartyatipus": "Entitas"}),
+        ]
+        owner.osforras = [{"lap": Kartya({"kartya_nev": "OwnSourceCard", "kartyatipus": "Ige"}), "hasznalt": False}]
+        enemy.osforras = [{"lap": Kartya({"kartya_nev": "EnemySourceCard", "kartyatipus": "Ige"}), "hasznalt": False}]
+        enemy.kez = [Kartya({"kartya_nev": "EnemyHandSingle", "kartyatipus": "Ige"})]
+
+        self.assertEqual(ActionLibrary.targets_for_key(owner, enemy, "own_graveyard")[0][2].nev, "OwnDeadSpell")
+        self.assertEqual(ActionLibrary.targets_for_key(owner, enemy, "own_source_card")[0][2].nev, "OwnSourceCard")
+        self.assertEqual(ActionLibrary.targets_for_key(owner, enemy, "enemy_source_card")[0][2].nev, "EnemySourceCard")
+        self.assertEqual(ActionLibrary.targets_for_key(owner, enemy, "enemy_hand_card")[0][2].nev, "EnemyHandSingle")
+        self.assertEqual(ActionLibrary.targets_for_key(owner, enemy, "lane", lane_index=3)[0][2], 3)
+
     def test_structured_return_to_deck_moves_own_hand_card_to_top(self):
         card = Kartya(
             {
@@ -566,6 +583,63 @@ class TestStructuredEffects(unittest.TestCase):
 
         self.assertTrue(result["resolved"])
         self.assertTrue(owner.horizont[0].targeting_state_override.untargetable)
+
+    def test_structured_ability_lock_uses_shared_helper(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Nema Halo",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Egy ellenseges Entitas kepessegei le vannak tiltva a kor vegeig.",
+                "hatascimkek": "ability_lock",
+                "celpont_felismerve": "enemy_entity",
+            }
+        )
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        enemy.horizont[0] = CsataEgyseg(Kartya({"kartya_nev": "Celpont", "kartyatipus": "Entitas", "tamadas": 2, "eletero": 3}))
+
+        result = resolve_structured_effect(card, owner, enemy, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(enemy.horizont[0].abilities_locked_until_turn_end)
+
+    def test_structured_position_lock_uses_shared_helper(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Mozgas Gat",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Egy ellenseges Entitas addig nem valthat poziciot.",
+                "hatascimkek": "position_lock",
+                "celpont_felismerve": "enemy_entity",
+            }
+        )
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        enemy.horizont[0] = CsataEgyseg(Kartya({"kartya_nev": "Celpont", "kartyatipus": "Entitas", "tamadas": 2, "eletero": 3}))
+
+        result = resolve_structured_effect(card, owner, enemy, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(enemy.horizont[0].position_lock_awakenings, 1)
+
+    def test_structured_source_manipulation_uses_shared_helper(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Forrasba Tereles",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Helyezz egy sajat lapot az Uressegbol az Osforrasaid koze.",
+                "hatascimkek": "source_manipulation",
+                "celpont_felismerve": "own_graveyard",
+            }
+        )
+        owner = make_player("Owner")
+        owner.temeto = [Kartya({"kartya_nev": "Elesett Lap", "kartyatipus": "Ige"})]
+
+        result = resolve_structured_effect(card, owner, None, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertEqual(len(owner.temeto), 0)
+        self.assertEqual(owner.osforras[-1]["lap"].nev, "Elesett Lap")
 
 
 if __name__ == "__main__":

@@ -26,6 +26,22 @@ class ActionLibrary:
         return result
 
     @staticmethod
+    def _source_targets(player):
+        collection = getattr(player, "osforras", None)
+        if collection is None:
+            return []
+        result = []
+        for index, item in enumerate(collection):
+            if isinstance(item, dict):
+                card = item.get("lap")
+            else:
+                card = getattr(item, "lap", None) or item
+            if card is None:
+                continue
+            result.append(("osforras", index, card))
+        return result
+
+    @staticmethod
     def first_empty_slot(player, zone_name):
         zone = getattr(player, zone_name, None)
         if zone is None:
@@ -120,12 +136,16 @@ class ActionLibrary:
             return ActionLibrary._collection_targets(owner, "kez")
         if key == "own_deck":
             return ActionLibrary._collection_targets(owner, "pakli")
+        if key == "own_graveyard":
+            return ActionLibrary._collection_targets(owner, "temeto")
         if key == "own_graveyard_entity":
             return ActionLibrary._collection_targets(
                 owner,
                 "temeto",
                 predicate=lambda card: "entitas" in normalize_lookup_text(getattr(card, "kartyatipus", "")),
             )
+        if key == "own_source_card":
+            return ActionLibrary._source_targets(owner)
 
         if key == "enemy_entity":
             return ActionLibrary._all_units(opponent)
@@ -141,6 +161,10 @@ class ActionLibrary:
             return ActionLibrary._units_in_zone(opponent, "zenit")
         if key == "enemy_hand":
             return ActionLibrary._collection_targets(opponent, "kez")
+        if key == "enemy_hand_card":
+            return ActionLibrary._collection_targets(opponent, "kez")
+        if key == "enemy_source_card":
+            return ActionLibrary._source_targets(opponent)
         if key == "enemy_spell" and source is not None and opponent is not None:
             card_type = normalize_lookup_text(getattr(source, "kartyatipus", ""))
             if any(token in card_type for token in ("ige", "rituale", "ritual")):
@@ -159,6 +183,8 @@ class ActionLibrary:
                 back = opponent.zenit[lane_index]
                 if _is_board_entity(back):
                     return [("zenit", lane_index, back)]
+        if key == "lane" and lane_index is not None:
+            return [("lane", lane_index, lane_index)]
 
         return []
 
@@ -197,11 +223,21 @@ class ActionLibrary:
         return True
 
     @staticmethod
-    def grant_keyword(target, keyword, temporary=False):
+    def grant_keyword(target, keyword, temporary=False, owner=None, source=None):
         attr = "temp_granted_keywords" if temporary else "granted_keywords"
         values = set(getattr(target, attr, set()) or set())
-        values.add(normalize_lookup_text(keyword))
+        normalized_keyword = normalize_lookup_text(keyword)
+        already_had = normalized_keyword in values
+        values.add(normalized_keyword)
         setattr(target, attr, values)
+        if not already_had:
+            trigger_engine.dispatch(
+                "on_gain_keyword",
+                source=source or target,
+                owner=owner or getattr(target, "owner", None),
+                target=target,
+                payload={"keyword": normalized_keyword, "temporary": temporary},
+            )
         return True
 
     @staticmethod
@@ -282,6 +318,18 @@ class ActionLibrary:
         trigger_engine.dispatch("on_position_changed", source=unit.lap, owner=owner, payload={"from": zone_name, "to": "kez"})
         trigger_engine.dispatch("on_bounce", source=unit.lap, owner=owner, target=unit, payload={"from": zone_name, "to": "kez", "reason": reason})
         naplo.ir(f"{unit.lap.nev} visszakerult kezbe ({reason})")
+        return True
+
+    @staticmethod
+    def discard_from_hand(owner, index, reason):
+        hand = getattr(owner, "kez", None)
+        if hand is None or not (0 <= index < len(hand)):
+            return False
+        card = hand.pop(index)
+        owner.temeto.append(card)
+        trigger_engine.dispatch("on_position_changed", source=card, owner=owner, payload={"from": "kez", "to": "temeto"})
+        trigger_engine.dispatch("on_discard", source=card, owner=owner, target=owner, payload={"from": "kez", "to": "temeto", "reason": reason})
+        naplo.ir(f"{card.nev} eldobva ({reason})")
         return True
 
     @staticmethod
@@ -378,7 +426,9 @@ class ActionLibrary:
         if item is None:
             return False
         card = item.lap if _is_board_entity(item) else item
-        if zone_name in {"kez", "pakli", "temeto"}:
+        if zone_name == "osforras":
+            zone.pop(index)
+        elif zone_name in {"kez", "pakli", "temeto"}:
             zone.pop(index)
         else:
             zone[index] = None
@@ -401,12 +451,21 @@ class ActionLibrary:
         if item is None:
             return False
         card = item.lap if _is_board_entity(item) else item
-        if zone_name in {"kez", "pakli", "temeto"}:
+        if zone_name == "osforras":
+            zone.pop(index)
+        elif zone_name in {"kez", "pakli", "temeto"}:
             zone.pop(index)
         else:
             zone[index] = None
         owner.osforras.append({"lap": card, "hasznalt": False})
         trigger_engine.dispatch("on_position_changed", source=card, owner=owner, payload={"from": zone_name, "to": "osforras"})
+        trigger_engine.dispatch(
+            "on_source_placement",
+            source=card,
+            owner=owner,
+            target=owner,
+            payload={"from": zone_name, "to": "osforras", "reason": reason},
+        )
         naplo.ir(f"{card.nev} az osforrasok koze kerult ({reason})")
         return True
 
@@ -418,6 +477,13 @@ class ActionLibrary:
                 break
             card = owner.pakli.pop()
             owner.osforras.append({"lap": card, "hasznalt": False})
+            trigger_engine.dispatch(
+                "on_source_placement",
+                source=card,
+                owner=owner,
+                target=owner,
+                payload={"from": "pakli", "to": "osforras", "reason": reason},
+            )
             gained += 1
         if gained > 0:
             naplo.ir(f"{owner.nev} {gained} osforrast kapott ({reason})")
@@ -436,6 +502,30 @@ class ActionLibrary:
             owner.kovetkezo_entitas_kedvezmeny = getattr(owner, "kovetkezo_entitas_kedvezmeny", 0) + amount
         if reason:
             naplo.ir(f"{owner.nev} {amount} koltsegcsokkentest kapott ({reason}, {normalized_scope})")
+        return True
+
+    @staticmethod
+    def lock_abilities(target, reason="", owner=None, source=None):
+        if not _is_board_entity(target):
+            return False
+        target.abilities_locked_until_turn_end = True
+        markers = set(getattr(target, "negative_spell_markers", set()) or set())
+        markers.add("ability_lock")
+        target.negative_spell_markers = markers
+        if reason:
+            naplo.ir(f"{target.lap.nev} kepessegei le vannak tiltva a kor vegeig ({reason})")
+        return True
+
+    @staticmethod
+    def lock_position(target, awakenings=1, reason="", owner=None, source=None):
+        if not _is_board_entity(target):
+            return False
+        target.position_lock_awakenings = max(awakenings, getattr(target, "position_lock_awakenings", 0))
+        markers = set(getattr(target, "negative_spell_markers", set()) or set())
+        markers.add("position_lock")
+        target.negative_spell_markers = markers
+        if reason:
+            naplo.ir(f"{target.lap.nev} addig nem valthat poziciot ({reason})")
         return True
 
     @staticmethod

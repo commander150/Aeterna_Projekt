@@ -1709,10 +1709,8 @@ def handle_univerzalis_csere(card, jatekos, **_):
     if not eldobhato:
         return _handled("Univerzalis Csere: nem volt eldobhato lap a kezben.", partial=True)
 
-    for lap in eldobhato:
-        jatekos.kez.remove(lap)
-        jatekos.temeto.append(lap)
-        naplo.ir(f"Univerzalis Csere: eldobva {lap.nev}.")
+    for _ in eldobhato:
+        ActionLibrary.discard_from_hand(jatekos, 0, "Univerzalis Csere")
 
     huzando = len(eldobhato) * 2
     for _ in range(huzando):

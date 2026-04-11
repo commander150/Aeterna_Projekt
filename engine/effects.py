@@ -123,6 +123,13 @@ class EffectEngine:
             target=ellenfel,
             payload=payload,
         )
+        trigger_engine.dispatch(
+            "on_destroy",
+            source=egyseg.lap,
+            owner=jatekos,
+            target=ellenfel,
+            payload=payload,
+        )
         EffectEngine.trigger_on_death(egyseg.lap, jatekos, ellenfel)
         return True
 

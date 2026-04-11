@@ -2,6 +2,7 @@
 from utils.logger import naplo
 from engine.card import CsataEgyseg
 from engine.board_utils import is_entity, is_zenit_entity
+from engine.triggers import trigger_engine
 
 
 def _card_matches_trait(lap, *traits):
@@ -83,6 +84,7 @@ class Jatekos:
                     self.horizont[i].kimerult = False
                 self.horizont[i].cannot_attack_until_turn_end = False
                 self.horizont[i].cannot_block_until_turn_end = False
+                self.horizont[i].abilities_locked_until_turn_end = False
                 self.horizont[i].protect_keywords_until_turn_end = False
                 self.horizont[i].protect_atk_from_enemy_until_turn_end = False
                 self.horizont[i]._first_combat_survived_emitted = False
@@ -94,6 +96,7 @@ class Jatekos:
                     self.zenit[i].kimerult = False
                 self.zenit[i].cannot_attack_until_turn_end = False
                 self.zenit[i].cannot_block_until_turn_end = False
+                self.zenit[i].abilities_locked_until_turn_end = False
                 self.zenit[i].protect_keywords_until_turn_end = False
                 self.zenit[i].protect_atk_from_enemy_until_turn_end = False
                 self.zenit[i]._first_combat_survived_emitted = False
@@ -214,6 +217,13 @@ class Jatekos:
             self.kez.sort(key=lambda k: k.aura_koltseg, reverse=True)
             lap = self.kez.pop(0)
             self.osforras.append({"lap": lap, "hasznalt": False})
+            trigger_engine.dispatch(
+                "on_source_placement",
+                source=lap,
+                owner=self,
+                target=self,
+                payload={"from": "kez", "to": "osforras", "reason": "osforras_bovites"},
+            )
             naplo.ir(f"{self.nev} Osforrast bovitett: {lap.nev}")
 
     def elerheto_aura(self):

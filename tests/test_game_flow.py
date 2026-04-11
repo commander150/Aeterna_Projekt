@@ -502,6 +502,56 @@ class TestGameFlow(unittest.TestCase):
         self.assertIsNotNone(unit)
         self.assertIn("on_entity_enters_horizont", seen)
 
+    def test_destroy_unit_emits_on_destroy(self):
+        from engine.effects import EffectEngine
+
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        target = make_unit("Aldozat", hp=2)
+        target.owner = owner
+        owner.horizont[0] = target
+        seen = []
+
+        with patch("engine.effects.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            destroyed = EffectEngine.destroy_unit(owner, "horizont", 0, enemy, "Teszt")
+
+        self.assertTrue(destroyed)
+        self.assertIn("on_destroy", seen)
+
+    def test_discard_from_hand_emits_on_discard(self):
+        owner = make_player("Owner")
+        owner.kez = [make_card("Eldobott Lap", card_type="Ige")]
+        seen = []
+
+        with patch("engine.actions.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            discarded = ActionLibrary.discard_from_hand(owner, 0, "Teszt")
+
+        self.assertTrue(discarded)
+        self.assertIn("on_discard", seen)
+
+    def test_move_target_to_source_emits_on_source_placement(self):
+        owner = make_player("Owner")
+        owner.temeto = [make_card("Forrasba Kerulo", card_type="Ige")]
+        seen = []
+
+        with patch("engine.actions.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            moved = ActionLibrary.move_target_to_source(owner, "temeto", 0, "Teszt")
+
+        self.assertTrue(moved)
+        self.assertIn("on_source_placement", seen)
+
+    def test_grant_keyword_emits_on_gain_keyword(self):
+        owner = make_player("Owner")
+        target = make_unit("Cel")
+        target.owner = owner
+        seen = []
+
+        with patch("engine.actions.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            granted = ActionLibrary.grant_keyword(target, "taunt", temporary=True, owner=owner, source=target)
+
+        self.assertTrue(granted)
+        self.assertIn("on_gain_keyword", seen)
+
 
 if __name__ == "__main__":
     unittest.main()

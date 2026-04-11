@@ -68,6 +68,9 @@ TAG_ALIASES = {
     "move_to_source": "move_to_source",
     "resource_gain": "resource_gain",
     "cost_mod": "cost_mod",
+    "ability_lock": "ability_lock",
+    "position_lock": "position_lock",
+    "source_manipulation": "source_manipulation",
     "search_deck": "draw",
     "sacrifice": "destroy",
     "revive": "move_to_horizon",
@@ -173,6 +176,29 @@ def _pick_unit(units, weakest=False):
     if weakest:
         return min(units, key=lambda item: (item[2].akt_hp, item[2].akt_tamadas))
     return max(units, key=lambda item: (item[2].akt_tamadas, item[2].akt_hp))
+
+
+def _selection_belongs_to_player(player, zone_name, item):
+    if player is None:
+        return False
+    if zone_name == "osforras":
+        return any(isinstance(entry, dict) and entry.get("lap") is item for entry in getattr(player, "osforras", []))
+    if zone_name in {"kez", "pakli", "temeto"}:
+        return item in getattr(player, zone_name, [])
+    if zone_name in {"horizont", "zenit"}:
+        return any(unit is item for _, _, unit in _allied_units(player, zone_name))
+    return False
+
+
+def _selection_owner(source_player, target_player, selection):
+    if selection is None:
+        return None
+    zone_name, _, item = selection
+    if _selection_belongs_to_player(source_player, zone_name, item):
+        return source_player
+    if _selection_belongs_to_player(target_player, zone_name, item):
+        return target_player
+    return getattr(item, "owner", None) or target_player or source_player
 
 
 def _select_target_by_metadata(card, source_player, target_player, *, keys, source=None, weakest=False, lane_index=None):
@@ -476,7 +502,13 @@ def _resolve_grant_keyword(card, source_player, context):
     if cel is None:
         return False
     temporary = has_duration(card, "until_turn_end") or has_duration(card, "during_combat")
-    ActionLibrary.grant_keyword(cel[2], keyword_name, temporary=temporary)
+    ActionLibrary.grant_keyword(
+        cel[2],
+        keyword_name,
+        temporary=temporary,
+        owner=source_player,
+        source=source_unit or cel[2],
+    )
     naplo.ir(f"Structured effect: {card.nev} -> {cel[2].lap.nev} megkapta a(z) {keyword_name} kulcsszot.")
     return True
 
@@ -684,9 +716,7 @@ def _resolve_misc_state(card, source_player, target_player, context):
             units = _enemy_units(target_player) if target_player is not None else _allied_units(source_player)
             cel = _pick_unit(units)
         if cel is not None:
-            target_owner = getattr(cel[2], "owner", None)
-            if target_owner is None:
-                target_owner = source_player if cel[2] is source_unit or cel[2] in [item[2] for item in _allied_units(source_player)] else (target_player or source_player)
+            target_owner = _selection_owner(source_player, target_player, cel)
             did |= ActionLibrary.return_target_to_hand(target_owner, cel[0], cel[1], card.nev)
     if _find_matching_tag(card, "immunity"):
         cel = _pick_unit(_allied_units(source_player), weakest=True)
@@ -783,18 +813,25 @@ def _resolve_misc_state(card, source_player, target_player, context):
             card,
             source_player,
             target_player,
-            keys=("own_hand", "enemy_hand", "own_graveyard_entity", "own_horizont_entity", "own_zenit_entity", "enemy_horizont_entity", "enemy_zenit_entity"),
+            keys=(
+                "own_hand",
+                "enemy_hand",
+                "enemy_hand_card",
+                "own_graveyard",
+                "own_graveyard_entity",
+                "own_source_card",
+                "enemy_source_card",
+                "own_horizont_entity",
+                "own_zenit_entity",
+                "enemy_horizont_entity",
+                "enemy_zenit_entity",
+            ),
             source=context.get("spell_card") if isinstance(context, dict) else None,
             lane_index=context.get("lane_index") if isinstance(context, dict) else None,
         )
         if cel is not None:
-            zone_name, index, item = cel
-            owner = source_player if zone_name in {"kez", "pakli", "temeto", "horizont", "zenit"} and item in (
-                list(getattr(source_player, "kez", []))
-                + list(getattr(source_player, "pakli", []))
-                + list(getattr(source_player, "temeto", []))
-                + [u for _, _, u in _allied_units(source_player)]
-            ) else target_player
+            zone_name, index, _ = cel
+            owner = _selection_owner(source_player, target_player, cel)
             did |= ActionLibrary.move_target_to_deck(
                 owner,
                 zone_name,
@@ -807,13 +844,89 @@ def _resolve_misc_state(card, source_player, target_player, context):
             card,
             source_player,
             target_player,
-            keys=("own_hand", "own_graveyard_entity", "own_horizont_entity", "own_zenit_entity"),
+            keys=("own_hand", "own_graveyard", "own_graveyard_entity", "own_horizont_entity", "own_zenit_entity"),
             source=context.get("source_unit") if isinstance(context, dict) else None,
         )
         if cel is not None:
             did |= ActionLibrary.move_target_to_source(source_player, cel[0], cel[1], card.nev)
         elif getattr(source_player, "temeto", None):
             did |= ActionLibrary.move_target_to_source(source_player, "temeto", 0, card.nev)
+    if _find_matching_tag(card, "source_manipulation"):
+        cel = _select_target_by_metadata(
+            card,
+            source_player,
+            target_player,
+            keys=("own_hand", "own_graveyard", "own_graveyard_entity", "own_horizont_entity", "own_zenit_entity"),
+            source=context.get("source_unit") if isinstance(context, dict) else None,
+            lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+        )
+        if cel is not None:
+            did |= ActionLibrary.move_target_to_source(source_player, cel[0], cel[1], card.nev)
+    if _find_matching_tag(card, "ability_lock"):
+        cel = _select_target_by_metadata(
+            card,
+            source_player,
+            target_player,
+            keys=(
+                "opposing_entity",
+                "enemy_horizont_entity",
+                "enemy_zenit_entity",
+                "enemy_entity",
+                "own_horizont_entity",
+                "own_zenit_entity",
+                "own_entity",
+                "self",
+            ),
+            source=context.get("source_unit") if isinstance(context, dict) else None,
+            lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+        )
+        if cel is None and has_target(card, "lane"):
+            cel = ActionLibrary.select_target_for_key(
+                source_player,
+                target_player,
+                "opposing_entity",
+                lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+            )
+        if cel is not None:
+            did |= ActionLibrary.lock_abilities(
+                cel[2],
+                f"Structured: {card.nev}",
+                owner=_selection_owner(source_player, target_player, cel),
+                source=context.get("source_unit") if isinstance(context, dict) else None,
+            )
+    if _find_matching_tag(card, "position_lock"):
+        cel = _select_target_by_metadata(
+            card,
+            source_player,
+            target_player,
+            keys=(
+                "opposing_entity",
+                "enemy_horizont_entity",
+                "enemy_zenit_entity",
+                "enemy_entity",
+                "own_horizont_entity",
+                "own_zenit_entity",
+                "own_entity",
+                "self",
+            ),
+            source=context.get("source_unit") if isinstance(context, dict) else None,
+            lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+        )
+        if cel is None and has_target(card, "lane"):
+            cel = ActionLibrary.select_target_for_key(
+                source_player,
+                target_player,
+                "opposing_entity",
+                lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+            )
+        if cel is not None:
+            did |= ActionLibrary.lock_position(
+                cel[2],
+                awakenings=max(1, _extract_number(_canonical_text(card), 1)),
+                reason=f"Structured: {card.nev}",
+                owner=_selection_owner(source_player, target_player, cel),
+                source=context.get("source_unit") if isinstance(context, dict) else None,
+            )
     if _find_matching_tag(card, "resource_gain"):
         amount = max(1, _extract_number(_canonical_text(card), 1))
         did |= ActionLibrary.grant_resource(source_player, amount, card.nev) > 0
