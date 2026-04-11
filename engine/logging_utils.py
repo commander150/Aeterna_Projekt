@@ -53,20 +53,38 @@ def create_logger(config=None, base_dir=".", now=None, logger: Optional[Naplozo]
 
 
 def log_flag_skip(effect_name, flag_name, category="FLAG_OFF"):
-    naplo.ir(f"[SKIP:{category}] {effect_name} | mechanika kikapcsolva: {flag_name}")
+    naplo.skip(category, f"{effect_name} | mechanika kikapcsolva: {flag_name}")
 
 
 def log_rule_skip(effect_name, reason):
-    naplo.ir(f"[SKIP:RULE] {effect_name} | {reason}")
+    naplo.skip("RULE", f"{effect_name} | {reason}")
 
 
 def log_target_skip(effect_name, reason):
-    naplo.ir(f"[SKIP:TARGET] {effect_name} | {reason}")
+    naplo.skip("TARGET", f"{effect_name} | {reason}")
 
 
 def log_limit_skip(effect_name, reason):
-    naplo.ir(f"[SKIP:LIMIT] {effect_name} | {reason}")
+    naplo.skip("LIMIT", f"{effect_name} | {reason}")
 
 
 def log_unresolved(effect_name, reason="Card effect parser missing"):
-    naplo.ir(f"[UNRESOLVED] {effect_name} | {reason}")
+    naplo.tech("UNRESOLVED", f"{effect_name} | {reason}")
+
+
+def log_shared_path(path_name, detail=""):
+    if detail:
+        naplo.tech("PATH", f"{path_name} | {detail}")
+    else:
+        naplo.tech("PATH", path_name)
+
+
+def log_block_reason(block_name, reason):
+    naplo.tech("BLOCK", f"{block_name} | {reason}")
+
+
+def log_helper_result(helper_name, result, detail=""):
+    message = f"{helper_name} | result={result}"
+    if detail:
+        message += f" | {detail}"
+    naplo.tech("HELPER", message)

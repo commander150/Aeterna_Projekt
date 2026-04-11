@@ -15,9 +15,9 @@ XLSX_FAJL = os.path.join(PROGRAM_MAPPA, "cards.xlsx")
 # =========================
 SZIMULACIOS_BEALLITASOK = {
     "jatekok_szama": 5,
-    "random_seed": 101,
-    "jatekos1_birodalom": "Aqua",
-    "jatekos2_birodalom": "Aether",
+    "random_seed": 105,
+    "jatekos1_birodalom": "Ignis",
+    "jatekos2_birodalom": "Ignis",
     "veletlen_birodalmak": False,
     "scenario_nev": None,
     "engine_futasi_mod": "core_only",
