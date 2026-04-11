@@ -2,7 +2,7 @@
 import traceback
 from engine.effect_diagnostics_v2 import install_effect_diagnostics
 from engine.config import set_active_engine_config
-from engine.logging_utils import log_shared_path
+from engine.logging_utils import log_block_reason, log_shared_path
 from utils.logger import naplo
 from stats.analyzer import stats
 from data.loader import kartyak_betoltese_xlsx
@@ -51,17 +51,27 @@ def _count_board_entities(player):
                 total += 1
     return total
 
+def _match_victory_reason(jatek, nyertes):
+    p1 = jatek.p1
+    p2 = jatek.p2
+
+    if nyertes is None:
+        return "timeout_draw"
+
+    if getattr(p1, "overflow_vereseg", False) or getattr(p2, "overflow_vereseg", False):
+        return "overflow"
+
+    if len(getattr(p1, "pecsetek", [])) == 0 or len(getattr(p2, "pecsetek", [])) == 0:
+        return "seal_break_finish"
+
+    return "unknown"
+
 
 def _match_summary_lines(jatek, nyertes):
     p1 = jatek.p1
     p2 = jatek.p2
-
-    if nyertes:
-        victory_reason = "gyozelem"
-    elif getattr(p1, "overflow_vereseg", False) or getattr(p2, "overflow_vereseg", False):
-        victory_reason = "overflow"
-    else:
-        victory_reason = "dontetlen_vagy_idotullepes"
+    victory_reason = _match_victory_reason(jatek, nyertes)
+    metrics = getattr(jatek, "log_metrics", {}) or {}
 
     return [
         f"gyoztes={nyertes if nyertes else 'DONTETLEN'}",
@@ -70,6 +80,18 @@ def _match_summary_lines(jatek, nyertes):
         f"p1_nev={p1.nev} | p1_birodalom={p1.birodalom} | p1_pecset={len(p1.pecsetek)} | p1_pakli={len(p1.pakli)} | p1_kez={len(p1.kez)} | p1_temeto={len(p1.temeto)} | p1_board={_count_board_entities(p1)}",
         f"p2_nev={p2.nev} | p2_birodalom={p2.birodalom} | p2_pecset={len(p2.pecsetek)} | p2_pakli={len(p2.pakli)} | p2_kez={len(p2.kez)} | p2_temeto={len(p2.temeto)} | p2_board={_count_board_entities(p2)}",
         f"overflow_p1={getattr(p1, 'overflow_vereseg', False)} | overflow_p2={getattr(p2, 'overflow_vereseg', False)}",
+        "metrics="
+        + " | ".join(
+            [
+                f"spells_cast={metrics.get('spells_cast', 0)}",
+                f"summons={metrics.get('summons', 0)}",
+                f"traps_played={metrics.get('traps_played', 0)}",
+                f"traps_triggered={metrics.get('traps_triggered', 0)}",
+                f"seal_breaks={metrics.get('seal_breaks', 0)}",
+                f"source_placements={metrics.get('source_placements', 0)}",
+                f"destroyed_units={metrics.get('destroyed_units', 0)}",
+            ]
+        ),
     ]
 
 def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
@@ -114,6 +136,15 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
                 f"index={i+1} | p1={b1} | p2={b2} | seed={config.random_seed} | scenario={config.scenario or 'none'}"
             )
             jatek = AeternaSzimulacio(b1, b2, kartyak, engine_config=engine_config)
+            jatek.log_metrics = {
+                "spells_cast": 0,
+                "summons": 0,
+                "traps_played": 0,
+                "traps_triggered": 0,
+                "seal_breaks": 0,
+                "source_placements": 0,
+                "destroyed_units": 0,
+            }
             stats.jatekok_szama += 1
 
             nyertes = None

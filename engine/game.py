@@ -14,6 +14,7 @@ from engine.game_state import MatchState
 from engine.phases import PhaseRunner
 from utils.text import normalize_lookup_text
 from utils.logger import naplo
+from engine.logging_utils import log_block_reason, log_shared_path
 from stats.analyzer import stats
 from engine.player import Jatekos
 from engine.card import CsataEgyseg
@@ -28,6 +29,8 @@ class AeternaSzimulacio:
     def __init__(self, b1_nev, b2_nev, kartyak, engine_config=None):
         self.p1 = Jatekos("Jatekos_1", b1_nev, kartyak)
         self.p2 = Jatekos("Jatekos_2", b2_nev, kartyak)
+        self.p1.jatek = self
+        self.p2.jatek = self
         self.kor = 1
         self.engine_config = engine_config or get_active_engine_config()
         self.state = MatchState(self.p1, self.p2, self.kor)
@@ -139,6 +142,8 @@ class AeternaSzimulacio:
                         jatekos.kez.remove(lap)
                         set_zone_slot(jatekos, "zenit", i, lap, f"trap_play:{lap.nev}")
                         naplo.ir(f"{jatekos.nev} Jelet rakott: {lap.nev}")
+                        if getattr(self, "log_metrics", None) is not None:
+                            self.log_metrics["traps_played"] += 1
                         break
 
         else:
@@ -147,6 +152,8 @@ class AeternaSzimulacio:
                 jatekos.temeto.append(lap)
 
                 naplo.ir(f"{jatekos.nev} varazsol: {lap.nev}")
+                if getattr(self, "log_metrics", None) is not None:
+                    self.log_metrics["spells_cast"] += 1
 
                 ellenfel = self.p2 if jatekos == self.p1 else self.p1
                 trap_result = self._resolve_spell_cast_traps(lap, jatekos, ellenfel)
@@ -206,9 +213,12 @@ class AeternaSzimulacio:
         return self._ellenoriz_gyoztest()
 
     def _elpusztit_egyseget(self, jatekos, zona_nev, index, ok="harc", extra_payload=None):
-        return EffectEngine.destroy_unit(
+        result = EffectEngine.destroy_unit(
             jatekos, zona_nev, index, self._ellenfel(jatekos), ok, extra_payload
         )
+        if result and getattr(self, "log_metrics", None) is not None:
+            self.log_metrics["destroyed_units"] += 1
+        return result
 
     def _dispatch_damage_events(self, source, owner, target, payload):
         event_payload = dict(payload or {})
@@ -255,6 +265,9 @@ class AeternaSzimulacio:
         consumed = ActionLibrary.remove_trap_from_zenit(owner, index, reason, count_as_used=True)
         if consumed is not None:
             stats.aktivalt_jelek += 1
+            if getattr(self, "log_metrics", None) is not None:
+                self.log_metrics["traps_triggered"] += 1
+            log_shared_path("trap_consume_shared", f"{getattr(consumed, 'nev', 'ismeretlen')} | {reason}")
         return consumed
 
     def _feltor_pecset(self, vedo, burst_aktivalt_ebben_a_harcban, forras=None):
@@ -263,6 +276,8 @@ class AeternaSzimulacio:
 
         p = vedo.pecsetek.pop()
         stats.feltort_pecsetek += 1
+        if getattr(self, "log_metrics", None) is not None:
+            self.log_metrics["seal_breaks"] += 1
 
         if p.magnitudo > len(vedo.osforras):
             ActionLibrary.place_card_in_source(vedo, p, "seal_row", forras)
@@ -399,6 +414,7 @@ class AeternaSzimulacio:
                 if aktiv_ignis_tarsak >= 2:
                     return True
 
+        log_block_reason("RULE", f"{getattr(lap, 'nev', 'ismeretlen')} | vulkani_golem_attack_requirement")
         naplo.ir(
             f"Vulkani Golem: {getattr(lap, 'nev', 'ismeretlen')} nem tamadhat, mert nincs 2 masik aktiv Ignis entitas a Dominiumon."
         )
@@ -516,6 +532,7 @@ class AeternaSzimulacio:
                         tamado.horizont[i].akt_tamadas = eredeti_atk
                         tamado.horizont[i].attack_damage_zero_this_combat = False
                         self._cleanup_combat_attack_bonus(tamado.horizont[i])
+                    log_block_reason("TRAP", f"{egyseg.lap.nev} | combat_attack_stopped")
                     continue
 
                 blokkolok = KeywordEngine.get_blockers(vedo)
@@ -728,6 +745,7 @@ class AeternaSzimulacio:
                                 tamado.horizont[i].akt_tamadas = eredeti_atk
                                 tamado.horizont[i].attack_damage_zero_this_combat = False
                                 self._cleanup_combat_attack_bonus(tamado.horizont[i])
+                            log_block_reason("TRAP", f"{egyseg.lap.nev} | direct_attack_stopped")
                             continue
 
                     trigger_engine.dispatch(

@@ -9,6 +9,7 @@ from engine.board_utils import (
     set_zone_slot,
 )
 from engine.triggers import trigger_engine
+from engine.logging_utils import log_block_reason, log_shared_path
 from utils.logger import naplo
 from utils.text import normalize_lookup_text
 
@@ -261,6 +262,9 @@ class ActionLibrary:
             target=owner,
             payload={"from": from_zone, "to": "osforras", "reason": reason},
         )
+        log_shared_path("source_placement_shared", f"{card.nev} | from={from_zone} | reason={reason}")
+        if hasattr(owner, "jatek") and getattr(owner.jatek, "log_metrics", None) is not None:
+            owner.jatek.log_metrics["source_placements"] += 1
         naplo.ir(f"{card.nev} az osforrasok koze kerult ({reason})")
         return True
 
@@ -426,14 +430,17 @@ class ActionLibrary:
 
         valid, _ = TargetingEngine.validate(front, "spell")
         if not valid:
+            log_block_reason("TARGET", f"{front.lap.nev} | move_to_zenit | {reason}")
             naplo.ir(f"{front.lap.nev} nem mozgathato a Zenitbe ({reason})")
             return False
         if getattr(front, "position_lock_awakenings", 0) > 0:
+            log_block_reason("LOCK", f"{front.lap.nev} | position_lock | {reason}")
             naplo.ir(f"{front.lap.nev} nem valthat poziciot ({reason})")
             return False
 
         back = owner.zenit[index]
         if _is_board_entity(back) and getattr(back, "position_lock_awakenings", 0) > 0:
+            log_block_reason("LOCK", f"{back.lap.nev} | position_lock | {reason}")
             naplo.ir(f"{back.lap.nev} nem valthat poziciot ({reason})")
             return False
         if back is None:
@@ -506,6 +513,9 @@ class ActionLibrary:
             target=unit,
             payload={"from": "external", "to": "horizont", "index": lane_index, "reason": reason},
         )
+        log_shared_path("summon_horizont_shared", f"{unit.lap.nev} | lane={lane_index} | reason={reason}")
+        if hasattr(owner, "jatek") and getattr(owner.jatek, "log_metrics", None) is not None:
+            owner.jatek.log_metrics["summons"] += 1
         naplo.ir(f"{unit.lap.nev} a Horizontra kerult ({reason})")
         return unit
 
@@ -534,6 +544,9 @@ class ActionLibrary:
         if isinstance(payload, dict):
             summon_payload.update(payload)
         trigger_engine.dispatch("on_summon", source=unit, owner=owner, payload=summon_payload)
+        log_shared_path("summon_zenit_shared", f"{unit.lap.nev} | lane={lane_index} | reason={reason}")
+        if hasattr(owner, "jatek") and getattr(owner.jatek, "log_metrics", None) is not None:
+            owner.jatek.log_metrics["summons"] += 1
         naplo.ir(f"{unit.lap.nev} a Zenitbe kerult ({reason})")
         return unit
 
