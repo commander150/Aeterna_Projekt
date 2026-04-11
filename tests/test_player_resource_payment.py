@@ -4,6 +4,7 @@ from unittest.mock import patch
 from engine.player import Jatekos
 
 
+
 class DummyCard:
     def __init__(self, nev, birodalom="Solaris", aura_koltseg=1, egyseg_e=True):
         self.nev = nev
@@ -69,6 +70,20 @@ class TestJatekosFizetes(unittest.TestCase):
 
         self.assertFalse(ok)
         self.assertFalse(p.osforras[0]["hasznalt"])
+
+    def test_osforras_bovites_uses_shared_source_dispatch(self):
+        p = self._make_player()
+        p.kez = [DummyCard("Dragabb", aura_koltseg=3), DummyCard("Olcsobb", aura_koltseg=1)]
+        seen = []
+
+        with patch("engine.actions.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            p.osforras_bovites()
+
+        self.assertEqual(len(p.osforras), 1)
+        self.assertEqual(p.osforras[0]["lap"].nev, "Dragabb")
+        self.assertEqual(len(p.kez), 1)
+        self.assertIn("on_source_placement", seen)
+        self.assertIn("on_position_changed", seen)
 
 
 if __name__ == "__main__":

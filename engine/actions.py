@@ -3,6 +3,7 @@ from engine.board_utils import (
     _is_board_entity,
     _object_name,
     _object_type,
+    is_trap,
     is_zenit_entity,
     log_zone_write,
     set_zone_slot,
@@ -93,6 +94,30 @@ class ActionLibrary:
                 payload={"from": from_zone, "to": to_zone, "index": to_index, "reason": reason},
             )
         naplo.ir(f"{entity.lap.nev} atkerult {from_zone} -> {to_zone} ({reason})")
+        return True
+
+    @staticmethod
+    def retreat_horizont_to_zenit(owner, index, reason, exhausted=True):
+        horizont = getattr(owner, "horizont", None)
+        zenit = getattr(owner, "zenit", None)
+        if horizont is None or zenit is None:
+            return False
+        if not (0 <= index < len(horizont)) or not (0 <= index < len(zenit)):
+            return False
+        unit = horizont[index]
+        if not _is_board_entity(unit):
+            return False
+        if zenit[index] is not None:
+            return False
+        if getattr(unit, "position_lock_awakenings", 0) > 0:
+            naplo.ir(f"{unit.lap.nev} nem valthat poziciot ({reason})")
+            return False
+
+        set_zone_slot(owner, "zenit", index, unit, f"move_to_zenit:{reason}")
+        set_zone_slot(owner, "horizont", index, None, f"move_to_zenit:{reason}")
+        unit.kimerult = exhausted
+        trigger_engine.dispatch("on_position_changed", source=unit.lap, owner=owner, payload={"from": "horizont", "to": "zenit"})
+        naplo.ir(f"{unit.lap.nev} a Zenitbe kerult ({reason})")
         return True
 
     @staticmethod
@@ -224,6 +249,22 @@ class ActionLibrary:
         return bool(getattr(target, "abilities_locked_until_turn_end", False))
 
     @staticmethod
+    def place_card_in_source(owner, card, from_zone, reason):
+        if owner is None or card is None:
+            return False
+        owner.osforras.append({"lap": card, "hasznalt": False})
+        trigger_engine.dispatch("on_position_changed", source=card, owner=owner, payload={"from": from_zone, "to": "osforras"})
+        trigger_engine.dispatch(
+            "on_source_placement",
+            source=card,
+            owner=owner,
+            target=owner,
+            payload={"from": from_zone, "to": "osforras", "reason": reason},
+        )
+        naplo.ir(f"{card.nev} az osforrasok koze kerult ({reason})")
+        return True
+
+    @staticmethod
     def exhaust_target(target, reason):
         target.kimerult = True
         naplo.ir(f"{target.lap.nev} kimerult ({reason})")
@@ -334,6 +375,35 @@ class ActionLibrary:
         return True
 
     @staticmethod
+    def remove_trap_from_zenit(owner, index, reason, count_as_used=False):
+        zenit = getattr(owner, "zenit", None)
+        if zenit is None or not (0 <= index < len(zenit)):
+            return None
+        trap = zenit[index]
+        if not is_trap(trap):
+            return None
+        owner.temeto.append(trap)
+        set_zone_slot(owner, "zenit", index, None, reason)
+        if count_as_used:
+            owner.hasznalt_jelek_ebben_a_korben = getattr(owner, "hasznalt_jelek_ebben_a_korben", 0) + 1
+        return trap
+
+    @staticmethod
+    def restore_trap_to_zenit(owner, trap, reason, refund_usage=False):
+        if trap is None:
+            return False
+        empty_index = next((i for i, slot in enumerate(getattr(owner, "zenit", [])) if slot is None), None)
+        if empty_index is not None:
+            if getattr(owner, "temeto", None) and owner.temeto and owner.temeto[-1] is trap:
+                owner.temeto.pop()
+            set_zone_slot(owner, "zenit", empty_index, trap, reason)
+        else:
+            owner.temeto.append(trap)
+        if refund_usage:
+            owner.hasznalt_jelek_ebben_a_korben = max(0, getattr(owner, "hasznalt_jelek_ebben_a_korben", 0) - 1)
+        return True
+
+    @staticmethod
     def discard_from_hand(owner, index, reason):
         hand = getattr(owner, "kez", None)
         if hand is None or not (0 <= index < len(hand)):
@@ -440,6 +510,34 @@ class ActionLibrary:
         return unit
 
     @staticmethod
+    def summon_card_to_zenit(owner, card, lane_index=None, reason="summon", exhausted=True, payload=None):
+        if owner is None or card is None:
+            return None
+        if lane_index is None:
+            lane_index = ActionLibrary.first_empty_slot(owner, "zenit")
+        if lane_index is None:
+            return None
+        if owner.zenit[lane_index] is not None:
+            return None
+
+        for collection_name in ("kez", "pakli", "temeto"):
+            collection = getattr(owner, collection_name, None)
+            if isinstance(collection, list) and card in collection:
+                collection.remove(card)
+                break
+
+        unit = CsataEgyseg(card)
+        unit.owner = owner
+        unit.kimerult = exhausted
+        set_zone_slot(owner, "zenit", lane_index, unit, f"summon:{reason}")
+        summon_payload = {"zone": "zenit"}
+        if isinstance(payload, dict):
+            summon_payload.update(payload)
+        trigger_engine.dispatch("on_summon", source=unit, owner=owner, payload=summon_payload)
+        naplo.ir(f"{unit.lap.nev} a Zenitbe kerult ({reason})")
+        return unit
+
+    @staticmethod
     def move_target_to_deck(owner, zone_name, index, reason, to_bottom=False):
         zone = getattr(owner, zone_name, None)
         if zone is None or not (0 <= index < len(zone)):
@@ -493,17 +591,7 @@ class ActionLibrary:
             zone.pop(index)
         else:
             zone[index] = None
-        owner.osforras.append({"lap": card, "hasznalt": False})
-        trigger_engine.dispatch("on_position_changed", source=card, owner=owner, payload={"from": zone_name, "to": "osforras"})
-        trigger_engine.dispatch(
-            "on_source_placement",
-            source=card,
-            owner=owner,
-            target=owner,
-            payload={"from": zone_name, "to": "osforras", "reason": reason},
-        )
-        naplo.ir(f"{card.nev} az osforrasok koze kerult ({reason})")
-        return True
+        return ActionLibrary.place_card_in_source(owner, card, zone_name, reason)
 
     @staticmethod
     def grant_resource(owner, amount, reason):
@@ -512,15 +600,7 @@ class ActionLibrary:
             if not getattr(owner, "pakli", None):
                 break
             card = owner.pakli.pop()
-            owner.osforras.append({"lap": card, "hasznalt": False})
-            trigger_engine.dispatch(
-                "on_source_placement",
-                source=card,
-                owner=owner,
-                target=owner,
-                payload={"from": "pakli", "to": "osforras", "reason": reason},
-            )
-            gained += 1
+            gained += 1 if ActionLibrary.place_card_in_source(owner, card, "pakli", reason) else 0
         if gained > 0:
             naplo.ir(f"{owner.nev} {gained} osforrast kapott ({reason})")
         return gained

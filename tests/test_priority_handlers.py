@@ -1,7 +1,9 @@
 ﻿import unittest
 from types import SimpleNamespace
 
+from cards.priority_handlers import _put_entity_on_top_of_deck, handle_eletmento_burok, handle_fa_oleles, handle_hamis_halal
 from cards.resolver import can_activate_trap, resolve_card_handler, resolve_spell_redirect
+from engine.actions import ActionLibrary
 from engine.card import CsataEgyseg
 from engine.effects import EffectEngine
 from engine.effect_diagnostics_v2 import install_effect_diagnostics
@@ -1927,6 +1929,64 @@ class TestPriorityHandlers(unittest.TestCase):
         self.assertFalse(owner.horizont[2].kimerult)
         self.assertEqual(owner.horizont[2].akt_hp, 4)
 
+    def test_hamis_halal_uses_shared_return_to_hand_enforcement(self):
+        trap = make_card("Hamis Halal", card_type="Jel")
+        owner = make_player("Owner")
+        unit = CsataEgyseg(make_card("Vedett", atk=2, hp=3))
+        unit.owner = owner
+        owner.horizont[0] = unit
+        ActionLibrary.grant_untargetable(unit, "Teszt", owner=owner, source=unit)
+
+        result = handle_hamis_halal(trap, owner, unit, zone_name="horizont", index=0)
+
+        self.assertFalse(result["resolved"])
+        self.assertIs(owner.horizont[0], unit)
+        self.assertEqual(owner.kez, [])
+
+    def test_put_entity_on_top_of_deck_uses_shared_deck_enforcement(self):
+        owner = make_player("Owner")
+        unit = CsataEgyseg(make_card("Vedett", atk=2, hp=3))
+        unit.owner = owner
+        owner.horizont[0] = unit
+        ActionLibrary.grant_untargetable(unit, "Teszt", owner=owner, source=unit)
+
+        moved = _put_entity_on_top_of_deck(owner, "horizont", 0, "Teszt")
+
+        self.assertFalse(moved)
+        self.assertIs(owner.horizont[0], unit)
+        self.assertEqual(owner.pakli, [])
+
+    def test_fa_oleles_respects_shared_position_lock_on_retreat(self):
+        trap = make_card("Fa-oleles", card_type="Jel")
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        unit = CsataEgyseg(make_card("Vedett", atk=2, hp=3))
+        unit.owner = owner
+        unit.position_lock_awakenings = 1
+        owner.horizont[0] = unit
+
+        result = handle_fa_oleles(trap, owner, unit, attacker=enemy, zone_name="horizont", index=0)
+
+        self.assertTrue(result["resolved"])
+        self.assertTrue(result["partial"])
+        self.assertIs(owner.horizont[0], unit)
+        self.assertIsNone(owner.zenit[0])
+
+    def test_eletmento_burok_uses_shared_retreat_to_zenit_path(self):
+        trap = make_card("Eletmento Burok", card_type="Jel")
+        owner = make_player("Owner")
+        enemy = make_player("Enemy")
+        unit = CsataEgyseg(make_card("Vedett", atk=2, hp=3))
+        unit.owner = owner
+        owner.horizont[1] = unit
+
+        result = handle_eletmento_burok(trap, owner, unit, attacker=enemy, zone_name="horizont", index=1)
+
+        self.assertTrue(result["resolved"])
+        self.assertFalse(result["partial"])
+        self.assertIsNone(owner.horizont[1])
+        self.assertIs(owner.zenit[1], unit)
+        self.assertTrue(unit.kimerult)
+
 if __name__ == "__main__":
     unittest.main()
-

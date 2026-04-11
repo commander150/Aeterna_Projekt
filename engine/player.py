@@ -1,6 +1,7 @@
 ﻿import random
 from utils.logger import naplo
 from engine.card import CsataEgyseg
+from engine.actions import ActionLibrary
 from engine.board_utils import is_entity, is_zenit_entity
 from engine.triggers import trigger_engine
 
@@ -215,16 +216,8 @@ class Jatekos:
     def osforras_bovites(self):
         if self.kez:
             self.kez.sort(key=lambda k: k.aura_koltseg, reverse=True)
-            lap = self.kez.pop(0)
-            self.osforras.append({"lap": lap, "hasznalt": False})
-            trigger_engine.dispatch(
-                "on_source_placement",
-                source=lap,
-                owner=self,
-                target=self,
-                payload={"from": "kez", "to": "osforras", "reason": "osforras_bovites"},
-            )
-            naplo.ir(f"{self.nev} Osforrast bovitett: {lap.nev}")
+            if ActionLibrary.move_target_to_source(self, "kez", 0, "osforras_bovites"):
+                naplo.ir(f"{self.nev} Osforrast bovitett.")
 
     def elerheto_aura(self):
         alap_aura = sum(

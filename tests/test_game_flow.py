@@ -411,6 +411,51 @@ class TestGameFlow(unittest.TestCase):
 
         self.assertIsNone(result)
         self.assertIn("on_enemy_zenit_summon", seen)
+        self.assertIsNotNone(caster.zenit[0])
+
+    def test_summon_card_to_zenit_uses_shared_dispatch_path(self):
+        owner = make_player("Owner")
+        card = make_card("Hatso Erkezo", card_type="Entitas")
+        seen = []
+
+        with patch("engine.actions.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+            unit = ActionLibrary.summon_card_to_zenit(owner, card, lane_index=2, reason="Teszt", exhausted=True)
+
+        self.assertIsNotNone(unit)
+        self.assertIs(owner.zenit[2], unit)
+        self.assertIn("on_summon", seen)
+        self.assertNotIn("on_entity_enters_horizont", seen)
+
+    def test_kijatszas_fazis_horizont_summon_uses_shared_horizont_path(self):
+        sim = object.__new__(AeternaSzimulacio)
+        unit_card = make_card("Horizont Entitas", card_type="Entitas", magnitude=1, aura=1)
+        caster = SimpleNamespace(
+            nev="Caster",
+            kez=[unit_card],
+            horizont=[None] * 6,
+            zenit=[None] * 6,
+            osforras=[{"lap": make_card("Forras"), "hasznalt": False}],
+            megidezett_entitasok_ebben_a_korben=0,
+            elerheto_aura=lambda: 1,
+            effektiv_aura_koltseg=lambda lap: 1,
+            fizet=lambda lap: True,
+        )
+        defender = make_player("Defender")
+        sim.p1 = caster
+        sim.p2 = defender
+        sim._resolve_summon_traps = Mock(return_value=False)
+        sim._alkalmaz_kartya_hatast = Mock(return_value=None)
+        seen = []
+
+        with patch("engine.game.random.choice", return_value=unit_card):
+            with patch("engine.game.random.random", return_value=0.2):
+                with patch("engine.game.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+                    result = AeternaSzimulacio.kijatszas_fazis(sim, caster)
+
+        self.assertIsNone(result)
+        self.assertIn("on_entity_enters_horizont", seen)
+        self.assertIn("on_enemy_summon", seen)
+        self.assertIsNotNone(caster.horizont[0])
 
     def test_resolve_spell_cast_traps_emits_on_trap_triggered(self):
         sim = object.__new__(AeternaSzimulacio)
@@ -428,6 +473,25 @@ class TestGameFlow(unittest.TestCase):
 
         self.assertTrue(result["consume_trap"])
         self.assertIn("on_trap_triggered", seen)
+
+    def test_resolve_summon_traps_emits_on_trap_triggered_and_consumes_trap(self):
+        sim = object.__new__(AeternaSzimulacio)
+        owner = make_player("Owner")
+        opponent = make_player("Opponent")
+        opponent.hasznalt_jelek_ebben_a_korben = 0
+        summoned = make_unit("Erkezo")
+        trap = make_card("Teszt Summon Trap", card_type="Jel")
+        opponent.zenit[0] = trap
+        seen = []
+
+        with patch("engine.game.resolve_card_handler", return_value={"consume_trap": True, "destroy_summoned": False}):
+            with patch("engine.game.trigger_engine.dispatch", side_effect=lambda event_name, **kwargs: seen.append(event_name)):
+                resolved = AeternaSzimulacio._resolve_summon_traps(sim, summoned, owner, opponent)
+
+        self.assertTrue(resolved)
+        self.assertIn("on_trap_triggered", seen)
+        self.assertIsNone(opponent.zenit[0])
+        self.assertEqual(opponent.temeto[-1].nev, "Teszt Summon Trap")
 
     def test_harc_fazis_emits_on_attack_hits_for_seal_hit(self):
         sim = object.__new__(AeternaSzimulacio)

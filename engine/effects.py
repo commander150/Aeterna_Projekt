@@ -320,14 +320,7 @@ class EffectEngine:
         stats.feltort_pecsetek += 1
 
         if p.magnitudo > len(vedo.osforras):
-            vedo.osforras.append({"lap": p, "hasznalt": False})
-            trigger_engine.dispatch(
-                "on_source_placement",
-                source=p,
-                owner=vedo,
-                target=vedo,
-                payload={"from": "seal_row", "to": "osforras", "reason": kartya_nev},
-            )
+            ActionLibrary.place_card_in_source(vedo, p, "seal_row", kartya_nev)
             naplo.ir(f"✨ {kontextus}: {kartya_nev} + Gondviselés ({p.nev})")
         else:
             vedo.kez.append(p)

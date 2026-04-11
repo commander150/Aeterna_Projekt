@@ -188,11 +188,7 @@ def _put_entity_on_top_of_deck(owner, zone_name, index, reason):
     unit = zone[index]
     if not _is_board_entity(unit):
         return False
-    owner.pakli.append(unit.lap)
-    set_zone_slot(owner, zone_name, index, None, f"deck_top:{reason}")
-    trigger_engine.dispatch("on_position_changed", source=unit.lap, owner=owner, payload={"from": zone_name, "to": "pakli_teteje"})
-    naplo.ir(f"{unit.lap.nev} visszakerult a pakli tetejere ({reason})")
-    return True
+    return ActionLibrary.move_target_to_deck(owner, zone_name, index, reason, to_bottom=False)
 
 
 def _best_other_allied_unit(player, excluded_unit=None, horizon_only=False):
@@ -208,24 +204,24 @@ def _consume_named_trap(player, trap_name):
         if not is_trap(trap):
             continue
         if normalize_lookup_text(getattr(trap, "nev", "")) == normalize_lookup_text(trap_name):
-            player.temeto.append(trap)
-            set_zone_slot(player, "zenit", index, None, f"consume_trap:{trap_name}")
-            player.hasznalt_jelek_ebben_a_korben += 1
-            return trap
+            return ActionLibrary.remove_trap_from_zenit(
+                player,
+                index,
+                f"consume_trap:{trap_name}",
+                count_as_used=True,
+            )
     return None
 
 
 def _restore_consumed_trap(player, trap):
     if trap is None:
         return
-    empty_index = next((i for i, slot in enumerate(player.zenit) if slot is None), None)
-    if empty_index is not None:
-        if player.temeto and player.temeto[-1] is trap:
-            player.temeto.pop()
-        set_zone_slot(player, "zenit", empty_index, trap, f"restore_trap:{getattr(trap, 'nev', 'ismeretlen')}")
-    else:
-        player.temeto.append(trap)
-    player.hasznalt_jelek_ebben_a_korben = max(0, player.hasznalt_jelek_ebben_a_korben - 1)
+    ActionLibrary.restore_trap_to_zenit(
+        player,
+        trap,
+        f"restore_trap:{getattr(trap, 'nev', 'ismeretlen')}",
+        refund_usage=True,
+    )
 
 
 def _summon_token(owner, lane_index, name, atk, hp, race="Token", realm="Semleges", exhausted=True):
@@ -948,8 +944,8 @@ def handle_hamis_halal(card, owner, unit, zone_name=None, index=None, **_):
     if zone_name is None or index is None or not can_activate_hamis_halal(card, owner, unit):
         return {"resolved": False}
 
-    set_zone_slot(owner, zone_name, index, None, "hamis_halal_return_to_hand")
-    owner.kez.append(unit.lap)
+    if not ActionLibrary.return_target_to_hand(owner, zone_name, index, card.nev):
+        return {"resolved": False}
     return _handled(
         f"Hamis Halal: {unit.lap.nev} megmenekult, es azonnal visszakerult a kezbe.",
         consume_trap=True,
@@ -963,13 +959,7 @@ def handle_fa_oleles(card, owner, unit, attacker=None, zone_name=None, index=Non
         return {"resolved": False}
 
     unit.akt_hp = 1
-    moved = False
-    if 0 <= index < len(owner.zenit) and owner.zenit[index] is None:
-        set_zone_slot(owner, "zenit", index, unit, "fa_oleles")
-        set_zone_slot(owner, "horizont", index, None, "fa_oleles")
-        unit.kimerult = True
-        trigger_engine.dispatch("on_position_changed", source=unit.lap, owner=owner, payload={"from": "horizont", "to": "zenit"})
-        moved = True
+    moved = ActionLibrary.retreat_horizont_to_zenit(owner, index, "fa_oleles", exhausted=True)
 
     if moved:
         return _handled(
@@ -996,10 +986,7 @@ def handle_eletmento_burok(card, owner, unit, attacker=None, zone_name=None, ind
     moved = False
     if 0 <= index < len(owner.zenit) and owner.zenit[index] is None:
         if zone_name == "horizont":
-            set_zone_slot(owner, "zenit", index, unit, "eletmento_burok")
-            set_zone_slot(owner, "horizont", index, None, "eletmento_burok")
-            trigger_engine.dispatch("on_position_changed", source=unit.lap, owner=owner, payload={"from": "horizont", "to": "zenit"})
-            moved = True
+            moved = ActionLibrary.retreat_horizont_to_zenit(owner, index, "eletmento_burok", exhausted=True)
         elif zone_name == "zenit":
             moved = False
     unit.kimerult = True

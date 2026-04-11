@@ -18,6 +18,7 @@ from stats.analyzer import stats
 from engine.player import Jatekos
 from engine.card import CsataEgyseg
 from engine.effects import EffectEngine
+from engine.actions import ActionLibrary
 from engine.keyword_engine import KeywordEngine
 from engine.triggers import trigger_engine
 from cards.resolver import can_activate_trap, resolve_card_handler, resolve_lethal_trap, resolve_spell_cast_trap, handle_sivatagi_kem_pecset_sebzes
@@ -66,21 +67,33 @@ class AeternaSzimulacio:
             for i in range(6):
                 if zona[i] is None:
                     if jatekos.fizet(lap):
-                        jatekos.kez.remove(lap)
-                        egyseg = CsataEgyseg(lap)
-                        egyseg.owner = jatekos
                         zona_nev = "horizont" if zona is jatekos.horizont else "zenit"
-                        set_zone_slot(jatekos, zona_nev, i, egyseg, f"summon:{lap.nev}")
+                        if zona_nev == "horizont":
+                            egyseg = ActionLibrary.summon_card_to_horizont(
+                                jatekos,
+                                lap,
+                                lane_index=i,
+                                reason=lap.nev,
+                                exhausted=True,
+                                payload={"played": True},
+                            )
+                            if egyseg is None:
+                                break
+                        else:
+                            egyseg = ActionLibrary.summon_card_to_zenit(
+                                jatekos,
+                                lap,
+                                lane_index=i,
+                                reason=lap.nev,
+                                exhausted=True,
+                                payload={"played": True},
+                            )
+                            if egyseg is None:
+                                break
                         jatekos.megidezett_entitasok_ebben_a_korben += 1
                         stats.faj_statisztika(lap.faj)
                         naplo.ir(f"{jatekos.nev} megidezte: {lap.nev}")
 
-                        trigger_engine.dispatch(
-                            "on_summon",
-                            source=egyseg,
-                            owner=jatekos,
-                            payload={"zone": zona_nev},
-                        )
                         ellenfel = self.p2 if jatekos == self.p1 else self.p1
                         trigger_engine.dispatch(
                             "on_enemy_summon",
@@ -233,6 +246,17 @@ class AeternaSzimulacio:
             payload=dict(payload or {}),
         )
 
+    def _consume_trap(self, owner, index, reason, opponent=None, payload=None):
+        zenit = getattr(owner, "zenit", None)
+        trap = None if zenit is None or not (0 <= index < len(zenit)) else zenit[index]
+        if not is_trap(trap):
+            return None
+        self._dispatch_trap_triggered(trap, owner, opponent, payload)
+        consumed = ActionLibrary.remove_trap_from_zenit(owner, index, reason, count_as_used=True)
+        if consumed is not None:
+            stats.aktivalt_jelek += 1
+        return consumed
+
     def _feltor_pecset(self, vedo, burst_aktivalt_ebben_a_harcban, forras=None):
         if not vedo.pecsetek:
             return False, burst_aktivalt_ebben_a_harcban
@@ -241,14 +265,7 @@ class AeternaSzimulacio:
         stats.feltort_pecsetek += 1
 
         if p.magnitudo > len(vedo.osforras):
-            vedo.osforras.append({"lap": p, "hasznalt": False})
-            trigger_engine.dispatch(
-                "on_source_placement",
-                source=p,
-                owner=vedo,
-                target=vedo,
-                payload={"from": "seal_row", "to": "osforras", "reason": forras},
-            )
+            ActionLibrary.place_card_in_source(vedo, p, "seal_row", forras)
             if forras:
                 naplo.ir(f"{forras} + Gondviseles")
             else:
@@ -290,16 +307,13 @@ class AeternaSzimulacio:
                 summoned_unit=summoned_unit,
             )
             if result.get("consume_trap"):
-                self._dispatch_trap_triggered(
-                    trap,
+                self._consume_trap(
                     opponent,
-                    owner,
-                    {"category": "summon_trap", "summoned_unit": summoned_unit},
+                    index,
+                    f"summon_trap_consumed:{getattr(trap, 'nev', 'ismeretlen')}",
+                    opponent=owner,
+                    payload={"category": "summon_trap", "summoned_unit": summoned_unit},
                 )
-                opponent.temeto.append(trap)
-                set_zone_slot(opponent, "zenit", index, None, f"summon_trap_consumed:{getattr(trap, 'nev', 'ismeretlen')}")
-                opponent.hasznalt_jelek_ebben_a_korben += 1
-                stats.aktivalt_jelek += 1
                 if result.get("destroy_summoned"):
                     if summoned_unit in owner.horizont:
                         self._elpusztit_egyseget(owner, "horizont", owner.horizont.index(summoned_unit), "csapda")
@@ -324,16 +338,13 @@ class AeternaSzimulacio:
                 ellenfel=caster,
             )
             if result.get("consume_trap"):
-                self._dispatch_trap_triggered(
-                    trap,
+                self._consume_trap(
                     defender,
-                    caster,
-                    {"category": "trap", "spell_card": spell_card},
+                    index,
+                    f"spell_trap_consumed:{getattr(trap, 'nev', 'ismeretlen')}",
+                    opponent=caster,
+                    payload={"category": "trap", "spell_card": spell_card},
                 )
-                defender.temeto.append(trap)
-                set_zone_slot(defender, "zenit", index, None, f"spell_trap_consumed:{getattr(trap, 'nev', 'ismeretlen')}")
-                defender.hasznalt_jelek_ebben_a_korben += 1
-                stats.aktivalt_jelek += 1
                 return result
         return False
 
@@ -482,17 +493,13 @@ class AeternaSzimulacio:
                             jel = vedo.zenit[j]
                             if not can_activate_trap(jel, tamado_egyseg=egyseg, tamado=tamado, vedo=vedo):
                                 continue
-                            self._dispatch_trap_triggered(
-                                jel,
+                            self._consume_trap(
                                 vedo,
-                                tamado,
-                                {"category": "trap", "attacker": egyseg},
+                                j,
+                                f"combat_trap_consumed:{getattr(jel, 'nev', 'ismeretlen')}",
+                                opponent=tamado,
+                                payload={"category": "trap", "attacker": egyseg},
                             )
-                            set_zone_slot(vedo, "zenit", j, None, f"combat_trap_consumed:{getattr(jel, 'nev', 'ismeretlen')}")
-                            vedo.temeto.append(jel)
-
-                            vedo.hasznalt_jelek_ebben_a_korben += 1
-                            stats.aktivalt_jelek += 1
 
                             trap_result = EffectEngine.trigger_on_trap(jel, egyseg, tamado, vedo)
                             if isinstance(trap_result, dict) and trap_result.get("stop_attack"):
@@ -706,16 +713,13 @@ class AeternaSzimulacio:
                                 continue
                             result = resolve_card_handler(jel, category="trap", tamado_egyseg=egyseg, tamado=tamado, vedo=vedo, target_kind="seal")
                             if result.get("consume_trap"):
-                                self._dispatch_trap_triggered(
-                                    jel,
+                                self._consume_trap(
                                     vedo,
-                                    tamado,
-                                    {"category": "trap", "target_kind": "seal", "attacker": egyseg},
+                                    j,
+                                    f"direct_attack_trap_consumed:{getattr(jel, 'nev', 'ismeretlen')}",
+                                    opponent=tamado,
+                                    payload={"category": "trap", "target_kind": "seal", "attacker": egyseg},
                                 )
-                                vedo.temeto.append(jel)
-                                set_zone_slot(vedo, "zenit", j, None, f"direct_attack_trap_consumed:{getattr(jel, 'nev', 'ismeretlen')}")
-                                vedo.hasznalt_jelek_ebben_a_korben += 1
-                                stats.aktivalt_jelek += 1
                             if result.get("stop_attack"):
                                 direct_trap_stopped = True
                                 break
