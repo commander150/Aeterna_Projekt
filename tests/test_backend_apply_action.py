@@ -76,6 +76,10 @@ class TestBackendApplyAction(unittest.TestCase):
         self.assertIsNone(result["result"]["zone"])
         self.assertIsNone(result["result"]["lane"])
         self.assertEqual(result["result"]["details"]["advanced_via"], "kor_futtatasa")
+        self.assertIsInstance(result["events"], list)
+        self.assertGreaterEqual(len(result["events"]), 2)
+        self.assertEqual(result["events"][0]["type"], "action_executed")
+        self.assertEqual(result["events"][1]["type"], "turn_advanced")
         self.assertIsInstance(result["snapshot"], dict)
         self.assertEqual(result["snapshot"]["active_player"], "Jatekos_1")
         self.assertEqual(result["snapshot"]["phase"], "play")
@@ -97,6 +101,7 @@ class TestBackendApplyAction(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(result["reason"], "unsupported_action_type")
         self.assertIsNone(result["result"])
+        self.assertEqual(result["events"], [])
         self.assertIsInstance(result["snapshot"], dict)
 
     def test_apply_action_handles_unknown_match_and_player(self):
@@ -156,6 +161,11 @@ class TestBackendApplyAction(unittest.TestCase):
         self.assertEqual(result["result"]["zone"], "horizont")
         self.assertEqual(result["result"]["lane"], 0)
         self.assertTrue(result["result"]["details"]["survived_on_board"])
+        self.assertIsInstance(result["events"], list)
+        self.assertEqual([event["type"] for event in result["events"][:3]], ["action_executed", "entity_played", "board_changed"])
+        self.assertEqual(result["events"][1]["card_name"], "Backend Harcos")
+        self.assertEqual(result["events"][1]["zone"], "horizont")
+        self.assertEqual(result["events"][1]["lane"], 0)
         self.assertEqual(player.kez, [])
         self.assertIsNotNone(player.horizont[0])
 
@@ -193,7 +203,9 @@ class TestBackendApplyAction(unittest.TestCase):
         self.assertEqual(result["reason"], "not_in_legal_actions")
         self.assertIn("action", result)
         self.assertIn("result", result)
+        self.assertIn("events", result)
         self.assertIsNone(result["result"])
+        self.assertEqual(result["events"], [])
         self.assertIsInstance(result["snapshot"], dict)
 
     def test_apply_action_rejects_non_entity_card_for_play_entity(self):
@@ -224,7 +236,9 @@ class TestBackendApplyAction(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(result["reason"], "not_in_legal_actions")
         self.assertIn("action", result)
+        self.assertIn("events", result)
         self.assertIsNone(result["result"])
+        self.assertEqual(result["events"], [])
         self.assertIsInstance(result["snapshot"], dict)
 
     def test_apply_action_keeps_consistent_error_shape_for_unknown_match(self):
@@ -234,7 +248,9 @@ class TestBackendApplyAction(unittest.TestCase):
         self.assertEqual(result["reason"], "unknown_match_id")
         self.assertIn("action", result)
         self.assertIn("result", result)
+        self.assertIn("events", result)
         self.assertIn("snapshot", result)
         self.assertIsNone(result["action"])
         self.assertIsNone(result["result"])
+        self.assertEqual(result["events"], [])
         self.assertIsNone(result["snapshot"])

@@ -53,8 +53,83 @@ def _build_action_response(*, ok, reason, action, result, snapshot):
         "reason": reason,
         "action": action,
         "result": result,
+        "events": _build_action_events(action=action, result=result, ok=ok),
         "snapshot": snapshot,
     }
+
+
+def _event(event_type, *, player=None, card_name=None, zone=None, lane=None, details=None):
+    return {
+        "type": event_type,
+        "player": player,
+        "card_name": card_name,
+        "zone": zone,
+        "lane": lane,
+        "details": details or {},
+    }
+
+
+def _build_action_events(*, action, result, ok):
+    if not ok or not action or not result:
+        return []
+
+    action_type = result.get("executed_action_type")
+    player = action.get("player")
+    card_name = result.get("card_name")
+    zone = result.get("zone")
+    lane = result.get("lane")
+    details = dict(result.get("details") or {})
+    winner = result.get("winner")
+
+    events = [
+        _event(
+            "action_executed",
+            player=player,
+            card_name=card_name,
+            zone=zone,
+            lane=lane,
+            details={
+                "action_type": action_type,
+                "status": result.get("status"),
+            },
+        )
+    ]
+
+    if action_type == "end_turn":
+        events.append(
+            _event(
+                "turn_advanced",
+                player=player,
+                details={"advanced_via": details.get("advanced_via")},
+            )
+        )
+
+    if action_type == "play_entity":
+        events.append(
+            _event(
+                "entity_played",
+                player=player,
+                card_name=card_name,
+                zone=zone,
+                lane=lane,
+                details={"survived_on_board": details.get("survived_on_board")},
+            )
+        )
+        events.append(
+            _event(
+                "board_changed",
+                player=player,
+                card_name=card_name,
+                zone=zone,
+                lane=lane,
+                details={"cause": "play_entity"},
+            )
+        )
+
+    if winner is not None:
+        events.append(_event("winner_declared", player=winner))
+
+    return events
 
 
 def _resolve_config(config=None):

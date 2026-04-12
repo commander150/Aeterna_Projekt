@@ -162,3 +162,13 @@ Az action-result konzisztencia finomitasa is megtortent:
 
 Ez csokkenti annak az eselyet, hogy a kesobbi frontend oldalon action-tipusonkent
 kulon adhoc valaszfeldolgozasra legyen szukseg.
+
+## 7. Statuszfrissites 3
+
+A backend most mar minimalis action-utani esemenylistat is ad a mar mukodo akciokhoz.
+
+Ez azt jelenti, hogy a frontend mar:
+- nem csak teljes snapshotot kap
+- hanem rovid, action-utani jelentest is arrol, hogy mi tortent
+
+Ez meg nem teljes delta vagy event bus, de jo atmeneti reteg a kesobbi frontendhez.

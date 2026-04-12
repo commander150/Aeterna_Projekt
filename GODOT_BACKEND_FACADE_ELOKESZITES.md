@@ -377,3 +377,24 @@ Az egysegesebb `result` blokk most ezekre epul:
 
 Ez nem uj action tipus, hanem a mar meglevo backend-vegrehajtasi kapu frontend-baratabb
 stabilizalasa a kesobbi Godot-koteshez.
+
+## 18. Kilencedik kodkor eredmenye
+
+Az `apply_action(...)` most mar egy rovid, gepileg fogyaszthato `events` listat is ad.
+
+Ez a reteg szandekosan nagyon szuk:
+
+- nem belso trigger-export
+- nem teljes event bus
+- nem replay rendszer
+
+Jelenlegi celja csak annyi, hogy a frontendnek ne mindig a teljes snapshotbol kelljen
+kovetkeztetnie arra, mi tortent kozvetlenul az akcio utan.
+
+Az elso tamogatott esemenytipusok:
+
+- `action_executed`
+- `turn_advanced`
+- `entity_played`
+- `board_changed`
+- `winner_declared`
