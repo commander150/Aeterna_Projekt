@@ -5,6 +5,7 @@ from backend.snapshot import (
     export_unit_state,
 )
 from backend.facade import (
+    apply_action,
     create_match,
     drop_match,
     get_match_result,
@@ -25,6 +26,7 @@ __all__ = [
     "export_unit_state",
     "export_player_state",
     "export_match_snapshot",
+    "apply_action",
     "create_match",
     "get_snapshot",
     "get_match_result",

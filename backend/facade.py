@@ -18,6 +18,14 @@ from backend.snapshot import export_match_snapshot
 _MATCH_REGISTRY: dict[str, dict] = {}
 
 
+def _resolve_player(game, player_id):
+    if player_id in {"p1", getattr(getattr(game, "p1", None), "nev", None)}:
+        return getattr(game, "p1", None)
+    if player_id in {"p2", getattr(getattr(game, "p2", None), "nev", None)}:
+        return getattr(game, "p2", None)
+    return None
+
+
 def _resolve_config(config=None):
     if config is None:
         return SimulationConfig()
@@ -163,12 +171,7 @@ def get_legal_actions(match_id, player_id):
         return None
 
     game = entry["game"]
-    player = None
-    if player_id in {"p1", getattr(getattr(game, "p1", None), "nev", None)}:
-        player = getattr(game, "p1", None)
-    elif player_id in {"p2", getattr(getattr(game, "p2", None), "nev", None)}:
-        player = getattr(game, "p2", None)
-
+    player = _resolve_player(game, player_id)
     if player is None:
         return None
 
@@ -181,13 +184,65 @@ def validate_action(match_id, player_id, action_request):
         return {"valid": False, "reason": "unknown_match_id", "normalized": None}
 
     game = entry["game"]
-    player = None
-    if player_id in {"p1", getattr(getattr(game, "p1", None), "nev", None)}:
-        player = getattr(game, "p1", None)
-    elif player_id in {"p2", getattr(getattr(game, "p2", None), "nev", None)}:
-        player = getattr(game, "p2", None)
-
+    player = _resolve_player(game, player_id)
     if player is None:
         return {"valid": False, "reason": "unknown_player_id", "normalized": None}
 
     return validate_action_request(game, player, action_request)
+
+
+def apply_action(match_id, player_id, action_request):
+    entry = _MATCH_REGISTRY.get(match_id)
+    if entry is None:
+        return {
+            "ok": False,
+            "reason": "unknown_match_id",
+            "action": None,
+            "result": None,
+            "snapshot": None,
+        }
+
+    game = entry["game"]
+    player = _resolve_player(game, player_id)
+    if player is None:
+        return {
+            "ok": False,
+            "reason": "unknown_player_id",
+            "action": None,
+            "result": None,
+            "snapshot": export_match_snapshot(game),
+        }
+
+    validation = validate_action(match_id, player_id, action_request)
+    normalized = validation.get("normalized")
+    if not validation.get("valid"):
+        return {
+            "ok": False,
+            "reason": validation.get("reason"),
+            "action": normalized,
+            "result": None,
+            "snapshot": export_match_snapshot(game),
+        }
+
+    action_type = normalized.get("action_type")
+    if action_type == "end_turn":
+        winner = game.kor_futtatasa()
+        return {
+            "ok": True,
+            "reason": None,
+            "action": normalized,
+            "result": {
+                "executed_action_type": "end_turn",
+                "advanced_via": "kor_futtatasa",
+                "winner": getattr(winner, "nev", winner) if winner is not None else None,
+            },
+            "snapshot": export_match_snapshot(game),
+        }
+
+    return {
+        "ok": False,
+        "reason": "action_type_not_executable_yet",
+        "action": normalized,
+        "result": None,
+        "snapshot": export_match_snapshot(game),
+    }

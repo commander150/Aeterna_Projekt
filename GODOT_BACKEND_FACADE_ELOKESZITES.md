@@ -297,3 +297,25 @@ Ha a facade-bol kerjuk, az uj belepesi pont:
 - `validate_action(match_id, player_id, action_request)`
 
 Ez meg nem action execution, csak stabil request-forma es legal-actions alapu validacio.
+
+## 14. Hatodik kodkor eredmenye
+
+Az elso minimalis `apply_action` boundary is bekerult a facade-be:
+
+- `apply_action(match_id, player_id, action_request)`
+
+Az elso tenylegesen vegrehajthato action tipus:
+
+- `end_turn`
+
+Jelenlegi szandekos korlatozas:
+
+- `play_entity` meg validalhato, de ebben a korben meg nem vegrehajthato
+- `play_trap` nincs bekotve vegrehajtasra
+
+Az `end_turn` jelenlegi mukodese:
+
+- a valid request utan a meglEvo `kor_futtatasa()` utvonalra tamaszkodik
+- vagyis a jelenlegi motorban a kovetkezo stabil backend-dontesi pontig lepteti a meccset
+
+Ez meg nem teljes action pipeline, de mar az elso valodi backend-vegrehajtasi kapu.
