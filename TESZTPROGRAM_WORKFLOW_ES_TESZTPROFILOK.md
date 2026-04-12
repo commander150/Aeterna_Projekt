@@ -269,6 +269,8 @@ A launcher:
 - elore definialt profilokat ad
 - enged egyszeru felulirast
 - es kis kockazattal ujra tudja futtatni az utolso hasznalt beallitasokat is
+- egy futas utan visszater a fomenube, igy nem kell minden kor utan ujrainditani
+- interaktiv modban beszedesebb segitszovegeket ad a seedhez, futasszamhoz es birodalomvalasztashoz
 
 Nem-interaktiv, gyorsabb hasznalat is van:
 

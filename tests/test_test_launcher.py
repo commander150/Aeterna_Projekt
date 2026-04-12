@@ -66,8 +66,9 @@ class TestTestLauncher(unittest.TestCase):
         with patch("simulation.test_launcher.create_logger") as create_logger_mock, patch(
             "simulation.test_launcher.futtat_szimulaciot"
         ) as runner_mock:
+            prompts = iter(["r", "q"])
             config = test_launcher.launch_interactive(
-                input_func=lambda _: "r",
+                input_func=lambda _: next(prompts),
                 print_func=lambda *_: None,
                 settings_path=settings_path,
                 xlsx_path="cards.xlsx",
@@ -79,6 +80,48 @@ class TestTestLauncher(unittest.TestCase):
         self.assertEqual(config.random_seed, 123)
         create_logger_mock.assert_called_once()
         runner_mock.assert_called_once()
+
+    def test_launch_interactive_returns_to_menu_after_run(self):
+        settings_path = self._workspace_temp_path("interactive_loop.json")
+        prompts = iter(["1", "", "", "", "", "q"])
+        printed_lines = []
+
+        with patch("simulation.test_launcher._available_realms_hint", return_value="Ignis, Aqua"), patch(
+            "simulation.test_launcher.create_logger"
+        ) as create_logger_mock, patch("simulation.test_launcher.futtat_szimulaciot") as runner_mock:
+            config = test_launcher.launch_interactive(
+                input_func=lambda _: next(prompts),
+                print_func=printed_lines.append,
+                settings_path=settings_path,
+                xlsx_path="cards.xlsx",
+                base_dir=".",
+            )
+
+        self.assertIsInstance(config, SimulationConfig)
+        self.assertEqual(create_logger_mock.call_count, 1)
+        self.assertEqual(runner_mock.call_count, 1)
+        self.assertGreaterEqual(printed_lines.count("=== AETERNA TESZTLAUNCHER ==="), 2)
+        self.assertTrue(any("Visszateres a fomenube" in line for line in printed_lines))
+
+    def test_launch_interactive_prints_helpful_selection_hints(self):
+        settings_path = self._workspace_temp_path("interactive_help.json")
+        prompts = iter(["1", "", "", "", "", "q"])
+        printed_lines = []
+
+        with patch("simulation.test_launcher._available_realms_hint", return_value="Ignis, Aqua"):
+            with patch("simulation.test_launcher.create_logger"), patch("simulation.test_launcher.futtat_szimulaciot"):
+                test_launcher.launch_interactive(
+                    input_func=lambda _: next(prompts),
+                    print_func=printed_lines.append,
+                    settings_path=settings_path,
+                    xlsx_path="cards.xlsx",
+                    base_dir=".",
+                )
+
+        joined_output = "\n".join(printed_lines)
+        self.assertIn("Birodalom opciok: Ignis, Aqua", joined_output)
+        self.assertIn("A seed uresen hagyhato", joined_output)
+        self.assertIn("A futasszam pozitiv egesz szam", joined_output)
 
     def test_launch_non_interactive_uses_profile_and_overrides(self):
         settings_path = self._workspace_temp_path("cli_profile_run.json")

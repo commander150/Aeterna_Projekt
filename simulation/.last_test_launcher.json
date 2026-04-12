@@ -1,0 +1,10 @@
+{
+  "profile_name": "realm_focus",
+  "overrides": {
+    "games": 8,
+    "random_seed": 314,
+    "player1_realm": "Ignis",
+    "player2_realm": null,
+    "random_realm_fallback": true
+  }
+}

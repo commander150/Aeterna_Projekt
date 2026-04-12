@@ -6,6 +6,7 @@ import os
 from copy import deepcopy
 from typing import Callable, Dict, List, Optional, Sequence
 
+from data.loader import kartyak_betoltese_xlsx
 from engine.config import DEFAULT_EXPANSION_FLAGS, DEFAULT_EXPANSION_MODULES
 from engine.logging_utils import create_logger
 from simulation.config import SimulationConfig
@@ -296,6 +297,23 @@ def _print_profiles(print_func: Callable[[str], None] = print):
         print_func(f"- {profile_name}: {profile['label']} | {profile['description']}")
 
 
+def _available_realms_hint(xlsx_path: str) -> str:
+    try:
+        cards = kartyak_betoltese_xlsx(xlsx_path)
+        realms = sorted(
+            {
+                getattr(card, "birodalom", None)
+                for card in cards
+                if getattr(card, "birodalom", None) not in (None, "", "None", "-")
+            }
+        )
+        if realms:
+            return ", ".join(realms)
+    except Exception:
+        pass
+    return "random vagy konkret birodalomnev a cards.xlsx alapjan"
+
+
 def launch_non_interactive(
     *,
     profile_name: Optional[str] = None,
@@ -360,52 +378,66 @@ def launch_interactive(
     settings_path: str = LAST_SETTINGS_PATH,
 ):
     presets = get_profile_presets()
-    last_settings = load_last_settings(settings_path)
+    last_result = None
+    profile_names = list(presets.keys())
+    realm_hint = _available_realms_hint(xlsx_path)
 
-    print_func("=== AETERNA TESZTLAUNCHER ===")
-    print_func("Valassz tesztprofilt:")
-    for index, (profile_name, profile) in enumerate(presets.items(), start=1):
-        print_func(f"{index}. {profile['label']} - {profile['description']}")
-    if last_settings:
-        print_func("R. Utolso hasznalt beallitas ujrafuttatasa")
-    print_func("Q. Kilepes")
+    while True:
+        last_settings = load_last_settings(settings_path)
 
-    choice = input_func("Valasztas: ").strip().lower()
-    if choice == "q":
-        return None
+        print_func("=== AETERNA TESZTLAUNCHER ===")
+        print_func("Valassz tesztprofilt, vagy futtasd ujra az utolso sikeres launcher-beallitast.")
+        for index, (profile_name, profile) in enumerate(presets.items(), start=1):
+            print_func(f"{index}. {profile['label']} - {profile['description']}")
+        if last_settings:
+            print_func("R. Utolso hasznalt beallitas ujrafuttatasa (ugyanazzal a profillal es override-okkal)")
+        print_func("Q. Kilepes")
 
-    if choice == "r" and last_settings:
-        config = build_config_from_profile(last_settings["profile_name"], overrides=last_settings.get("overrides"))
+        choice = input_func("Valasztas (1-5, R, Q): ").strip().lower()
+        if choice == "q":
+            return last_result
+
+        if choice == "r" and last_settings:
+            config = build_config_from_profile(last_settings["profile_name"], overrides=last_settings.get("overrides"))
+            create_logger(config, base_dir=base_dir, logger=naplo)
+            futtat_szimulaciot(xlsx_path, config=config)
+            last_result = config
+            print_func("Futas kesz. Visszateres a fomenube...")
+            continue
+
+        try:
+            selected_index = int(choice) - 1
+            profile_name = profile_names[selected_index]
+        except Exception:
+            print_func("Ervenytelen valasztas. Valassz profilt szammal, vagy hasznald az R / Q opciot.")
+            continue
+
+        base_settings = deepcopy(presets[profile_name]["settings"])
+        print_func(f"Kivalasztott profil: {presets[profile_name]['label']}")
+        print_func(f"Rovid leiras: {presets[profile_name]['description']}")
+        print_func("A futasszam pozitiv egesz szam. Uresen hagyva a profil alapertelmezese marad.")
+        print_func("A seed uresen hagyhato. Uresen a profil seedje marad, vagy random lesz, ha a profil is ugy adja.")
+        print_func(f"Birodalom opciok: {realm_hint}. Ures vagy 'random' eseten veletlen valasztas marad.")
+
+        games_raw = _prompt_value("Futasok szama", base_settings.get("games"), input_func)
+        seed_raw = _prompt_value("Seed", base_settings.get("random_seed"), input_func)
+        p1_raw = _prompt_value("P1 birodalom", base_settings.get("player1_realm"), input_func)
+        p2_raw = _prompt_value("P2 birodalom", base_settings.get("player2_realm"), input_func)
+
+        overrides = {
+            "games": games_raw or base_settings.get("games"),
+            "random_seed": seed_raw if seed_raw != "" else base_settings.get("random_seed"),
+            "player1_realm": p1_raw if p1_raw != "" else base_settings.get("player1_realm"),
+            "player2_realm": p2_raw if p2_raw != "" else base_settings.get("player2_realm"),
+            "random_realm_fallback": base_settings.get("random_realm_fallback", True),
+        }
+
+        save_last_settings({"profile_name": profile_name, "overrides": overrides}, settings_path)
+        config = build_config_from_profile(profile_name, overrides=overrides)
         create_logger(config, base_dir=base_dir, logger=naplo)
         futtat_szimulaciot(xlsx_path, config=config)
-        return config
-
-    profile_names = list(presets.keys())
-    try:
-        selected_index = int(choice) - 1
-        profile_name = profile_names[selected_index]
-    except Exception as exc:
-        raise ValueError("Ervenytelen tesztprofil-valasztas.") from exc
-
-    base_settings = deepcopy(presets[profile_name]["settings"])
-    games_raw = _prompt_value("Futasok szama", base_settings.get("games"), input_func)
-    seed_raw = _prompt_value("Seed", base_settings.get("random_seed"), input_func)
-    p1_raw = _prompt_value("P1 birodalom", base_settings.get("player1_realm"), input_func)
-    p2_raw = _prompt_value("P2 birodalom", base_settings.get("player2_realm"), input_func)
-
-    overrides = {
-        "games": games_raw or base_settings.get("games"),
-        "random_seed": seed_raw if seed_raw != "" else base_settings.get("random_seed"),
-        "player1_realm": p1_raw if p1_raw != "" else base_settings.get("player1_realm"),
-        "player2_realm": p2_raw if p2_raw != "" else base_settings.get("player2_realm"),
-        "random_realm_fallback": base_settings.get("random_realm_fallback", True),
-    }
-
-    save_last_settings({"profile_name": profile_name, "overrides": overrides}, settings_path)
-    config = build_config_from_profile(profile_name, overrides=overrides)
-    create_logger(config, base_dir=base_dir, logger=naplo)
-    futtat_szimulaciot(xlsx_path, config=config)
-    return config
+        last_result = config
+        print_func("Futas kesz. Visszateres a fomenube...")
 
 
 def main(
