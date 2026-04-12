@@ -398,3 +398,19 @@ Az elso tamogatott esemenytipusok:
 - `entity_played`
 - `board_changed`
 - `winner_declared`
+
+## 19. Tizedik kodkor eredmenye
+
+Az action-valasz `events` listaja most mar per-match pufferbe is bekerul a facade retegen belul.
+
+Uj, nagyon szuk lekerdezesi felulet:
+
+- `get_event_log(match_id, since_index=None)`
+
+Ez jelenleg:
+- nem teljes event bus
+- nem replay rendszer
+- nem logger-integracio
+
+Csak arra jo, hogy a frontend a mar vegrehajtott actionok rovid backend-esemenyeit
+kulon is le tudja kerni, ne csak az adott action-valaszbol.

@@ -58,6 +58,28 @@ def _build_action_response(*, ok, reason, action, result, snapshot):
     }
 
 
+def _normalize_since_index(since_index):
+    if since_index is None:
+        return 0
+    try:
+        return max(0, int(since_index))
+    except Exception:
+        return 0
+
+
+def _append_events_to_entry(entry, events):
+    if entry is None:
+        return list(events or [])
+    event_log = entry.setdefault("event_log", [])
+    enriched = []
+    for event in list(events or []):
+        enriched_event = dict(event)
+        enriched_event["index"] = len(event_log)
+        event_log.append(enriched_event)
+        enriched.append(enriched_event)
+    return enriched
+
+
 def _event(event_type, *, player=None, card_name=None, zone=None, lane=None, details=None):
     return {
         "type": event_type,
@@ -229,6 +251,7 @@ def create_match(config=None):
         "engine_config": engine_config,
         "player1_realm": player1_realm,
         "player2_realm": player2_realm,
+        "event_log": [],
     }
     return match_id
 
@@ -252,6 +275,20 @@ def get_match_result(match_id):
         "turn": snapshot.get("turn"),
         "active_player": snapshot.get("active_player"),
         "phase": snapshot.get("phase"),
+    }
+
+
+def get_event_log(match_id, since_index=None):
+    entry = _MATCH_REGISTRY.get(match_id)
+    if entry is None:
+        return {"events": [], "next_index": 0, "reason": "unknown_match_id"}
+
+    start_index = _normalize_since_index(since_index)
+    event_log = list(entry.get("event_log", []))
+    return {
+        "events": event_log[start_index:],
+        "next_index": len(event_log),
+        "reason": None,
     }
 
 
@@ -333,7 +370,7 @@ def apply_action(match_id, player_id, action_request):
     action_type = normalized.get("action_type")
     if action_type == "end_turn":
         winner = game.kor_futtatasa()
-        return _build_action_response(
+        response = _build_action_response(
             ok=True,
             reason=None,
             action=normalized,
@@ -345,6 +382,8 @@ def apply_action(match_id, player_id, action_request):
             ),
             snapshot=export_match_snapshot(game),
         )
+        response["events"] = _append_events_to_entry(entry, response["events"])
+        return response
     if action_type == "play_entity":
         execution = game.execute_play_entity_action(
             player,
@@ -360,7 +399,7 @@ def apply_action(match_id, player_id, action_request):
                 result=None,
                 snapshot=export_match_snapshot(game),
             )
-        return _build_action_response(
+        response = _build_action_response(
             ok=True,
             reason=None,
             action=normalized,
@@ -377,6 +416,8 @@ def apply_action(match_id, player_id, action_request):
             ),
             snapshot=export_match_snapshot(game),
         )
+        response["events"] = _append_events_to_entry(entry, response["events"])
+        return response
 
     return _build_action_response(
         ok=False,

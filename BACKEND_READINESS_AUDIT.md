@@ -163,6 +163,16 @@ Az action-result konzisztencia finomitasa is megtortent:
 Ez csokkenti annak az eselyet, hogy a kesobbi frontend oldalon action-tipusonkent
 kulon adhoc valaszfeldolgozasra legyen szukseg.
 
+## 8. Statuszfrissites 3
+
+A backend most mar minimalis per-match event puffert is ad a mar tamogatott actionokhoz.
+
+Ez azt jelenti, hogy:
+- az action-valaszban tovabbra is benne van az aktualis `events` lista
+- emellett a frontend kulon is lekerheti a matchhez tartozo uj backend-esemenyeket
+
+Ez jo koztes lepes a teljesebb event/delta gondolkodas fele, nagy framework nyitasa nelkul.
+
 ## 7. Statuszfrissites 3
 
 A backend most mar minimalis action-utani esemenylistat is ad a mar mukodo akciokhoz.
