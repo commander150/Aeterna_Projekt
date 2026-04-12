@@ -11,6 +11,12 @@ from backend.facade import (
     get_legal_actions,
     get_snapshot,
     list_matches,
+    validate_action,
+)
+from backend.action_request import (
+    action_request_to_key,
+    normalize_action_request,
+    validate_action_request,
 )
 from backend.legal_actions import get_legal_actions_for_player
 
@@ -26,4 +32,8 @@ __all__ = [
     "list_matches",
     "get_legal_actions",
     "get_legal_actions_for_player",
+    "normalize_action_request",
+    "validate_action_request",
+    "action_request_to_key",
+    "validate_action",
 ]

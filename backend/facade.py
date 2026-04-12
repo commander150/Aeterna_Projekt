@@ -10,6 +10,7 @@ from engine.effect_diagnostics_v2 import install_effect_diagnostics
 from engine.game import AeternaSzimulacio
 from simulation.config import SimulationConfig
 
+from backend.action_request import validate_action_request
 from backend.legal_actions import get_legal_actions_for_player
 from backend.snapshot import export_match_snapshot
 
@@ -172,3 +173,21 @@ def get_legal_actions(match_id, player_id):
         return None
 
     return get_legal_actions_for_player(game, player)
+
+
+def validate_action(match_id, player_id, action_request):
+    entry = _MATCH_REGISTRY.get(match_id)
+    if entry is None:
+        return {"valid": False, "reason": "unknown_match_id", "normalized": None}
+
+    game = entry["game"]
+    player = None
+    if player_id in {"p1", getattr(getattr(game, "p1", None), "nev", None)}:
+        player = getattr(game, "p1", None)
+    elif player_id in {"p2", getattr(getattr(game, "p2", None), "nev", None)}:
+        player = getattr(game, "p2", None)
+
+    if player is None:
+        return {"valid": False, "reason": "unknown_player_id", "normalized": None}
+
+    return validate_action_request(game, player, action_request)

@@ -273,3 +273,27 @@ Ez most nem teljes phase-engine, hanem minimalis, stabil state-jelzes a jatekobj
 Ennek hatasara a snapshot, a facade eredmeny-lekerdezese es a legal-actions helper
 mar kevesebbet kovetkeztet implicit allapotbol, es tisztabb backend-hatart ad a
 kovetkezo action-boundary korhoz.
+
+## 13. Otodik kodkor eredmenye
+
+Az elso minimalis action request / validation reteg is letrejott:
+
+- `backend/action_request.py`
+
+Az elso tamogatott action tipusk:
+
+- `end_turn`
+- `play_entity`
+- `play_trap`
+
+Az uj alapmuveletek:
+
+- `normalize_action_request(action_request)`
+- `validate_action_request(game, player, action_request)`
+- `action_request_to_key(action_request)`
+
+Ha a facade-bol kerjuk, az uj belepesi pont:
+
+- `validate_action(match_id, player_id, action_request)`
+
+Ez meg nem action execution, csak stabil request-forma es legal-actions alapu validacio.
