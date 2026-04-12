@@ -195,3 +195,21 @@ Ez illeszkedik a projekt jelenlegi strategiajahoz:
 - stabilizacio
 - cleanup
 - celzott refaktor
+
+## 9. Elso kodkor eredmenye
+
+Az elso tenyleges backend-elokeszito kodkorben letrejott a minimalis snapshot-export reteg:
+
+- `backend/snapshot.py`
+- `backend/__init__.py`
+
+Az elso exportfuggvenyek:
+
+- `export_card_ref(card)`
+- `export_unit_state(unit)`
+- `export_player_state(player)`
+- `export_match_snapshot(game)`
+
+Ez meg nem facade, nem legal-actions reteg es nem action API, de mar ad egy stabil,
+geppel fogyaszthato allapotkepet, amire a kovetkezo korben lehet facade-ot vagy state export
+helper-bovitest epiteni.
