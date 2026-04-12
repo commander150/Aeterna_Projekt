@@ -9,7 +9,7 @@ from typing import Callable, Dict, List, Optional, Sequence
 from data.loader import kartyak_betoltese_xlsx
 from engine.config import DEFAULT_EXPANSION_FLAGS, DEFAULT_EXPANSION_MODULES
 from engine.logging_utils import create_logger
-from simulation.config import SimulationConfig
+from simulation.config import SimulationConfig, normalize_realm_name
 from simulation.runner import futtat_szimulaciot
 from utils.logger import naplo
 
@@ -83,9 +83,7 @@ def get_profile_presets() -> Dict[str, Dict]:
 
 
 def _normalize_realm(value):
-    if value in (None, "", "random", "veletlen", "none"):
-        return None
-    return str(value)
+    return normalize_realm_name(value)
 
 
 def _normalize_optional_int(value):

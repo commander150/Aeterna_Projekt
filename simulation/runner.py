@@ -7,7 +7,7 @@ from utils.logger import naplo
 from stats.analyzer import stats
 from data.loader import kartyak_betoltese_xlsx
 from engine.game import AeternaSzimulacio
-from simulation.config import SimulationConfig
+from simulation.config import SimulationConfig, normalize_realm_name
 
 
 def _elerheto_birodalmak(kartyak):
@@ -19,12 +19,19 @@ def _elerheto_birodalmak(kartyak):
 
 def _valassz_birodalmat(kivant, elerheto_birodalmak, random_fallback=True, tiltott=None):
     tiltott = set(tiltott or [])
+    canonical_lookup = {str(b).lower(): b for b in elerheto_birodalmak}
+    normalized_requested = normalize_realm_name(kivant)
+    resolved_requested = canonical_lookup.get(str(normalized_requested).lower()) if normalized_requested else None
 
-    if kivant:
-        if kivant in elerheto_birodalmak and kivant not in tiltott:
-            return kivant
+    if normalized_requested:
+        if resolved_requested and resolved_requested not in tiltott:
+            return resolved_requested
         if not random_fallback:
-            raise ValueError(f"Hiba: a kert birodalom nem elerheto: {kivant}")
+            available = ", ".join(elerheto_birodalmak)
+            raise ValueError(
+                f"Hiba: a kert birodalom nem elerheto: {kivant}. "
+                f"Elerheto opciok: {available}"
+            )
 
     jeloltek = [b for b in elerheto_birodalmak if b not in tiltott]
     if not jeloltek:
@@ -223,9 +230,10 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
         summary["metrics"] = dict(run_metrics)
         return summary
 
-    except Exception:
+    except Exception as exc:
         naplo.ir("\n" + "!"*40)
         naplo.ir("PROGRAM LEÁLLT - KRITIKUS HIBA:")
+        naplo.ir(f"Hiba oka: {exc}")
         traceback.print_exc()
         naplo.ir("!"*40)
         return None

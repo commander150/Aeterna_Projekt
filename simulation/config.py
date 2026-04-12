@@ -4,6 +4,28 @@ from typing import Any, Dict, Optional
 from engine.config import EngineConfig
 
 
+CANONICAL_REALMS = (
+    "Aether",
+    "Aqua",
+    "Ignis",
+    "Lux",
+    "Terra",
+    "Umbra",
+    "Ventus",
+)
+
+_REALM_LOOKUP = {realm.lower(): realm for realm in CANONICAL_REALMS}
+
+
+def normalize_realm_name(value: Optional[str]) -> Optional[str]:
+    if value in (None, "", "random", "veletlen", "none"):
+        return None
+    cleaned = str(value).strip()
+    if cleaned == "":
+        return None
+    return _REALM_LOOKUP.get(cleaned.lower(), cleaned)
+
+
 @dataclass
 class SimulationConfig:
     games: int = 3
@@ -22,6 +44,10 @@ class SimulationConfig:
     expansion_modules: Dict[str, bool] = field(default_factory=dict)
     expansion_flags: Dict[str, bool] = field(default_factory=dict)
     log_base_dir: Optional[str] = None
+
+    def __post_init__(self):
+        self.player1_realm = normalize_realm_name(self.player1_realm)
+        self.player2_realm = normalize_realm_name(self.player2_realm)
 
     def to_engine_config(self) -> EngineConfig:
         return EngineConfig(

@@ -1,10 +1,10 @@
 {
-  "profile_name": "long_seeded_run",
+  "profile_name": "seeded_matchup",
   "overrides": {
-    "games": 15,
-    "random_seed": 777,
-    "player1_realm": "Ignis",
-    "player2_realm": "Aqua",
+    "games": 3,
+    "random_seed": 105,
+    "player1_realm": "Ventus",
+    "player2_realm": "Terra",
     "random_realm_fallback": false
   }
 }

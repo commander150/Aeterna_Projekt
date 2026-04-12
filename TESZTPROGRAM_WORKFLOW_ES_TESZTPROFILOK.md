@@ -277,9 +277,15 @@ Nem-interaktiv, gyorsabb hasznalat is van:
 ```bash
 python -m simulation.test_launcher --profile smoke_random
 python -m simulation.test_launcher --profile seeded_matchup --seed 123 --runs 5 --p1 Ignis --p2 Aqua
+python -m simulation.test_launcher --profile seeded_matchup --seed 123 --runs 5 --p1 terra --p2 VENTUS
 python -m simulation.test_launcher --last-run
 python -m simulation.test_launcher --list-profiles
 ```
+
+Megjegyzes:
+- a launcher a birodalomneveket case-insensitive kezeli
+- pl. `terra`, `Terra` es `TERRA` ugyanugy mukodik
+- ismeretlen birodalomnevnel kulturalt hiba uzenetet ad az elerheto opciokkal
 
 Batch seed futtatas is van, ha ugyanazt a matchupot gyorsan tobb seeddel akarod ujraellenorizni:
 

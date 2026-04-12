@@ -40,6 +40,18 @@ class TestTestLauncher(unittest.TestCase):
         self.assertEqual(config.player2_realm, "Ignis")
         self.assertFalse(config.random_realm_fallback)
 
+    def test_build_config_from_profile_normalizes_realm_case_insensitively(self):
+        config = test_launcher.build_config_from_profile(
+            "seeded_matchup",
+            overrides={
+                "player1_realm": "terra",
+                "player2_realm": "VENTUS",
+            },
+        )
+
+        self.assertEqual(config.player1_realm, "Terra")
+        self.assertEqual(config.player2_realm, "Ventus")
+
     def test_save_and_load_last_settings_roundtrip(self):
         path = self._workspace_temp_path("last_settings_roundtrip.json")
         payload = {
