@@ -42,7 +42,7 @@ Ezt kell alapnak venni, ha az a kérdés, hogy:
 - mely modulok számítanak elsődleges runtime rétegnek
 - mi számít wrappernek vagy kompatibilitási rétegnek
 
-### 2. `PROJEKT_TERKEP_ES_FAJLSTATUSZ_v1.md`
+### 2. `PROJEKT_TERKEP_ES_FAJLSTATUSZ.md`
 
 Ez a dokumentum rögzíti:
 - a projekt fő mappáit és fájljait
@@ -153,7 +153,7 @@ A jövőbeli asszisztensi vagy Codex-munkáknál ajánlott ezzel kezdeni a felad
 ```text
 Mielőtt a feladatra válaszolsz, igazodj az alábbi projektirányító dokumentumokhoz:
 - ARCHITEKTURA_ES_HIVATALOS_FUTASI_UT.md
-- PROJEKT_TERKEP_ES_FAJLSTATUSZ_v1.md
+- PROJEKT_TERKEP_ES_FAJLSTATUSZ.md
 - AKTUALIS_PROJEKTTERV_ES_PRIORITASOK.md
 - GITHUB_MUNKAREND_ES_COMMIT_SZABALYOK.md
 
@@ -174,7 +174,7 @@ Rövidebb változat:
 ```text
 Igazodj a projektirányító dokumentumokhoz:
 - ARCHITEKTURA_ES_HIVATALOS_FUTASI_UT.md
-- PROJEKT_TERKEP_ES_FAJLSTATUSZ_v1.md
+- PROJEKT_TERKEP_ES_FAJLSTATUSZ.md
 - AKTUALIS_PROJEKTTERV_ES_PRIORITASOK.md
 - GITHUB_MUNKAREND_ES_COMMIT_SZABALYOK.md
 
