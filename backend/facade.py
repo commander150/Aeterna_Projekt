@@ -10,6 +10,7 @@ from engine.effect_diagnostics_v2 import install_effect_diagnostics
 from engine.game import AeternaSzimulacio
 from simulation.config import SimulationConfig
 
+from backend.legal_actions import get_legal_actions_for_player
 from backend.snapshot import export_match_snapshot
 
 
@@ -152,3 +153,21 @@ def list_matches():
         }
         for match_id, entry in _MATCH_REGISTRY.items()
     ]
+
+
+def get_legal_actions(match_id, player_id):
+    entry = _MATCH_REGISTRY.get(match_id)
+    if entry is None:
+        return None
+
+    game = entry["game"]
+    player = None
+    if player_id in {"p1", getattr(getattr(game, "p1", None), "nev", None)}:
+        player = getattr(game, "p1", None)
+    elif player_id in {"p2", getattr(getattr(game, "p2", None), "nev", None)}:
+        player = getattr(game, "p2", None)
+
+    if player is None:
+        return None
+
+    return get_legal_actions_for_player(game, player)

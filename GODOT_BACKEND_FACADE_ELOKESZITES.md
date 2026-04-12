@@ -230,3 +230,26 @@ A jelenlegi publikus muveletei:
 
 Ez a facade meg nem legal-actions rendszer es nem action API, de mar ad egy stabil,
 egyszeru backend-belepesi pontot a jelenlegi motor fole, a snapshot reteg ujrafelhasznalasaval.
+
+## 11. Harmadik kodkor eredmenye
+
+Az elso, szuk legal-actions helper is letrejott:
+
+- `backend/legal_actions.py`
+
+Az elso verzio szandekosan csak a legegyszerubb akciokat fedi le:
+
+- `end_turn`
+- egyszeru kezbol kijatszhato entitas-lerakasi lehetosegek
+- egyszeru trap / jel lerakasi lehetosegek
+
+Kimondottan nem resze meg:
+
+- spell legal-actions
+- teljes targeting rendszer
+- action execution boundary
+- request schema
+
+Ha a facade-bol kerjuk, az uj belepesi pont:
+
+- `get_legal_actions(match_id, player_id)`
