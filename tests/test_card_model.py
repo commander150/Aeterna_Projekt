@@ -279,6 +279,67 @@ class TestKartyaModel(unittest.TestCase):
 
         self.assertTrue(any("suspicious_field_combination:idotartam_hatascimke_nelkul" in issue for issue in issues))
 
+    def test_loader_normalization_clears_legacy_trap_duration_on_triggered_jel(self):
+        row = normalize_row_mapping(
+            {
+                "kartya_nev": "Vedelmi Matrix",
+                "kartyatipus": "Jel",
+                "birodalom": "Aether",
+                "klan": "",
+                "faj": "",
+                "kaszt": "",
+                "magnitudo": 2,
+                "aura_koltseg": 2,
+                "tamadas": 0,
+                "eletero": 0,
+                "kepesseg": "Trap jellegu trigger",
+                "kepesseg_canonical": "",
+                "zona_felismerve": "dominium",
+                "kulcsszavak_felismerve": "",
+                "trigger_felismerve": "on_enemy_spell_or_ritual_played",
+                "celpont_felismerve": "",
+                "hatascimkek": "counterspell, damage_prevention",
+                "idotartam_felismerve": "trap",
+                "feltetel_felismerve": "",
+                "gepi_leiras": "",
+                "ertelmezesi_statusz": "",
+                "engine_megjegyzes": "",
+            }
+        )
+
+        self.assertEqual(row["idotartam_felismerve"], "")
+
+    def test_loader_validation_no_longer_flags_unknown_trap_duration_on_triggered_jel(self):
+        normalized = normalize_row_mapping(
+            {
+                "kartya_nev": "Vedelmi Matrix",
+                "kartyatipus": "Jel",
+                "birodalom": "Aether",
+                "klan": "",
+                "faj": "",
+                "kaszt": "",
+                "magnitudo": 2,
+                "aura_koltseg": 2,
+                "tamadas": 0,
+                "eletero": 0,
+                "kepesseg": "Trap jellegu trigger",
+                "kepesseg_canonical": "",
+                "zona_felismerve": "dominium",
+                "kulcsszavak_felismerve": "",
+                "trigger_felismerve": "on_enemy_spell_or_ritual_played",
+                "celpont_felismerve": "",
+                "hatascimkek": "counterspell, damage_prevention",
+                "idotartam_felismerve": "trap",
+                "feltetel_felismerve": "",
+                "gepi_leiras": "",
+                "ertelmezesi_statusz": "",
+                "engine_megjegyzes": "",
+            }
+        )
+        issues = validate_row_mapping(normalized, row_index=7, sheet_name="Teszt")
+
+        self.assertFalse(any("unknown_enum_value:idotartam_felismerve:trap" in issue for issue in issues))
+
 
 if __name__ == "__main__":
     unittest.main()

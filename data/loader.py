@@ -234,6 +234,17 @@ def normalize_row_mapping(mapping):
             normalized[field_name] = _normalize_list_value(field_name, value)
         else:
             normalized[field_name] = _normalize_scalar(field_name, value)
+
+    if (
+        normalize_lookup_text(normalized.get("kartyatipus", "")) == "jel"
+        and normalize_lookup_text(normalized.get("idotartam_felismerve", "")) == "trap"
+        and bool(normalized.get("trigger_felismerve"))
+        and bool(normalized.get("hatascimkek"))
+    ):
+        # Legacy spreadsheet rows sometimes stored the trap card kind in the duration field.
+        # For triggered Jel cards this is not a real duration, so we clear it here instead
+        # of preserving a misleading unknown enum token.
+        normalized["idotartam_felismerve"] = ""
     return normalized
 
 

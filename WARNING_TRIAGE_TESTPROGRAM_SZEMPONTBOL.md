@@ -220,3 +220,20 @@ Ez a minta a gyakorlatban ilyen volt:
 Tesztprogram-szempontbol ez inkabb passziv keyword-leiras volt, nem valodi hibas
 mezokombinacio. Emiatt ez a warning-blokk jelentosen csokkent anelkul, hogy a
 valodi `duration without effect tag` eseteket elengednenk.
+
+## Friss allapot - `idotartam_felismerve:trap`
+
+Erre a blokkra is bekerult egy szuk loader-pontositas:
+
+- triggerelt `Jel` lapoknal a `trap` token mar nem marad az `idotartam` mezoben
+
+Ez a minta a gyakorlatban ilyen volt:
+- `kartyatipus=Jel`
+- van trigger
+- van effect tag
+- `idotartam_felismerve=trap`
+
+Itt a `trap` nem valodi duration volt, hanem legacy csapda-jeloles, rossz mezoben.
+Tesztprogram-szempontbol ez azert volt veszelyesebb, mert explicit unknown enumkent
+rontotta a strukturalt mechanikai kepet. A pontositas utan ez a token mar nem
+torzitja a duration-mezot ezeknel a lapoknal.
