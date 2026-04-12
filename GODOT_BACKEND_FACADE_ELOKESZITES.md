@@ -352,3 +352,28 @@ Jelenlegi szandekos korlatozas:
 
 Ez azt jelenti, hogy a backend mar nem csak allapotot ad es `end_turn`-t hajt vegre,
 hanem az elso valodi, nem-trivialis jatekos-akciot is vegre tudja hajtani.
+
+## 17. Nyolcadik kodkor eredmenye
+
+Az `apply_action(...)` valaszszerzodese tisztabb es egysegesebb lett.
+
+A stabil kulso valaszforma:
+
+- `ok`
+- `reason`
+- `action`
+- `result`
+- `snapshot`
+
+Az egysegesebb `result` blokk most ezekre epul:
+
+- `executed_action_type`
+- `status`
+- `card_name`
+- `zone`
+- `lane`
+- `winner`
+- `details`
+
+Ez nem uj action tipus, hanem a mar meglevo backend-vegrehajtasi kapu frontend-baratabb
+stabilizalasa a kesobbi Godot-koteshez.

@@ -152,3 +152,13 @@ Az uj legjobb kovetkezo lepes emiatt mar valoszinuleg ezek kozul kerul ki:
 - kesobbi event/delta buffer elokeszites
 
 De a sorrend tovabbra is csak kis-kockazatu, fokozatos backend-epites lehet.
+
+## 6. Statuszfrissites 2
+
+Az action-result konzisztencia finomitasa is megtortent:
+
+- az `apply_action(...)` stabilabb, egysegesebb valaszszerzodest ad
+- az `end_turn` es a `play_entity` most mar azonosabb `result` alakot hasznal
+
+Ez csokkenti annak az eselyet, hogy a kesobbi frontend oldalon action-tipusonkent
+kulon adhoc valaszfeldolgozasra legyen szukseg.

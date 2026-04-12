@@ -26,6 +26,37 @@ def _resolve_player(game, player_id):
     return None
 
 
+def _build_action_result(
+    *,
+    executed_action_type,
+    status,
+    card_name=None,
+    zone=None,
+    lane=None,
+    winner=None,
+    details=None,
+):
+    return {
+        "executed_action_type": executed_action_type,
+        "status": status,
+        "card_name": card_name,
+        "zone": zone,
+        "lane": lane,
+        "winner": winner,
+        "details": details or {},
+    }
+
+
+def _build_action_response(*, ok, reason, action, result, snapshot):
+    return {
+        "ok": ok,
+        "reason": reason,
+        "action": action,
+        "result": result,
+        "snapshot": snapshot,
+    }
+
+
 def _resolve_config(config=None):
     if config is None:
         return SimulationConfig()
@@ -194,50 +225,51 @@ def validate_action(match_id, player_id, action_request):
 def apply_action(match_id, player_id, action_request):
     entry = _MATCH_REGISTRY.get(match_id)
     if entry is None:
-        return {
-            "ok": False,
-            "reason": "unknown_match_id",
-            "action": None,
-            "result": None,
-            "snapshot": None,
-        }
+        return _build_action_response(
+            ok=False,
+            reason="unknown_match_id",
+            action=None,
+            result=None,
+            snapshot=None,
+        )
 
     game = entry["game"]
     player = _resolve_player(game, player_id)
     if player is None:
-        return {
-            "ok": False,
-            "reason": "unknown_player_id",
-            "action": None,
-            "result": None,
-            "snapshot": export_match_snapshot(game),
-        }
+        return _build_action_response(
+            ok=False,
+            reason="unknown_player_id",
+            action=None,
+            result=None,
+            snapshot=export_match_snapshot(game),
+        )
 
     validation = validate_action(match_id, player_id, action_request)
     normalized = validation.get("normalized")
     if not validation.get("valid"):
-        return {
-            "ok": False,
-            "reason": validation.get("reason"),
-            "action": normalized,
-            "result": None,
-            "snapshot": export_match_snapshot(game),
-        }
+        return _build_action_response(
+            ok=False,
+            reason=validation.get("reason"),
+            action=normalized,
+            result=None,
+            snapshot=export_match_snapshot(game),
+        )
 
     action_type = normalized.get("action_type")
     if action_type == "end_turn":
         winner = game.kor_futtatasa()
-        return {
-            "ok": True,
-            "reason": None,
-            "action": normalized,
-            "result": {
-                "executed_action_type": "end_turn",
-                "advanced_via": "kor_futtatasa",
-                "winner": getattr(winner, "nev", winner) if winner is not None else None,
-            },
-            "snapshot": export_match_snapshot(game),
-        }
+        return _build_action_response(
+            ok=True,
+            reason=None,
+            action=normalized,
+            result=_build_action_result(
+                executed_action_type="end_turn",
+                status="executed",
+                winner=getattr(winner, "nev", winner) if winner is not None else None,
+                details={"advanced_via": "kor_futtatasa"},
+            ),
+            snapshot=export_match_snapshot(game),
+        )
     if action_type == "play_entity":
         execution = game.execute_play_entity_action(
             player,
@@ -246,34 +278,35 @@ def apply_action(match_id, player_id, action_request):
             normalized.get("lane"),
         )
         if not execution.get("ok"):
-            return {
-                "ok": False,
-                "reason": execution.get("reason"),
-                "action": normalized,
-                "result": None,
-                "snapshot": export_match_snapshot(game),
-            }
-        return {
-            "ok": True,
-            "reason": None,
-            "action": normalized,
-            "result": {
-                "executed_action_type": "play_entity",
-                "card_name": execution.get("card_name"),
-                "zone": execution.get("zone"),
-                "lane": execution.get("lane"),
-                "survived_on_board": execution.get("survived_on_board"),
-                "winner": getattr(execution.get("winner"), "nev", execution.get("winner"))
+            return _build_action_response(
+                ok=False,
+                reason=execution.get("reason"),
+                action=normalized,
+                result=None,
+                snapshot=export_match_snapshot(game),
+            )
+        return _build_action_response(
+            ok=True,
+            reason=None,
+            action=normalized,
+            result=_build_action_result(
+                executed_action_type="play_entity",
+                status="executed",
+                card_name=execution.get("card_name"),
+                zone=execution.get("zone"),
+                lane=execution.get("lane"),
+                winner=getattr(execution.get("winner"), "nev", execution.get("winner"))
                 if execution.get("winner") is not None
                 else None,
-            },
-            "snapshot": export_match_snapshot(game),
-        }
+                details={"survived_on_board": execution.get("survived_on_board")},
+            ),
+            snapshot=export_match_snapshot(game),
+        )
 
-    return {
-        "ok": False,
-        "reason": "action_type_not_executable_yet",
-        "action": normalized,
-        "result": None,
-        "snapshot": export_match_snapshot(game),
-    }
+    return _build_action_response(
+        ok=False,
+        reason="action_type_not_executable_yet",
+        action=normalized,
+        result=None,
+        snapshot=export_match_snapshot(game),
+    )
