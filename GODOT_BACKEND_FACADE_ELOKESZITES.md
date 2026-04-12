@@ -334,3 +334,21 @@ Ez illeszkedik a jelenlegi strategiahoz:
 - nincs nagy refaktor
 - nincs uj mechanikai front
 - a mar meglevo backend-lanc kapja meg a legnagyobb hasznu kovetkezo elemet
+
+## 16. Hetedik kodkor eredmenye
+
+Az elso valodi board-action execution boundary is bekerult:
+
+- `play_entity` az `apply_action(...)` alatt
+
+Jelenlegi szandekos korlatozas:
+
+- csak egyszeru kezbol kijatszhato entitas
+- csak egyertelmu `card_name` + `zone` + `lane`
+- csak a meglevo shared summon helper utakon
+- nincs trap execution
+- nincs spell execution
+- nincs targeting front
+
+Ez azt jelenti, hogy a backend mar nem csak allapotot ad es `end_turn`-t hajt vegre,
+hanem az elso valodi, nem-trivialis jatekos-akciot is vegre tudja hajtani.

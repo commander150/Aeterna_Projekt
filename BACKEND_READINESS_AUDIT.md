@@ -139,3 +139,16 @@ Ha a cel egy kesobbi Godot-kompatibilis, kezdetben mar jatszhato rendszer, akkor
 - `play_entity` tenyleges execution-boundary bekotese az `apply_action(...)` ala
 
 Ez az a pont, ahol a backend eloszor lep at a "meg tudja mondani, mi lehetseges" allapotbol a "a jatekos mar tenylegesen le tud rakni egy lapot" allapotba.
+
+## 5. Statuszfrissites
+
+Ez a kovetkezo lepes mar elkeszult:
+
+- a minimalis `play_entity` execution-boundary bekotese megtortent
+
+Az uj legjobb kovetkezo lepes emiatt mar valoszinuleg ezek kozul kerul ki:
+- `play_trap` execution, ha tisztan megfogható marad
+- action-result konzisztencia finomitasa
+- kesobbi event/delta buffer elokeszites
+
+De a sorrend tovabbra is csak kis-kockazatu, fokozatos backend-epites lehet.

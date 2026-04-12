@@ -1,7 +1,7 @@
 import unittest
 from types import SimpleNamespace
 
-from backend.facade import apply_action, create_match, drop_match, get_legal_actions
+from backend.facade import _MATCH_REGISTRY, apply_action, create_match, drop_match, get_legal_actions, get_snapshot
 
 
 def make_card(name, realm="Ignis", card_type="Entitas", aura=1, magnitude=1):
@@ -34,6 +34,25 @@ def make_card_pool():
 
 
 class TestBackendApplyAction(unittest.TestCase):
+    def _prepare_simple_play_entity_state(self, match_id, card):
+        game = _MATCH_REGISTRY[match_id]["game"]
+        player = game.p1
+        player.kez = [card]
+        player.temeto = []
+        player.horizont = [None] * 6
+        player.zenit = [None] * 6
+        player.osforras = [{"lap": make_card("Forras"), "hasznalt": False}]
+        player.rezonancia_aura = 0
+        player.kovetkezo_jel_kedvezmeny = 0
+        player.kovetkezo_gepezet_kedvezmeny = 0
+        player.kovetkezo_entitas_kedvezmeny = 0
+        game.state.active_player = player
+        game.state.phase = "play"
+        game.state.match_finished = False
+        game.state.winner = None
+        game.state.victory_reason = None
+        return game, player
+
     def test_apply_action_executes_valid_end_turn_and_returns_snapshot(self):
         match_id = create_match(
             {
@@ -95,7 +114,7 @@ class TestBackendApplyAction(unittest.TestCase):
         self.assertFalse(wrong_player["ok"])
         self.assertEqual(wrong_player["reason"], "unknown_player_id")
 
-    def test_apply_action_does_not_execute_play_entity_yet(self):
+    def test_apply_action_executes_simple_play_entity_and_updates_snapshot(self):
         match_id = create_match(
             {
                 "cards": make_card_pool(),
@@ -107,12 +126,91 @@ class TestBackendApplyAction(unittest.TestCase):
         )
         self.addCleanup(lambda: drop_match(match_id))
 
+        harcos = make_card("Backend Harcos", card_type="Entitas", aura=1, magnitude=1)
+        _, player = self._prepare_simple_play_entity_state(match_id, harcos)
+
         legal_actions = get_legal_actions(match_id, "p1")
-        play_entity = next((item for item in legal_actions if item["action_type"] == "play_entity"), None)
-        if play_entity is None:
-            self.skipTest("A teszt deck/kez allapotban nem volt egyszeru play_entity akcio.")
+        play_entity = next(
+            (
+                item for item in legal_actions
+                if item["action_type"] == "play_entity"
+                and item["card_name"] == "Backend Harcos"
+                and item["zone"] == "horizont"
+                and item["lane"] == 0
+            ),
+            None,
+        )
+        self.assertIsNotNone(play_entity)
 
         result = apply_action(match_id, "p1", play_entity)
 
+        self.assertTrue(result["ok"])
+        self.assertIsNone(result["reason"])
+        self.assertEqual(result["result"]["executed_action_type"], "play_entity")
+        self.assertEqual(result["result"]["card_name"], "Backend Harcos")
+        self.assertEqual(result["result"]["zone"], "horizont")
+        self.assertEqual(result["result"]["lane"], 0)
+        self.assertTrue(result["result"]["survived_on_board"])
+        self.assertEqual(player.kez, [])
+        self.assertIsNotNone(player.horizont[0])
+
+        snapshot = get_snapshot(match_id)
+        self.assertEqual(snapshot["p1"]["hand_size"], 0)
+        self.assertEqual(snapshot["p1"]["horizont"][0]["card"]["name"], "Backend Harcos")
+
+    def test_apply_action_rejects_play_entity_for_occupied_slot(self):
+        match_id = create_match(
+            {
+                "cards": make_card_pool(),
+                "player1_realm": "Ignis",
+                "player2_realm": "Aqua",
+                "random_realm_fallback": False,
+            }
+        )
+        self.addCleanup(lambda: drop_match(match_id))
+
+        game, _ = self._prepare_simple_play_entity_state(match_id, make_card("Backend Harcos", card_type="Entitas", aura=1, magnitude=1))
+        game.p1.horizont[0] = SimpleNamespace(lap=make_card("Foglalo", card_type="Entitas"), akt_tamadas=1, akt_hp=1, kimerult=False)
+
+        result = apply_action(
+            match_id,
+            "p1",
+            {
+                "action_type": "play_entity",
+                "player": "Jatekos_1",
+                "card_name": "Backend Harcos",
+                "zone": "horizont",
+                "lane": 0,
+            },
+        )
+
         self.assertFalse(result["ok"])
-        self.assertEqual(result["reason"], "action_type_not_executable_yet")
+        self.assertEqual(result["reason"], "not_in_legal_actions")
+
+    def test_apply_action_rejects_non_entity_card_for_play_entity(self):
+        match_id = create_match(
+            {
+                "cards": make_card_pool(),
+                "player1_realm": "Ignis",
+                "player2_realm": "Aqua",
+                "random_realm_fallback": False,
+            }
+        )
+        self.addCleanup(lambda: drop_match(match_id))
+
+        self._prepare_simple_play_entity_state(match_id, make_card("Nem Harcos", card_type="Jel", aura=1, magnitude=1))
+
+        result = apply_action(
+            match_id,
+            "p1",
+            {
+                "action_type": "play_entity",
+                "player": "Jatekos_1",
+                "card_name": "Nem Harcos",
+                "zone": "horizont",
+                "lane": 0,
+            },
+        )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["reason"], "not_in_legal_actions")

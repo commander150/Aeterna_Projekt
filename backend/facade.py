@@ -238,6 +238,37 @@ def apply_action(match_id, player_id, action_request):
             },
             "snapshot": export_match_snapshot(game),
         }
+    if action_type == "play_entity":
+        execution = game.execute_play_entity_action(
+            player,
+            normalized.get("card_name"),
+            normalized.get("zone"),
+            normalized.get("lane"),
+        )
+        if not execution.get("ok"):
+            return {
+                "ok": False,
+                "reason": execution.get("reason"),
+                "action": normalized,
+                "result": None,
+                "snapshot": export_match_snapshot(game),
+            }
+        return {
+            "ok": True,
+            "reason": None,
+            "action": normalized,
+            "result": {
+                "executed_action_type": "play_entity",
+                "card_name": execution.get("card_name"),
+                "zone": execution.get("zone"),
+                "lane": execution.get("lane"),
+                "survived_on_board": execution.get("survived_on_board"),
+                "winner": getattr(execution.get("winner"), "nev", execution.get("winner"))
+                if execution.get("winner") is not None
+                else None,
+            },
+            "snapshot": export_match_snapshot(game),
+        }
 
     return {
         "ok": False,

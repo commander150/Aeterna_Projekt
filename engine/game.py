@@ -368,6 +368,87 @@ class AeternaSzimulacio:
 
         return False
 
+    def execute_play_entity_action(self, player, card_name, zone_name, lane_index):
+        if player is None:
+            return {"ok": False, "reason": "missing_player"}
+        if zone_name not in {"horizont", "zenit"}:
+            return {"ok": False, "reason": "invalid_zone"}
+        if not isinstance(lane_index, int):
+            return {"ok": False, "reason": "invalid_lane"}
+
+        zone = getattr(player, zone_name, None)
+        if zone is None or not (0 <= lane_index < len(zone)):
+            return {"ok": False, "reason": "invalid_lane"}
+        if zone[lane_index] is not None:
+            return {"ok": False, "reason": "slot_not_empty"}
+
+        card = next((lap for lap in getattr(player, "kez", []) if getattr(lap, "nev", None) == card_name), None)
+        if card is None:
+            return {"ok": False, "reason": "card_not_in_hand"}
+        if not getattr(card, "egyseg_e", False):
+            return {"ok": False, "reason": "card_is_not_entity"}
+
+        if not player.fizet(card):
+            return {"ok": False, "reason": "cannot_pay_cost"}
+
+        if zone_name == "horizont":
+            unit = ActionLibrary.summon_card_to_horizont(
+                player,
+                card,
+                lane_index=lane_index,
+                reason=f"backend_play_entity:{card.nev}",
+                exhausted=True,
+                payload={"played": True, "backend_action": True},
+            )
+        else:
+            unit = ActionLibrary.summon_card_to_zenit(
+                player,
+                card,
+                lane_index=lane_index,
+                reason=f"backend_play_entity:{card.nev}",
+                exhausted=True,
+                payload={"played": True, "backend_action": True},
+            )
+
+        if unit is None:
+            return {"ok": False, "reason": "summon_failed"}
+
+        player.megidezett_entitasok_ebben_a_korben += 1
+        stats.faj_statisztika(getattr(card, "faj", ""))
+        naplo.ir(f"{player.nev} backend actionbol megidezte: {card.nev}")
+
+        opponent = self._ellenfel(player)
+        trigger_engine.dispatch(
+            "on_enemy_summon",
+            source=unit,
+            owner=opponent,
+            target=player,
+            payload={"zone": zone_name, "summoner": player},
+        )
+        if zone_name == "zenit":
+            trigger_engine.dispatch(
+                "on_enemy_zenit_summon",
+                source=unit,
+                owner=opponent,
+                target=player,
+                payload={"zone": zone_name, "summoner": player},
+            )
+
+        self._resolve_summon_traps(unit, player, opponent)
+        winner = self._alkalmaz_kartya_hatast(card, player, opponent)
+        occupied = getattr(player, zone_name)[lane_index]
+
+        return {
+            "ok": True,
+            "reason": None,
+            "unit": unit,
+            "winner": winner,
+            "card_name": card.nev,
+            "zone": zone_name,
+            "lane": lane_index,
+            "survived_on_board": occupied is unit,
+        }
+
     def _resolve_spell_cast_traps(self, spell_card, caster, defender):
         if defender.hasznalt_jelek_ebben_a_korben >= 2:
             return False
