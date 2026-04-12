@@ -4,7 +4,7 @@ import argparse
 import json
 import os
 from copy import deepcopy
-from typing import Callable, Dict, Optional, Sequence
+from typing import Callable, Dict, List, Optional, Sequence
 
 from engine.config import DEFAULT_EXPANSION_FLAGS, DEFAULT_EXPANSION_MODULES
 from engine.logging_utils import create_logger
@@ -160,6 +160,104 @@ def run_test_profile(
     return config
 
 
+def parse_seed_batch_args(seed_list=None, seed_start=None, seed_count=None) -> List[int]:
+    if seed_list not in (None, ""):
+        parsed = []
+        for raw_part in str(seed_list).split(","):
+            part = raw_part.strip()
+            if not part:
+                continue
+            parsed.append(int(part))
+        if not parsed:
+            raise ValueError("A seed-list nem lehet ures.")
+        return parsed
+
+    if seed_start is None and seed_count is None:
+        return []
+
+    if seed_start is None or seed_count is None:
+        raise ValueError("A seed-start es seed-count csak egyutt hasznalhato.")
+
+    parsed_start = int(seed_start)
+    parsed_count = int(seed_count)
+    if parsed_count <= 0:
+        raise ValueError("A seed-count ertekenek pozitivnak kell lennie.")
+
+    return [parsed_start + offset for offset in range(parsed_count)]
+
+
+def _summary_value(summary, key, default=0):
+    if not isinstance(summary, dict):
+        return default
+    return summary.get(key, default)
+
+
+def format_batch_summary(run_summaries: Sequence[Dict]) -> List[str]:
+    if not run_summaries:
+        return [
+            "Futasok szama: 0",
+            "Seedek: -",
+            "Gyozelmek: P1=0 | P2=0 | Dontetlen=0",
+            "Atlagos korszam: -",
+        ]
+
+    seeds = [str(summary.get("random_seed", "random")) for summary in run_summaries]
+    total_runs = sum(int(_summary_value(summary, "games", 0)) for summary in run_summaries)
+    p1_wins = sum(int(_summary_value(summary, "p1_wins", 0)) for summary in run_summaries)
+    p2_wins = sum(int(_summary_value(summary, "p2_wins", 0)) for summary in run_summaries)
+    draws = sum(int(_summary_value(summary, "draws", 0)) for summary in run_summaries)
+    total_turns = sum(int(_summary_value(summary, "total_turns", 0)) for summary in run_summaries)
+    average_turns = (total_turns / total_runs) if total_runs else 0.0
+
+    return [
+        f"Futasok szama: {total_runs}",
+        f"Seedek: {', '.join(seeds)}",
+        f"Gyozelmek: P1={p1_wins} | P2={p2_wins} | Dontetlen={draws}",
+        f"Atlagos korszam: {average_turns:.2f}" if total_runs else "Atlagos korszam: -",
+    ]
+
+
+def _print_batch_summary(
+    run_summaries: Sequence[Dict],
+    print_func: Callable[[str], None] = print,
+):
+    print_func("=== AETERNA BATCH OSSZESITO ===")
+    for line in format_batch_summary(run_summaries):
+        print_func(line)
+
+
+def run_seed_batch(
+    profile_name: str,
+    *,
+    seed_values: Sequence[int],
+    overrides: Optional[Dict] = None,
+    xlsx_path: str = DEFAULT_XLSX_PATH,
+    base_dir: str = PROGRAM_MAPPA,
+    print_func: Callable[[str], None] = print,
+) -> List[Dict]:
+    summaries: List[Dict] = []
+    for seed in seed_values:
+        seed_overrides = dict(overrides or {})
+        seed_overrides["random_seed"] = seed
+        config = build_config_from_profile(profile_name, overrides=seed_overrides)
+        create_logger(config, base_dir=base_dir, logger=naplo)
+        summary = futtat_szimulaciot(xlsx_path, config=config)
+        summaries.append(summary or {
+            "games": config.games,
+            "random_seed": config.random_seed,
+            "player1_realm": config.player1_realm,
+            "player2_realm": config.player2_realm,
+            "p1_wins": 0,
+            "p2_wins": 0,
+            "draws": 0,
+            "total_turns": 0,
+            "average_turns": 0.0,
+        })
+
+    _print_batch_summary(summaries, print_func=print_func)
+    return summaries
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="AETERNA konnyu tesztlauncher a dokumentalt tesztprofilokhoz."
@@ -169,6 +267,9 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--runs", type=int, help="Futasok szamanak felulirasa.")
     parser.add_argument("--p1", dest="player1_realm", help="P1 birodalom felulirasa.")
     parser.add_argument("--p2", dest="player2_realm", help="P2 birodalom felulirasa.")
+    parser.add_argument("--seed-list", help="Tobb seed vesszovel elvalasztva, pl. 101,102,103.")
+    parser.add_argument("--seed-start", type=int, help="Batch seed kezdoertek.")
+    parser.add_argument("--seed-count", type=int, help="Batch seed darabszam.")
     parser.add_argument("--last-run", action="store_true", help="Az utolso launcher-beallitas ujrafuttatasa.")
     parser.add_argument("--list-profiles", action="store_true", help="Az elerheto profilok kilistazasa.")
     parser.add_argument("--xlsx-path", default=DEFAULT_XLSX_PATH, help="A cards.xlsx eleresi utja.")
@@ -200,9 +301,11 @@ def launch_non_interactive(
     profile_name: Optional[str] = None,
     overrides: Optional[Dict] = None,
     use_last_run: bool = False,
+    seed_values: Optional[Sequence[int]] = None,
     xlsx_path: str = DEFAULT_XLSX_PATH,
     base_dir: str = PROGRAM_MAPPA,
     settings_path: str = LAST_SETTINGS_PATH,
+    print_func: Callable[[str], None] = print,
 ) -> SimulationConfig:
     if use_last_run:
         last_settings = load_last_settings(settings_path)
@@ -211,6 +314,16 @@ def launch_non_interactive(
         profile_name = last_settings["profile_name"]
         merged_overrides = dict(last_settings.get("overrides") or {})
         merged_overrides.update(dict(overrides or {}))
+        if seed_values:
+            run_seed_batch(
+                profile_name,
+                seed_values=seed_values,
+                overrides=merged_overrides,
+                xlsx_path=xlsx_path,
+                base_dir=base_dir,
+                print_func=print_func,
+            )
+            return build_config_from_profile(profile_name, overrides={**merged_overrides, "random_seed": seed_values[-1]})
         config = build_config_from_profile(profile_name, overrides=merged_overrides)
         create_logger(config, base_dir=base_dir, logger=naplo)
         futtat_szimulaciot(xlsx_path, config=config)
@@ -220,6 +333,16 @@ def launch_non_interactive(
         raise ValueError("Non-interactive inditashoz profile nev szukseges.")
 
     save_last_settings({"profile_name": profile_name, "overrides": dict(overrides or {})}, settings_path)
+    if seed_values:
+        run_seed_batch(
+            profile_name,
+            seed_values=seed_values,
+            overrides=overrides,
+            xlsx_path=xlsx_path,
+            base_dir=base_dir,
+            print_func=print_func,
+        )
+        return build_config_from_profile(profile_name, overrides={**dict(overrides or {}), "random_seed": seed_values[-1]})
     return run_test_profile(profile_name, overrides=overrides, xlsx_path=xlsx_path, base_dir=base_dir)
 
 
@@ -294,6 +417,7 @@ def main(
 ):
     parser = _build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
+    seed_values = parse_seed_batch_args(args.seed_list, args.seed_start, args.seed_count)
 
     if args.list_profiles:
         _print_profiles(print_func=print_func)
@@ -305,18 +429,22 @@ def main(
         return launch_non_interactive(
             use_last_run=True,
             overrides=overrides,
+            seed_values=seed_values,
             xlsx_path=args.xlsx_path,
             base_dir=args.base_dir,
             settings_path=settings_path,
+            print_func=print_func,
         )
 
     if args.profile:
         return launch_non_interactive(
             profile_name=args.profile,
             overrides=overrides,
+            seed_values=seed_values,
             xlsx_path=args.xlsx_path,
             base_dir=args.base_dir,
             settings_path=settings_path,
+            print_func=print_func,
         )
 
     return launch_interactive(

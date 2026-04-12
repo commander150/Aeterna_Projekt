@@ -140,6 +140,67 @@ class TestTestLauncher(unittest.TestCase):
         self.assertEqual(result, "interactive")
         interactive_mock.assert_called_once()
 
+    def test_parse_seed_batch_args_supports_seed_list(self):
+        seeds = test_launcher.parse_seed_batch_args(seed_list="101, 102,103")
+
+        self.assertEqual(seeds, [101, 102, 103])
+
+    def test_parse_seed_batch_args_supports_seed_range(self):
+        seeds = test_launcher.parse_seed_batch_args(seed_start=200, seed_count=3)
+
+        self.assertEqual(seeds, [200, 201, 202])
+
+    def test_format_batch_summary_aggregates_basic_values(self):
+        lines = test_launcher.format_batch_summary(
+            [
+                {"games": 3, "random_seed": 101, "p1_wins": 2, "p2_wins": 1, "draws": 0, "total_turns": 18},
+                {"games": 3, "random_seed": 102, "p1_wins": 1, "p2_wins": 2, "draws": 0, "total_turns": 24},
+            ]
+        )
+
+        self.assertEqual(lines[0], "Futasok szama: 6")
+        self.assertIn("101, 102", lines[1])
+        self.assertIn("P1=3 | P2=3 | Dontetlen=0", lines[2])
+        self.assertEqual(lines[3], "Atlagos korszam: 7.00")
+
+    def test_launch_non_interactive_seed_batch_uses_runner_for_each_seed(self):
+        settings_path = self._workspace_temp_path("cli_seed_batch.json")
+        summaries = [
+            {"games": 2, "random_seed": 300, "p1_wins": 1, "p2_wins": 1, "draws": 0, "total_turns": 10},
+            {"games": 2, "random_seed": 301, "p1_wins": 2, "p2_wins": 0, "draws": 0, "total_turns": 8},
+        ]
+
+        with patch("simulation.test_launcher.create_logger") as create_logger_mock, patch(
+            "simulation.test_launcher.futtat_szimulaciot",
+            side_effect=summaries,
+        ) as runner_mock:
+            config = test_launcher.launch_non_interactive(
+                profile_name="seeded_matchup",
+                overrides={"games": 2, "player1_realm": "Ignis", "player2_realm": "Aqua"},
+                seed_values=[300, 301],
+                xlsx_path="cards.xlsx",
+                base_dir=".",
+                settings_path=settings_path,
+                print_func=lambda *_: None,
+            )
+
+        self.assertIsInstance(config, SimulationConfig)
+        self.assertEqual(config.random_seed, 301)
+        self.assertEqual(create_logger_mock.call_count, 2)
+        self.assertEqual(runner_mock.call_count, 2)
+
+    def test_main_cli_profile_seed_list_uses_non_interactive_path(self):
+        with patch("simulation.test_launcher.launch_non_interactive", return_value="batch") as launcher_mock:
+            result = test_launcher.main(
+                argv=["--profile", "seeded_matchup", "--seed-list", "10,11", "--runs", "2"],
+                print_func=lambda *_: None,
+                settings_path=self._workspace_temp_path("main_cli_seed_batch.json"),
+            )
+
+        self.assertEqual(result, "batch")
+        launcher_mock.assert_called_once()
+        self.assertEqual(launcher_mock.call_args.kwargs["seed_values"], [10, 11])
+
 
 if __name__ == "__main__":
     unittest.main()

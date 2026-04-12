@@ -279,6 +279,19 @@ python -m simulation.test_launcher --last-run
 python -m simulation.test_launcher --list-profiles
 ```
 
+Batch seed futtatas is van, ha ugyanazt a matchupot gyorsan tobb seeddel akarod ujraellenorizni:
+
+```bash
+python -m simulation.test_launcher --profile seeded_matchup --seed-list 101,102,103 --runs 3 --p1 Ignis --p2 Aqua
+python -m simulation.test_launcher --profile repeated_matchup --seed-start 200 --seed-count 5 --runs 4 --p1 Ignis --p2 Aqua
+```
+
+A batch futas vegen a launcher rovid, emberileg gyorsan olvashato osszesitot is kiir:
+- hany futas ment le
+- mely seedek futottak
+- hogyan oszlottak meg a gyozelmek
+- mekkora volt az atlagos korszam
+
 Ez kulonosen hasznos:
 - seedelt matchupok gyors ujrafuttatasara
 - regresszios korok ismetlesere

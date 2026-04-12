@@ -94,10 +94,41 @@ def _match_summary_lines(jatek, nyertes):
         ),
     ]
 
+
+def _capture_stats_snapshot():
+    return {
+        "jatekok_szama": stats.jatekok_szama,
+        "p1_gyozelem": stats.p1_gyozelem,
+        "p2_gyozelem": stats.p2_gyozelem,
+        "dontetlen": stats.dontetlen,
+        "osszes_kor": stats.osszes_kor,
+    }
+
+
+def _build_run_summary(config, before_stats, after_stats):
+    games_played = after_stats["jatekok_szama"] - before_stats["jatekok_szama"]
+    p1_wins = after_stats["p1_gyozelem"] - before_stats["p1_gyozelem"]
+    p2_wins = after_stats["p2_gyozelem"] - before_stats["p2_gyozelem"]
+    draws = after_stats["dontetlen"] - before_stats["dontetlen"]
+    total_turns = after_stats["osszes_kor"] - before_stats["osszes_kor"]
+
+    return {
+        "games": games_played,
+        "random_seed": config.random_seed,
+        "player1_realm": config.player1_realm,
+        "player2_realm": config.player2_realm,
+        "p1_wins": p1_wins,
+        "p2_wins": p2_wins,
+        "draws": draws,
+        "total_turns": total_turns,
+        "average_turns": (total_turns / games_played) if games_played else 0.0,
+    }
+
 def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
     try:
         install_effect_diagnostics()
         config = _resolve_config(config, meccsek_szama)
+        before_stats = _capture_stats_snapshot()
         engine_config = set_active_engine_config(config.to_engine_config())
 
         if config.random_seed is not None:
@@ -108,7 +139,7 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
 
         kartyak = kartyak_betoltese_xlsx(xlsx_utvonal)
         if not kartyak:
-            return
+            return None
 
         birodalmak = _elerheto_birodalmak(kartyak)
         naplo.ir(f"Elérhető birodalmak: {', '.join(birodalmak)}")
@@ -173,10 +204,12 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
                 f"osszes_kor={stats.osszes_kor}",
             ],
         )
+        return _build_run_summary(config, before_stats, _capture_stats_snapshot())
 
     except Exception:
         naplo.ir("\n" + "!"*40)
         naplo.ir("PROGRAM LEÁLLT - KRITIKUS HIBA:")
         traceback.print_exc()
         naplo.ir("!"*40)
+        return None
 
