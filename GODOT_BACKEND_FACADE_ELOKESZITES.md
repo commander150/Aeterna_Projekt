@@ -253,3 +253,23 @@ Kimondottan nem resze meg:
 Ha a facade-bol kerjuk, az uj belepesi pont:
 
 - `get_legal_actions(match_id, player_id)`
+
+## 12. Negyedik kodkor eredmenye
+
+Az elso explicit backend-kompatibilis state-context is bekerult:
+
+- aktiv jatekos
+- fo fazis
+- meccs lezart allapota
+
+Ez most nem teljes phase-engine, hanem minimalis, stabil state-jelzes a jatekobjektumon:
+
+- `state.active_player`
+- `state.phase`
+- `state.match_finished`
+- `state.winner`
+- `state.victory_reason`
+
+Ennek hatasara a snapshot, a facade eredmeny-lekerdezese es a legal-actions helper
+mar kevesebbet kovetkeztet implicit allapotbol, es tisztabb backend-hatart ad a
+kovetkezo action-boundary korhoz.

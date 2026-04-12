@@ -138,7 +138,20 @@ def _detect_active_player_name(game):
     return getattr(candidate, "nev", candidate)
 
 
+def _detect_phase(game):
+    state = getattr(game, "state", None)
+    phase = getattr(state, "phase", None)
+    if phase is not None:
+        return phase
+    return getattr(game, "phase", None)
+
+
 def _detect_winner_name(game):
+    state = getattr(game, "state", None)
+    state_winner = getattr(state, "winner", None)
+    if state_winner is not None:
+        return getattr(state_winner, "nev", state_winner)
+
     overflow = getattr(game, "_overflow_gyoztes", None)
     if callable(overflow):
         winner = overflow()
@@ -155,6 +168,11 @@ def _detect_winner_name(game):
 
 
 def _detect_victory_reason(game, winner_name):
+    state = getattr(game, "state", None)
+    state_reason = getattr(state, "victory_reason", None)
+    if state_reason:
+        return state_reason
+
     if winner_name is None:
         return None
 
@@ -170,14 +188,17 @@ def _detect_victory_reason(game, winner_name):
 
 
 def export_match_snapshot(game):
+    state = getattr(game, "state", None)
     winner_name = _detect_winner_name(game)
     turn = _as_int(getattr(game, "kor", getattr(getattr(game, "state", None), "kor", None)), default=0)
     log_metrics = dict(getattr(game, "log_metrics", {}) or {})
+    match_finished = bool(getattr(state, "match_finished", False) or winner_name is not None)
 
     return {
         "turn": turn,
         "active_player": _detect_active_player_name(game),
-        "match_finished": winner_name is not None,
+        "phase": _detect_phase(game),
+        "match_finished": match_finished,
         "winner": winner_name,
         "victory_reason": _detect_victory_reason(game, winner_name),
         "p1": export_player_state(getattr(game, "p1", None)),

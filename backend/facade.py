@@ -136,6 +136,7 @@ def get_match_result(match_id):
         "victory_reason": snapshot.get("victory_reason"),
         "turn": snapshot.get("turn"),
         "active_player": snapshot.get("active_player"),
+        "phase": snapshot.get("phase"),
     }
 
 

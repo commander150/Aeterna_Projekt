@@ -50,8 +50,31 @@ def _player_name(player):
     return getattr(player, "nev", None)
 
 
+def _is_active_player(game, player):
+    state = getattr(game, "state", None)
+    active_player = getattr(state, "active_player", None)
+    if active_player is None:
+        return True
+    return active_player is player or _player_name(active_player) == _player_name(player)
+
+
+def _is_action_phase(game):
+    state = getattr(game, "state", None)
+    phase = getattr(state, "phase", None)
+    if phase is None:
+        return True
+    return phase == "play"
+
+
 def get_legal_actions_for_player(game, player):
     if game is None or player is None:
+        return []
+    state = getattr(game, "state", None)
+    if bool(getattr(state, "match_finished", False)):
+        return []
+    if not _is_active_player(game, player):
+        return []
+    if not _is_action_phase(game):
         return []
 
     actions = [

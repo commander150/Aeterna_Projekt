@@ -33,10 +33,33 @@ class AeternaSzimulacio:
         self.p2.jatek = self
         self.kor = 1
         self.engine_config = engine_config or get_active_engine_config()
-        self.state = MatchState(self.p1, self.p2, self.kor)
+        self.state = MatchState(self.p1, self.p2, self.kor, active_player=self.p1, phase="setup")
         self.phase_runner = PhaseRunner(self)
         self.combat_resolver = CombatResolver(self)
         self.elokeszites()
+
+    def _set_state_context(self, *, active_player=None, phase=None):
+        if active_player is not None:
+            self.state.active_player = active_player
+        if phase is not None:
+            self.state.phase = phase
+        self.state.kor = self.kor
+
+    def _victory_reason_for(self, winner):
+        if winner is None:
+            return None
+        if getattr(self.p1, "overflow_vereseg", False) or getattr(self.p2, "overflow_vereseg", False):
+            return "overflow"
+        if len(getattr(self.p1, "pecsetek", [])) == 0 or len(getattr(self.p2, "pecsetek", [])) == 0:
+            return "seal_break_finish"
+        return "unknown"
+
+    def _set_match_result(self, winner):
+        self.state.match_finished = winner is not None
+        self.state.winner = winner
+        self.state.victory_reason = self._victory_reason_for(winner)
+        if winner is not None:
+            self.state.phase = "finished"
 
     def elokeszites(self):
         for _ in range(5):
@@ -51,6 +74,7 @@ class AeternaSzimulacio:
 
         trigger_engine.dispatch("on_manifestation_phase", owner=self.p1, payload={"phase": "setup"})
         trigger_engine.dispatch("on_manifestation_phase", owner=self.p2, payload={"phase": "setup"})
+        self._set_state_context(active_player=self.p1, phase="play")
 
     def kijatszas_fazis(self, jatekos):
         lehetosegek = [
@@ -185,7 +209,10 @@ class AeternaSzimulacio:
         return None
 
     def _ellenoriz_gyoztest(self):
-        return self._overflow_gyoztes()
+        winner = self._overflow_gyoztes()
+        if winner:
+            self._set_match_result(winner)
+        return winner
 
     def _alkalmaz_kartya_hatast(self, lap, jatekos, ellenfel):
         trigger_engine.dispatch("on_play", source=lap, owner=jatekos, target=ellenfel)
@@ -210,7 +237,10 @@ class AeternaSzimulacio:
     def _jelol_harc_overflowot(self, tamado, vedo):
         vedo.jelol_overflow_vereseget(tamado.nev)
         naplo.ir(f"{tamado.nev} nyert (Overflow)")
-        return self._ellenoriz_gyoztest()
+        winner = self._ellenoriz_gyoztest()
+        if winner:
+            self._set_match_result(winner)
+        return winner
 
     def _elpusztit_egyseget(self, jatekos, zona_nev, index, ok="harc", extra_payload=None):
         result = EffectEngine.destroy_unit(
@@ -794,6 +824,7 @@ class AeternaSzimulacio:
         naplo.ir(f"\n>>>> {self.kor}. KOR <<<<")
 
         for index, (akt, ell) in enumerate([(self.p1, self.p2), (self.p2, self.p1)]):
+            self._set_state_context(active_player=akt, phase="turn_start")
             akt.uj_kor_inditasa()
             trigger_engine.dispatch("on_turn_start", owner=akt, target=ell, payload={"turn": self.kor})
             trigger_engine.dispatch("on_start_of_turn", owner=akt, target=ell, payload={"turn": self.kor})
@@ -809,11 +840,15 @@ class AeternaSzimulacio:
                 akt.huzas()
                 akt.huzas()
 
+            self._set_state_context(active_player=akt, phase="source")
             akt.osforras_bovites()
+            self._set_state_context(active_player=akt, phase="manifestation")
             trigger_engine.dispatch("on_manifestation_phase", owner=akt, target=ell, payload={"turn": self.kor})
 
+            self._set_state_context(active_player=akt, phase="play")
             eredmeny = self.phase_runner.run_play_phase(akt)
             if eredmeny:
+                self._set_match_result(eredmeny)
                 akt.kor_vegi_heal()
                 ell.kor_vegi_heal()
                 return eredmeny
@@ -825,8 +860,10 @@ class AeternaSzimulacio:
             )
 
             if not (self.kor == 1 and index == 0):
+                self._set_state_context(active_player=akt, phase="combat")
                 eredmeny = self.combat_resolver.resolve_attack_phase(akt, ell)
                 if eredmeny:
+                    self._set_match_result(eredmeny)
                     akt.kor_vegi_heal()
                     ell.kor_vegi_heal()
                     return eredmeny
@@ -836,11 +873,14 @@ class AeternaSzimulacio:
                         if not akt.kell_tamadnia_kovetkezo_korben:
                             naplo.ir(f"{akt.nev} teljesitette a kotelezo tamadast.")
                     else:
-                        naplo.ir(f"{akt.nev} Kenyszerites/Provoke alatt allt, de nem volt tamadasra kepes Horizont egysege.")
+                            naplo.ir(f"{akt.nev} Kenyszerites/Provoke alatt allt, de nem volt tamadasra kepes Horizont egysege.")
 
+            self._set_state_context(active_player=akt, phase="turn_end")
             akt.kor_vegi_heal()
             ell.kor_vegi_heal()
             trigger_engine.dispatch("on_turn_end", owner=akt, target=ell, payload={"turn": self.kor})
 
         self.kor += 1
+        self.state.kor = self.kor
+        self._set_state_context(active_player=self.p1, phase="play")
         return None
