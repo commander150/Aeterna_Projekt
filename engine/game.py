@@ -61,6 +61,21 @@ class AeternaSzimulacio:
         if winner is not None:
             self.state.phase = "finished"
 
+    def _record_played_card(self, player, card):
+        if getattr(self, "log_metrics", None) is None or player is None or card is None:
+            return
+        card_name = getattr(card, "nev", None)
+        player_name = getattr(player, "nev", None)
+        if not card_name or not player_name:
+            return
+
+        played_cards = self.log_metrics.setdefault("played_cards", {})
+        played_cards[card_name] = int(played_cards.get(card_name, 0)) + 1
+
+        by_player = self.log_metrics.setdefault("played_cards_by_player", {})
+        player_cards = by_player.setdefault(player_name, {})
+        player_cards[card_name] = int(player_cards.get(card_name, 0)) + 1
+
     def elokeszites(self):
         for _ in range(5):
             self.p1.huzas()
@@ -119,6 +134,7 @@ class AeternaSzimulacio:
                                 break
                         jatekos.megidezett_entitasok_ebben_a_korben += 1
                         stats.faj_statisztika(lap.faj)
+                        self._record_played_card(jatekos, lap)
                         naplo.ir(f"{jatekos.nev} megidezte: {lap.nev}")
 
                         ellenfel = self.p2 if jatekos == self.p1 else self.p1
@@ -166,6 +182,7 @@ class AeternaSzimulacio:
                         jatekos.kez.remove(lap)
                         set_zone_slot(jatekos, "zenit", i, lap, f"trap_play:{lap.nev}")
                         naplo.ir(f"{jatekos.nev} Jelet rakott: {lap.nev}")
+                        self._record_played_card(jatekos, lap)
                         if getattr(self, "log_metrics", None) is not None:
                             self.log_metrics["traps_played"] += 1
                         break
@@ -176,6 +193,7 @@ class AeternaSzimulacio:
                 jatekos.temeto.append(lap)
 
                 naplo.ir(f"{jatekos.nev} varazsol: {lap.nev}")
+                self._record_played_card(jatekos, lap)
                 if getattr(self, "log_metrics", None) is not None:
                     self.log_metrics["spells_cast"] += 1
 
@@ -415,6 +433,7 @@ class AeternaSzimulacio:
 
         player.megidezett_entitasok_ebben_a_korben += 1
         stats.faj_statisztika(getattr(card, "faj", ""))
+        self._record_played_card(player, card)
         naplo.ir(f"{player.nev} backend actionbol megidezte: {card.nev}")
 
         opponent = self._ellenfel(player)
@@ -479,6 +498,7 @@ class AeternaSzimulacio:
         player.kez.remove(card)
         set_zone_slot(player, "zenit", lane_index, card, f"backend_trap_play:{card.nev}")
         naplo.ir(f"{player.nev} backend actionbol Jelet rakott: {card.nev}")
+        self._record_played_card(player, card)
 
         if getattr(self, "log_metrics", None) is not None:
             self.log_metrics["traps_played"] += 1

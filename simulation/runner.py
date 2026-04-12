@@ -143,12 +143,29 @@ def _empty_run_metrics():
         "destroyed_units": 0,
     }
 
+
+def _merge_card_counter(target, source):
+    if not isinstance(source, dict):
+        return
+    for card_name, count in source.items():
+        if not card_name:
+            continue
+        target[card_name] = int(target.get(card_name, 0)) + int(count or 0)
+
+
+def _winner_player_name(nyertes):
+    winner_name = getattr(nyertes, "nev", nyertes)
+    if winner_name in {"Jatekos_1", "Jatekos_2"}:
+        return winner_name
+    return None
+
 def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
     try:
         install_effect_diagnostics()
         config = _resolve_config(config, meccsek_szama)
         before_stats = _capture_stats_snapshot()
         run_metrics = _empty_run_metrics()
+        winner_played_cards = {}
         engine_config = set_active_engine_config(config.to_engine_config())
 
         if config.random_seed is not None:
@@ -195,6 +212,8 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
                 "seal_breaks": 0,
                 "source_placements": 0,
                 "destroyed_units": 0,
+                "played_cards": {},
+                "played_cards_by_player": {},
             }
             stats.jatekok_szama += 1
 
@@ -212,6 +231,12 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
             )
             for metric_name in run_metrics:
                 run_metrics[metric_name] += int(jatek.log_metrics.get(metric_name, 0))
+            winning_player_name = _winner_player_name(nyertes)
+            if winning_player_name:
+                _merge_card_counter(
+                    winner_played_cards,
+                    (jatek.log_metrics.get("played_cards_by_player") or {}).get(winning_player_name, {}),
+                )
 
         stats.osszesites_mentese()
         naplo.summary(
@@ -228,6 +253,9 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
         )
         summary = _build_run_summary(config, before_stats, _capture_stats_snapshot())
         summary["metrics"] = dict(run_metrics)
+        summary["winner_played_cards"] = dict(
+            sorted(winner_played_cards.items(), key=lambda item: (-item[1], item[0]))
+        )
         return summary
 
     except Exception as exc:

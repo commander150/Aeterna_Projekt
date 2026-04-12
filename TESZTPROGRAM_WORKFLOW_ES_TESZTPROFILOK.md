@@ -300,9 +300,11 @@ A batch futas vegen a launcher rovid, emberileg gyorsan olvashato osszesitot is 
 - hogyan oszlottak meg a gyozelmek
 - mekkora volt az atlagos korszam
 - mennyi summon / spell / trap / seal break aktivitas latszott
+- mely lapok jelentek meg leggyakrabban a gyoztes oldalon
 - ha egyszeru launcher-szintu gyanus minta latszik, kulon figyelmeztetest is ad
 
 Ez kulonosen hasznos:
 - seedelt matchupok gyors ujrafuttatasara
 - regresszios korok ismetlesere
 - kevesebb kezi parameterezessel vegzett smoke futasokra
+- a visszatero, meccsformalo lapok gyors kiszurasara batch vegen

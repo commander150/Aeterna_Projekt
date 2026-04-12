@@ -1,10 +1,10 @@
 {
-  "profile_name": "seeded_matchup",
+  "profile_name": "realm_focus",
   "overrides": {
-    "games": 3,
-    "random_seed": 105,
-    "player1_realm": "Ventus",
-    "player2_realm": "Terra",
-    "random_realm_fallback": false
+    "games": "10",
+    "random_seed": 314,
+    "player1_realm": "aether",
+    "player2_realm": null,
+    "random_realm_fallback": true
   }
 }

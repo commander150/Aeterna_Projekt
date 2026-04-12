@@ -216,6 +216,7 @@ class TestTestLauncher(unittest.TestCase):
                     "draws": 0,
                     "total_turns": 18,
                     "metrics": {"summons": 8, "spells_cast": 4, "traps_played": 1, "traps_triggered": 1, "seal_breaks": 5},
+                    "winner_played_cards": {"A Főnix Könnye": 3, "Tünde Pyromanta": 2},
                 },
                 {
                     "games": 3,
@@ -225,6 +226,7 @@ class TestTestLauncher(unittest.TestCase):
                     "draws": 0,
                     "total_turns": 24,
                     "metrics": {"summons": 7, "spells_cast": 5, "traps_played": 2, "traps_triggered": 1, "seal_breaks": 4},
+                    "winner_played_cards": {"A Főnix Könnye": 1, "Fagyos Lándzsa": 4},
                 },
             ]
         )
@@ -235,7 +237,29 @@ class TestTestLauncher(unittest.TestCase):
         self.assertEqual(lines[3], "Atlagos korszam: 7.00")
         self.assertIn("summons=15", lines[4])
         self.assertIn("spells=9", lines[4])
-        self.assertTrue(lines[5].startswith("Gyanus jelek:"))
+        self.assertIn("A Főnix Könnye=4", lines[5])
+        self.assertIn("Fagyos Lándzsa=4", lines[5])
+        self.assertTrue(lines[6].startswith("Gyanus jelek:"))
+
+    def test_format_batch_summary_highlights_top_winner_side_cards(self):
+        lines = test_launcher.format_batch_summary(
+            [
+                {
+                    "games": 2,
+                    "random_seed": 301,
+                    "p1_wins": 2,
+                    "p2_wins": 0,
+                    "draws": 0,
+                    "total_turns": 12,
+                    "metrics": {"summons": 6, "spells_cast": 3, "traps_played": 1, "traps_triggered": 0, "seal_breaks": 2},
+                    "winner_played_cards": {"Tünde Pyromanta": 3, "A Főnix Könnye": 2, "Lángölelés": 1},
+                }
+            ]
+        )
+
+        self.assertIn("Gyoztes oldalon leggyakoribb kijatszott lapok:", lines[5])
+        self.assertIn("Tünde Pyromanta=3", lines[5])
+        self.assertIn("A Főnix Könnye=2", lines[5])
 
     def test_detect_batch_alerts_flags_one_sided_and_low_activity_patterns(self):
         alerts = test_launcher.detect_batch_alerts(

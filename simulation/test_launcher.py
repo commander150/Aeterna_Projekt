@@ -206,6 +206,17 @@ def _collect_batch_metrics(run_summaries: Sequence[Dict]) -> Dict[str, int]:
     return totals
 
 
+def _collect_winner_played_cards(run_summaries: Sequence[Dict]) -> Dict[str, int]:
+    totals: Dict[str, int] = {}
+    for summary in run_summaries:
+        card_counts = summary.get("winner_played_cards", {}) if isinstance(summary, dict) else {}
+        for card_name, count in card_counts.items():
+            if not card_name:
+                continue
+            totals[card_name] = totals.get(card_name, 0) + int(count or 0)
+    return dict(sorted(totals.items(), key=lambda item: (-item[1], item[0])))
+
+
 def detect_batch_alerts(run_summaries: Sequence[Dict]) -> List[str]:
     if not run_summaries:
         return []
@@ -253,6 +264,8 @@ def format_batch_summary(run_summaries: Sequence[Dict]) -> List[str]:
     average_turns = (total_turns / total_runs) if total_runs else 0.0
     metrics = _collect_batch_metrics(run_summaries)
     alerts = detect_batch_alerts(run_summaries)
+    winner_cards = _collect_winner_played_cards(run_summaries)
+    top_winner_cards = list(winner_cards.items())[:5]
 
     lines = [
         f"Futasok szama: {total_runs}",
@@ -270,6 +283,13 @@ def format_batch_summary(run_summaries: Sequence[Dict]) -> List[str]:
             ]
         ),
     ]
+    if top_winner_cards:
+        lines.append(
+            "Gyoztes oldalon leggyakoribb kijatszott lapok: "
+            + " | ".join(f"{card_name}={count}" for card_name, count in top_winner_cards)
+        )
+    else:
+        lines.append("Gyoztes oldalon leggyakoribb kijatszott lapok: nincs eleg adat.")
     if alerts:
         lines.append("Gyanus jelek:")
         lines.extend([f"- {alert}" for alert in alerts])
