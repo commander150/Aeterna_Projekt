@@ -449,6 +449,50 @@ class AeternaSzimulacio:
             "survived_on_board": occupied is unit,
         }
 
+    def execute_play_trap_action(self, player, card_name, zone_name, lane_index):
+        if player is None:
+            return {"ok": False, "reason": "missing_player"}
+        if zone_name != "zenit":
+            return {"ok": False, "reason": "invalid_zone"}
+        if not isinstance(lane_index, int):
+            return {"ok": False, "reason": "invalid_lane"}
+
+        zone = getattr(player, zone_name, None)
+        if zone is None or not (0 <= lane_index < len(zone)):
+            return {"ok": False, "reason": "invalid_lane"}
+        if zone[lane_index] is not None:
+            return {"ok": False, "reason": "slot_not_empty"}
+
+        card = next((lap for lap in getattr(player, "kez", []) if getattr(lap, "nev", None) == card_name), None)
+        if card is None:
+            return {"ok": False, "reason": "card_not_in_hand"}
+        if not getattr(card, "jel_e", False):
+            return {"ok": False, "reason": "card_is_not_trap"}
+
+        active_traps = len([item for item in getattr(player, "zenit", []) if is_trap(item)])
+        if active_traps >= 2:
+            return {"ok": False, "reason": "trap_limit_reached"}
+
+        if not player.fizet(card):
+            return {"ok": False, "reason": "cannot_pay_cost"}
+
+        player.kez.remove(card)
+        set_zone_slot(player, "zenit", lane_index, card, f"backend_trap_play:{card.nev}")
+        naplo.ir(f"{player.nev} backend actionbol Jelet rakott: {card.nev}")
+
+        if getattr(self, "log_metrics", None) is not None:
+            self.log_metrics["traps_played"] += 1
+
+        return {
+            "ok": True,
+            "reason": None,
+            "winner": None,
+            "card_name": card.nev,
+            "zone": zone_name,
+            "lane": lane_index,
+            "trap_on_board": getattr(player, zone_name)[lane_index] is card,
+        }
+
     def _resolve_spell_cast_traps(self, spell_card, caster, defender):
         if defender.hasznalt_jelek_ebben_a_korben >= 2:
             return False

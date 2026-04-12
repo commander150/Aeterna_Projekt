@@ -173,6 +173,25 @@ Ez azt jelenti, hogy:
 
 Ez jo koztes lepes a teljesebb event/delta gondolkodas fele, nagy framework nyitasa nelkul.
 
+## 9. Statuszfrissites 4
+
+A kovetkezo szuk backend-vegrehajtasi lepes is elkeszult:
+
+- `play_trap` minimalis execution-boundary
+
+Ez azt jelenti, hogy a backend mar ket egyszeru board-akciot tud tenylegesen vegrehajtani:
+- `play_entity`
+- `play_trap`
+
+Tovabbra is szukitett formaban:
+- nincs spell execution
+- nincs targeting execution
+- nincs teljes trap-rendszer ujratervezes
+
+Ez jo allapotot ad a kovetkezo, meg mindig kis-kockazatu lepeshez, ami mar vagy a
+kovetkezo action-tipus nyitasa, vagy a backend action/snapshot/event szerzodes tovabbi
+finomitasa lehet.
+
 ## 7. Statuszfrissites 3
 
 A backend most mar minimalis action-utani esemenylistat is ad a mar mukodo akciokhoz.

@@ -53,6 +53,12 @@ class TestBackendApplyAction(unittest.TestCase):
         game.state.victory_reason = None
         return game, player
 
+    def _prepare_simple_play_trap_state(self, match_id, card):
+        game, player = self._prepare_simple_play_entity_state(match_id, card)
+        player.horizont = [None] * 6
+        player.zenit = [None] * 6
+        return game, player
+
     def test_apply_action_executes_valid_end_turn_and_returns_snapshot(self):
         match_id = create_match(
             {
@@ -237,6 +243,151 @@ class TestBackendApplyAction(unittest.TestCase):
         self.assertEqual(result["reason"], "not_in_legal_actions")
         self.assertIn("action", result)
         self.assertIn("events", result)
+        self.assertIsNone(result["result"])
+        self.assertEqual(result["events"], [])
+        self.assertIsInstance(result["snapshot"], dict)
+
+    def test_apply_action_executes_simple_play_trap_and_updates_snapshot(self):
+        match_id = create_match(
+            {
+                "cards": make_card_pool(),
+                "player1_realm": "Ignis",
+                "player2_realm": "Aqua",
+                "random_realm_fallback": False,
+                "random_seed": 29,
+            }
+        )
+        self.addCleanup(lambda: drop_match(match_id))
+
+        trap = make_card("Backend Jel", card_type="Jel", aura=1, magnitude=1)
+        _, player = self._prepare_simple_play_trap_state(match_id, trap)
+
+        legal_actions = get_legal_actions(match_id, "p1")
+        play_trap = next(
+            (
+                item for item in legal_actions
+                if item["action_type"] == "play_trap"
+                and item["card_name"] == "Backend Jel"
+                and item["zone"] == "zenit"
+                and item["lane"] == 0
+            ),
+            None,
+        )
+        self.assertIsNotNone(play_trap)
+
+        result = apply_action(match_id, "p1", play_trap)
+
+        self.assertTrue(result["ok"])
+        self.assertIsNone(result["reason"])
+        self.assertEqual(result["result"]["executed_action_type"], "play_trap")
+        self.assertEqual(result["result"]["status"], "executed")
+        self.assertEqual(result["result"]["card_name"], "Backend Jel")
+        self.assertEqual(result["result"]["zone"], "zenit")
+        self.assertEqual(result["result"]["lane"], 0)
+        self.assertTrue(result["result"]["details"]["trap_on_board"])
+        self.assertEqual([event["type"] for event in result["events"][:3]], ["action_executed", "trap_played", "board_changed"])
+        self.assertEqual(result["events"][1]["card_name"], "Backend Jel")
+        self.assertEqual(result["events"][1]["zone"], "zenit")
+        self.assertEqual(result["events"][1]["lane"], 0)
+        self.assertEqual(player.kez, [])
+        self.assertEqual(getattr(player.zenit[0], "nev", None), "Backend Jel")
+
+        snapshot = get_snapshot(match_id)
+        self.assertEqual(snapshot["p1"]["hand_size"], 0)
+        self.assertTrue(snapshot["p1"]["zenit"][0]["face_down"])
+        self.assertEqual(snapshot["p1"]["zenit"][0]["card"]["name"], "Backend Jel")
+
+    def test_apply_action_rejects_non_trap_card_for_play_trap(self):
+        match_id = create_match(
+            {
+                "cards": make_card_pool(),
+                "player1_realm": "Ignis",
+                "player2_realm": "Aqua",
+                "random_realm_fallback": False,
+            }
+        )
+        self.addCleanup(lambda: drop_match(match_id))
+
+        self._prepare_simple_play_trap_state(match_id, make_card("Nem Jel", card_type="Entitas", aura=1, magnitude=1))
+
+        result = apply_action(
+            match_id,
+            "p1",
+            {
+                "action_type": "play_trap",
+                "player": "Jatekos_1",
+                "card_name": "Nem Jel",
+                "zone": "zenit",
+                "lane": 0,
+            },
+        )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["reason"], "not_in_legal_actions")
+        self.assertIsNone(result["result"])
+        self.assertEqual(result["events"], [])
+        self.assertIsInstance(result["snapshot"], dict)
+
+    def test_apply_action_rejects_play_trap_for_invalid_zone(self):
+        match_id = create_match(
+            {
+                "cards": make_card_pool(),
+                "player1_realm": "Ignis",
+                "player2_realm": "Aqua",
+                "random_realm_fallback": False,
+            }
+        )
+        self.addCleanup(lambda: drop_match(match_id))
+
+        self._prepare_simple_play_trap_state(match_id, make_card("Backend Jel", card_type="Jel", aura=1, magnitude=1))
+
+        result = apply_action(
+            match_id,
+            "p1",
+            {
+                "action_type": "play_trap",
+                "player": "Jatekos_1",
+                "card_name": "Backend Jel",
+                "zone": "horizont",
+                "lane": 0,
+            },
+        )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["reason"], "not_in_legal_actions")
+        self.assertIsNone(result["result"])
+        self.assertEqual(result["events"], [])
+        self.assertIsInstance(result["snapshot"], dict)
+
+    def test_apply_action_rejects_play_trap_when_trap_limit_is_full(self):
+        match_id = create_match(
+            {
+                "cards": make_card_pool(),
+                "player1_realm": "Ignis",
+                "player2_realm": "Aqua",
+                "random_realm_fallback": False,
+            }
+        )
+        self.addCleanup(lambda: drop_match(match_id))
+
+        _, player = self._prepare_simple_play_trap_state(match_id, make_card("Backend Jel", card_type="Jel", aura=1, magnitude=1))
+        player.zenit[0] = make_card("Jel 1", card_type="Jel", aura=1, magnitude=1)
+        player.zenit[1] = make_card("Jel 2", card_type="Jel", aura=1, magnitude=1)
+
+        result = apply_action(
+            match_id,
+            "p1",
+            {
+                "action_type": "play_trap",
+                "player": "Jatekos_1",
+                "card_name": "Backend Jel",
+                "zone": "zenit",
+                "lane": 2,
+            },
+        )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["reason"], "not_in_legal_actions")
         self.assertIsNone(result["result"])
         self.assertEqual(result["events"], [])
         self.assertIsInstance(result["snapshot"], dict)

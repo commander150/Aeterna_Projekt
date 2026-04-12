@@ -414,3 +414,21 @@ Ez jelenleg:
 
 Csak arra jo, hogy a frontend a mar vegrehajtott actionok rovid backend-esemenyeit
 kulon is le tudja kerni, ne csak az adott action-valaszbol.
+
+## 20. Tizenegyedik kodkor eredmenye
+
+A minimalis `play_trap` execution-boundary is bekerult:
+
+- `apply_action(...)` most mar a legegyszerubb `play_trap` actiont is vegre tudja hajtani
+
+Szandekosan szuk korlatokkal:
+- csak kezben levo `Jel` lap
+- csak egyertelmu `zone="zenit"` + `lane`
+- csak a jelenlegi egyszeru trap-limit modell szerint
+- nincs uj trap-framework
+- nincs targeting vagy spell front
+
+A backend valasz szerzodese es az `events` lista ehhez is konzisztensen bovult:
+- `action_executed`
+- `trap_played`
+- `board_changed`

@@ -148,6 +148,28 @@ def _build_action_events(*, action, result, ok):
             )
         )
 
+    if action_type == "play_trap":
+        events.append(
+            _event(
+                "trap_played",
+                player=player,
+                card_name=card_name,
+                zone=zone,
+                lane=lane,
+                details={"trap_on_board": details.get("trap_on_board")},
+            )
+        )
+        events.append(
+            _event(
+                "board_changed",
+                player=player,
+                card_name=card_name,
+                zone=zone,
+                lane=lane,
+                details={"cause": "play_trap"},
+            )
+        )
+
     if winner is not None:
         events.append(_event("winner_declared", player=winner))
 
@@ -413,6 +435,40 @@ def apply_action(match_id, player_id, action_request):
                 if execution.get("winner") is not None
                 else None,
                 details={"survived_on_board": execution.get("survived_on_board")},
+            ),
+            snapshot=export_match_snapshot(game),
+        )
+        response["events"] = _append_events_to_entry(entry, response["events"])
+        return response
+    if action_type == "play_trap":
+        execution = game.execute_play_trap_action(
+            player,
+            normalized.get("card_name"),
+            normalized.get("zone"),
+            normalized.get("lane"),
+        )
+        if not execution.get("ok"):
+            return _build_action_response(
+                ok=False,
+                reason=execution.get("reason"),
+                action=normalized,
+                result=None,
+                snapshot=export_match_snapshot(game),
+            )
+        response = _build_action_response(
+            ok=True,
+            reason=None,
+            action=normalized,
+            result=_build_action_result(
+                executed_action_type="play_trap",
+                status="executed",
+                card_name=execution.get("card_name"),
+                zone=execution.get("zone"),
+                lane=execution.get("lane"),
+                winner=getattr(execution.get("winner"), "nev", execution.get("winner"))
+                if execution.get("winner") is not None
+                else None,
+                details={"trap_on_board": execution.get("trap_on_board")},
             ),
             snapshot=export_match_snapshot(game),
         )
