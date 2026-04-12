@@ -17,9 +17,9 @@ Az aktualis cleanup-elokeszitesi korben a kovetkezo ures celmappak lettek letreh
 - `reports/cleanup/`
 
 Fontos:
-- ebben a korben nem tortent tomeges fajlmozgatas
-- a jelenlegi fajlok tovabbra is a `stats/` gyokerszinten maradtak
-- a fenti almappak a kovetkezo, kis lepeses cleanup-korok celhelyei
+- ebben a korben nem tortent tomeges fajlmozgas
+- az elso tenylegesen athelyezett report-csoport a canonical runtime batch summaryk kore
+- a tovabbi fajlok egyelore tovabbra is tobbsegeben a `stats/` gyokerszinten maradtak
 
 ## Aktiv runtime-kozeli elem
 
@@ -56,13 +56,9 @@ Megjegyzes:
 
 ## Batch summaryk
 
-- `canonical_runtime_batch_1_summary.md`
-- `canonical_runtime_batch_2_summary.md`
-- `canonical_runtime_batch_3_summary.md`
-- `canonical_runtime_batch_4_summary.md`
-- `canonical_runtime_batch_5_summary.md`
-- `canonical_runtime_batch_6_summary.md`
-- `canonical_runtime_batch_7_summary.md`
+- athelyezve ide: `stats/reports/batches/`
+- a `canonical_runtime_batch_1_summary.md` - `canonical_runtime_batch_7_summary.md`
+  fajlok most mar ebben az almappaban vannak
 
 ## Domain-specific reportok
 
@@ -84,15 +80,12 @@ Jelen allapotban ide sorolhatok azok a reportok, amelyek:
 - de meg nincs kimondott archive helyuk
 
 Elsodleges jeloltek:
-- `canonical_runtime_batch_1_summary.md`
-- `canonical_runtime_batch_2_summary.md`
-- `canonical_runtime_batch_3_summary.md`
-- `canonical_runtime_batch_4_summary.md`
-- `canonical_runtime_batch_5_summary.md`
+- a mar korabban athelyezett canonical runtime batch summaryk
+- egyes kesobbi cleanup- vagy torteneti reportok, ha mar lesz vegleges archive-struktura
 
 Megjegyzes:
-- ez most csak jeloles
-- ebben a korben nincs atmozgatva vagy torolve semmi
+- a batch summaryk mar kulon almappaba kerultek
+- ebben a korben ezen kivul nem tortent mas report-csoport atmozgatasa vagy torlese
 
 ## Bizonytalan elemek
 
@@ -105,12 +98,13 @@ Megjegyzes:
 
 ## Javasolt kovetkezo kis cleanup-lepes
 
-Legkisebb biztonsagos kovetkezo lepes:
-- csak mappan beluli kategoriak dokumentalasa es egy rovid naming/placement szabaly rogzitese
+Legkisebb kovetkezo biztonsagos lepes:
+- egyetlen tovabbi, biztosan nem runtime report-csoport kulon mozgatasa
 
-Ez utan jo kovetkezo kor lehet:
-- `stats/reports/`
-- `stats/scripts/`
-- `stats/runtime/`
+Jo jeloltek lehetnek kesobb:
+- compliance reportok
+- cleanup / standardizacios reportok
 
-elokeszitese csak ures almappakkal es egy mozgatasi tervvel, tenyleges fajlmozgatasi hullam nelkul.
+Fontos:
+- tovabbra is csak egy-egy jol korulhatarolt report-csoportot erdemes mozgatni
+- runtime-kozeli es script jellegu fajlokhoz tovabbra sem erunk ebben a cleanup savban
