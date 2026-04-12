@@ -215,6 +215,70 @@ class TestKartyaModel(unittest.TestCase):
         self.assertTrue(any("alias_normalizable:hatascimkek:grant_attack->atk_mod" in issue for issue in issues))
         self.assertTrue(any("alias_normalizable:idotartam_felismerve:until_end_of_turn->until_turn_end" in issue for issue in issues))
 
+    def test_loader_validation_does_not_flag_keyword_only_static_entity_duration(self):
+        issues = validate_row_mapping(
+            {
+                "kartya_nev": "Hamvaskezu Ujonc",
+                "kartyatipus": "Entitas",
+                "birodalom": "Ignis",
+                "klan": "Hamvaskezu",
+                "faj": "",
+                "kaszt": "",
+                "magnitudo": 2,
+                "aura_koltseg": 2,
+                "tamadas": 2,
+                "eletero": 2,
+                "kepesseg": "Celerity",
+                "kepesseg_canonical": "",
+                "zona_felismerve": "horizont",
+                "kulcsszavak_felismerve": "celerity",
+                "trigger_felismerve": "static",
+                "celpont_felismerve": "",
+                "hatascimkek": "",
+                "idotartam_felismerve": "static_while_on_board",
+                "feltetel_felismerve": "",
+                "gepi_leiras": "",
+                "ertelmezesi_statusz": "",
+                "engine_megjegyzes": "",
+            },
+            row_index=5,
+            sheet_name="Teszt",
+        )
+
+        self.assertFalse(any("suspicious_field_combination:idotartam_hatascimke_nelkul" in issue for issue in issues))
+
+    def test_loader_validation_still_flags_duration_without_effect_tag_for_non_keyword_case(self):
+        issues = validate_row_mapping(
+            {
+                "kartya_nev": "Teszt Aura",
+                "kartyatipus": "Ige",
+                "birodalom": "Ignis",
+                "klan": "",
+                "faj": "",
+                "kaszt": "",
+                "magnitudo": 1,
+                "aura_koltseg": 1,
+                "tamadas": 0,
+                "eletero": 0,
+                "kepesseg": "Valami tartos",
+                "kepesseg_canonical": "",
+                "zona_felismerve": "",
+                "kulcsszavak_felismerve": "",
+                "trigger_felismerve": "on_cast",
+                "celpont_felismerve": "",
+                "hatascimkek": "",
+                "idotartam_felismerve": "until_turn_end",
+                "feltetel_felismerve": "",
+                "gepi_leiras": "",
+                "ertelmezesi_statusz": "",
+                "engine_megjegyzes": "",
+            },
+            row_index=6,
+            sheet_name="Teszt",
+        )
+
+        self.assertTrue(any("suspicious_field_combination:idotartam_hatascimke_nelkul" in issue for issue in issues))
+
 
 if __name__ == "__main__":
     unittest.main()

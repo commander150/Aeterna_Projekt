@@ -202,3 +202,21 @@ Ha a cel a tesztprogram hasznanak novelesE kis munkaval, akkor:
 Nem erdemes most mindent egyszerre javitani.
 A tesztprogram-szempontu sorrend fontosabb, mint a teljes adatminosegi
 nagytakaritas.
+
+## Friss allapot - celzott pontositas
+
+Egy szuk validator-pontositas mar bekerult erre a blokkra:
+
+- a `keyword-only static entity` minta mar nem kap
+  `idotartam_hatascimke_nelkul` warningot
+
+Ez a minta a gyakorlatban ilyen volt:
+- `Entitas`
+- `trigger_felismerve=static`
+- `idotartam_felismerve=static_while_on_board`
+- van `kulcsszavak_felismerve`
+- nincs `hatascimkek`
+
+Tesztprogram-szempontbol ez inkabb passziv keyword-leiras volt, nem valodi hibas
+mezokombinacio. Emiatt ez a warning-blokk jelentosen csokkent anelkul, hogy a
+valodi `duration without effect tag` eseteket elengednenk.

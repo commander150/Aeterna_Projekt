@@ -237,6 +237,16 @@ def normalize_row_mapping(mapping):
     return normalized
 
 
+def _is_keyword_only_static_entity(mapping):
+    return (
+        normalize_lookup_text(mapping.get("kartyatipus", "")) == "entitas"
+        and normalize_lookup_text(mapping.get("trigger_felismerve", "")) == "static"
+        and normalize_lookup_text(mapping.get("idotartam_felismerve", "")) == "static_while_on_board"
+        and not mapping.get("hatascimkek")
+        and bool(mapping.get("kulcsszavak_felismerve"))
+    )
+
+
 def validate_row_mapping(mapping, row_index=None, sheet_name=None):
     issues = []
     for field_name in STANDARD_COLUMN_ORDER:
@@ -277,7 +287,11 @@ def validate_row_mapping(mapping, row_index=None, sheet_name=None):
         for token in _split_normalized_csv(mapping.get("celpont_felismerve", "")):
             if normalize_lookup_text(token) in suspicious_targets:
                 issues.append(f"suspicious_field_combination:gyanus_target_tipus_kombinacio:{token}")
-    if mapping.get("idotartam_felismerve") and not mapping.get("hatascimkek"):
+    if (
+        mapping.get("idotartam_felismerve")
+        and not mapping.get("hatascimkek")
+        and not _is_keyword_only_static_entity(mapping)
+    ):
         issues.append("suspicious_field_combination:idotartam_hatascimke_nelkul")
     prefix = []
     if sheet_name:
