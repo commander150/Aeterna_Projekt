@@ -4,6 +4,23 @@ Ez a mappa jelenleg vegyes szerepu tartalmat tartalmaz. A projektiranyito dokume
 nem szabad egyben kezelni runtime, audit, report es historical retegeket, ezert ez a fajl egy
 kis kockazatu, atmozgatas nelkuli elso kategoriarendezes.
 
+## Letrehozott celstruktura
+
+Az aktualis cleanup-elokeszitesi korben a kovetkezo ures celmappak lettek letrehozva:
+
+- `runtime/`
+- `scripts/`
+- `reports/`
+- `reports/compliance/`
+- `reports/batches/`
+- `reports/domain_specific/`
+- `reports/cleanup/`
+
+Fontos:
+- ebben a korben nem tortent tomeges fajlmozgatas
+- a jelenlegi fajlok tovabbra is a `stats/` gyokerszinten maradtak
+- a fenti almappak a kovetkezo, kis lepeses cleanup-korok celhelyei
+
 ## Aktiv runtime-kozeli elem
 
 - `analyzer.py`
