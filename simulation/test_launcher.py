@@ -193,6 +193,50 @@ def _summary_value(summary, key, default=0):
     return summary.get(key, default)
 
 
+def _collect_batch_metrics(run_summaries: Sequence[Dict]) -> Dict[str, int]:
+    totals = {
+        "spells_cast": 0,
+        "summons": 0,
+        "traps_played": 0,
+        "traps_triggered": 0,
+        "seal_breaks": 0,
+    }
+    for summary in run_summaries:
+        metrics = summary.get("metrics", {}) if isinstance(summary, dict) else {}
+        for key in totals:
+            totals[key] += int(metrics.get(key, 0))
+    return totals
+
+
+def detect_batch_alerts(run_summaries: Sequence[Dict]) -> List[str]:
+    if not run_summaries:
+        return []
+
+    total_runs = sum(int(_summary_value(summary, "games", 0)) for summary in run_summaries)
+    p1_wins = sum(int(_summary_value(summary, "p1_wins", 0)) for summary in run_summaries)
+    p2_wins = sum(int(_summary_value(summary, "p2_wins", 0)) for summary in run_summaries)
+    draws = sum(int(_summary_value(summary, "draws", 0)) for summary in run_summaries)
+    total_turns = sum(int(_summary_value(summary, "total_turns", 0)) for summary in run_summaries)
+    average_turns = (total_turns / total_runs) if total_runs else 0.0
+    metrics = _collect_batch_metrics(run_summaries)
+
+    alerts: List[str] = []
+    if total_runs and (p1_wins == total_runs or p2_wins == total_runs):
+        dominant_side = "P1" if p1_wins == total_runs else "P2"
+        alerts.append(f"Egyoldalu matchup-gyanu: {dominant_side} nyerte az osszes futast.")
+    if total_runs >= 3 and average_turns <= 6:
+        alerts.append(f"Nagyon gyors meccsek: atlagos korszam csak {average_turns:.2f}.")
+    if total_runs >= 3 and average_turns >= 16:
+        alerts.append(f"Nagyon hosszu meccsek: atlagos korszam {average_turns:.2f}.")
+    if metrics["traps_played"] == 0 and metrics["traps_triggered"] == 0:
+        alerts.append("Nem latszik trap aktivitas a batchben.")
+    if metrics["spells_cast"] == 0:
+        alerts.append("Nem latszik spell/rituale aktivitas a batchben.")
+    if metrics["seal_breaks"] == 0 and draws == total_runs:
+        alerts.append("Nem tortent pecsettores, a batch teljesen dontetlen maradt.")
+    return alerts
+
+
 def format_batch_summary(run_summaries: Sequence[Dict]) -> List[str]:
     if not run_summaries:
         return [
@@ -209,13 +253,31 @@ def format_batch_summary(run_summaries: Sequence[Dict]) -> List[str]:
     draws = sum(int(_summary_value(summary, "draws", 0)) for summary in run_summaries)
     total_turns = sum(int(_summary_value(summary, "total_turns", 0)) for summary in run_summaries)
     average_turns = (total_turns / total_runs) if total_runs else 0.0
+    metrics = _collect_batch_metrics(run_summaries)
+    alerts = detect_batch_alerts(run_summaries)
 
-    return [
+    lines = [
         f"Futasok szama: {total_runs}",
         f"Seedek: {', '.join(seeds)}",
         f"Gyozelmek: P1={p1_wins} | P2={p2_wins} | Dontetlen={draws}",
         f"Atlagos korszam: {average_turns:.2f}" if total_runs else "Atlagos korszam: -",
+        "Aktivitas: "
+        + " | ".join(
+            [
+                f"summons={metrics['summons']}",
+                f"spells={metrics['spells_cast']}",
+                f"traps_played={metrics['traps_played']}",
+                f"traps_triggered={metrics['traps_triggered']}",
+                f"seal_breaks={metrics['seal_breaks']}",
+            ]
+        ),
     ]
+    if alerts:
+        lines.append("Gyanus jelek:")
+        lines.extend([f"- {alert}" for alert in alerts])
+    else:
+        lines.append("Gyanus jelek: nincs kiemelt launcher-szintu figyelmeztetes.")
+    return lines
 
 
 def _print_batch_summary(

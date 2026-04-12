@@ -124,11 +124,24 @@ def _build_run_summary(config, before_stats, after_stats):
         "average_turns": (total_turns / games_played) if games_played else 0.0,
     }
 
+
+def _empty_run_metrics():
+    return {
+        "spells_cast": 0,
+        "summons": 0,
+        "traps_played": 0,
+        "traps_triggered": 0,
+        "seal_breaks": 0,
+        "source_placements": 0,
+        "destroyed_units": 0,
+    }
+
 def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
     try:
         install_effect_diagnostics()
         config = _resolve_config(config, meccsek_szama)
         before_stats = _capture_stats_snapshot()
+        run_metrics = _empty_run_metrics()
         engine_config = set_active_engine_config(config.to_engine_config())
 
         if config.random_seed is not None:
@@ -190,6 +203,8 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
                 f"MECCS {i+1} VEGE",
                 _match_summary_lines(jatek, nyertes),
             )
+            for metric_name in run_metrics:
+                run_metrics[metric_name] += int(jatek.log_metrics.get(metric_name, 0))
 
         stats.osszesites_mentese()
         naplo.summary(
@@ -204,7 +219,9 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
                 f"osszes_kor={stats.osszes_kor}",
             ],
         )
-        return _build_run_summary(config, before_stats, _capture_stats_snapshot())
+        summary = _build_run_summary(config, before_stats, _capture_stats_snapshot())
+        summary["metrics"] = dict(run_metrics)
+        return summary
 
     except Exception:
         naplo.ir("\n" + "!"*40)

@@ -293,6 +293,8 @@ A batch futas vegen a launcher rovid, emberileg gyorsan olvashato osszesitot is 
 - mely seedek futottak
 - hogyan oszlottak meg a gyozelmek
 - mekkora volt az atlagos korszam
+- mennyi summon / spell / trap / seal break aktivitas latszott
+- ha egyszeru launcher-szintu gyanus minta latszik, kulon figyelmeztetest is ad
 
 Ez kulonosen hasznos:
 - seedelt matchupok gyors ujrafuttatasara

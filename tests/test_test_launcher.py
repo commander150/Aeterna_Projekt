@@ -196,8 +196,24 @@ class TestTestLauncher(unittest.TestCase):
     def test_format_batch_summary_aggregates_basic_values(self):
         lines = test_launcher.format_batch_summary(
             [
-                {"games": 3, "random_seed": 101, "p1_wins": 2, "p2_wins": 1, "draws": 0, "total_turns": 18},
-                {"games": 3, "random_seed": 102, "p1_wins": 1, "p2_wins": 2, "draws": 0, "total_turns": 24},
+                {
+                    "games": 3,
+                    "random_seed": 101,
+                    "p1_wins": 2,
+                    "p2_wins": 1,
+                    "draws": 0,
+                    "total_turns": 18,
+                    "metrics": {"summons": 8, "spells_cast": 4, "traps_played": 1, "traps_triggered": 1, "seal_breaks": 5},
+                },
+                {
+                    "games": 3,
+                    "random_seed": 102,
+                    "p1_wins": 1,
+                    "p2_wins": 2,
+                    "draws": 0,
+                    "total_turns": 24,
+                    "metrics": {"summons": 7, "spells_cast": 5, "traps_played": 2, "traps_triggered": 1, "seal_breaks": 4},
+                },
             ]
         )
 
@@ -205,6 +221,28 @@ class TestTestLauncher(unittest.TestCase):
         self.assertIn("101, 102", lines[1])
         self.assertIn("P1=3 | P2=3 | Dontetlen=0", lines[2])
         self.assertEqual(lines[3], "Atlagos korszam: 7.00")
+        self.assertIn("summons=15", lines[4])
+        self.assertIn("spells=9", lines[4])
+        self.assertTrue(lines[5].startswith("Gyanus jelek:"))
+
+    def test_detect_batch_alerts_flags_one_sided_and_low_activity_patterns(self):
+        alerts = test_launcher.detect_batch_alerts(
+            [
+                {
+                    "games": 3,
+                    "random_seed": 777,
+                    "p1_wins": 3,
+                    "p2_wins": 0,
+                    "draws": 0,
+                    "total_turns": 15,
+                    "metrics": {"summons": 6, "spells_cast": 0, "traps_played": 0, "traps_triggered": 0, "seal_breaks": 3},
+                }
+            ]
+        )
+
+        self.assertTrue(any("Egyoldalu matchup-gyanu" in alert for alert in alerts))
+        self.assertTrue(any("Nem latszik trap aktivitas" in alert for alert in alerts))
+        self.assertTrue(any("Nem latszik spell/rituale aktivitas" in alert for alert in alerts))
 
     def test_launch_non_interactive_seed_batch_uses_runner_for_each_seed(self):
         settings_path = self._workspace_temp_path("cli_seed_batch.json")

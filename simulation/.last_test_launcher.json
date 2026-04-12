@@ -1,10 +1,10 @@
 {
-  "profile_name": "realm_focus",
+  "profile_name": "long_seeded_run",
   "overrides": {
-    "games": 8,
-    "random_seed": 314,
+    "games": 15,
+    "random_seed": 777,
     "player1_realm": "Ignis",
-    "player2_realm": null,
-    "random_realm_fallback": true
+    "player2_realm": "Aqua",
+    "random_realm_fallback": false
   }
 }
