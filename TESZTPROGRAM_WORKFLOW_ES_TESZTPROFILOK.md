@@ -247,3 +247,25 @@ Ez illeszkedik a projekt eredeti celjahoz:
 - broken mechanikak felismerese
 - tul eros lapok/iranyok kiszurese
 - AI-vs-AI tesztprogramkent hasznalhato rendszer fenntartasa
+
+## 10. Konnyu tesztlauncher
+
+A jelenlegi workflow hasznalhatosagat egy nagyon konnyu launcher segiti:
+
+- `simulation/test_launcher.py`
+
+Celja:
+- ne kelljen minden futast kezzel parameterezni
+- gyorsabban lehessen smoke, seedelt matchup es ismEtelt matchup kort inditani
+- egyszerubb legyen seedet, futasszamot es P1/P2 birodalmat megadni
+
+Hasznalat:
+
+```bash
+python -m simulation.test_launcher
+```
+
+A launcher:
+- elore definialt profilokat ad
+- enged egyszeru felulirast
+- es kis kockazattal ujra tudja futtatni az utolso hasznalt beallitasokat is
