@@ -213,3 +213,20 @@ Az elso exportfuggvenyek:
 Ez meg nem facade, nem legal-actions reteg es nem action API, de mar ad egy stabil,
 geppel fogyaszthato allapotkepet, amire a kovetkezo korben lehet facade-ot vagy state export
 helper-bovitest epiteni.
+
+## 10. Masodik kodkor eredmenye
+
+A kovetkezo kis-kockazatu backend-elokeszito lepesben letrejott egy minimalis facade reteg:
+
+- `backend/facade.py`
+
+A jelenlegi publikus muveletei:
+
+- `create_match(config)`
+- `get_snapshot(match_id)`
+- `get_match_result(match_id)`
+- `drop_match(match_id)`
+- `list_matches()`
+
+Ez a facade meg nem legal-actions rendszer es nem action API, de mar ad egy stabil,
+egyszeru backend-belepesi pontot a jelenlegi motor fole, a snapshot reteg ujrafelhasznalasaval.
