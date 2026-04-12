@@ -6,6 +6,9 @@ minimalis backend-hatar elokesziteset rogziti.
 Celja nem egy teljes API vagy frontend terv leirasa, hanem egy kis-kockazatu,
 gyakorlati kovetkezo technikai irany kijelolese.
 
+Kapcsolodo, aktualis allapotot rogzitO szerzodes:
+- `BACKEND_FRONTEND_MINIMAL_CONTRACT.md`
+
 ## 1. Kiindulasi helyzet
 
 A jelenlegi hivatalos futasi ut:
