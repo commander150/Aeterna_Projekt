@@ -319,3 +319,18 @@ Az `end_turn` jelenlegi mukodese:
 - vagyis a jelenlegi motorban a kovetkezo stabil backend-dontesi pontig lepteti a meccset
 
 Ez meg nem teljes action pipeline, de mar az elso valodi backend-vegrehajtasi kapu.
+
+## 15. Readiness audit - rovid dontesi kovetkeztetes
+
+A jelenlegi backend-vaz mar eleg eros ahhoz, hogy ne ujabb altalanos backend-reteget epitsunk eloszor, hanem a legnagyobb frontend-hasznot ado kovetkezo vegrehajtasi lepest valasszuk ki.
+
+A rovid readiness audit kovetkeztetese:
+
+- a snapshot, facade, legal-actions, state-context es action-request reteg mar hasznalhato alapot ad
+- a fo hiany mar nem ujabb allapot-lekerdezes, hanem az elso valodi board-akcio vegrehajtasa
+- emiatt a kovetkezo egyetlen legjobb technikai lepes a `play_entity` execution-boundary bekotese
+
+Ez illeszkedik a jelenlegi strategiahoz:
+- nincs nagy refaktor
+- nincs uj mechanikai front
+- a mar meglevo backend-lanc kapja meg a legnagyobb hasznu kovetkezo elemet
