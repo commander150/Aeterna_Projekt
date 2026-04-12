@@ -309,6 +309,37 @@ class TestKartyaModel(unittest.TestCase):
 
         self.assertEqual(row["idotartam_felismerve"], "")
 
+    def test_loader_normalization_moves_burst_from_zone_to_keyword_on_spell(self):
+        row = normalize_row_mapping(
+            {
+                "kartya_nev": "Gyors Nyilzapor",
+                "kartyatipus": "Ige",
+                "birodalom": "Terra",
+                "klan": "",
+                "faj": "",
+                "kaszt": "",
+                "magnitudo": 1,
+                "aura_koltseg": 1,
+                "tamadas": 0,
+                "eletero": 0,
+                "kepesseg": "Reaction spell",
+                "kepesseg_canonical": "",
+                "zona_felismerve": "burst",
+                "kulcsszavak_felismerve": "",
+                "trigger_felismerve": "on_play; on_burst",
+                "celpont_felismerve": "enemy_entity, enemy_seal",
+                "hatascimkek": "damage, seal_damage",
+                "idotartam_felismerve": "",
+                "feltetel_felismerve": "",
+                "gepi_leiras": "",
+                "ertelmezesi_statusz": "",
+                "engine_megjegyzes": "",
+            }
+        )
+
+        self.assertEqual(row["zona_felismerve"], "")
+        self.assertEqual(row["kulcsszavak_felismerve"], "burst")
+
     def test_loader_validation_no_longer_flags_unknown_trap_duration_on_triggered_jel(self):
         normalized = normalize_row_mapping(
             {
@@ -339,6 +370,37 @@ class TestKartyaModel(unittest.TestCase):
         issues = validate_row_mapping(normalized, row_index=7, sheet_name="Teszt")
 
         self.assertFalse(any("unknown_enum_value:idotartam_felismerve:trap" in issue for issue in issues))
+
+    def test_loader_validation_no_longer_flags_unknown_burst_zone_on_spell(self):
+        normalized = normalize_row_mapping(
+            {
+                "kartya_nev": "Gyors Nyilzapor",
+                "kartyatipus": "Ige",
+                "birodalom": "Terra",
+                "klan": "",
+                "faj": "",
+                "kaszt": "",
+                "magnitudo": 1,
+                "aura_koltseg": 1,
+                "tamadas": 0,
+                "eletero": 0,
+                "kepesseg": "Reaction spell",
+                "kepesseg_canonical": "",
+                "zona_felismerve": "burst",
+                "kulcsszavak_felismerve": "",
+                "trigger_felismerve": "on_play; on_burst",
+                "celpont_felismerve": "enemy_entity, enemy_seal",
+                "hatascimkek": "damage, seal_damage",
+                "idotartam_felismerve": "",
+                "feltetel_felismerve": "",
+                "gepi_leiras": "",
+                "ertelmezesi_statusz": "",
+                "engine_megjegyzes": "",
+            }
+        )
+        issues = validate_row_mapping(normalized, row_index=8, sheet_name="Teszt")
+
+        self.assertFalse(any("unknown_enum_value:zona_felismerve:burst" in issue for issue in issues))
 
 
 if __name__ == "__main__":

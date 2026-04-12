@@ -196,6 +196,14 @@ def _normalize_list_value(field_name, value):
     return ", ".join(items)
 
 
+def _merge_list_token(csv_value, token):
+    items = _split_normalized_csv(csv_value)
+    normalized_token = normalize_lookup_text(token)
+    if normalized_token and normalized_token not in items:
+        items.append(normalized_token)
+    return ", ".join(items)
+
+
 def _split_normalized_csv(value):
     if not value:
         return []
@@ -245,6 +253,16 @@ def normalize_row_mapping(mapping):
         # For triggered Jel cards this is not a real duration, so we clear it here instead
         # of preserving a misleading unknown enum token.
         normalized["idotartam_felismerve"] = ""
+
+    if normalize_lookup_text(normalized.get("kartyatipus", "")) == "ige":
+        zones = _split_normalized_csv(normalized.get("zona_felismerve", ""))
+        if "burst" in zones:
+            zones = [zone for zone in zones if zone != "burst"]
+            normalized["zona_felismerve"] = ", ".join(zones)
+            normalized["kulcsszavak_felismerve"] = _merge_list_token(
+                normalized.get("kulcsszavak_felismerve", ""),
+                "burst",
+            )
     return normalized
 
 

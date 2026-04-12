@@ -237,3 +237,20 @@ Itt a `trap` nem valodi duration volt, hanem legacy csapda-jeloles, rossz mezobe
 Tesztprogram-szempontbol ez azert volt veszelyesebb, mert explicit unknown enumkent
 rontotta a strukturalt mechanikai kepet. A pontositas utan ez a token mar nem
 torzitja a duration-mezot ezeknel a lapoknal.
+
+## Friss allapot - `zona_felismerve:burst`
+
+Erre a blokkra is bekerult egy szuk loader-pontositas:
+
+- `Ige` lapoknal a `burst` token mar nem a zona mezoben marad
+- helyette a `kulcsszavak_felismerve` mezobe kerul at
+
+Ez a minta a gyakorlatban ilyen volt:
+- `kartyatipus=Ige`
+- `zona_felismerve=burst`
+- reaction / burst jellegu szoveg
+
+Itt a `burst` nem valodi zona volt, hanem a lap reakcios jelleget jelolte.
+Tesztprogram-szempontbol ez azert volt veszelyes, mert rossz mechanikai bucketbe
+tolta ezeket a lapokat. A pontositas utan a structured jelentese kozelebb kerul a
+valos lapfunkciohoz.
