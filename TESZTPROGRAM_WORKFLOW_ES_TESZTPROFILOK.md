@@ -269,3 +269,17 @@ A launcher:
 - elore definialt profilokat ad
 - enged egyszeru felulirast
 - es kis kockazattal ujra tudja futtatni az utolso hasznalt beallitasokat is
+
+Nem-interaktiv, gyorsabb hasznalat is van:
+
+```bash
+python -m simulation.test_launcher --profile smoke_random
+python -m simulation.test_launcher --profile seeded_matchup --seed 123 --runs 5 --p1 Ignis --p2 Aqua
+python -m simulation.test_launcher --last-run
+python -m simulation.test_launcher --list-profiles
+```
+
+Ez kulonosen hasznos:
+- seedelt matchupok gyors ujrafuttatasara
+- regresszios korok ismetlesere
+- kevesebb kezi parameterezessel vegzett smoke futasokra

@@ -80,6 +80,66 @@ class TestTestLauncher(unittest.TestCase):
         create_logger_mock.assert_called_once()
         runner_mock.assert_called_once()
 
+    def test_launch_non_interactive_uses_profile_and_overrides(self):
+        settings_path = self._workspace_temp_path("cli_profile_run.json")
+
+        with patch("simulation.test_launcher.create_logger") as create_logger_mock, patch(
+            "simulation.test_launcher.futtat_szimulaciot"
+        ) as runner_mock:
+            config = test_launcher.launch_non_interactive(
+                profile_name="seeded_matchup",
+                overrides={"games": 6, "random_seed": 999, "player2_realm": "Ignis"},
+                xlsx_path="cards.xlsx",
+                base_dir=".",
+                settings_path=settings_path,
+            )
+
+        self.assertIsInstance(config, SimulationConfig)
+        self.assertEqual(config.games, 6)
+        self.assertEqual(config.random_seed, 999)
+        self.assertEqual(config.player1_realm, "Ignis")
+        self.assertEqual(config.player2_realm, "Ignis")
+        create_logger_mock.assert_called_once()
+        runner_mock.assert_called_once()
+
+    def test_launch_non_interactive_replays_last_run(self):
+        settings_path = self._workspace_temp_path("cli_last_run.json")
+        test_launcher.save_last_settings(
+            {
+                "profile_name": "repeated_matchup",
+                "overrides": {"games": 9, "random_seed": 456, "player1_realm": "Ignis", "player2_realm": "Aqua"},
+            },
+            settings_path,
+        )
+
+        with patch("simulation.test_launcher.create_logger") as create_logger_mock, patch(
+            "simulation.test_launcher.futtat_szimulaciot"
+        ) as runner_mock:
+            config = test_launcher.launch_non_interactive(
+                use_last_run=True,
+                xlsx_path="cards.xlsx",
+                base_dir=".",
+                settings_path=settings_path,
+            )
+
+        self.assertIsInstance(config, SimulationConfig)
+        self.assertEqual(config.games, 9)
+        self.assertEqual(config.random_seed, 456)
+        create_logger_mock.assert_called_once()
+        runner_mock.assert_called_once()
+
+    def test_main_without_cli_arguments_falls_back_to_interactive(self):
+        with patch("simulation.test_launcher.launch_interactive", return_value="interactive") as interactive_mock:
+            result = test_launcher.main(
+                argv=[],
+                input_func=lambda _: "q",
+                print_func=lambda *_: None,
+                settings_path=self._workspace_temp_path("main_interactive.json"),
+            )
+
+        self.assertEqual(result, "interactive")
+        interactive_mock.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
