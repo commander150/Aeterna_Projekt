@@ -1,0 +1,197 @@
+# AETERNA - Godot Backend Facade Elokeszites
+
+Ez a dokumentum a jelenlegi Python motor es egy kesobbi Godot frontend kozotti
+minimalis backend-hatar elokesziteset rogziti.
+
+Celja nem egy teljes API vagy frontend terv leirasa, hanem egy kis-kockazatu,
+gyakorlati kovetkezo technikai irany kijelolese.
+
+## 1. Kiindulasi helyzet
+
+A jelenlegi hivatalos futasi ut:
+
+1. `main.py`
+2. `simulation/config.py`
+3. `engine/logging_utils.py`
+4. `simulation/runner.py`
+5. `data/loader.py`
+6. `engine/game.py`
+
+A jelenlegi motor erossege:
+- van mukodo meccsfuttatasi mag
+- van shared action/helper reteg (`engine/actions.py`)
+- van trigger-dispatch reteg (`engine/triggers.py`)
+- van card resolver / priority handler reteg
+
+A jelenlegi motor fo hianya Godot-szempontbol:
+- nincs kulon backend-facade reteg
+- nincs konnyen exportalhato allapotkep
+- nincs tiszta legal-actions szerzodes
+- a jatekos-akcio boundary jelenleg foleg random AI-folyamatba van agyazva
+
+## 2. Minimalis backend-interfesz muveletek
+
+Egy kesobbi Godot kliens fele a minimalis kulso muveletek:
+
+1. `create_match(...)`
+   - uj jatek inditasa konfiguraciobol
+
+2. `get_snapshot(match_id)`
+   - a jelenlegi jatekallapot lekerese frontend-barat formaban
+
+3. `get_legal_actions(match_id, player_id)`
+   - a jatekos szamara most vegrehajthato akciok lekerese
+
+4. `apply_action(match_id, player_id, action_request)`
+   - egy jatekos-akcio vegrehajtasa
+
+5. `run_ai_step(match_id, player_id=None)`
+   - egy AI dontesi lepes vagy teljes aktiv fazis futtatasa
+
+6. `get_event_log(match_id, since_seq=None)`
+   - uj esemenyek, log-elemek vagy state-deltak lekerese
+
+7. `get_match_result(match_id)`
+   - meccsvegi allapot, gyoztes, gyozelmi ok, vegso metrikak
+
+## 3. Jelenlegi modulkapcsolatok
+
+### Mar most jol hasznalhato
+
+- `simulation/config.py`
+  - jo konfiguracios bemenet
+  - alkalmas facade-szintu match letrehozasra
+
+- `engine/game.py`
+  - itt van a valodi meccsallapot es korfuttatas
+  - `AeternaSzimulacio` jo kiindulasi belso match-objektum
+
+- `engine/player.py`
+  - a jatekos-zonak, kez, pakli, pecsetek, forrasok itt elnek
+
+- `engine/actions.py`
+  - a legtobb allapotmodosito muvelet mar shared helperen megy
+  - ez jo alap kesobbi action execution reteghez
+
+- `engine/triggers.py`
+  - egyszeru, kozponti dispatch pont
+  - jo alap kesobbi facade-esemeny tovabbitashoz
+
+- `cards/resolver.py`
+  - egysegesebb handler-feloldasi pont az on-play/trap/burst kategoriakra
+
+### Reszben hasznalhato, de nem eleg tiszta meg
+
+- `simulation/runner.py`
+  - jo orchestration reteg AI-vs-AI futtatashoz
+  - de Godot backendnek tul magas szintu es tul log-orientalt
+
+- `engine/targeting.py`
+  - van benne shared validation/allapot
+  - de nem teljes, frontend-barat targeting szerzodes
+
+- `cards/priority_handlers.py`
+  - mukodo runtime
+  - de erosen card-local es nev-alapu, ezert nem lehet facade API-kent kozvetlenul kitenni
+
+## 4. Javasolt minimalis facade modul
+
+Javasolt uj modul:
+
+- `backend/facade.py`
+
+Masodik, opcionális helper modul:
+
+- `backend/snapshot.py`
+
+### A facade publikus metodusai
+
+1. `create_match(config: dict | SimulationConfig) -> str`
+2. `get_snapshot(match_id: str) -> dict`
+3. `get_legal_actions(match_id: str, player_id: str) -> list[dict]`
+4. `apply_action(match_id: str, player_id: str, action: dict) -> dict`
+5. `run_ai_step(match_id: str, player_id: str | None = None) -> dict`
+6. `get_event_log(match_id: str, since_seq: int | None = None) -> list[dict]`
+7. `get_match_result(match_id: str) -> dict | None`
+8. `drop_match(match_id: str) -> bool`
+
+### Mi menne bele
+
+- match-peldanyok regisztralasa
+- `SimulationConfig` es `AeternaSzimulacio` osszekotese
+- stabil kulso muveleti felulet
+- snapshot-export hivasok
+- legal-action helper hivasok
+- event/log buffer kiadasa
+
+### Mi nem menne bele
+
+- card effect implementacio
+- trigger-rendszer nagy ujratervezese
+- teljes frontend-protokoll
+- HTTP vagy socket szerver
+- Godot-specifikus UI logika
+
+## 5. Legnagyobb akadalyozo tenyezok
+
+1. Nincs tiszta snapshot reteg
+   - a meccsallapot ma a `AeternaSzimulacio` + `Jatekos` + board objectekben el
+   - nincs egyetlen stabil exportfuggveny
+
+2. Nincs kulon legal-actions reteg
+   - a legfontosabb akciodonto logika ma a random play/combat folyamokba van agyazva
+   - kulso kliensnek nem adhato vissza konnyen
+
+3. Az action boundary nem eleg tiszta
+   - a `kor_futtatasa()` teljes aktiv turn loopot visz
+   - frontend szempontbol kisebb, explicit lepesek kellenek
+
+4. A card-local reteg eros
+   - `cards/priority_handlers.py` sok valos viselkedest hordoz
+   - ez jo runtime-nak, de nem jo kulso API-hatarnak
+
+5. A logger jelenleg inkabb emberi olvasasra optimalizalt
+   - hasznos diagnosztikai reteg
+   - de egy frontendnek jobb lenne egy kulon, gepileg fogyaszthato event buffer
+
+## 6. Legjobb kovetkezo technikai lepes
+
+Legnagyobb hasznu, meg mindig kis-kozepes kockazatu kovetkezo lepes:
+
+- `backend/snapshot.py` letrehozasa
+
+Minimum tartalom:
+- `export_card_ref(card) -> dict`
+- `export_unit_state(unit) -> dict`
+- `export_player_state(player) -> dict`
+- `export_match_snapshot(game) -> dict`
+
+Miért ez a legjobb elso lepes:
+- nem nyit uj mechanikai frontot
+- nem kell hozza a teljes action-rendszert ujratervezni
+- azonnal segiti a Godot-backend gondolkodast
+- tesztelheto es izolalhato
+- kesobb erre epulhet a facade, a legal-actions helper es az event/delta reteg
+
+## 7. Facade utani ajanlott sorrend
+
+1. snapshot export helper
+2. minimalis facade modul match-regiszterrel
+3. legal actions helper a leggyakoribb play/summon/trap aktivalasi esetekre
+4. action request schema
+5. kulon gepi event buffer a logger melle
+
+## 8. Döntesi elv
+
+A kovetkezo korben sem teljes API-t erdemes epiteni, hanem:
+
+- eloszor stabil snapshot
+- utana vekony facade
+- csak ezutan legal actions es action execution boundary
+
+Ez illeszkedik a projekt jelenlegi strategiajahoz:
+
+- felterkepezes
+- stabilizacio
+- cleanup
+- celzott refaktor
