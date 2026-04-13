@@ -202,6 +202,36 @@ class TestStructuredEffects(unittest.TestCase):
         self.assertTrue(any(category == "LANE_SEAL_BLOCKED" for category, _ in tech_logs))
         self.assertTrue(any(category == "REVIEW_NEEDED" for category, _ in tech_logs))
 
+    def test_gyors_nyilzapor_style_mixed_damage_hits_entity_but_not_seal(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Gyors Nyílzápor",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "deal 2 damage to target enemy entity or enemy seal; burst",
+                "hatascimkek": "Sebzes; PecsetSebzes",
+                "celpont_felismerve": "enemy_entity; enemy_seal",
+            }
+        )
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy.horizont[0] = CsataEgyseg(
+            Kartya({"kartya_nev": "Target Dummy", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2})
+        )
+        enemy.pecsetek = [
+            Kartya({"kartya_nev": "Pecset 1", "kartyatipus": "Pecset", "magnitudo": 1}),
+            Kartya({"kartya_nev": "Pecset 2", "kartyatipus": "Pecset", "magnitudo": 1}),
+        ]
+
+        tech_logs = []
+        with patch("utils.logger.naplo.tech", side_effect=lambda category, message: tech_logs.append((category, message))):
+            result = resolve_structured_effect(card, owner, enemy, {"category": "on_play"})
+
+        self.assertTrue(result["resolved"])
+        self.assertIsNone(enemy.horizont[0])
+        self.assertEqual(len(enemy.pecsetek), 2)
+        self.assertTrue(any(category == "SEAL_RULE_BLOCKED" for category, _ in tech_logs))
+        self.assertTrue(any(category == "REVIEW_NEEDED" for category, _ in tech_logs))
+
     def test_structured_move_to_zenit_does_not_bounce_back_to_horizon_same_resolution(self):
         card = Kartya(
             {

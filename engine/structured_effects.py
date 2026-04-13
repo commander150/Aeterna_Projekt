@@ -243,6 +243,28 @@ def _find_matching_tag(card, name):
     return name in _normalized_tags(card)
 
 
+def _has_structured_seal_or_player_target(card):
+    return any(
+        has_target(card, key)
+        for key in ("pecset", "enemy_seal", "enemy_seals", "own_seal", "own_seals", "jatekos", "opponent", "wards")
+    )
+
+
+def _has_structured_entity_damage_target(card):
+    return any(
+        has_target(card, key)
+        for key in (
+            "opposing_entity",
+            "enemy_entity",
+            "enemy_entities",
+            "enemy_horizont_entity",
+            "enemy_horizont_entities",
+            "enemy_zenit_entity",
+            "enemy_zenit_entities",
+        )
+    )
+
+
 def build_result(status, **extra):
     result = {"status": status}
     result["resolved"] = status in {
@@ -356,7 +378,10 @@ def _resolve_damage(card, source_player, target_player, context):
     amount = max(1, _extract_number(_canonical_text(card), 1))
     text = normalize_lookup_text(_canonical_text(card))
     lane_index = context.get("lane_index") if isinstance(context, dict) else None
-    if _find_matching_tag(card, "seal_damage"):
+    has_invalid_seal_target = _has_structured_seal_or_player_target(card)
+    has_entity_target = _has_structured_entity_damage_target(card)
+
+    if _find_matching_tag(card, "seal_damage") and not has_entity_target:
         return EffectEngine._deal_direct_seal_damage(
             card.nev,
             amount,
@@ -365,19 +390,25 @@ def _resolve_damage(card, source_player, target_player, context):
             "Structured",
             lane_index=lane_index,
         )
-    if has_target(card, "pecset") or has_target(card, "jatekos") or has_target(card, "wards"):
+    if has_invalid_seal_target:
         EffectEngine._record_rule_diagnostic(
             source_player,
             "SEAL_RULE_BLOCKED",
             card.nev,
             "Structured",
-            "structured_damage_not_valid_for_seal_or_player",
+            "structured_damage_not_valid_for_seal_or_player"
+            if not _find_matching_tag(card, "seal_damage")
+            else "mixed_damage_and_seal_targeting_requires_review",
             review_needed=True,
         )
+        if not has_entity_target:
+            naplo.ir(
+                f"Structured effect: {card.nev} damage-je nem torhet Pecsetet, es nem alakul at kozvetlen Pecset-sebzesre."
+            )
+            return False
         naplo.ir(
-            f"Structured effect: {card.nev} damage-je nem torhet Pecsetet, es nem alakul at kozvetlen Pecset-sebzesre."
+            f"Structured effect: {card.nev} vegyes entity/seal celzast hasznal; a damage csak ervenyes HP-celpontokra fut le."
         )
-        return False
 
     cel = _select_target_by_metadata(
         card,
