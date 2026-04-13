@@ -315,3 +315,30 @@ Ez kulonosen hasznos:
 - regresszios korok ismetlesere
 - kevesebb kezi parameterezessel vegzett smoke futasokra
 - a visszatero, meccsformalo lapok gyors kiszurasara batch vegen
+
+## 11. Kulon felvezerelt CLI prototipus
+
+A tesztlauncher mellett most mar van egy kulon, facade-alapu technikai CLI mod is:
+
+- `simulation/interactive_match_cli.py`
+- kulon indito: `run_interactive_match_cli.py`
+
+Celja nem a teljes ember-vs-AI rendszer, hanem egy szuk, oszinte technikai MVP:
+- uj meccset indit
+- rovid snapshotot jelenit meg
+- kilistazza a jelenlegi legal actionoket
+- engedi egy tamogatott action kivalasztasat
+- vegrehajtja az akciot a backend facade-n at
+- megmutatja az eredmenyt es a rovid event listat
+
+Hasznalat:
+
+```bash
+python run_interactive_match_cli.py
+python -m simulation.interactive_match_cli --p1 Ignis --p2 Aqua --seed 123
+```
+
+Fontos korlat:
+- ez meg nem teljes ember-vs-AI jatekmod
+- csak azt tudja emberileg kiprobalhato modon, amit a jelenlegi backend mar formalizalt
+- jelenleg kulonosen az `end_turn`, `play_entity` es `play_trap` akciokra hasznos technikai prototipus
