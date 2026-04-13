@@ -366,7 +366,14 @@ def _resolve_damage(card, source_player, target_player, context):
             lane_index=lane_index,
         )
     if has_target(card, "pecset") or has_target(card, "jatekos") or has_target(card, "wards"):
-        log_block_reason("RULE", f"{card.nev} | structured_damage_not_valid_for_seal_or_player")
+        EffectEngine._record_rule_diagnostic(
+            source_player,
+            "SEAL_RULE_BLOCKED",
+            card.nev,
+            "Structured",
+            "structured_damage_not_valid_for_seal_or_player",
+            review_needed=True,
+        )
         naplo.ir(
             f"Structured effect: {card.nev} damage-je nem torhet Pecsetet, es nem alakul at kozvetlen Pecset-sebzesre."
         )

@@ -98,6 +98,9 @@ def _match_summary_lines(jatek, nyertes):
                 f"seal_breaks={metrics.get('seal_breaks', 0)}",
                 f"source_placements={metrics.get('source_placements', 0)}",
                 f"destroyed_units={metrics.get('destroyed_units', 0)}",
+                f"seal_rule_blocked={metrics.get('seal_rule_blocked', 0)}",
+                f"lane_seal_blocked={metrics.get('lane_seal_blocked', 0)}",
+                f"review_needed={metrics.get('review_needed', 0)}",
             ]
         ),
     ]
@@ -144,6 +147,9 @@ def _empty_run_metrics():
         "seal_breaks": 0,
         "source_placements": 0,
         "destroyed_units": 0,
+        "seal_rule_blocked": 0,
+        "lane_seal_blocked": 0,
+        "review_needed": 0,
     }
 
 
@@ -199,6 +205,9 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
         before_stats = _capture_stats_snapshot()
         run_metrics = _empty_run_metrics()
         winner_played_cards = {}
+        seal_rule_blocked_cards = {}
+        lane_seal_blocked_cards = {}
+        review_needed_cards = {}
         last_p1_setup = None
         last_p2_setup = None
         engine_config = set_active_engine_config(config.to_engine_config())
@@ -267,8 +276,14 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
                 "seal_breaks": 0,
                 "source_placements": 0,
                 "destroyed_units": 0,
+                "seal_rule_blocked": 0,
+                "lane_seal_blocked": 0,
+                "review_needed": 0,
                 "played_cards": {},
                 "played_cards_by_player": {},
+                "seal_rule_blocked_cards": {},
+                "lane_seal_blocked_cards": {},
+                "review_needed_cards": {},
             }
             stats.jatekok_szama += 1
 
@@ -292,6 +307,9 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
                     winner_played_cards,
                     (jatek.log_metrics.get("played_cards_by_player") or {}).get(winning_player_name, {}),
                 )
+            _merge_card_counter(seal_rule_blocked_cards, jatek.log_metrics.get("seal_rule_blocked_cards"))
+            _merge_card_counter(lane_seal_blocked_cards, jatek.log_metrics.get("lane_seal_blocked_cards"))
+            _merge_card_counter(review_needed_cards, jatek.log_metrics.get("review_needed_cards"))
 
         stats.osszesites_mentese()
         naplo.summary(
@@ -312,6 +330,15 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
         summary["metrics"] = dict(run_metrics)
         summary["winner_played_cards"] = dict(
             sorted(winner_played_cards.items(), key=lambda item: (-item[1], item[0]))
+        )
+        summary["seal_rule_blocked_cards"] = dict(
+            sorted(seal_rule_blocked_cards.items(), key=lambda item: (-item[1], item[0]))
+        )
+        summary["lane_seal_blocked_cards"] = dict(
+            sorted(lane_seal_blocked_cards.items(), key=lambda item: (-item[1], item[0]))
+        )
+        summary["review_needed_cards"] = dict(
+            sorted(review_needed_cards.items(), key=lambda item: (-item[1], item[0]))
         )
         return summary
 

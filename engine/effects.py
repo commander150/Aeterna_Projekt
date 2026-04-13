@@ -50,6 +50,32 @@ class EffectEngine:
         return any(kulcsszo in szoveg for kulcsszo in kulcsszavak)
 
     @staticmethod
+    def _increment_metric_bucket(metrics, bucket_name, card_name):
+        if metrics is None or not card_name:
+            return
+        bucket = metrics.setdefault(bucket_name, {})
+        bucket[card_name] = int(bucket.get(card_name, 0)) + 1
+
+    @staticmethod
+    def _record_rule_diagnostic(jatekos, category, card_name, context, detail, *, review_needed=False):
+        naplo.tech(category, f"{card_name} | context={context} | {detail}")
+        metrics = None
+        if jatekos is not None and hasattr(jatekos, "jatek"):
+            metrics = getattr(jatekos.jatek, "log_metrics", None)
+        if metrics is not None:
+            if category == "SEAL_RULE_BLOCKED":
+                metrics["seal_rule_blocked"] = int(metrics.get("seal_rule_blocked", 0)) + 1
+                EffectEngine._increment_metric_bucket(metrics, "seal_rule_blocked_cards", card_name)
+            elif category == "LANE_SEAL_BLOCKED":
+                metrics["lane_seal_blocked"] = int(metrics.get("lane_seal_blocked", 0)) + 1
+                EffectEngine._increment_metric_bucket(metrics, "lane_seal_blocked_cards", card_name)
+        if review_needed:
+            naplo.tech("REVIEW_NEEDED", f"{card_name} | context={context} | {detail}")
+            if metrics is not None:
+                metrics["review_needed"] = int(metrics.get("review_needed", 0)) + 1
+                EffectEngine._increment_metric_bucket(metrics, "review_needed_cards", card_name)
+
+    @staticmethod
     def _rogzit_fel_nem_oldott_effektet(kategoria, kartya, effekt_szoveg, allapot="tenylegesen_hianyzo"):
         stats.rogzit_fel_nem_oldott_effektet(
             kategoria,
@@ -325,7 +351,14 @@ class EffectEngine:
         if vedo is None or not vedo.pecsetek:
             return False, burst_aktivalt
         if not EffectEngine._seal_reachable_in_lane(vedo, lane_index):
-            log_block_reason("RULE", f"{kartya_nev} | seal_break_blocked_by_horizont | lane={lane_index}")
+            EffectEngine._record_rule_diagnostic(
+                tamado,
+                "LANE_SEAL_BLOCKED",
+                kartya_nev,
+                kontextus,
+                f"lane={lane_index} | front_entity_blocks_seal_access",
+                review_needed=True,
+            )
             naplo.ir(
                 f"{kontextus}: {kartya_nev} nem eri el kozvetlenul a Pecsetet, mert a {lane_index}. Aramlat Horizont mezoje foglalt."
             )
@@ -560,7 +593,14 @@ class EffectEngine:
             return False
 
         if EffectEngine._targets_player_or_seal(szoveg):
-            log_block_reason("RULE", f"{kartya.nev} | damage_does_not_break_seals")
+            EffectEngine._record_rule_diagnostic(
+                jatekos,
+                "SEAL_RULE_BLOCKED",
+                kartya.nev,
+                kontextus,
+                "damage_effect_cannot_convert_to_seal_break",
+                review_needed=True,
+            )
             naplo.ir(
                 f"{kontextus}: {kartya.nev} sebzese nem konvertalodik Pecset-feltoresse. Kifejezett Pecset-toro hatas szukseges."
             )

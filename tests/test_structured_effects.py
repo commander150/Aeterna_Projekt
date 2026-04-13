@@ -1,5 +1,7 @@
 ﻿import unittest
 
+from unittest.mock import patch
+
 from engine.actions import ActionLibrary
 from engine.card import Kartya, CsataEgyseg
 from engine.card_metadata import has_effect_tag, has_keyword, has_trigger, parse_semicolon_list
@@ -165,10 +167,14 @@ class TestStructuredEffects(unittest.TestCase):
             Kartya({"kartya_nev": "Pecset 3", "kartyatipus": "Pecset", "magnitudo": 1}),
         ]
 
-        result = resolve_structured_effect(card, owner, enemy, {"category": "on_play"})
+        tech_logs = []
+        with patch("utils.logger.naplo.tech", side_effect=lambda category, message: tech_logs.append((category, message))):
+            result = resolve_structured_effect(card, owner, enemy, {"category": "on_play"})
 
         self.assertFalse(result["resolved"])
         self.assertEqual(len(enemy.pecsetek), 3)
+        self.assertTrue(any(category == "SEAL_RULE_BLOCKED" for category, _ in tech_logs))
+        self.assertTrue(any(category == "REVIEW_NEEDED" for category, _ in tech_logs))
 
     def test_structured_explicit_seal_break_is_blocked_by_front_lane_unit(self):
         card = Kartya(
@@ -176,7 +182,7 @@ class TestStructuredEffects(unittest.TestCase):
                 "kartya_nev": "Celzott Pecséttoro",
                 "kartyatipus": "Ige",
                 "kepesseg_canonical": "Törj fel 1 Pecsetet a celzott Aramlatban.",
-                "hatascimkek": "PecsetSebzes",
+                "hatascimkek": "Sebzes; PecsetSebzes",
                 "celpont_felismerve": "Pecset",
             }
         )
@@ -187,10 +193,14 @@ class TestStructuredEffects(unittest.TestCase):
             Kartya({"kartya_nev": "Front Vedő", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2})
         )
 
-        result = resolve_structured_effect(card, owner, enemy, {"category": "on_play", "lane_index": 0})
+        tech_logs = []
+        with patch("utils.logger.naplo.tech", side_effect=lambda category, message: tech_logs.append((category, message))):
+            result = resolve_structured_effect(card, owner, enemy, {"category": "on_play", "lane_index": 0})
 
         self.assertFalse(result["resolved"])
         self.assertEqual(len(enemy.pecsetek), 1)
+        self.assertTrue(any(category == "LANE_SEAL_BLOCKED" for category, _ in tech_logs))
+        self.assertTrue(any(category == "REVIEW_NEEDED" for category, _ in tech_logs))
 
     def test_structured_move_to_zenit_does_not_bounce_back_to_horizon_same_resolution(self):
         card = Kartya(

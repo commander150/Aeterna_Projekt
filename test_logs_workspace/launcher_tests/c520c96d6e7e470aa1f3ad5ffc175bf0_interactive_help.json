@@ -1,0 +1,12 @@
+{
+  "profile_name": "smoke_random",
+  "overrides": {
+    "games": 3,
+    "random_seed": null,
+    "player1_realm": null,
+    "player2_realm": null,
+    "player1_deck_preset": null,
+    "player2_deck_preset": null,
+    "random_realm_fallback": true
+  }
+}

@@ -207,6 +207,9 @@ def _collect_batch_metrics(run_summaries: Sequence[Dict]) -> Dict[str, int]:
         "traps_played": 0,
         "traps_triggered": 0,
         "seal_breaks": 0,
+        "seal_rule_blocked": 0,
+        "lane_seal_blocked": 0,
+        "review_needed": 0,
     }
     for summary in run_summaries:
         metrics = summary.get("metrics", {}) if isinstance(summary, dict) else {}
@@ -219,6 +222,17 @@ def _collect_winner_played_cards(run_summaries: Sequence[Dict]) -> Dict[str, int
     totals: Dict[str, int] = {}
     for summary in run_summaries:
         card_counts = summary.get("winner_played_cards", {}) if isinstance(summary, dict) else {}
+        for card_name, count in card_counts.items():
+            if not card_name:
+                continue
+            totals[card_name] = totals.get(card_name, 0) + int(count or 0)
+    return dict(sorted(totals.items(), key=lambda item: (-item[1], item[0])))
+
+
+def _collect_diagnostic_cards(run_summaries: Sequence[Dict], key: str) -> Dict[str, int]:
+    totals: Dict[str, int] = {}
+    for summary in run_summaries:
+        card_counts = summary.get(key, {}) if isinstance(summary, dict) else {}
         for card_name, count in card_counts.items():
             if not card_name:
                 continue
@@ -274,7 +288,13 @@ def format_batch_summary(run_summaries: Sequence[Dict]) -> List[str]:
     metrics = _collect_batch_metrics(run_summaries)
     alerts = detect_batch_alerts(run_summaries)
     winner_cards = _collect_winner_played_cards(run_summaries)
+    seal_rule_cards = _collect_diagnostic_cards(run_summaries, "seal_rule_blocked_cards")
+    lane_block_cards = _collect_diagnostic_cards(run_summaries, "lane_seal_blocked_cards")
+    review_cards = _collect_diagnostic_cards(run_summaries, "review_needed_cards")
     top_winner_cards = list(winner_cards.items())[:5]
+    top_seal_rule_cards = list(seal_rule_cards.items())[:5]
+    top_lane_block_cards = list(lane_block_cards.items())[:5]
+    top_review_cards = list(review_cards.items())[:5]
 
     lines = [
         f"Futasok szama: {total_runs}",
@@ -304,6 +324,37 @@ def format_batch_summary(run_summaries: Sequence[Dict]) -> List[str]:
         lines.extend([f"- {alert}" for alert in alerts])
     else:
         lines.append("Gyanus jelek: nincs kiemelt launcher-szintu figyelmeztetes.")
+    lines.append(
+        "Szabalydiagnosztika: "
+        + " | ".join(
+            [
+                f"seal_rule_blocked={metrics['seal_rule_blocked']}",
+                f"lane_seal_blocked={metrics['lane_seal_blocked']}",
+                f"review_needed={metrics['review_needed']}",
+            ]
+        )
+    )
+    if top_seal_rule_cards:
+        lines.append(
+            "SEAL_RULE_BLOCKED lapok: "
+            + " | ".join(f"{card_name}={count}" for card_name, count in top_seal_rule_cards)
+        )
+    else:
+        lines.append("SEAL_RULE_BLOCKED lapok: nincs adat.")
+    if top_lane_block_cards:
+        lines.append(
+            "LANE_SEAL_BLOCKED lapok: "
+            + " | ".join(f"{card_name}={count}" for card_name, count in top_lane_block_cards)
+        )
+    else:
+        lines.append("LANE_SEAL_BLOCKED lapok: nincs adat.")
+    if top_review_cards:
+        lines.append(
+            "REVIEW_NEEDED lapok: "
+            + " | ".join(f"{card_name}={count}" for card_name, count in top_review_cards)
+        )
+    else:
+        lines.append("REVIEW_NEEDED lapok: nincs adat.")
     return lines
 
 

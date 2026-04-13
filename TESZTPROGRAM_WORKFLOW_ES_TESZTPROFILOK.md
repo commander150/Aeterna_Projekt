@@ -23,6 +23,7 @@ Rovid gyakorlati cel:
 - gyorsan latszodjon, ha valami nyilvanvaloan nem mukodik
 - gyorsan latszodjon, ha valami gyanusan dominans
 - egy modositast lehessen szuk, ismetelheto korrel ujraellenorizni
+- a log kulon jelezze a szabalyblokk miatt review-t igenylo lapokat (`SEAL_RULE_BLOCKED`, `LANE_SEAL_BLOCKED`, `REVIEW_NEEDED`)
 
 ## 2. Milyen tipusu teszteket erdemes futtatni
 

@@ -273,6 +273,40 @@ class TestTestLauncher(unittest.TestCase):
         self.assertIn("Tünde Pyromanta=3", lines[5])
         self.assertIn("A Főnix Könnye=2", lines[5])
 
+    def test_format_batch_summary_includes_rule_diagnostics(self):
+        lines = test_launcher.format_batch_summary(
+            [
+                {
+                    "games": 2,
+                    "random_seed": 401,
+                    "p1_wins": 1,
+                    "p2_wins": 1,
+                    "draws": 0,
+                    "total_turns": 14,
+                    "metrics": {
+                        "summons": 5,
+                        "spells_cast": 4,
+                        "traps_played": 1,
+                        "traps_triggered": 1,
+                        "seal_breaks": 2,
+                        "seal_rule_blocked": 2,
+                        "lane_seal_blocked": 1,
+                        "review_needed": 3,
+                    },
+                    "winner_played_cards": {"Phoenix Tear": 2},
+                    "seal_rule_blocked_cards": {"Frost Spear": 2},
+                    "lane_seal_blocked_cards": {"Targeted Seal Break": 1},
+                    "review_needed_cards": {"Frost Spear": 2, "Targeted Seal Break": 1},
+                }
+            ]
+        )
+
+        self.assertTrue(any("Szabalydiagnosztika:" in line for line in lines))
+        self.assertTrue(any("seal_rule_blocked=2" in line for line in lines))
+        self.assertTrue(any("LANE_SEAL_BLOCKED lapok:" in line for line in lines))
+        self.assertTrue(any("REVIEW_NEEDED lapok:" in line for line in lines))
+        self.assertTrue(any("Frost Spear=2" in line for line in lines))
+
     def test_detect_batch_alerts_flags_one_sided_and_low_activity_patterns(self):
         alerts = test_launcher.detect_batch_alerts(
             [
