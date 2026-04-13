@@ -355,8 +355,22 @@ def _resolve_damage(card, source_player, target_player, context):
 
     amount = max(1, _extract_number(_canonical_text(card), 1))
     text = normalize_lookup_text(_canonical_text(card))
-    if _find_matching_tag(card, "seal_damage") or has_target(card, "pecset") or has_target(card, "jatekos") or has_target(card, "wards"):
-        return EffectEngine._deal_direct_seal_damage(card.nev, amount, source_player, target_player, "Structured")
+    lane_index = context.get("lane_index") if isinstance(context, dict) else None
+    if _find_matching_tag(card, "seal_damage"):
+        return EffectEngine._deal_direct_seal_damage(
+            card.nev,
+            amount,
+            source_player,
+            target_player,
+            "Structured",
+            lane_index=lane_index,
+        )
+    if has_target(card, "pecset") or has_target(card, "jatekos") or has_target(card, "wards"):
+        log_block_reason("RULE", f"{card.nev} | structured_damage_not_valid_for_seal_or_player")
+        naplo.ir(
+            f"Structured effect: {card.nev} damage-je nem torhet Pecsetet, es nem alakul at kozvetlen Pecset-sebzesre."
+        )
+        return False
 
     cel = _select_target_by_metadata(
         card,
@@ -364,7 +378,7 @@ def _resolve_damage(card, source_player, target_player, context):
         target_player,
         keys=("opposing_entity", "enemy_horizont_entity", "enemy_zenit_entity", "enemy_entity"),
         source=context.get("source_unit") if isinstance(context, dict) else None,
-        lane_index=context.get("lane_index") if isinstance(context, dict) else None,
+        lane_index=lane_index,
     )
     if cel is None:
         prefer_zone = "horizont" if has_zone(card, "horizont") else None

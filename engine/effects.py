@@ -313,8 +313,22 @@ class EffectEngine:
         )
 
     @staticmethod
-    def _break_seal_from_effect(vedo, tamado, kartya_nev, kontextus, burst_aktivalt):
+    def _seal_reachable_in_lane(vedo, lane_index):
+        if vedo is None or lane_index is None:
+            return True
+        if lane_index < 0 or lane_index >= len(getattr(vedo, "horizont", [])):
+            return False
+        return not _is_board_entity(vedo.horizont[lane_index])
+
+    @staticmethod
+    def _break_seal_from_effect(vedo, tamado, kartya_nev, kontextus, burst_aktivalt, lane_index=None):
         if vedo is None or not vedo.pecsetek:
+            return False, burst_aktivalt
+        if not EffectEngine._seal_reachable_in_lane(vedo, lane_index):
+            log_block_reason("RULE", f"{kartya_nev} | seal_break_blocked_by_horizont | lane={lane_index}")
+            naplo.ir(
+                f"{kontextus}: {kartya_nev} nem eri el kozvetlenul a Pecsetet, mert a {lane_index}. Aramlat Horizont mezoje foglalt."
+            )
             return False, burst_aktivalt
 
         p = vedo.pecsetek.pop()
@@ -345,7 +359,7 @@ class EffectEngine:
         return True, burst_aktivalt
 
     @staticmethod
-    def _deal_direct_seal_damage(kartya_nev, sebzes, tamado, vedo, kontextus):
+    def _deal_direct_seal_damage(kartya_nev, sebzes, tamado, vedo, kontextus, lane_index=None):
         if vedo is None or sebzes <= 0:
             return False
 
@@ -360,7 +374,7 @@ class EffectEngine:
 
         while maradek_sebzes > 0 and vedo.pecsetek:
             pecset_tort, burst_aktivalt = EffectEngine._break_seal_from_effect(
-                vedo, tamado, kartya_nev, kontextus, burst_aktivalt
+                vedo, tamado, kartya_nev, kontextus, burst_aktivalt, lane_index=lane_index
             )
             if not pecset_tort:
                 break
@@ -546,9 +560,11 @@ class EffectEngine:
             return False
 
         if EffectEngine._targets_player_or_seal(szoveg):
-            return EffectEngine._deal_direct_seal_damage(
-                kartya.nev, sebzes, jatekos, ellenfel, kontextus
+            log_block_reason("RULE", f"{kartya.nev} | damage_does_not_break_seals")
+            naplo.ir(
+                f"{kontextus}: {kartya.nev} sebzese nem konvertalodik Pecset-feltoresse. Kifejezett Pecset-toro hatas szukseges."
             )
+            return False
 
         prefer_zone = "horizont" if any(k in szoveg for k in ["horizont", "front", "elso sor"]) else None
         cel = EffectEngine._select_enemy_target(ellenfel, szoveg, prefer_zone)

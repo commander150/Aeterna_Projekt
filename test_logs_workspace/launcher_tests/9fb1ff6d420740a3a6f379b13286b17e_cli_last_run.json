@@ -1,0 +1,9 @@
+{
+  "profile_name": "repeated_matchup",
+  "overrides": {
+    "games": 9,
+    "random_seed": 456,
+    "player1_realm": "Ignis",
+    "player2_realm": "Aqua"
+  }
+}

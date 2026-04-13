@@ -691,7 +691,7 @@ class TestGameFlow(unittest.TestCase):
         self.assertTrue(broken)
         self.assertIn("on_source_placement", seen)
 
-    def test_direct_seal_damage_emits_on_seal_break(self):
+    def test_explicit_seal_break_helper_emits_on_seal_break(self):
         from engine.effects import EffectEngine
 
         caster = make_player("Caster")

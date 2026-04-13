@@ -51,6 +51,7 @@ Erre valo:
 Erre valo:
 - trap, summon, seal break, source placement, direkt sebzes vagy mas celzott viselkedes ellenorzese
 - logban es meccsviselkedesben tenyleg elojon-e a javitott ag
+- fontos szabaly: a direkt sebzes es a Pecset-feltores kulon jatekmuvelet; a sebzes nem torhet Pecsetet, csak explicit Pecset-toro hatas
 
 ### 2.5 Regresszios futas modositAs utan
 Erre valo:

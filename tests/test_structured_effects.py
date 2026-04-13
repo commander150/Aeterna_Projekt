@@ -147,6 +147,51 @@ class TestStructuredEffects(unittest.TestCase):
         self.assertTrue(result["resolved"])
         self.assertEqual(len(enemy.pecsetek), 0)
 
+    def test_structured_damage_does_not_convert_to_seal_break(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Hibas Direktsugar",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Okozz 3 sebzest az ellenfel Pecsetjenek.",
+                "hatascimkek": "Sebzes",
+                "celpont_felismerve": "Pecset",
+            }
+        )
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy.pecsetek = [
+            Kartya({"kartya_nev": "Pecset 1", "kartyatipus": "Pecset", "magnitudo": 1}),
+            Kartya({"kartya_nev": "Pecset 2", "kartyatipus": "Pecset", "magnitudo": 1}),
+            Kartya({"kartya_nev": "Pecset 3", "kartyatipus": "Pecset", "magnitudo": 1}),
+        ]
+
+        result = resolve_structured_effect(card, owner, enemy, {"category": "on_play"})
+
+        self.assertFalse(result["resolved"])
+        self.assertEqual(len(enemy.pecsetek), 3)
+
+    def test_structured_explicit_seal_break_is_blocked_by_front_lane_unit(self):
+        card = Kartya(
+            {
+                "kartya_nev": "Celzott Pecséttoro",
+                "kartyatipus": "Ige",
+                "kepesseg_canonical": "Törj fel 1 Pecsetet a celzott Aramlatban.",
+                "hatascimkek": "PecsetSebzes",
+                "celpont_felismerve": "Pecset",
+            }
+        )
+        owner = make_player("Caster")
+        enemy = make_player("Enemy")
+        enemy.pecsetek = [Kartya({"kartya_nev": "Pecset", "kartyatipus": "Pecset", "magnitudo": 1})]
+        enemy.horizont[0] = CsataEgyseg(
+            Kartya({"kartya_nev": "Front Vedő", "kartyatipus": "Entitas", "tamadas": 1, "eletero": 2})
+        )
+
+        result = resolve_structured_effect(card, owner, enemy, {"category": "on_play", "lane_index": 0})
+
+        self.assertFalse(result["resolved"])
+        self.assertEqual(len(enemy.pecsetek), 1)
+
     def test_structured_move_to_zenit_does_not_bounce_back_to_horizon_same_resolution(self):
         card = Kartya(
             {
