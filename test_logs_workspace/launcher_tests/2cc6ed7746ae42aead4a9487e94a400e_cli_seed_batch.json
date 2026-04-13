@@ -1,0 +1,8 @@
+{
+  "profile_name": "seeded_matchup",
+  "overrides": {
+    "games": 2,
+    "player1_realm": "Ignis",
+    "player2_realm": "Aqua"
+  }
+}

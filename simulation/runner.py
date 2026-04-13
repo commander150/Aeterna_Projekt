@@ -8,6 +8,7 @@ from stats.analyzer import stats
 from data.loader import kartyak_betoltese_xlsx
 from engine.game import AeternaSzimulacio
 from simulation.config import SimulationConfig, normalize_realm_name
+from simulation.deck_presets import resolve_deck_preset_cards
 
 
 def _elerheto_birodalmak(kartyak):
@@ -84,8 +85,8 @@ def _match_summary_lines(jatek, nyertes):
         f"gyoztes={nyertes if nyertes else 'DONTETLEN'}",
         f"gyozelem_oka={victory_reason}",
         f"korok_szama={jatek.kor}",
-        f"p1_nev={p1.nev} | p1_birodalom={p1.birodalom} | p1_pecset={len(p1.pecsetek)} | p1_pakli={len(p1.pakli)} | p1_kez={len(p1.kez)} | p1_temeto={len(p1.temeto)} | p1_board={_count_board_entities(p1)}",
-        f"p2_nev={p2.nev} | p2_birodalom={p2.birodalom} | p2_pecset={len(p2.pecsetek)} | p2_pakli={len(p2.pakli)} | p2_kez={len(p2.kez)} | p2_temeto={len(p2.temeto)} | p2_board={_count_board_entities(p2)}",
+        f"p1_nev={p1.nev} | p1_birodalom={p1.birodalom} | p1_preset={getattr(p1, 'deck_preset_name', None) or 'none'} | p1_pecset={len(p1.pecsetek)} | p1_pakli={len(p1.pakli)} | p1_kez={len(p1.kez)} | p1_temeto={len(p1.temeto)} | p1_board={_count_board_entities(p1)}",
+        f"p2_nev={p2.nev} | p2_birodalom={p2.birodalom} | p2_preset={getattr(p2, 'deck_preset_name', None) or 'none'} | p2_pecset={len(p2.pecsetek)} | p2_pakli={len(p2.pakli)} | p2_kez={len(p2.kez)} | p2_temeto={len(p2.temeto)} | p2_board={_count_board_entities(p2)}",
         f"overflow_p1={getattr(p1, 'overflow_vereseg', False)} | overflow_p2={getattr(p2, 'overflow_vereseg', False)}",
         "metrics="
         + " | ".join(
@@ -124,6 +125,8 @@ def _build_run_summary(config, before_stats, after_stats):
         "random_seed": config.random_seed,
         "player1_realm": config.player1_realm,
         "player2_realm": config.player2_realm,
+        "player1_deck_preset": config.player1_deck_preset,
+        "player2_deck_preset": config.player2_deck_preset,
         "p1_wins": p1_wins,
         "p2_wins": p2_wins,
         "draws": draws,
@@ -159,6 +162,36 @@ def _winner_player_name(nyertes):
         return winner_name
     return None
 
+
+def _resolve_player_setup(config, player_key, available_realms, cards):
+    preset_name = getattr(config, f"{player_key}_deck_preset", None)
+    requested_realm = getattr(config, f"{player_key}_realm", None)
+
+    if preset_name:
+        preset = resolve_deck_preset_cards(preset_name, cards)
+        preset_realm = normalize_realm_name(preset["realm"])
+        if requested_realm and normalize_realm_name(requested_realm) != preset_realm:
+            raise ValueError(
+                f"Hiba: a megadott realm ({requested_realm}) nem egyezik a preset realmjevel "
+                f"({preset_realm}) a(z) {preset_name} presetnel."
+            )
+        return {
+            "realm": preset_realm,
+            "deck": preset["cards"],
+            "preset_name": preset["name"],
+        }
+
+    chosen_realm = _valassz_birodalmat(
+        requested_realm,
+        available_realms,
+        random_fallback=config.random_realm_fallback,
+    )
+    return {
+        "realm": chosen_realm,
+        "deck": None,
+        "preset_name": None,
+    }
+
 def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
     try:
         install_effect_diagnostics()
@@ -166,6 +199,8 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
         before_stats = _capture_stats_snapshot()
         run_metrics = _empty_run_metrics()
         winner_played_cards = {}
+        last_p1_setup = None
+        last_p2_setup = None
         engine_config = set_active_engine_config(config.to_engine_config())
 
         if config.random_seed is not None:
@@ -185,25 +220,45 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
         naplo.ir(f"Aktiv engine konfiguracio: {engine_config.describe()}")
 
         for i in range(config.games):
-            b1 = _valassz_birodalmat(
-                config.player1_realm,
-                birodalmak,
-                random_fallback=config.random_realm_fallback,
-            )
-            b2 = _valassz_birodalmat(
-                config.player2_realm,
-                birodalmak,
-                random_fallback=config.random_realm_fallback,
-                tiltott=[] if config.player2_realm else [b1],
-            )
+            p1_setup = _resolve_player_setup(config, "player1", birodalmak, kartyak)
+
+            p2_requested_realm = config.player2_realm
+            p2_preset = config.player2_deck_preset
+            if p2_preset:
+                p2_setup = _resolve_player_setup(config, "player2", birodalmak, kartyak)
+            else:
+                b2 = _valassz_birodalmat(
+                    p2_requested_realm,
+                    birodalmak,
+                    random_fallback=config.random_realm_fallback,
+                    tiltott=[] if p2_requested_realm else [p1_setup["realm"]],
+                )
+                p2_setup = {
+                    "realm": b2,
+                    "deck": None,
+                    "preset_name": None,
+                }
+            last_p1_setup = p1_setup
+            last_p2_setup = p2_setup
 
             naplo.separator(f"{i+1}. JATEK INDUL")
-            naplo.ir(f"--- {i+1}. JÁTÉK INDUL: {b1} vs {b2} ---")
+            naplo.ir(f"--- {i+1}. JÁTÉK INDUL: {p1_setup['realm']} vs {p2_setup['realm']} ---")
             naplo.tech(
                 "MATCH",
-                f"index={i+1} | p1={b1} | p2={b2} | seed={config.random_seed} | scenario={config.scenario or 'none'}"
+                f"index={i+1} | p1={p1_setup['realm']} | p2={p2_setup['realm']} | "
+                f"p1_preset={p1_setup['preset_name'] or 'none'} | p2_preset={p2_setup['preset_name'] or 'none'} | "
+                f"seed={config.random_seed} | scenario={config.scenario or 'none'}"
             )
-            jatek = AeternaSzimulacio(b1, b2, kartyak, engine_config=engine_config)
+            jatek = AeternaSzimulacio(
+                p1_setup["realm"],
+                p2_setup["realm"],
+                kartyak,
+                engine_config=engine_config,
+                player1_deck=p1_setup["deck"],
+                player2_deck=p2_setup["deck"],
+                player1_preset_name=p1_setup["preset_name"],
+                player2_preset_name=p2_setup["preset_name"],
+            )
             jatek.log_metrics = {
                 "spells_cast": 0,
                 "summons": 0,
@@ -245,8 +300,10 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
                 f"jatekok_szama={config.games}",
                 f"random_seed={config.random_seed}",
                 f"run_mode={engine_config.run_mode}",
-                f"player1_realm={config.player1_realm or 'random'}",
-                f"player2_realm={config.player2_realm or 'random'}",
+                f"player1_realm={(last_p1_setup or {}).get('realm', config.player1_realm or 'random')}",
+                f"player2_realm={(last_p2_setup or {}).get('realm', config.player2_realm or 'random')}",
+                f"player1_preset={config.player1_deck_preset or 'none'}",
+                f"player2_preset={config.player2_deck_preset or 'none'}",
                 f"scenario={config.scenario or 'none'}",
                 f"osszes_kor={stats.osszes_kor}",
             ],

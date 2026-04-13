@@ -1,0 +1,8 @@
+{
+  "profile_name": "seeded_matchup",
+  "overrides": {
+    "games": 6,
+    "random_seed": 999,
+    "player2_realm": "Ignis"
+  }
+}

@@ -1,10 +1,12 @@
 {
-  "profile_name": "realm_focus",
+  "profile_name": "seeded_matchup",
   "overrides": {
-    "games": "10",
-    "random_seed": 314,
+    "games": 3,
+    "random_seed": 105,
     "player1_realm": "aether",
-    "player2_realm": null,
-    "random_realm_fallback": true
+    "player2_realm": "ventus",
+    "player1_deck_preset": "aether_control_test",
+    "player2_deck_preset": "ventus_tempo_test",
+    "random_realm_fallback": false
   }
 }

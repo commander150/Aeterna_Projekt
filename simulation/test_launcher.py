@@ -10,6 +10,7 @@ from data.loader import kartyak_betoltese_xlsx
 from engine.config import DEFAULT_EXPANSION_FLAGS, DEFAULT_EXPANSION_MODULES
 from engine.logging_utils import create_logger
 from simulation.config import SimulationConfig, normalize_realm_name
+from simulation.deck_presets import list_deck_presets, normalize_deck_preset_name
 from simulation.runner import futtat_szimulaciot
 from utils.logger import naplo
 
@@ -86,6 +87,10 @@ def _normalize_realm(value):
     return normalize_realm_name(value)
 
 
+def _normalize_deck_preset(value):
+    return normalize_deck_preset_name(value)
+
+
 def _normalize_optional_int(value):
     if value in (None, "", "random", "none"):
         return None
@@ -132,6 +137,8 @@ def build_config_from_profile(profile_name: str, overrides: Optional[Dict] = Non
     random_seed = _normalize_optional_int(settings.get("random_seed"))
     player1_realm = _normalize_realm(settings.get("player1_realm"))
     player2_realm = _normalize_realm(settings.get("player2_realm"))
+    player1_deck_preset = _normalize_deck_preset(settings.get("player1_deck_preset"))
+    player2_deck_preset = _normalize_deck_preset(settings.get("player2_deck_preset"))
     random_realm_fallback = bool(settings.get("random_realm_fallback", True))
 
     return SimulationConfig(
@@ -139,6 +146,8 @@ def build_config_from_profile(profile_name: str, overrides: Optional[Dict] = Non
         random_seed=random_seed,
         player1_realm=player1_realm,
         player2_realm=player2_realm,
+        player1_deck_preset=player1_deck_preset,
+        player2_deck_preset=player2_deck_preset,
         random_realm_fallback=random_realm_fallback,
         engine_run_mode="core_only",
         expansion_modules=dict(DEFAULT_EXPANSION_MODULES),
@@ -348,11 +357,14 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--runs", type=int, help="Futasok szamanak felulirasa.")
     parser.add_argument("--p1", dest="player1_realm", help="P1 birodalom felulirasa.")
     parser.add_argument("--p2", dest="player2_realm", help="P2 birodalom felulirasa.")
+    parser.add_argument("--p1-preset", dest="player1_deck_preset", help="P1 deck preset neve.")
+    parser.add_argument("--p2-preset", dest="player2_deck_preset", help="P2 deck preset neve.")
     parser.add_argument("--seed-list", help="Tobb seed vesszovel elvalasztva, pl. 101,102,103.")
     parser.add_argument("--seed-start", type=int, help="Batch seed kezdoertek.")
     parser.add_argument("--seed-count", type=int, help="Batch seed darabszam.")
     parser.add_argument("--last-run", action="store_true", help="Az utolso launcher-beallitas ujrafuttatasa.")
     parser.add_argument("--list-profiles", action="store_true", help="Az elerheto profilok kilistazasa.")
+    parser.add_argument("--list-deck-presets", action="store_true", help="Az elerheto deck presetek kilistazasa.")
     parser.add_argument("--xlsx-path", default=DEFAULT_XLSX_PATH, help="A cards.xlsx eleresi utja.")
     parser.add_argument("--base-dir", default=PROGRAM_MAPPA, help="A logok alapkonyvtara.")
     return parser
@@ -368,6 +380,10 @@ def _cli_overrides_from_args(args) -> Dict:
         overrides["player1_realm"] = args.player1_realm
     if args.player2_realm is not None:
         overrides["player2_realm"] = args.player2_realm
+    if args.player1_deck_preset is not None:
+        overrides["player1_deck_preset"] = args.player1_deck_preset
+    if args.player2_deck_preset is not None:
+        overrides["player2_deck_preset"] = args.player2_deck_preset
     return overrides
 
 
@@ -375,6 +391,14 @@ def _print_profiles(print_func: Callable[[str], None] = print):
     print_func("Elerheto tesztprofilok:")
     for profile_name, profile in PROFILE_PRESETS.items():
         print_func(f"- {profile_name}: {profile['label']} | {profile['description']}")
+
+
+def _print_deck_presets(print_func: Callable[[str], None] = print):
+    print_func("Elerheto deck presetek:")
+    for preset_name, preset in list_deck_presets().items():
+        print_func(
+            f"- {preset_name}: {preset['label']} | realm={preset['realm']} | size={preset['size']} | {preset['description']}"
+        )
 
 
 def _available_realms_hint(xlsx_path: str) -> str:
@@ -458,6 +482,7 @@ def launch_interactive(
     settings_path: str = LAST_SETTINGS_PATH,
 ):
     presets = get_profile_presets()
+    deck_presets = list_deck_presets()
     last_result = None
     profile_names = list(presets.keys())
     realm_hint = _available_realms_hint(xlsx_path)
@@ -498,17 +523,27 @@ def launch_interactive(
         print_func("A futasszam pozitiv egesz szam. Uresen hagyva a profil alapertelmezese marad.")
         print_func("A seed uresen hagyhato. Uresen a profil seedje marad, vagy random lesz, ha a profil is ugy adja.")
         print_func(f"Birodalom opciok: {realm_hint}. Ures vagy 'random' eseten veletlen valasztas marad.")
+        if deck_presets:
+            print_func(
+                "Deck preset opciok: "
+                + ", ".join(f"{name}({preset['realm']})" for name, preset in deck_presets.items())
+                + ". Uresen hagyva nincs fix tesztpakli."
+            )
 
         games_raw = _prompt_value("Futasok szama", base_settings.get("games"), input_func)
         seed_raw = _prompt_value("Seed", base_settings.get("random_seed"), input_func)
         p1_raw = _prompt_value("P1 birodalom", base_settings.get("player1_realm"), input_func)
         p2_raw = _prompt_value("P2 birodalom", base_settings.get("player2_realm"), input_func)
+        p1_preset_raw = _prompt_value("P1 deck preset", base_settings.get("player1_deck_preset"), input_func)
+        p2_preset_raw = _prompt_value("P2 deck preset", base_settings.get("player2_deck_preset"), input_func)
 
         overrides = {
             "games": games_raw or base_settings.get("games"),
             "random_seed": seed_raw if seed_raw != "" else base_settings.get("random_seed"),
             "player1_realm": p1_raw if p1_raw != "" else base_settings.get("player1_realm"),
             "player2_realm": p2_raw if p2_raw != "" else base_settings.get("player2_realm"),
+            "player1_deck_preset": p1_preset_raw if p1_preset_raw != "" else base_settings.get("player1_deck_preset"),
+            "player2_deck_preset": p2_preset_raw if p2_preset_raw != "" else base_settings.get("player2_deck_preset"),
             "random_realm_fallback": base_settings.get("random_realm_fallback", True),
         }
 
@@ -533,6 +568,9 @@ def main(
 
     if args.list_profiles:
         _print_profiles(print_func=print_func)
+        return None
+    if args.list_deck_presets:
+        _print_deck_presets(print_func=print_func)
         return None
 
     overrides = _cli_overrides_from_args(args)

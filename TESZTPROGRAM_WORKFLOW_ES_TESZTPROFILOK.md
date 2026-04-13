@@ -271,6 +271,7 @@ A launcher:
 - es kis kockazattal ujra tudja futtatni az utolso hasznalt beallitasokat is
 - egy futas utan visszater a fomenube, igy nem kell minden kor utan ujrainditani
 - interaktiv modban beszedesebb segitszovegeket ad a seedhez, futasszamhoz es birodalomvalasztashoz
+- deck preseteket is tud kezelni, ha ugyanazt a tesztpaklit akarod ujrafuttatni
 
 Nem-interaktiv, gyorsabb hasznalat is van:
 
@@ -278,14 +279,18 @@ Nem-interaktiv, gyorsabb hasznalat is van:
 python -m simulation.test_launcher --profile smoke_random
 python -m simulation.test_launcher --profile seeded_matchup --seed 123 --runs 5 --p1 Ignis --p2 Aqua
 python -m simulation.test_launcher --profile seeded_matchup --seed 123 --runs 5 --p1 terra --p2 VENTUS
+python -m simulation.test_launcher --profile seeded_matchup --p1-preset ignis_tempo_test --p2-preset aqua_control_test --seed 123 --runs 5
 python -m simulation.test_launcher --last-run
 python -m simulation.test_launcher --list-profiles
+python -m simulation.test_launcher --list-deck-presets
 ```
 
 Megjegyzes:
 - a launcher a birodalomneveket case-insensitive kezeli
 - pl. `terra`, `Terra` es `TERRA` ugyanugy mukodik
 - ismeretlen birodalomnevnel kulturalt hiba uzenetet ad az elerheto opciokkal
+- deck presetnel a futas realm + preset nevvel egyutt jelenik meg a summaryban
+- preset hasznalatkor a pakliepites nem random realm poolbol, hanem a rogzitett tesztpaklibol tortenik
 
 Batch seed futtatas is van, ha ugyanazt a matchupot gyorsan tobb seeddel akarod ujraellenorizni:
 

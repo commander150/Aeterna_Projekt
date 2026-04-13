@@ -52,6 +52,18 @@ class TestTestLauncher(unittest.TestCase):
         self.assertEqual(config.player1_realm, "Terra")
         self.assertEqual(config.player2_realm, "Ventus")
 
+    def test_build_config_from_profile_keeps_deck_presets(self):
+        config = test_launcher.build_config_from_profile(
+            "seeded_matchup",
+            overrides={
+                "player1_deck_preset": "IGNIS_TEMPO_TEST",
+                "player2_deck_preset": "aqua_control_test",
+            },
+        )
+
+        self.assertEqual(config.player1_deck_preset, "ignis_tempo_test")
+        self.assertEqual(config.player2_deck_preset, "aqua_control_test")
+
     def test_save_and_load_last_settings_roundtrip(self):
         path = self._workspace_temp_path("last_settings_roundtrip.json")
         payload = {
@@ -95,7 +107,7 @@ class TestTestLauncher(unittest.TestCase):
 
     def test_launch_interactive_returns_to_menu_after_run(self):
         settings_path = self._workspace_temp_path("interactive_loop.json")
-        prompts = iter(["1", "", "", "", "", "q"])
+        prompts = iter(["1", "", "", "", "", "", "", "q"])
         printed_lines = []
 
         with patch("simulation.test_launcher._available_realms_hint", return_value="Ignis, Aqua"), patch(
@@ -117,7 +129,7 @@ class TestTestLauncher(unittest.TestCase):
 
     def test_launch_interactive_prints_helpful_selection_hints(self):
         settings_path = self._workspace_temp_path("interactive_help.json")
-        prompts = iter(["1", "", "", "", "", "q"])
+        prompts = iter(["1", "", "", "", "", "", "", "q"])
         printed_lines = []
 
         with patch("simulation.test_launcher._available_realms_hint", return_value="Ignis, Aqua"):
@@ -317,6 +329,26 @@ class TestTestLauncher(unittest.TestCase):
         self.assertEqual(result, "batch")
         launcher_mock.assert_called_once()
         self.assertEqual(launcher_mock.call_args.kwargs["seed_values"], [10, 11])
+
+    def test_main_cli_preset_overrides_reach_non_interactive_path(self):
+        with patch("simulation.test_launcher.launch_non_interactive", return_value="preset-run") as launcher_mock:
+            result = test_launcher.main(
+                argv=[
+                    "--profile",
+                    "seeded_matchup",
+                    "--p1-preset",
+                    "ignis_tempo_test",
+                    "--p2-preset",
+                    "aqua_control_test",
+                ],
+                print_func=lambda *_: None,
+                settings_path=self._workspace_temp_path("main_cli_preset.json"),
+            )
+
+        self.assertEqual(result, "preset-run")
+        overrides = launcher_mock.call_args.kwargs["overrides"]
+        self.assertEqual(overrides["player1_deck_preset"], "ignis_tempo_test")
+        self.assertEqual(overrides["player2_deck_preset"], "aqua_control_test")
 
 
 if __name__ == "__main__":

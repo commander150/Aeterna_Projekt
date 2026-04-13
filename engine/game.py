@@ -26,9 +26,9 @@ from cards.resolver import can_activate_trap, resolve_card_handler, resolve_leth
 
 
 class AeternaSzimulacio:
-    def __init__(self, b1_nev, b2_nev, kartyak, engine_config=None):
-        self.p1 = Jatekos("Jatekos_1", b1_nev, kartyak)
-        self.p2 = Jatekos("Jatekos_2", b2_nev, kartyak)
+    def __init__(self, b1_nev, b2_nev, kartyak, engine_config=None, player1_deck=None, player2_deck=None, player1_preset_name=None, player2_preset_name=None):
+        self.p1 = Jatekos("Jatekos_1", b1_nev, kartyak, fixed_deck=player1_deck, deck_preset_name=player1_preset_name)
+        self.p2 = Jatekos("Jatekos_2", b2_nev, kartyak, fixed_deck=player2_deck, deck_preset_name=player2_preset_name)
         self.p1.jatek = self
         self.p2.jatek = self
         self.kor = 1

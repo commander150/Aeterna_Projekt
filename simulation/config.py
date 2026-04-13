@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
 from engine.config import EngineConfig
+from simulation.deck_presets import normalize_deck_preset_name
 
 
 CANONICAL_REALMS = (
@@ -32,6 +33,8 @@ class SimulationConfig:
     random_seed: Optional[int] = None
     player1_realm: Optional[str] = None
     player2_realm: Optional[str] = None
+    player1_deck_preset: Optional[str] = None
+    player2_deck_preset: Optional[str] = None
     random_realm_fallback: bool = True
 
     # kesobbi boviteshez
@@ -48,6 +51,8 @@ class SimulationConfig:
     def __post_init__(self):
         self.player1_realm = normalize_realm_name(self.player1_realm)
         self.player2_realm = normalize_realm_name(self.player2_realm)
+        self.player1_deck_preset = normalize_deck_preset_name(self.player1_deck_preset)
+        self.player2_deck_preset = normalize_deck_preset_name(self.player2_deck_preset)
 
     def to_engine_config(self) -> EngineConfig:
         return EngineConfig(
@@ -62,6 +67,8 @@ class SimulationConfig:
             f"seed={self.random_seed if self.random_seed is not None else 'random'}, "
             f"p1_realm={self.player1_realm or 'random'}, "
             f"p2_realm={self.player2_realm or 'random'}, "
+            f"p1_preset={self.player1_deck_preset or 'none'}, "
+            f"p2_preset={self.player2_deck_preset or 'none'}, "
             f"random_fallback={'on' if self.random_realm_fallback else 'off'}, "
             f"scenario={self.scenario or 'none'}, "
             f"engine={self.to_engine_config().describe()}"

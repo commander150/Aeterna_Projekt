@@ -15,32 +15,39 @@ def _card_matches_trait(lap, *traits):
 
 
 class Jatekos:
-    def __init__(self, nev, birodalom_neve, teljes_kartyatar):
+    def __init__(self, nev, birodalom_neve, teljes_kartyatar, fixed_deck=None, deck_preset_name=None):
         self.nev = nev
         self.birodalom = birodalom_neve
+        self.deck_preset_name = deck_preset_name
 
-        sajat_lehetosegek = [k for k in teljes_kartyatar if k.birodalom == birodalom_neve]
+        if fixed_deck is not None:
+            self.pakli = list(fixed_deck)
+            if len(self.pakli) < 5:
+                raise ValueError(f"Hiba: {birodalom_neve} preset paklija nem eleg nagy a jatekhoz.")
+            random.shuffle(self.pakli)
+        else:
+            sajat_lehetosegek = [k for k in teljes_kartyatar if k.birodalom == birodalom_neve]
 
-        if not sajat_lehetosegek:
-            sajat_lehetosegek = [
-                k for k in teljes_kartyatar
-                if k.birodalom in [birodalom_neve, "Aether"]
-            ]
+            if not sajat_lehetosegek:
+                sajat_lehetosegek = [
+                    k for k in teljes_kartyatar
+                    if k.birodalom in [birodalom_neve, "Aether"]
+                ]
 
-        if len(sajat_lehetosegek) < 5:
-            raise ValueError(f"Hiba: {birodalom_neve} birodalomhoz nincs eleg kartya a paklihoz!")
+            if len(sajat_lehetosegek) < 5:
+                raise ValueError(f"Hiba: {birodalom_neve} birodalomhoz nincs eleg kartya a paklihoz!")
 
-        self.pakli = []
-        elerheto_lapok = sajat_lehetosegek.copy()
+            self.pakli = []
+            elerheto_lapok = sajat_lehetosegek.copy()
 
-        while len(self.pakli) < 40 and elerheto_lapok:
-            lap = random.choice(elerheto_lapok)
-            if self.pakli.count(lap) < 4:
-                self.pakli.append(lap)
-            else:
-                elerheto_lapok.remove(lap)
+            while len(self.pakli) < 40 and elerheto_lapok:
+                lap = random.choice(elerheto_lapok)
+                if self.pakli.count(lap) < 4:
+                    self.pakli.append(lap)
+                else:
+                    elerheto_lapok.remove(lap)
 
-        random.shuffle(self.pakli)
+            random.shuffle(self.pakli)
 
         self.kez = []
         self.pecsetek = []
