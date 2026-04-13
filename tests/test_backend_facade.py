@@ -9,6 +9,7 @@ from backend.facade import (
     get_match_result,
     get_snapshot,
     list_matches,
+    run_ai_step,
 )
 
 
@@ -201,3 +202,25 @@ class TestBackendFacade(unittest.TestCase):
         self.assertEqual(event_log["events"], [])
         self.assertEqual(event_log["next_index"], 0)
         self.assertEqual(event_log["reason"], "unknown_match_id")
+
+    def test_run_ai_step_uses_supported_legal_action_and_returns_snapshot(self):
+        match_id = create_match(
+            {
+                "cards": make_card_pool(),
+                "player1_realm": "Ignis",
+                "player2_realm": "Aqua",
+                "random_realm_fallback": False,
+            }
+        )
+        self.addCleanup(lambda: drop_match(match_id))
+
+        self._prepare_simple_play_entity_state(match_id, make_card("AI Harcos", "Ignis", "Entitas"))
+
+        result = run_ai_step(match_id, "p1")
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["player"], "Jatekos_1")
+        self.assertEqual(result["action"]["action_type"], "play_entity")
+        self.assertEqual(result["action"]["card_name"], "AI Harcos")
+        self.assertEqual(result["response"]["result"]["executed_action_type"], "play_entity")
+        self.assertIsInstance(result["snapshot"], dict)

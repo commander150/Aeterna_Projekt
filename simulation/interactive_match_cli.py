@@ -12,6 +12,7 @@ from backend.facade import (
     get_legal_actions,
     get_match_result,
     get_snapshot,
+    run_ai_step,
     validate_action,
 )
 from simulation.config import normalize_realm_name
@@ -164,6 +165,30 @@ def render_action_result(response: Optional[Dict]) -> List[str]:
     return lines
 
 
+def render_ai_step_result(step_result: Optional[Dict]) -> List[str]:
+    if not step_result:
+        return ["Nincs AI-step valasz."]
+
+    lines = [
+        "=== AI STEP ===",
+        f"ok={step_result.get('ok')} | reason={step_result.get('reason') or '-'} | player={step_result.get('player') or '-'}",
+    ]
+    action = step_result.get("action") or {}
+    if action:
+        lines.append(
+            "Valasztott akcio: "
+            + " | ".join(
+                [
+                    f"tipus={action.get('action_type') or '-'}",
+                    f"lap={action.get('card_name') or '-'}",
+                    f"zona={action.get('zone') or '-'}",
+                    f"lane={action.get('lane') if action.get('lane') is not None else '-'}",
+                ]
+            )
+        )
+    return lines
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="AETERNA felvezerelt facade CLI prototipus emberi kiprobalashoz."
@@ -171,6 +196,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--p1", dest="player1_realm", help="P1 birodalom. Uresen hagyva veletlen.")
     parser.add_argument("--p2", dest="player2_realm", help="P2 birodalom. Uresen hagyva veletlen.")
     parser.add_argument("--seed", type=int, help="OpcionAlis random seed.")
+    parser.add_argument("--human", choices=["p1", "p2"], default="p1", help="Melyik oldal az ember a CLI-ben.")
     parser.add_argument(
         "--no-random-fallback",
         action="store_true",
@@ -214,6 +240,7 @@ def prompt_start_configuration(
 def launch_interactive_match_cli(
     *,
     match_config: Dict,
+    human_player_id: str = "p1",
     input_func: Callable[[str], str] = input,
     print_func: Callable[[str], None] = print,
 ) -> Dict:
@@ -270,7 +297,7 @@ def launch_interactive_match_cli(
                     "last_response": last_response,
                 }
 
-            print_func("Valassz akciot: szam | r=frissit | e=teljes event log | q=kilepes")
+            print_func("Valassz akciot: szam | a=egy AI-step | o=ellenfel/auto kor | r=frissit | e=teljes event log | q=kilepes")
             raw_choice = input_func("> ").strip().lower()
             if raw_choice == "q":
                 return {"status": "quit", "reason": None, "match_id": match_id, "last_response": last_response}
@@ -280,6 +307,55 @@ def launch_interactive_match_cli(
                 full_log = get_event_log(match_id, since_index=0)
                 for line in render_events(full_log.get("events", []), header="=== TELJES EVENT LOG ==="):
                     print_func(line)
+                continue
+            if raw_choice in {"a", "ai"}:
+                step_result = run_ai_step(match_id)
+                last_response = step_result.get("response") or last_response
+                for line in render_ai_step_result(step_result):
+                    print_func(line)
+                if step_result.get("response"):
+                    for line in render_action_result(step_result["response"]):
+                        print_func(line)
+                    for line in render_events(step_result["response"].get("events", [])):
+                        print_func(line)
+                    if step_result["response"].get("events"):
+                        last_event = step_result["response"]["events"][-1]
+                        if last_event.get("index") is not None:
+                            event_cursor = int(last_event["index"]) + 1
+                continue
+            if raw_choice in {"o", "opp", "opponent"}:
+                if active_player == human_player_id or active_player == {"p1": "Jatekos_1", "p2": "Jatekos_2"}.get(human_player_id):
+                    auto_response = apply_action(
+                        match_id,
+                        human_player_id,
+                        {"action_type": "end_turn", "player": active_player},
+                    )
+                    last_response = auto_response
+                    print_func("=== AUTO OPPONENT ===")
+                    print_func("A motor az ember korvegetol a kovetkezo emberi dontesi pontig futott.")
+                    for line in render_action_result(auto_response):
+                        print_func(line)
+                    for line in render_events(auto_response.get("events", [])):
+                        print_func(line)
+                    if auto_response.get("events"):
+                        last_event = auto_response["events"][-1]
+                        if last_event.get("index") is not None:
+                            event_cursor = int(last_event["index"]) + 1
+                else:
+                    step_result = run_ai_step(match_id, active_player)
+                    last_response = step_result.get("response") or last_response
+                    print_func("=== AUTO OPPONENT ===")
+                    for line in render_ai_step_result(step_result):
+                        print_func(line)
+                    if step_result.get("response"):
+                        for line in render_action_result(step_result["response"]):
+                            print_func(line)
+                        for line in render_events(step_result["response"].get("events", [])):
+                            print_func(line)
+                        if step_result["response"].get("events"):
+                            last_event = step_result["response"]["events"][-1]
+                            if last_event.get("index") is not None:
+                                event_cursor = int(last_event["index"]) + 1
                 continue
 
             try:
@@ -348,6 +424,7 @@ def main(
 
     return launch_interactive_match_cli(
         match_config=match_config,
+        human_player_id=args.human,
         input_func=input_func,
         print_func=print_func,
     )

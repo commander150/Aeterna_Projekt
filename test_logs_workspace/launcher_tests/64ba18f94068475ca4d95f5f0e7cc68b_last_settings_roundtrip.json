@@ -1,0 +1,7 @@
+{
+  "profile_name": "repeated_matchup",
+  "overrides": {
+    "games": 10,
+    "random_seed": 211
+  }
+}

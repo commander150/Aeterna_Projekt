@@ -342,3 +342,6 @@ Fontos korlat:
 - ez meg nem teljes ember-vs-AI jatekmod
 - csak azt tudja emberileg kiprobalhato modon, amit a jelenlegi backend mar formalizalt
 - jelenleg kulonosen az `end_turn`, `play_entity` es `play_trap` akciokra hasznos technikai prototipus
+- kapott egy nagyon szuk `AI step` / `auto opponent` bovitest is:
+  - `a` vagy `ai`: egy egyszeru, facade-alapu automatikus lepes az aktualis aktiv jatekosnak
+  - `o`: ha az emberi oldal van soron, a motor a korvegetol a kovetkezo emberi dontesi pontig fut

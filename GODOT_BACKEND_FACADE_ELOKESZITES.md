@@ -257,6 +257,25 @@ Ha a facade-bol kerjuk, az uj belepesi pont:
 
 - `get_legal_actions(match_id, player_id)`
 
+## 13. Felvezerelt CLI es minimalis AI-step allapot
+
+A kulon, facade-alapu CLI prototipus mar letrejott:
+
+- `simulation/interactive_match_cli.py`
+- kulon inditoval: `run_interactive_match_cli.py`
+
+Ehhez a facade most mar ad egy szuk, technikai `run_ai_step(match_id, player_id=None)` muveletet is.
+
+Ez jelenleg nem teljes AI-API es nem teljes korfuttato frontend-hatar, hanem:
+- egy egyszeru automatikus lepes az aktualis aktiv jatekosnak
+- a mar tamogatott actionokbol valaszt:
+  - `play_entity`
+  - `play_trap`
+  - `end_turn`
+
+Ez eleg arra, hogy a kulon interactive CLI mod egy fokkal kozelebb keruljon a tenyleges
+ember-vs-AI technikai mintahoz, mikozben a regi tesztlauncher tovabbra is kulon marad.
+
 ## 12. Negyedik kodkor eredmenye
 
 Az elso explicit backend-kompatibilis state-context is bekerult:

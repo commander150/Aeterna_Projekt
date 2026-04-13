@@ -115,3 +115,46 @@ class TestInteractiveMatchCli(unittest.TestCase):
         self.assertEqual(captured["match_config"]["player1_realm"], "Ignis")
         self.assertEqual(captured["match_config"]["player2_realm"], "Aqua")
         self.assertEqual(captured["match_config"]["random_seed"], 7)
+
+    def test_launch_interactive_match_cli_supports_ai_step_command(self):
+        printed_lines = []
+        inputs = iter(["a", "q"])
+
+        result = interactive_match_cli.launch_interactive_match_cli(
+            match_config={
+                "cards": make_card_pool(),
+                "player1_realm": "Ignis",
+                "player2_realm": "Aqua",
+                "random_realm_fallback": False,
+            },
+            human_player_id="p2",
+            input_func=lambda _: next(inputs),
+            print_func=printed_lines.append,
+        )
+
+        joined = "\n".join(printed_lines)
+        self.assertEqual(result["status"], "quit")
+        self.assertIn("=== AI STEP ===", joined)
+        self.assertIn("Valasztott akcio:", joined)
+
+    def test_launch_interactive_match_cli_supports_auto_opponent_command(self):
+        printed_lines = []
+        inputs = iter(["o", "q"])
+
+        result = interactive_match_cli.launch_interactive_match_cli(
+            match_config={
+                "cards": make_card_pool(),
+                "player1_realm": "Ignis",
+                "player2_realm": "Aqua",
+                "random_realm_fallback": False,
+                "random_seed": 23,
+            },
+            human_player_id="p1",
+            input_func=lambda _: next(inputs),
+            print_func=printed_lines.append,
+        )
+
+        joined = "\n".join(printed_lines)
+        self.assertEqual(result["status"], "quit")
+        self.assertIn("=== AUTO OPPONENT ===", joined)
+        self.assertIn("tipus=end_turn", joined)

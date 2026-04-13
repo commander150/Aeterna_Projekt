@@ -26,6 +26,14 @@ def _resolve_player(game, player_id):
     return None
 
 
+def _resolve_active_player(game):
+    state = getattr(game, "state", None)
+    candidate = getattr(state, "active_player", None)
+    if candidate is not None:
+        return candidate
+    return getattr(game, "p1", None)
+
+
 def _build_action_result(
     *,
     executed_action_type,
@@ -56,6 +64,25 @@ def _build_action_response(*, ok, reason, action, result, snapshot):
         "events": _build_action_events(action=action, result=result, ok=ok),
         "snapshot": snapshot,
     }
+
+
+def _pick_ai_action(actions):
+    if not actions:
+        return None
+    priority = {
+        "play_entity": 0,
+        "play_trap": 1,
+        "end_turn": 2,
+    }
+    return sorted(
+        list(actions),
+        key=lambda item: (
+            priority.get(item.get("action_type"), 99),
+            str(item.get("card_name") or ""),
+            str(item.get("zone") or ""),
+            int(item.get("lane")) if item.get("lane") is not None else 99,
+        ),
+    )[0]
 
 
 def _normalize_since_index(since_index):
@@ -354,6 +381,55 @@ def validate_action(match_id, player_id, action_request):
         return {"valid": False, "reason": "unknown_player_id", "normalized": None}
 
     return validate_action_request(game, player, action_request)
+
+
+def run_ai_step(match_id, player_id=None):
+    entry = _MATCH_REGISTRY.get(match_id)
+    if entry is None:
+        return {
+            "ok": False,
+            "reason": "unknown_match_id",
+            "player": None,
+            "action": None,
+            "response": None,
+            "snapshot": None,
+        }
+
+    game = entry["game"]
+    player = _resolve_player(game, player_id) if player_id is not None else _resolve_active_player(game)
+    if player is None:
+        return {
+            "ok": False,
+            "reason": "unknown_player_id",
+            "player": player_id,
+            "action": None,
+            "response": None,
+            "snapshot": export_match_snapshot(game),
+        }
+
+    player_name = getattr(player, "nev", None)
+    legal_actions = get_legal_actions_for_player(game, player)
+    chosen_action = _pick_ai_action(legal_actions)
+    if chosen_action is None:
+        snapshot = export_match_snapshot(game)
+        return {
+            "ok": False,
+            "reason": "no_legal_actions",
+            "player": player_name,
+            "action": None,
+            "response": None,
+            "snapshot": snapshot,
+        }
+
+    response = apply_action(match_id, player_name, chosen_action)
+    return {
+        "ok": bool(response.get("ok")),
+        "reason": response.get("reason"),
+        "player": player_name,
+        "action": dict(chosen_action),
+        "response": response,
+        "snapshot": response.get("snapshot"),
+    }
 
 
 def apply_action(match_id, player_id, action_request):

@@ -63,6 +63,15 @@ Ez mar eleg egy kezdeti, egyszeru frontend-prototipushoz.
   - rovid event listat
   - friss snapshotot
 
+### `run_ai_step(match_id, player_id=None) -> dict`
+- egy nagyon szuk, facade-szintu automatikus lepest hajt vegre
+- ha nincs kulon `player_id`, az aktualis aktiv jatekost probalja lepni
+- a jelenlegi minimalis heurisztika:
+  - elobb tamogatott `play_entity`
+  - aztan `play_trap`
+  - vegul `end_turn`
+- nem teljes AI rendszer, hanem felvezerelt CLI es kesobbi human-vs-AI elokesziteshez valo segedmuvelet
+
 ### `get_event_log(match_id, since_index=None) -> dict`
 - visszaadja a meccshez tartozo facade-szintu event puffert
 - tud teljes logot vagy adott indextol uj esemenyeket adni
