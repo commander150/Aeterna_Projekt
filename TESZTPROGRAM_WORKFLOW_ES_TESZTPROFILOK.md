@@ -345,3 +345,8 @@ Fontos korlat:
 - kapott egy nagyon szuk `AI step` / `auto opponent` bovitest is:
   - `a` vagy `ai`: egy egyszeru, facade-alapu automatikus lepes az aktualis aktiv jatekosnak
   - `o`: ha az emberi oldal van soron, a motor a korvegetol a kovetkezo emberi dontesi pontig fut
+- kulon session-logot is keszit, hogy kesobb visszanezheto legyen:
+  - mi volt a snapshot
+  - milyen legal actionok latszottak
+  - mit valasztott az ember
+  - mit lepett az AI step / auto opponent

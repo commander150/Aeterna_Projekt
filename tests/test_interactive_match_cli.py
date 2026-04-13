@@ -1,4 +1,5 @@
 import unittest
+import os
 from types import SimpleNamespace
 
 from simulation import interactive_match_cli
@@ -35,6 +36,11 @@ def make_card_pool():
 
 
 class TestInteractiveMatchCli(unittest.TestCase):
+    def _temp_log_dir(self):
+        path = os.path.join(os.getcwd(), "test_logs_workspace", "interactive_cli_tests")
+        os.makedirs(path, exist_ok=True)
+        return path
+
     def test_build_match_config_normalizes_realms(self):
         config = interactive_match_cli.build_match_config(
             player1_realm="terra",
@@ -61,6 +67,7 @@ class TestInteractiveMatchCli(unittest.TestCase):
                 "random_seed": 19,
             },
             input_func=lambda _: next(inputs),
+            log_dir=self._temp_log_dir(),
             print_func=printed_lines.append,
         )
 
@@ -69,10 +76,12 @@ class TestInteractiveMatchCli(unittest.TestCase):
         self.assertIn("=== AKTUALIS ALLAPOT ===", joined)
         self.assertIn("Aktiv jatekos:", joined)
         self.assertIn("=== LEGAL AKCIOK ===", joined)
+        self.assertIn("=== PARANCSOK ===", joined)
         self.assertIn("end_turn", joined)
         self.assertIn("=== ACTION EREDMENY ===", joined)
         self.assertIn("tipus=end_turn", joined)
         self.assertIn("turn_advanced", joined)
+        self.assertIn("Emberi oldal:", joined)
 
     def test_launch_interactive_match_cli_handles_invalid_realm_gracefully(self):
         printed_lines = []
@@ -85,6 +94,7 @@ class TestInteractiveMatchCli(unittest.TestCase):
                 "random_realm_fallback": False,
             },
             input_func=lambda _: "q",
+            log_dir=self._temp_log_dir(),
             print_func=printed_lines.append,
         )
 
@@ -129,6 +139,7 @@ class TestInteractiveMatchCli(unittest.TestCase):
             },
             human_player_id="p2",
             input_func=lambda _: next(inputs),
+            log_dir=self._temp_log_dir(),
             print_func=printed_lines.append,
         )
 
@@ -151,6 +162,7 @@ class TestInteractiveMatchCli(unittest.TestCase):
             },
             human_player_id="p1",
             input_func=lambda _: next(inputs),
+            log_dir=self._temp_log_dir(),
             print_func=printed_lines.append,
         )
 
@@ -158,3 +170,31 @@ class TestInteractiveMatchCli(unittest.TestCase):
         self.assertEqual(result["status"], "quit")
         self.assertIn("=== AUTO OPPONENT ===", joined)
         self.assertIn("tipus=end_turn", joined)
+
+    def test_launch_interactive_match_cli_creates_readable_session_log(self):
+        printed_lines = []
+        inputs = iter(["1", "q"])
+
+        result = interactive_match_cli.launch_interactive_match_cli(
+            match_config={
+                "cards": make_card_pool(),
+                "player1_realm": "Ignis",
+                "player2_realm": "Aqua",
+                "random_realm_fallback": False,
+                "random_seed": 17,
+            },
+            input_func=lambda _: next(inputs),
+            log_dir=self._temp_log_dir(),
+            print_func=printed_lines.append,
+        )
+
+        self.assertTrue(os.path.exists(result["log_path"]))
+        with open(result["log_path"], "r", encoding="utf-8") as handle:
+            content = handle.read()
+
+        self.assertIn("[SESSION_START]", content)
+        self.assertIn("[SNAPSHOT]", content)
+        self.assertIn("[LEGAL_ACTIONS]", content)
+        self.assertIn("[USER_ACTION]", content)
+        self.assertIn("[ACTION_RESULT]", content)
+        self.assertIn("[SESSION_END]", content)
