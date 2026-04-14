@@ -1,0 +1,240 @@
+[10:34:27] [SESSION_START] config={'cards': [namespace(nev='Ignis Lap 0', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 0', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 1', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 1', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 2', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 2', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 3', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 3', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 4', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 4', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 5', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 5', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 6', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 6', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 7', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 7', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 8', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 8', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 9', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 9', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False)], 'player1_realm': 'Ignis', 'player2_realm': 'Aqua', 'random_realm_fallback': False, 'random_seed': 19}
+[10:34:27] [SESSION_START] human_player=p1
+[10:34:27] [SNAPSHOT] ---
+[10:34:27] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:34:27] [SNAPSHOT] Kor: 1 | Engine aktiv jatekos: Jatekos_1 | Fazis: play
+[10:34:27] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron most: EMBER
+[10:34:27] [SNAPSHOT] Kovetkezo emberi dontesi pont: MOST
+[10:34:27] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:34:27] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Ignis | pecset=5 | kez=5 | osforras=0 | pakli=30 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Ignis Lap 7, Ignis Lap 5, Ignis Lap 1, Ignis Lap 9, Ignis Lap 4
+[10:34:27] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Aqua | pecset=5 | kez=5 | osforras=0 | pakli=30 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Aqua Lap 7, Aqua Lap 6, Aqua Lap 0, Aqua Lap 8, Aqua Lap 2
+[10:34:27] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [LEGAL_ACTIONS] ---
+[10:34:27] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:34:27] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:34:27] [COMMAND] choice=1 | active_player=Jatekos_1
+[10:34:27] [USER_ACTION] action={'action_type': 'end_turn', 'player': 'Jatekos_1', 'reason': 'default_progression'}
+[10:34:27] [ACTION_RESULT] ---
+[10:34:27] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:34:27] [ACTION_RESULT] ok=True | reason=-
+[10:34:27] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=-
+[10:34:27] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:34:27] [COMMAND_SUMMARY] ---
+[10:34:27] [COMMAND_SUMMARY] === PARANCS OSSZEGZES ===
+[10:34:27] [COMMAND_SUMMARY] Parancs: legal_action
+[10:34:27] [COMMAND_SUMMARY] Scope: pontosan 1 legal action futott le
+[10:34:27] [COMMAND_SUMMARY] Mi futott le: pontosan 1 legal action futott le
+[10:34:27] [COMMAND_SUMMARY] Engine aktiv jatekos: Jatekos_1 -> Jatekos_1
+[10:34:27] [COMMAND_SUMMARY] Emberi dontesi pont most: igen
+[10:34:27] [COMMAND_SUMMARY] Hatterszintu tovabblepes tortent: nem
+[10:34:27] [COMMAND_SUMMARY] LezArult a meccs: nem
+[10:34:27] [EVENTS] ---
+[10:34:27] [EVENTS] === UJ ESEMENYEK ===
+[10:34:27] [EVENTS] action_executed | idx=0 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:34:27] [EVENTS] turn_advanced | idx=1 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:34:27] [SNAPSHOT] ---
+[10:34:27] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:34:27] [SNAPSHOT] Kor: 2 | Engine aktiv jatekos: Jatekos_1 | Fazis: play
+[10:34:27] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron most: EMBER
+[10:34:27] [SNAPSHOT] Kovetkezo emberi dontesi pont: MOST
+[10:34:27] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:34:27] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Ignis | pecset=5 | kez=3 | osforras=1 | pakli=30 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Ignis Lap 5, Ignis Lap 1, Ignis Lap 9
+[10:34:27] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:Ignis Lap 4 | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Aqua | pecset=5 | kez=5 | osforras=1 | pakli=28 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Aqua Lap 0, Aqua Lap 8, Aqua Lap 2, Aqua Lap 2, Aqua Lap 9
+[10:34:27] [SNAPSHOT]   Horizont: 0:Aqua Lap 6 | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [LEGAL_ACTIONS] ---
+[10:34:27] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:34:27] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:34:27] [COMMAND] choice=q | active_player=Jatekos_1
+[10:34:27] [SESSION_END] status=quit
+[10:34:27] [SESSION_START] config={'cards': [namespace(nev='Ignis Lap 0', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 0', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 1', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 1', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 2', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 2', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 3', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 3', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 4', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 4', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 5', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 5', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 6', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 6', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 7', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 7', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 8', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 8', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 9', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 9', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False)], 'player1_realm': 'Ignis', 'player2_realm': 'Aqua', 'random_realm_fallback': False, 'random_seed': 17}
+[10:34:27] [SESSION_START] human_player=p1
+[10:34:27] [SNAPSHOT] ---
+[10:34:27] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:34:27] [SNAPSHOT] Kor: 1 | Engine aktiv jatekos: Jatekos_1 | Fazis: play
+[10:34:27] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron most: EMBER
+[10:34:27] [SNAPSHOT] Kovetkezo emberi dontesi pont: MOST
+[10:34:27] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:34:27] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Ignis | pecset=5 | kez=5 | osforras=0 | pakli=30 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Ignis Lap 2, Ignis Lap 5, Ignis Lap 1, Ignis Lap 9, Ignis Lap 8
+[10:34:27] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Aqua | pecset=5 | kez=5 | osforras=0 | pakli=30 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Aqua Lap 4, Aqua Lap 5, Aqua Lap 3, Aqua Lap 5, Aqua Lap 8
+[10:34:27] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [LEGAL_ACTIONS] ---
+[10:34:27] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:34:27] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:34:27] [COMMAND] choice=1 | active_player=Jatekos_1
+[10:34:27] [USER_ACTION] action={'action_type': 'end_turn', 'player': 'Jatekos_1', 'reason': 'default_progression'}
+[10:34:27] [ACTION_RESULT] ---
+[10:34:27] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:34:27] [ACTION_RESULT] ok=True | reason=-
+[10:34:27] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=-
+[10:34:27] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:34:27] [COMMAND_SUMMARY] ---
+[10:34:27] [COMMAND_SUMMARY] === PARANCS OSSZEGZES ===
+[10:34:27] [COMMAND_SUMMARY] Parancs: legal_action
+[10:34:27] [COMMAND_SUMMARY] Scope: pontosan 1 legal action futott le
+[10:34:27] [COMMAND_SUMMARY] Mi futott le: pontosan 1 legal action futott le
+[10:34:27] [COMMAND_SUMMARY] Engine aktiv jatekos: Jatekos_1 -> Jatekos_1
+[10:34:27] [COMMAND_SUMMARY] Emberi dontesi pont most: igen
+[10:34:27] [COMMAND_SUMMARY] Hatterszintu tovabblepes tortent: nem
+[10:34:27] [COMMAND_SUMMARY] LezArult a meccs: nem
+[10:34:27] [EVENTS] ---
+[10:34:27] [EVENTS] === UJ ESEMENYEK ===
+[10:34:27] [EVENTS] action_executed | idx=0 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:34:27] [EVENTS] turn_advanced | idx=1 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:34:27] [SNAPSHOT] ---
+[10:34:27] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:34:27] [SNAPSHOT] Kor: 2 | Engine aktiv jatekos: Jatekos_1 | Fazis: play
+[10:34:27] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron most: EMBER
+[10:34:27] [SNAPSHOT] Kovetkezo emberi dontesi pont: MOST
+[10:34:27] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:34:27] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Ignis | pecset=5 | kez=3 | osforras=1 | pakli=30 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Ignis Lap 5, Ignis Lap 1, Ignis Lap 9
+[10:34:27] [SNAPSHOT]   Horizont: 0:Ignis Lap 8 | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Aqua | pecset=5 | kez=5 | osforras=1 | pakli=28 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Aqua Lap 5, Aqua Lap 3, Aqua Lap 5, Aqua Lap 8, Aqua Lap 4
+[10:34:27] [SNAPSHOT]   Horizont: 0:Aqua Lap 1 | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [LEGAL_ACTIONS] ---
+[10:34:27] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:34:27] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:34:27] [COMMAND] choice=q | active_player=Jatekos_1
+[10:34:27] [SESSION_END] status=quit
+[10:34:27] [SESSION_START] config={'cards': [namespace(nev='Ignis Lap 0', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 0', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 1', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 1', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 2', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 2', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 3', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 3', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 4', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 4', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 5', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 5', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 6', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 6', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 7', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 7', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 8', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 8', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 9', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 9', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False)], 'player1_realm': 'NincsIlyen', 'player2_realm': 'Aqua', 'random_realm_fallback': False}
+[10:34:27] [SESSION_START] human_player=p1
+[10:34:27] [ERROR] startup_error=Nem elerheto birodalom a facade create_match hivasban: NincsIlyen
+[10:34:27] [SESSION_END] status=startup_error
+[10:34:27] [SESSION_START] config={'cards': [namespace(nev='Ignis Lap 0', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 0', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 1', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 1', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 2', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 2', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 3', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 3', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 4', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 4', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 5', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 5', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 6', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 6', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 7', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 7', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 8', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 8', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 9', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 9', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False)], 'player1_realm': 'Ignis', 'player2_realm': 'Aqua', 'random_realm_fallback': False}
+[10:34:27] [SESSION_START] human_player=p2
+[10:34:27] [SNAPSHOT] ---
+[10:34:27] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:34:27] [SNAPSHOT] Kor: 1 | Engine aktiv jatekos: Jatekos_1 | Fazis: play
+[10:34:27] [SNAPSHOT] Emberi oldal: p2 (Jatekos_2) | Soron most: AI
+[10:34:27] [SNAPSHOT] Kovetkezo emberi dontesi pont: NEM MOST
+[10:34:27] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:34:27] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Ignis | pecset=5 | kez=5 | osforras=0 | pakli=30 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Ignis Lap 7, Ignis Lap 9, Ignis Lap 2, Ignis Lap 0, Ignis Lap 4
+[10:34:27] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Aqua | pecset=5 | kez=5 | osforras=0 | pakli=30 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Aqua Lap 2, Aqua Lap 8, Aqua Lap 4, Aqua Lap 7, Aqua Lap 0
+[10:34:27] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [LEGAL_ACTIONS] ---
+[10:34:27] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:34:27] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:34:27] [COMMAND] choice=a | active_player=Jatekos_1
+[10:34:27] [AI_STEP] player=Jatekos_1 | action={'action_type': 'end_turn', 'player': 'Jatekos_1', 'reason': 'default_progression'}
+[10:34:27] [AI_STEP] ---
+[10:34:27] [AI_STEP] === AI STEP ===
+[10:34:27] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:34:27] [AI_STEP] Valasztott akcio: tipus=end_turn | lap=- | zona=- | lane=-
+[10:34:27] [COMMAND_SUMMARY] ---
+[10:34:27] [COMMAND_SUMMARY] === PARANCS OSSZEGZES ===
+[10:34:27] [COMMAND_SUMMARY] Parancs: a/ai
+[10:34:27] [COMMAND_SUMMARY] Scope: pontosan 1 automatikus action az aktualis aktiv jatekossal
+[10:34:27] [COMMAND_SUMMARY] Mi futott le: pontosan 1 automatikus action az aktualis aktiv jatekossal
+[10:34:27] [COMMAND_SUMMARY] Engine aktiv jatekos: Jatekos_1 -> Jatekos_1
+[10:34:27] [COMMAND_SUMMARY] Emberi dontesi pont most: nem
+[10:34:27] [COMMAND_SUMMARY] Hatterszintu tovabblepes tortent: nem
+[10:34:27] [COMMAND_SUMMARY] LezArult a meccs: nem
+[10:34:27] [ACTION_RESULT] ---
+[10:34:27] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:34:27] [ACTION_RESULT] ok=True | reason=-
+[10:34:27] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=-
+[10:34:27] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:34:27] [EVENTS] ---
+[10:34:27] [EVENTS] === UJ ESEMENYEK ===
+[10:34:27] [EVENTS] action_executed | idx=0 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:34:27] [EVENTS] turn_advanced | idx=1 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:34:27] [SNAPSHOT] ---
+[10:34:27] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:34:27] [SNAPSHOT] Kor: 2 | Engine aktiv jatekos: Jatekos_1 | Fazis: play
+[10:34:27] [SNAPSHOT] Emberi oldal: p2 (Jatekos_2) | Soron most: AI
+[10:34:27] [SNAPSHOT] Kovetkezo emberi dontesi pont: NEM MOST
+[10:34:27] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:34:27] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Ignis | pecset=5 | kez=3 | osforras=1 | pakli=30 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Ignis Lap 2, Ignis Lap 0, Ignis Lap 4
+[10:34:27] [SNAPSHOT]   Horizont: 0:Ignis Lap 9 | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Aqua | pecset=5 | kez=5 | osforras=1 | pakli=28 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Aqua Lap 8, Aqua Lap 4, Aqua Lap 7, Aqua Lap 0, Aqua Lap 4
+[10:34:27] [SNAPSHOT]   Horizont: 0:Aqua Lap 3 | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [LEGAL_ACTIONS] ---
+[10:34:27] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:34:27] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:34:27] [COMMAND] choice=q | active_player=Jatekos_1
+[10:34:27] [SESSION_END] status=quit
+[10:34:27] [SESSION_START] config={'cards': [namespace(nev='Ignis Lap 0', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 0', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 1', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 1', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 2', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 2', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 3', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 3', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 4', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 4', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 5', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 5', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 6', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 6', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 7', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 7', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 8', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 8', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Ignis Lap 9', kartyatipus='Entitas', kepesseg='', birodalom='Ignis', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False), namespace(nev='Aqua Lap 9', kartyatipus='Entitas', kepesseg='', birodalom='Aqua', klan='Teszt Klan', faj='Teszt Faj', kaszt='Teszt Kaszt', magnitudo=1, aura_koltseg=1, tamadas=2, eletero=3, egyseg_e=True, jel_e=False, sik_e=False, spell_e=False, reakcio_e=False)], 'player1_realm': 'Ignis', 'player2_realm': 'Aqua', 'random_realm_fallback': False, 'random_seed': 23}
+[10:34:27] [SESSION_START] human_player=p1
+[10:34:27] [SNAPSHOT] ---
+[10:34:27] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:34:27] [SNAPSHOT] Kor: 1 | Engine aktiv jatekos: Jatekos_1 | Fazis: play
+[10:34:27] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron most: EMBER
+[10:34:27] [SNAPSHOT] Kovetkezo emberi dontesi pont: MOST
+[10:34:27] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:34:27] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Ignis | pecset=5 | kez=5 | osforras=0 | pakli=30 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Ignis Lap 4, Ignis Lap 2, Ignis Lap 8, Ignis Lap 7, Ignis Lap 9
+[10:34:27] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Aqua | pecset=5 | kez=5 | osforras=0 | pakli=30 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Aqua Lap 8, Aqua Lap 9, Aqua Lap 2, Aqua Lap 4, Aqua Lap 2
+[10:34:27] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [LEGAL_ACTIONS] ---
+[10:34:27] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:34:27] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:34:27] [COMMAND] choice=o | active_player=Jatekos_1
+[10:34:27] [AUTO_OPPONENT] mode=end_turn_handover | human_player=p1
+[10:34:27] [ACTION_RESULT] ---
+[10:34:27] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:34:27] [ACTION_RESULT] ok=True | reason=-
+[10:34:27] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=-
+[10:34:27] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:34:27] [COMMAND_SUMMARY] ---
+[10:34:27] [COMMAND_SUMMARY] === PARANCS OSSZEGZES ===
+[10:34:27] [COMMAND_SUMMARY] Parancs: o/opp
+[10:34:27] [COMMAND_SUMMARY] Scope: 1 emberi end_turn, utana motorfutas a beEpitett korfuttatasi uton
+[10:34:27] [COMMAND_SUMMARY] Mi futott le: 1 emberi end_turn, utana motorfutas a beEpitett korfuttatasi uton
+[10:34:27] [COMMAND_SUMMARY] Engine aktiv jatekos: Jatekos_1 -> Jatekos_1
+[10:34:27] [COMMAND_SUMMARY] Emberi dontesi pont most: igen
+[10:34:27] [COMMAND_SUMMARY] Hatterszintu tovabblepes tortent: igen
+[10:34:27] [COMMAND_SUMMARY] LezArult a meccs: nem
+[10:34:27] [EVENTS] ---
+[10:34:27] [EVENTS] === UJ ESEMENYEK ===
+[10:34:27] [EVENTS] action_executed | idx=0 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:34:27] [EVENTS] turn_advanced | idx=1 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:34:27] [SNAPSHOT] ---
+[10:34:27] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:34:27] [SNAPSHOT] Kor: 2 | Engine aktiv jatekos: Jatekos_1 | Fazis: play
+[10:34:27] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron most: EMBER
+[10:34:27] [SNAPSHOT] Kovetkezo emberi dontesi pont: MOST
+[10:34:27] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:34:27] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Ignis | pecset=5 | kez=3 | osforras=1 | pakli=30 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Ignis Lap 2, Ignis Lap 7, Ignis Lap 9
+[10:34:27] [SNAPSHOT]   Horizont: 0:Ignis Lap 8 | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Aqua | pecset=5 | kez=5 | osforras=1 | pakli=28 | temeto=0
+[10:34:27] [SNAPSHOT]   Kez: Aqua Lap 9, Aqua Lap 2, Aqua Lap 4, Aqua Lap 2, Aqua Lap 8
+[10:34:27] [SNAPSHOT]   Horizont: 0:Aqua Lap 0 | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:34:27] [LEGAL_ACTIONS] ---
+[10:34:27] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:34:27] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:34:27] [COMMAND] choice=q | active_player=Jatekos_1
+[10:34:27] [SESSION_END] status=quit

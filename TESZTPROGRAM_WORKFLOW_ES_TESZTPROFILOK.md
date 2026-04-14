@@ -344,9 +344,13 @@ Fontos korlat:
 - jelenleg kulonosen az `end_turn`, `play_entity` es `play_trap` akciokra hasznos technikai prototipus
 - kapott egy nagyon szuk `AI step` / `auto opponent` bovitest is:
   - `a` vagy `ai`: egy egyszeru, facade-alapu automatikus lepes az aktualis aktiv jatekosnak
-  - `o`: ha az emberi oldal van soron, a motor a korvegetol a kovetkezo emberi dontesi pontig fut
+  - `o`: ha az emberi oldal van soron, a parancs emberi `end_turn`-t ad be, majd a jelenlegi motorut szerint a kovetkezo emberi dontesi pontig lep; ha nem az ember van soron, akkor csak 1 automatikus action fut le
 - kulon session-logot is keszit, hogy kesobb visszanezheto legyen:
   - mi volt a snapshot
   - milyen legal actionok latszottak
   - mit valasztott az ember
   - mit lepett az AI step / auto opponent
+- a CLI most mar kulon kiirja az egyes parancsok scope-jat is:
+  - pontosan 1 legal action futott-e le
+  - pontosan 1 AI step futott-e le
+  - vagy hatterszintu koratadas / motorfutas is tortent-e

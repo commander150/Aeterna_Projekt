@@ -74,11 +74,13 @@ class TestInteractiveMatchCli(unittest.TestCase):
         joined = "\n".join(printed_lines)
         self.assertEqual(result["status"], "quit")
         self.assertIn("=== AKTUALIS ALLAPOT ===", joined)
-        self.assertIn("Aktiv jatekos:", joined)
+        self.assertIn("Engine aktiv jatekos:", joined)
+        self.assertIn("Kovetkezo emberi dontesi pont:", joined)
         self.assertIn("=== LEGAL AKCIOK ===", joined)
         self.assertIn("=== PARANCSOK ===", joined)
         self.assertIn("end_turn", joined)
         self.assertIn("=== ACTION EREDMENY ===", joined)
+        self.assertIn("=== PARANCS OSSZEGZES ===", joined)
         self.assertIn("tipus=end_turn", joined)
         self.assertIn("turn_advanced", joined)
         self.assertIn("Emberi oldal:", joined)
@@ -147,6 +149,8 @@ class TestInteractiveMatchCli(unittest.TestCase):
         self.assertEqual(result["status"], "quit")
         self.assertIn("=== AI STEP ===", joined)
         self.assertIn("Valasztott akcio:", joined)
+        self.assertIn("=== PARANCS OSSZEGZES ===", joined)
+        self.assertIn("Parancs: a/ai", joined)
 
     def test_launch_interactive_match_cli_supports_auto_opponent_command(self):
         printed_lines = []
@@ -170,6 +174,9 @@ class TestInteractiveMatchCli(unittest.TestCase):
         self.assertEqual(result["status"], "quit")
         self.assertIn("=== AUTO OPPONENT ===", joined)
         self.assertIn("tipus=end_turn", joined)
+        self.assertIn("=== PARANCS OSSZEGZES ===", joined)
+        self.assertIn("Parancs: o/opp", joined)
+        self.assertIn("Hatterszintu tovabblepes tortent: igen", joined)
 
     def test_launch_interactive_match_cli_creates_readable_session_log(self):
         printed_lines = []
@@ -197,4 +204,5 @@ class TestInteractiveMatchCli(unittest.TestCase):
         self.assertIn("[LEGAL_ACTIONS]", content)
         self.assertIn("[USER_ACTION]", content)
         self.assertIn("[ACTION_RESULT]", content)
+        self.assertIn("[COMMAND_SUMMARY]", content)
         self.assertIn("[SESSION_END]", content)

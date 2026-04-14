@@ -90,17 +90,46 @@ def _human_player_name(snapshot: Optional[Dict], human_player_id: str) -> Option
     return ((snapshot.get(player_key) or {}).get("name")) or human_player_id
 
 
-def render_snapshot(snapshot: Optional[Dict], *, human_player_id: str = "p1") -> List[str]:
+def _state_meta(snapshot: Optional[Dict], human_player_id: str) -> Dict:
+    if not snapshot:
+        return {
+            "active_player": None,
+            "human_player_name": None,
+            "human_turn": False,
+            "match_finished": False,
+        }
+    active_player = snapshot.get("active_player")
+    human_player_name = _human_player_name(snapshot, human_player_id)
+    return {
+        "active_player": active_player,
+        "human_player_name": human_player_name,
+        "human_turn": active_player == human_player_name,
+        "match_finished": bool(snapshot.get("match_finished")),
+    }
+
+
+def render_snapshot(
+    snapshot: Optional[Dict],
+    *,
+    human_player_id: str = "p1",
+    human_decision_available: Optional[bool] = None,
+) -> List[str]:
     if not snapshot:
         return ["Nincs elerheto snapshot."]
 
-    active_player = snapshot.get("active_player")
-    human_player_name = _human_player_name(snapshot, human_player_id)
-    turn_owner = "EMBER" if active_player == human_player_name else "AI"
+    meta = _state_meta(snapshot, human_player_id)
+    active_player = meta["active_player"]
+    human_player_name = meta["human_player_name"]
+    turn_owner = "EMBER" if meta["human_turn"] else "AI"
+    if human_decision_available is None:
+        decision_hint = "MOST" if meta["human_turn"] else "NEM MOST"
+    else:
+        decision_hint = "MOST" if human_decision_available else "NEM MOST"
     lines = [
         "=== AKTUALIS ALLAPOT ===",
-        f"Kor: {snapshot.get('turn')} | Aktiv jatekos: {active_player} | Fazis: {snapshot.get('phase')}",
-        f"Emberi oldal: {human_player_id} ({human_player_name or '-'}) | Soron: {turn_owner}",
+        f"Kor: {snapshot.get('turn')} | Engine aktiv jatekos: {active_player} | Fazis: {snapshot.get('phase')}",
+        f"Emberi oldal: {human_player_id} ({human_player_name or '-'}) | Soron most: {turn_owner}",
+        f"Kovetkezo emberi dontesi pont: {decision_hint}",
         f"Meccs vege: {'igen' if snapshot.get('match_finished') else 'nem'} | Gyoztes: {snapshot.get('winner') or '-'}",
     ]
 
@@ -148,11 +177,11 @@ def render_legal_actions(actions: Sequence[Dict]) -> List[str]:
 def render_command_help() -> List[str]:
     return [
         "=== PARANCSOK ===",
-        "szam = legal action vegrehajtasa",
-        "a / ai = egy egyszeru AI step az aktualis aktiv jatekosnak",
-        "o / opp = auto-opponent jellegu tovabblepes a kovetkezo emberi ponthoz",
-        "r = allapot frissitese",
-        "e = teljes event log",
+        "szam = pontosan 1 legal action vegrehajtasa a jelenlegi aktiv jatekossal",
+        "a / ai = pontosan 1 automatikus facade-AI akcio az aktualis aktiv jatekossal",
+        "o / opp = ha az ember van soron: end_turn + motorfutas a kovetkezo emberi pontig; kulonben 1 AI akcio",
+        "r = allapot ujrakiirasa uj vegrehajtas nelkul",
+        "e = teljes facade event log kiirasa",
         "h / ? = parancslista",
         "q = kilepes",
     ]
@@ -233,6 +262,42 @@ def render_ai_step_result(step_result: Optional[Dict]) -> List[str]:
     return lines
 
 
+def render_command_outcome(summary: Dict) -> List[str]:
+    return [
+        "=== PARANCS OSSZEGZES ===",
+        f"Parancs: {summary.get('command')}",
+        f"Scope: {summary.get('scope')}",
+        f"Mi futott le: {summary.get('what_ran')}",
+        f"Engine aktiv jatekos: {summary.get('active_before') or '-'} -> {summary.get('active_after') or '-'}",
+        f"Emberi dontesi pont most: {'igen' if summary.get('human_decision_now') else 'nem'}",
+        f"Hatterszintu tovabblepes tortent: {'igen' if summary.get('background_progress') else 'nem'}",
+        f"LezArult a meccs: {'igen' if summary.get('match_finished') else 'nem'}",
+    ]
+
+
+def summarize_command_scope(
+    *,
+    command: str,
+    before_snapshot: Optional[Dict],
+    after_snapshot: Optional[Dict],
+    human_player_id: str,
+    what_ran: str,
+    background_progress: bool,
+) -> Dict:
+    before_meta = _state_meta(before_snapshot, human_player_id)
+    after_meta = _state_meta(after_snapshot, human_player_id)
+    return {
+        "command": command,
+        "scope": what_ran,
+        "what_ran": what_ran,
+        "active_before": before_meta["active_player"],
+        "active_after": after_meta["active_player"],
+        "human_decision_now": after_meta["human_turn"] and not after_meta["match_finished"],
+        "background_progress": background_progress,
+        "match_finished": after_meta["match_finished"],
+    }
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="AETERNA felvezerelt facade CLI prototipus emberi kiprobalashoz."
@@ -311,8 +376,13 @@ def launch_interactive_match_cli(
         while True:
             snapshot = get_snapshot(match_id)
             result = get_match_result(match_id)
+            current_meta = _state_meta(snapshot, human_player_id)
 
-            snapshot_lines = render_snapshot(snapshot, human_player_id=human_player_id)
+            snapshot_lines = render_snapshot(
+                snapshot,
+                human_player_id=human_player_id,
+                human_decision_available=current_meta["human_turn"] and not current_meta["match_finished"],
+            )
             for line in snapshot_lines:
                 print_func(line)
             session_logger.write_block("SNAPSHOT", snapshot_lines)
@@ -381,6 +451,7 @@ def launch_interactive_match_cli(
                 session_logger.write_block("FULL_EVENT_LOG", full_event_lines)
                 continue
             if raw_choice in {"a", "ai"}:
+                before_snapshot = snapshot
                 step_result = run_ai_step(match_id)
                 last_response = step_result.get("response") or last_response
                 session_logger.write("AI_STEP", f"player={step_result.get('player')} | action={step_result.get('action')}")
@@ -388,6 +459,20 @@ def launch_interactive_match_cli(
                 for line in ai_lines:
                     print_func(line)
                 session_logger.write_block("AI_STEP", ai_lines)
+                after_snapshot = step_result.get("snapshot") or get_snapshot(match_id)
+                outcome_lines = render_command_outcome(
+                    summarize_command_scope(
+                        command="a/ai",
+                        before_snapshot=before_snapshot,
+                        after_snapshot=after_snapshot,
+                        human_player_id=human_player_id,
+                        what_ran="pontosan 1 automatikus action az aktualis aktiv jatekossal",
+                        background_progress=False,
+                    )
+                )
+                for line in outcome_lines:
+                    print_func(line)
+                session_logger.write_block("COMMAND_SUMMARY", outcome_lines)
                 if step_result.get("response"):
                     action_result_lines = render_action_result(step_result["response"])
                     for line in action_result_lines:
@@ -403,6 +488,7 @@ def launch_interactive_match_cli(
                             event_cursor = int(last_event["index"]) + 1
                 continue
             if raw_choice in {"o", "opp", "opponent"}:
+                before_snapshot = snapshot
                 if active_player == human_player_id or active_player == {"p1": "Jatekos_1", "p2": "Jatekos_2"}.get(human_player_id):
                     auto_response = apply_action(
                         match_id,
@@ -411,12 +497,26 @@ def launch_interactive_match_cli(
                     )
                     last_response = auto_response
                     print_func("=== AUTO OPPONENT ===")
-                    print_func("A motor az ember korvegetol a kovetkezo emberi dontesi pontig futott.")
+                    print_func("A parancs az ember korvegetol a jelenlegi motorut szerint a kovetkezo emberi dontesi pontig lepett.")
                     session_logger.write("AUTO_OPPONENT", f"mode=end_turn_handover | human_player={human_player_id}")
+                    after_snapshot = auto_response.get("snapshot") or get_snapshot(match_id)
+                    outcome_lines = render_command_outcome(
+                        summarize_command_scope(
+                            command="o/opp",
+                            before_snapshot=before_snapshot,
+                            after_snapshot=after_snapshot,
+                            human_player_id=human_player_id,
+                            what_ran="1 emberi end_turn, utana motorfutas a beEpitett korfuttatasi uton",
+                            background_progress=True,
+                        )
+                    )
                     auto_result_lines = render_action_result(auto_response)
                     for line in auto_result_lines:
                         print_func(line)
                     session_logger.write_block("ACTION_RESULT", auto_result_lines)
+                    for line in outcome_lines:
+                        print_func(line)
+                    session_logger.write_block("COMMAND_SUMMARY", outcome_lines)
                     auto_event_lines = render_events(auto_response.get("events", []))
                     for line in auto_event_lines:
                         print_func(line)
@@ -434,11 +534,25 @@ def launch_interactive_match_cli(
                     for line in auto_ai_lines:
                         print_func(line)
                     session_logger.write_block("AI_STEP", auto_ai_lines)
+                    after_snapshot = step_result.get("snapshot") or get_snapshot(match_id)
+                    outcome_lines = render_command_outcome(
+                        summarize_command_scope(
+                            command="o/opp",
+                            before_snapshot=before_snapshot,
+                            after_snapshot=after_snapshot,
+                            human_player_id=human_player_id,
+                            what_ran="mivel nem az ember volt soron, pontosan 1 automatikus action futott le",
+                            background_progress=False,
+                        )
+                    )
                     if step_result.get("response"):
                         auto_action_lines = render_action_result(step_result["response"])
                         for line in auto_action_lines:
                             print_func(line)
                         session_logger.write_block("ACTION_RESULT", auto_action_lines)
+                        for line in outcome_lines:
+                            print_func(line)
+                        session_logger.write_block("COMMAND_SUMMARY", outcome_lines)
                         auto_event_lines = render_events(step_result["response"].get("events", []))
                         for line in auto_event_lines:
                             print_func(line)
@@ -469,10 +583,23 @@ def launch_interactive_match_cli(
 
             response = apply_action(match_id, active_player, action)
             last_response = response
+            outcome_lines = render_command_outcome(
+                summarize_command_scope(
+                    command="legal_action",
+                    before_snapshot=snapshot,
+                    after_snapshot=response.get("snapshot"),
+                    human_player_id=human_player_id,
+                    what_ran="pontosan 1 legal action futott le",
+                    background_progress=False,
+                )
+            )
             action_result_lines = render_action_result(response)
             for line in action_result_lines:
                 print_func(line)
             session_logger.write_block("ACTION_RESULT", action_result_lines)
+            for line in outcome_lines:
+                print_func(line)
+            session_logger.write_block("COMMAND_SUMMARY", outcome_lines)
             response_event_lines = render_events(response.get("events", []))
             for line in response_event_lines:
                 print_func(line)

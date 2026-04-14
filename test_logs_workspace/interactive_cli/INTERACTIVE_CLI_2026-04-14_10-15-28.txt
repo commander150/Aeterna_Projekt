@@ -1,0 +1,550 @@
+[10:15:28] [SESSION_START] config={'player1_realm': None, 'player2_realm': None, 'random_seed': None, 'random_realm_fallback': True, 'xlsx_path': 'E:\\Letöltések\\Aeterna\\Aeterna_Projekt\\cards.xlsx'}
+[10:15:28] [SESSION_START] human_player=p1
+[10:15:29] [SNAPSHOT] ---
+[10:15:29] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:15:29] [SNAPSHOT] Kor: 1 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:15:29] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:15:29] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:15:29] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=5 | kez=5 | osforras=0 | pakli=30 | temeto=0
+[10:15:29] [SNAPSHOT]   Kez: Óceáni Sámán, Fagyos Lándzsa, Folyékony Helycsere, Bénító Fagy, Nagy Áramlás
+[10:15:29] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:15:29] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:15:29] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=5 | kez=5 | osforras=0 | pakli=30 | temeto=0
+[10:15:29] [SNAPSHOT]   Kez: Ignatar a Hamvaskezű, Páncéltörő Csapás, Tűzvihar Bajnoka, Kirobbanó Erő, Lángnyelv Adeptus
+[10:15:29] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:15:29] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:15:29] [LEGAL_ACTIONS] ---
+[10:15:29] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:15:29] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:15:43] [COMMAND] choice=1 | active_player=Jatekos_1
+[10:15:43] [USER_ACTION] action={'action_type': 'end_turn', 'player': 'Jatekos_1', 'reason': 'default_progression'}
+[10:15:43] [ACTION_RESULT] ---
+[10:15:43] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:15:43] [ACTION_RESULT] ok=True | reason=-
+[10:15:43] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=-
+[10:15:43] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:15:43] [EVENTS] ---
+[10:15:43] [EVENTS] === UJ ESEMENYEK ===
+[10:15:43] [EVENTS] action_executed | idx=0 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:15:43] [EVENTS] turn_advanced | idx=1 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:15:43] [SNAPSHOT] ---
+[10:15:43] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:15:43] [SNAPSHOT] Kor: 2 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:15:43] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:15:43] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:15:43] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=5 | kez=3 | osforras=1 | pakli=30 | temeto=1
+[10:15:43] [SNAPSHOT]   Kez: Fagyos Lándzsa, Nagy Áramlás, Bénító Fagy
+[10:15:43] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:15:43] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:15:43] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=5 | kez=6 | osforras=1 | pakli=28 | temeto=0
+[10:15:43] [SNAPSHOT]   Kez: Tűzvihar Megidézése, Tűzvihar Bajnoka, Páncéltörő Csapás, Kirobbanó Erő, Túlhevült Mana, Lángnyelv Adeptus
+[10:15:43] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:15:43] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:15:43] [LEGAL_ACTIONS] ---
+[10:15:43] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:15:43] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:15:49] [COMMAND] choice=1 | active_player=Jatekos_1
+[10:15:49] [USER_ACTION] action={'action_type': 'end_turn', 'player': 'Jatekos_1', 'reason': 'default_progression'}
+[10:15:49] [ACTION_RESULT] ---
+[10:15:49] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:15:49] [ACTION_RESULT] ok=True | reason=-
+[10:15:49] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=-
+[10:15:49] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:15:49] [EVENTS] ---
+[10:15:49] [EVENTS] === UJ ESEMENYEK ===
+[10:15:49] [EVENTS] action_executed | idx=2 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:15:49] [EVENTS] turn_advanced | idx=3 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:15:49] [SNAPSHOT] ---
+[10:15:49] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:15:49] [SNAPSHOT] Kor: 3 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:15:49] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:15:49] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:15:49] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=5 | kez=3 | osforras=2 | pakli=28 | temeto=1
+[10:15:49] [SNAPSHOT]   Kez: Nagy Áramlás, Nagy Áramlás, Csalóka Hullám
+[10:15:49] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:15:49] [SNAPSHOT]   Zenit: 0:[hidden:Bénító Fagy] | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:15:49] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=5 | kez=6 | osforras=2 | pakli=26 | temeto=0
+[10:15:49] [SNAPSHOT]   Kez: Tűzvihar Bajnoka, Páncéltörő Csapás, Kirobbanó Erő, Túlhevült Mana, Kirobbanó Erő, Lángnyelv Adeptus
+[10:15:49] [SNAPSHOT]   Horizont: 0:Parázs-Szellem | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:15:49] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:15:49] [LEGAL_ACTIONS] ---
+[10:15:49] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:15:49] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:16:06] [COMMAND] choice=a | active_player=Jatekos_1
+[10:16:06] [AI_STEP] player=Jatekos_1 | action={'action_type': 'end_turn', 'player': 'Jatekos_1', 'reason': 'default_progression'}
+[10:16:06] [AI_STEP] ---
+[10:16:06] [AI_STEP] === AI STEP ===
+[10:16:06] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:16:06] [AI_STEP] Valasztott akcio: tipus=end_turn | lap=- | zona=- | lane=-
+[10:16:06] [ACTION_RESULT] ---
+[10:16:06] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:16:06] [ACTION_RESULT] ok=True | reason=-
+[10:16:06] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=-
+[10:16:06] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:16:06] [EVENTS] ---
+[10:16:06] [EVENTS] === UJ ESEMENYEK ===
+[10:16:06] [EVENTS] action_executed | idx=4 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:16:06] [EVENTS] turn_advanced | idx=5 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:16:06] [SNAPSHOT] ---
+[10:16:06] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:16:06] [SNAPSHOT] Kor: 4 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:16:06] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:16:06] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:16:06] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=5 | kez=3 | osforras=3 | pakli=26 | temeto=3
+[10:16:06] [SNAPSHOT]   Kez: Nagy Áramlás, Visszacsapó Hullám, Csalóka Hullám
+[10:16:06] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:06] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:06] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=5 | kez=6 | osforras=3 | pakli=24 | temeto=0
+[10:16:06] [SNAPSHOT]   Kez: Páncéltörő Csapás, Kirobbanó Erő, Kirobbanó Erő, Lángnyelv Adeptus, Goblin Taktika, Robbanó Pajzs
+[10:16:06] [SNAPSHOT]   Horizont: 0:Parázs-Szellem | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:06] [SNAPSHOT]   Zenit: 0:[hidden:Túlhevült Mana] | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:06] [LEGAL_ACTIONS] ---
+[10:16:06] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:16:06] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:16:13] [COMMAND] choice=a | active_player=Jatekos_1
+[10:16:13] [AI_STEP] player=Jatekos_1 | action={'action_type': 'end_turn', 'player': 'Jatekos_1', 'reason': 'default_progression'}
+[10:16:13] [AI_STEP] ---
+[10:16:13] [AI_STEP] === AI STEP ===
+[10:16:13] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:16:13] [AI_STEP] Valasztott akcio: tipus=end_turn | lap=- | zona=- | lane=-
+[10:16:13] [ACTION_RESULT] ---
+[10:16:13] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:16:13] [ACTION_RESULT] ok=True | reason=-
+[10:16:13] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=-
+[10:16:13] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:16:13] [EVENTS] ---
+[10:16:13] [EVENTS] === UJ ESEMENYEK ===
+[10:16:13] [EVENTS] action_executed | idx=6 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:16:13] [EVENTS] turn_advanced | idx=7 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:16:13] [SNAPSHOT] ---
+[10:16:13] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:16:13] [SNAPSHOT] Kor: 5 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:16:13] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:16:13] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:16:13] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=5 | kez=3 | osforras=4 | pakli=24 | temeto=4
+[10:16:13] [SNAPSHOT]   Kez: Nagy Áramlás, Visszacsapó Hullám, Csalóka Hullám
+[10:16:13] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:13] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:13] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=5 | kez=8 | osforras=4 | pakli=20 | temeto=1
+[10:16:13] [SNAPSHOT]   Kez: Páncéltörő Csapás, Kirobbanó Erő, Lángnyelv Adeptus, Goblin Taktika, Robbanó Pajzs, Füstkéses Nindzsa, ... (+2)
+[10:16:13] [SNAPSHOT]   Horizont: 0:Parázs-Szellem | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:13] [SNAPSHOT]   Zenit: 0:[hidden:Túlhevült Mana] | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:13] [LEGAL_ACTIONS] ---
+[10:16:13] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:16:13] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:16:13] [LEGAL_ACTIONS] 2. | play_trap | lap=Csalóka Hullám | zona=zenit | lane=0 | source=hand
+[10:16:13] [LEGAL_ACTIONS] 3. | play_trap | lap=Csalóka Hullám | zona=zenit | lane=1 | source=hand
+[10:16:13] [LEGAL_ACTIONS] 4. | play_trap | lap=Csalóka Hullám | zona=zenit | lane=2 | source=hand
+[10:16:13] [LEGAL_ACTIONS] 5. | play_trap | lap=Csalóka Hullám | zona=zenit | lane=3 | source=hand
+[10:16:13] [LEGAL_ACTIONS] 6. | play_trap | lap=Csalóka Hullám | zona=zenit | lane=4 | source=hand
+[10:16:13] [LEGAL_ACTIONS] 7. | play_trap | lap=Csalóka Hullám | zona=zenit | lane=5 | source=hand
+[10:16:14] [COMMAND] choice=a | active_player=Jatekos_1
+[10:16:14] [AI_STEP] player=Jatekos_1 | action={'action_type': 'play_trap', 'player': 'Jatekos_1', 'card_name': 'Csalóka Hullám', 'zone': 'zenit', 'lane': 0, 'source': 'hand'}
+[10:16:14] [AI_STEP] ---
+[10:16:14] [AI_STEP] === AI STEP ===
+[10:16:14] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:16:14] [AI_STEP] Valasztott akcio: tipus=play_trap | lap=Csalóka Hullám | zona=zenit | lane=0
+[10:16:14] [ACTION_RESULT] ---
+[10:16:14] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:16:14] [ACTION_RESULT] ok=True | reason=-
+[10:16:14] [ACTION_RESULT] tipus=play_trap | status=executed | lap=Csalóka Hullám | zona=zenit | lane=0 | winner=-
+[10:16:14] [ACTION_RESULT] details={'trap_on_board': True}
+[10:16:14] [EVENTS] ---
+[10:16:14] [EVENTS] === UJ ESEMENYEK ===
+[10:16:14] [EVENTS] action_executed | idx=8 | player=Jatekos_1 | lap=Csalóka Hullám | zona=zenit | lane=0 | details={'action_type': 'play_trap', 'status': 'executed'}
+[10:16:14] [EVENTS] trap_played | idx=9 | player=Jatekos_1 | lap=Csalóka Hullám | zona=zenit | lane=0 | details={'trap_on_board': True}
+[10:16:14] [EVENTS] board_changed | idx=10 | player=Jatekos_1 | lap=Csalóka Hullám | zona=zenit | lane=0 | details={'cause': 'play_trap'}
+[10:16:14] [SNAPSHOT] ---
+[10:16:14] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:16:14] [SNAPSHOT] Kor: 5 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:16:14] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:16:14] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:16:14] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=5 | kez=2 | osforras=4 | pakli=24 | temeto=4
+[10:16:14] [SNAPSHOT]   Kez: Nagy Áramlás, Visszacsapó Hullám
+[10:16:14] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:14] [SNAPSHOT]   Zenit: 0:[hidden:Csalóka Hullám] | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:14] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=5 | kez=8 | osforras=4 | pakli=20 | temeto=1
+[10:16:14] [SNAPSHOT]   Kez: Páncéltörő Csapás, Kirobbanó Erő, Lángnyelv Adeptus, Goblin Taktika, Robbanó Pajzs, Füstkéses Nindzsa, ... (+2)
+[10:16:14] [SNAPSHOT]   Horizont: 0:Parázs-Szellem | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:14] [SNAPSHOT]   Zenit: 0:[hidden:Túlhevült Mana] | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:14] [LEGAL_ACTIONS] ---
+[10:16:14] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:16:14] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:16:15] [COMMAND] choice=a | active_player=Jatekos_1
+[10:16:15] [AI_STEP] player=Jatekos_1 | action={'action_type': 'end_turn', 'player': 'Jatekos_1', 'reason': 'default_progression'}
+[10:16:15] [AI_STEP] ---
+[10:16:15] [AI_STEP] === AI STEP ===
+[10:16:15] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:16:15] [AI_STEP] Valasztott akcio: tipus=end_turn | lap=- | zona=- | lane=-
+[10:16:15] [ACTION_RESULT] ---
+[10:16:15] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:16:15] [ACTION_RESULT] ok=True | reason=-
+[10:16:15] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=-
+[10:16:15] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:16:15] [EVENTS] ---
+[10:16:15] [EVENTS] === UJ ESEMENYEK ===
+[10:16:15] [EVENTS] action_executed | idx=11 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:16:15] [EVENTS] turn_advanced | idx=12 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:16:15] [SNAPSHOT] ---
+[10:16:15] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:16:15] [SNAPSHOT] Kor: 6 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:16:15] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:16:15] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:16:15] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=5 | kez=2 | osforras=5 | pakli=22 | temeto=4
+[10:16:15] [SNAPSHOT]   Kez: Visszacsapó Hullám, Tajtékzó Harag
+[10:16:15] [SNAPSHOT]   Horizont: 0:Tajték-Zsoldos | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:15] [SNAPSHOT]   Zenit: 0:[hidden:Csalóka Hullám] | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:15] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=5 | kez=8 | osforras=5 | pakli=18 | temeto=3
+[10:16:15] [SNAPSHOT]   Kez: Kirobbanó Erő, Lángoló Pörölyös, Lángnyelv Adeptus, Goblin Taktika, Robbanó Pajzs, Utolsó Szikra, ... (+2)
+[10:16:15] [SNAPSHOT]   Horizont: 0:Füstkéses Nindzsa | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:15] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:15] [LEGAL_ACTIONS] ---
+[10:16:15] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:16:15] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:16:15] [COMMAND] choice=a | active_player=Jatekos_1
+[10:16:15] [AI_STEP] player=Jatekos_1 | action={'action_type': 'end_turn', 'player': 'Jatekos_1', 'reason': 'default_progression'}
+[10:16:15] [AI_STEP] ---
+[10:16:15] [AI_STEP] === AI STEP ===
+[10:16:15] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:16:15] [AI_STEP] Valasztott akcio: tipus=end_turn | lap=- | zona=- | lane=-
+[10:16:15] [ACTION_RESULT] ---
+[10:16:15] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:16:15] [ACTION_RESULT] ok=True | reason=-
+[10:16:15] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=-
+[10:16:15] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:16:15] [EVENTS] ---
+[10:16:15] [EVENTS] === UJ ESEMENYEK ===
+[10:16:15] [EVENTS] action_executed | idx=13 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:16:15] [EVENTS] turn_advanced | idx=14 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:16:15] [SNAPSHOT] ---
+[10:16:15] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:16:15] [SNAPSHOT] Kor: 7 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:16:15] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:16:15] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:16:15] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=5 | kez=5 | osforras=6 | pakli=17 | temeto=5
+[10:16:15] [SNAPSHOT]   Kez: Fagyos Lándzsa, Tajtékzó Harag, A Végtelen Óceán, Korall-csapda, Örvény-nyelés
+[10:16:15] [SNAPSHOT]   Horizont: 0:Tajték-Zsoldos | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:15] [SNAPSHOT]   Zenit: 0:[hidden:Csalóka Hullám] | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:15] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=5 | kez=8 | osforras=6 | pakli=16 | temeto=5
+[10:16:15] [SNAPSHOT]   Kez: Kirobbanó Erő, Lángoló Pörölyös, Lángnyelv Adeptus, Robbanó Pajzs, Utolsó Szikra, Magma-Elementál, ... (+2)
+[10:16:15] [SNAPSHOT]   Horizont: 0:Goblin Token | 1:Goblin Token | 2:. | 3:. | 4:. | 5:.
+[10:16:15] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:15] [LEGAL_ACTIONS] ---
+[10:16:15] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:16:15] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:16:15] [LEGAL_ACTIONS] 2. | play_trap | lap=Korall-csapda | zona=zenit | lane=1 | source=hand
+[10:16:15] [LEGAL_ACTIONS] 3. | play_trap | lap=Korall-csapda | zona=zenit | lane=2 | source=hand
+[10:16:15] [LEGAL_ACTIONS] 4. | play_trap | lap=Korall-csapda | zona=zenit | lane=3 | source=hand
+[10:16:15] [LEGAL_ACTIONS] 5. | play_trap | lap=Korall-csapda | zona=zenit | lane=4 | source=hand
+[10:16:15] [LEGAL_ACTIONS] 6. | play_trap | lap=Korall-csapda | zona=zenit | lane=5 | source=hand
+[10:16:15] [LEGAL_ACTIONS] 7. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=1 | source=hand
+[10:16:15] [LEGAL_ACTIONS] 8. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=2 | source=hand
+[10:16:15] [LEGAL_ACTIONS] 9. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=3 | source=hand
+[10:16:15] [LEGAL_ACTIONS] 10. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=4 | source=hand
+[10:16:15] [LEGAL_ACTIONS] 11. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=5 | source=hand
+[10:16:16] [COMMAND] choice=a | active_player=Jatekos_1
+[10:16:16] [AI_STEP] player=Jatekos_1 | action={'action_type': 'play_trap', 'player': 'Jatekos_1', 'card_name': 'Korall-csapda', 'zone': 'zenit', 'lane': 1, 'source': 'hand'}
+[10:16:16] [AI_STEP] ---
+[10:16:16] [AI_STEP] === AI STEP ===
+[10:16:16] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:16:16] [AI_STEP] Valasztott akcio: tipus=play_trap | lap=Korall-csapda | zona=zenit | lane=1
+[10:16:16] [ACTION_RESULT] ---
+[10:16:16] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:16:16] [ACTION_RESULT] ok=True | reason=-
+[10:16:16] [ACTION_RESULT] tipus=play_trap | status=executed | lap=Korall-csapda | zona=zenit | lane=1 | winner=-
+[10:16:16] [ACTION_RESULT] details={'trap_on_board': True}
+[10:16:16] [EVENTS] ---
+[10:16:16] [EVENTS] === UJ ESEMENYEK ===
+[10:16:16] [EVENTS] action_executed | idx=15 | player=Jatekos_1 | lap=Korall-csapda | zona=zenit | lane=1 | details={'action_type': 'play_trap', 'status': 'executed'}
+[10:16:16] [EVENTS] trap_played | idx=16 | player=Jatekos_1 | lap=Korall-csapda | zona=zenit | lane=1 | details={'trap_on_board': True}
+[10:16:16] [EVENTS] board_changed | idx=17 | player=Jatekos_1 | lap=Korall-csapda | zona=zenit | lane=1 | details={'cause': 'play_trap'}
+[10:16:16] [SNAPSHOT] ---
+[10:16:16] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:16:16] [SNAPSHOT] Kor: 7 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:16:16] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:16:16] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:16:16] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=5 | kez=4 | osforras=6 | pakli=17 | temeto=5
+[10:16:16] [SNAPSHOT]   Kez: Fagyos Lándzsa, Tajtékzó Harag, A Végtelen Óceán, Örvény-nyelés
+[10:16:16] [SNAPSHOT]   Horizont: 0:Tajték-Zsoldos | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:16] [SNAPSHOT]   Zenit: 0:[hidden:Csalóka Hullám] | 1:[hidden:Korall-csapda] | 2:. | 3:. | 4:. | 5:.
+[10:16:16] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=5 | kez=8 | osforras=6 | pakli=16 | temeto=5
+[10:16:16] [SNAPSHOT]   Kez: Kirobbanó Erő, Lángoló Pörölyös, Lángnyelv Adeptus, Robbanó Pajzs, Utolsó Szikra, Magma-Elementál, ... (+2)
+[10:16:16] [SNAPSHOT]   Horizont: 0:Goblin Token | 1:Goblin Token | 2:. | 3:. | 4:. | 5:.
+[10:16:16] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:16] [LEGAL_ACTIONS] ---
+[10:16:16] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:16:16] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:16:18] [COMMAND] choice=a | active_player=Jatekos_1
+[10:16:18] [AI_STEP] player=Jatekos_1 | action={'action_type': 'end_turn', 'player': 'Jatekos_1', 'reason': 'default_progression'}
+[10:16:18] [AI_STEP] ---
+[10:16:18] [AI_STEP] === AI STEP ===
+[10:16:18] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:16:18] [AI_STEP] Valasztott akcio: tipus=end_turn | lap=- | zona=- | lane=-
+[10:16:18] [ACTION_RESULT] ---
+[10:16:18] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:16:18] [ACTION_RESULT] ok=True | reason=-
+[10:16:18] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=-
+[10:16:18] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:16:18] [EVENTS] ---
+[10:16:18] [EVENTS] === UJ ESEMENYEK ===
+[10:16:18] [EVENTS] action_executed | idx=18 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:16:18] [EVENTS] turn_advanced | idx=19 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:16:18] [SNAPSHOT] ---
+[10:16:18] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:16:18] [SNAPSHOT] Kor: 8 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:16:18] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:16:18] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:16:18] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=4 | kez=5 | osforras=7 | pakli=15 | temeto=7
+[10:16:18] [SNAPSHOT]   Kez: A Végtelen Óceán, Áramlat-táncos Pengemester, Fagyos Lándzsa, Örvény-nyelés, Viharszárnyú Hal
+[10:16:18] [SNAPSHOT]   Horizont: 0:Tajték-Zsoldos | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:18] [SNAPSHOT]   Zenit: 0:[hidden:Csalóka Hullám] | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:18] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=5 | kez=8 | osforras=7 | pakli=14 | temeto=6
+[10:16:18] [SNAPSHOT]   Kez: Lángoló Pörölyös, Kirobbanó Erő, Lángnyelv Adeptus, Robbanó Pajzs, Utolsó Szikra, Magma-Elementál, ... (+2)
+[10:16:18] [SNAPSHOT]   Horizont: 0:. | 1:Goblin Token | 2:. | 3:. | 4:. | 5:.
+[10:16:18] [SNAPSHOT]   Zenit: 0:Tűzfal-Kántáló | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:16:18] [LEGAL_ACTIONS] ---
+[10:16:18] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:16:18] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:16:18] [LEGAL_ACTIONS] 2. | play_entity | lap=Áramlat-táncos Pengemester | zona=horizont | lane=1 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 3. | play_entity | lap=Áramlat-táncos Pengemester | zona=horizont | lane=2 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 4. | play_entity | lap=Áramlat-táncos Pengemester | zona=horizont | lane=3 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 5. | play_entity | lap=Áramlat-táncos Pengemester | zona=horizont | lane=4 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 6. | play_entity | lap=Áramlat-táncos Pengemester | zona=horizont | lane=5 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 7. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=1 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 8. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=2 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 9. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=3 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 10. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=4 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 11. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=5 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 12. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=1 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 13. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=2 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 14. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=3 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 15. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=4 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 16. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=5 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 17. | play_entity | lap=Viharszárnyú Hal | zona=horizont | lane=1 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 18. | play_entity | lap=Viharszárnyú Hal | zona=horizont | lane=2 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 19. | play_entity | lap=Viharszárnyú Hal | zona=horizont | lane=3 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 20. | play_entity | lap=Viharszárnyú Hal | zona=horizont | lane=4 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 21. | play_entity | lap=Viharszárnyú Hal | zona=horizont | lane=5 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 22. | play_entity | lap=Viharszárnyú Hal | zona=zenit | lane=1 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 23. | play_entity | lap=Viharszárnyú Hal | zona=zenit | lane=2 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 24. | play_entity | lap=Viharszárnyú Hal | zona=zenit | lane=3 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 25. | play_entity | lap=Viharszárnyú Hal | zona=zenit | lane=4 | source=hand
+[10:16:18] [LEGAL_ACTIONS] 26. | play_entity | lap=Viharszárnyú Hal | zona=zenit | lane=5 | source=hand
+[10:17:11] [COMMAND] choice=a | active_player=Jatekos_1
+[10:17:11] [AI_STEP] player=Jatekos_1 | action={'action_type': 'play_entity', 'player': 'Jatekos_1', 'card_name': 'Viharszárnyú Hal', 'zone': 'horizont', 'lane': 1, 'source': 'hand'}
+[10:17:11] [AI_STEP] ---
+[10:17:11] [AI_STEP] === AI STEP ===
+[10:17:11] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:17:11] [AI_STEP] Valasztott akcio: tipus=play_entity | lap=Viharszárnyú Hal | zona=horizont | lane=1
+[10:17:11] [ACTION_RESULT] ---
+[10:17:11] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:17:11] [ACTION_RESULT] ok=True | reason=-
+[10:17:11] [ACTION_RESULT] tipus=play_entity | status=executed | lap=Viharszárnyú Hal | zona=horizont | lane=1 | winner=-
+[10:17:11] [ACTION_RESULT] details={'survived_on_board': True}
+[10:17:11] [EVENTS] ---
+[10:17:11] [EVENTS] === UJ ESEMENYEK ===
+[10:17:11] [EVENTS] action_executed | idx=20 | player=Jatekos_1 | lap=Viharszárnyú Hal | zona=horizont | lane=1 | details={'action_type': 'play_entity', 'status': 'executed'}
+[10:17:11] [EVENTS] entity_played | idx=21 | player=Jatekos_1 | lap=Viharszárnyú Hal | zona=horizont | lane=1 | details={'survived_on_board': True}
+[10:17:11] [EVENTS] board_changed | idx=22 | player=Jatekos_1 | lap=Viharszárnyú Hal | zona=horizont | lane=1 | details={'cause': 'play_entity'}
+[10:17:11] [SNAPSHOT] ---
+[10:17:11] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:17:11] [SNAPSHOT] Kor: 8 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:17:11] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:17:11] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:17:11] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=4 | kez=4 | osforras=7 | pakli=15 | temeto=7
+[10:17:11] [SNAPSHOT]   Kez: A Végtelen Óceán, Áramlat-táncos Pengemester, Fagyos Lándzsa, Örvény-nyelés
+[10:17:11] [SNAPSHOT]   Horizont: 0:Tajték-Zsoldos | 1:Viharszárnyú Hal | 2:. | 3:. | 4:. | 5:.
+[10:17:11] [SNAPSHOT]   Zenit: 0:[hidden:Csalóka Hullám] | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:11] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=5 | kez=8 | osforras=7 | pakli=14 | temeto=6
+[10:17:11] [SNAPSHOT]   Kez: Lángoló Pörölyös, Kirobbanó Erő, Lángnyelv Adeptus, Robbanó Pajzs, Utolsó Szikra, Magma-Elementál, ... (+2)
+[10:17:11] [SNAPSHOT]   Horizont: 0:. | 1:Goblin Token | 2:. | 3:. | 4:. | 5:.
+[10:17:11] [SNAPSHOT]   Zenit: 0:Tűzfal-Kántáló | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:11] [LEGAL_ACTIONS] ---
+[10:17:11] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:17:11] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:17:12] [COMMAND] choice=a | active_player=Jatekos_1
+[10:17:12] [AI_STEP] player=Jatekos_1 | action={'action_type': 'end_turn', 'player': 'Jatekos_1', 'reason': 'default_progression'}
+[10:17:12] [AI_STEP] ---
+[10:17:12] [AI_STEP] === AI STEP ===
+[10:17:12] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:17:12] [AI_STEP] Valasztott akcio: tipus=end_turn | lap=- | zona=- | lane=-
+[10:17:12] [ACTION_RESULT] ---
+[10:17:12] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:17:12] [ACTION_RESULT] ok=True | reason=-
+[10:17:12] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=-
+[10:17:12] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:17:12] [EVENTS] ---
+[10:17:12] [EVENTS] === UJ ESEMENYEK ===
+[10:17:12] [EVENTS] action_executed | idx=23 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:17:12] [EVENTS] turn_advanced | idx=24 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:17:12] [SNAPSHOT] ---
+[10:17:12] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:17:12] [SNAPSHOT] Kor: 9 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:17:12] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:17:12] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:17:12] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=4 | kez=4 | osforras=8 | pakli=13 | temeto=8
+[10:17:12] [SNAPSHOT]   Kez: Áramlat-táncos Pengemester, Örvény-nyelés, A Zátony Éneke, Korall-Lovag
+[10:17:12] [SNAPSHOT]   Horizont: 0:Tajték-Zsoldos | 1:Viharszárnyú Hal | 2:. | 3:. | 4:. | 5:.
+[10:17:12] [SNAPSHOT]   Zenit: 0:[hidden:Csalóka Hullám] | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:12] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=5 | kez=8 | osforras=8 | pakli=12 | temeto=9
+[10:17:12] [SNAPSHOT]   Kez: Lángoló Pörölyös, Kirobbanó Erő, Lángnyelv Adeptus, Robbanó Pajzs, Utolsó Szikra, Magma-Elementál, ... (+2)
+[10:17:12] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:12] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:12] [LEGAL_ACTIONS] ---
+[10:17:12] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:17:12] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:17:12] [LEGAL_ACTIONS] 2. | play_entity | lap=Áramlat-táncos Pengemester | zona=horizont | lane=2 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 3. | play_entity | lap=Áramlat-táncos Pengemester | zona=horizont | lane=3 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 4. | play_entity | lap=Áramlat-táncos Pengemester | zona=horizont | lane=4 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 5. | play_entity | lap=Áramlat-táncos Pengemester | zona=horizont | lane=5 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 6. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=1 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 7. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=2 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 8. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=3 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 9. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=4 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 10. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=5 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 11. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=1 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 12. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=2 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 13. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=3 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 14. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=4 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 15. | play_trap | lap=Örvény-nyelés | zona=zenit | lane=5 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 16. | play_entity | lap=Korall-Lovag | zona=horizont | lane=2 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 17. | play_entity | lap=Korall-Lovag | zona=horizont | lane=3 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 18. | play_entity | lap=Korall-Lovag | zona=horizont | lane=4 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 19. | play_entity | lap=Korall-Lovag | zona=horizont | lane=5 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 20. | play_entity | lap=Korall-Lovag | zona=zenit | lane=1 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 21. | play_entity | lap=Korall-Lovag | zona=zenit | lane=2 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 22. | play_entity | lap=Korall-Lovag | zona=zenit | lane=3 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 23. | play_entity | lap=Korall-Lovag | zona=zenit | lane=4 | source=hand
+[10:17:12] [LEGAL_ACTIONS] 24. | play_entity | lap=Korall-Lovag | zona=zenit | lane=5 | source=hand
+[10:17:12] [COMMAND] choice=a | active_player=Jatekos_1
+[10:17:12] [AI_STEP] player=Jatekos_1 | action={'action_type': 'play_entity', 'player': 'Jatekos_1', 'card_name': 'Korall-Lovag', 'zone': 'horizont', 'lane': 2, 'source': 'hand'}
+[10:17:12] [AI_STEP] ---
+[10:17:12] [AI_STEP] === AI STEP ===
+[10:17:12] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:17:12] [AI_STEP] Valasztott akcio: tipus=play_entity | lap=Korall-Lovag | zona=horizont | lane=2
+[10:17:12] [ACTION_RESULT] ---
+[10:17:12] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:17:12] [ACTION_RESULT] ok=True | reason=-
+[10:17:12] [ACTION_RESULT] tipus=play_entity | status=executed | lap=Korall-Lovag | zona=horizont | lane=2 | winner=-
+[10:17:12] [ACTION_RESULT] details={'survived_on_board': True}
+[10:17:12] [EVENTS] ---
+[10:17:12] [EVENTS] === UJ ESEMENYEK ===
+[10:17:12] [EVENTS] action_executed | idx=25 | player=Jatekos_1 | lap=Korall-Lovag | zona=horizont | lane=2 | details={'action_type': 'play_entity', 'status': 'executed'}
+[10:17:12] [EVENTS] entity_played | idx=26 | player=Jatekos_1 | lap=Korall-Lovag | zona=horizont | lane=2 | details={'survived_on_board': True}
+[10:17:12] [EVENTS] board_changed | idx=27 | player=Jatekos_1 | lap=Korall-Lovag | zona=horizont | lane=2 | details={'cause': 'play_entity'}
+[10:17:12] [SNAPSHOT] ---
+[10:17:12] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:17:12] [SNAPSHOT] Kor: 9 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:17:12] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:17:12] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:17:12] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=4 | kez=3 | osforras=8 | pakli=13 | temeto=8
+[10:17:12] [SNAPSHOT]   Kez: Áramlat-táncos Pengemester, Örvény-nyelés, A Zátony Éneke
+[10:17:12] [SNAPSHOT]   Horizont: 0:Tajték-Zsoldos | 1:Viharszárnyú Hal | 2:Korall-Lovag | 3:. | 4:. | 5:.
+[10:17:12] [SNAPSHOT]   Zenit: 0:[hidden:Csalóka Hullám] | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:12] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=5 | kez=8 | osforras=8 | pakli=12 | temeto=9
+[10:17:12] [SNAPSHOT]   Kez: Lángoló Pörölyös, Kirobbanó Erő, Lángnyelv Adeptus, Robbanó Pajzs, Utolsó Szikra, Magma-Elementál, ... (+2)
+[10:17:12] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:12] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:12] [LEGAL_ACTIONS] ---
+[10:17:12] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:17:12] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:17:13] [COMMAND] choice=a | active_player=Jatekos_1
+[10:17:13] [AI_STEP] player=Jatekos_1 | action={'action_type': 'end_turn', 'player': 'Jatekos_1', 'reason': 'default_progression'}
+[10:17:13] [AI_STEP] ---
+[10:17:13] [AI_STEP] === AI STEP ===
+[10:17:13] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:17:13] [AI_STEP] Valasztott akcio: tipus=end_turn | lap=- | zona=- | lane=-
+[10:17:13] [ACTION_RESULT] ---
+[10:17:13] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:17:13] [ACTION_RESULT] ok=True | reason=-
+[10:17:13] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=-
+[10:17:13] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:17:13] [EVENTS] ---
+[10:17:13] [EVENTS] === UJ ESEMENYEK ===
+[10:17:13] [EVENTS] action_executed | idx=28 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:17:13] [EVENTS] turn_advanced | idx=29 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:17:13] [SNAPSHOT] ---
+[10:17:13] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:17:13] [SNAPSHOT] Kor: 10 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:17:13] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:17:13] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:17:13] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=4 | kez=3 | osforras=9 | pakli=11 | temeto=8
+[10:17:13] [SNAPSHOT]   Kez: Áramlat-táncos Pengemester, A Zátony Éneke, Csalóka Hullám
+[10:17:13] [SNAPSHOT]   Horizont: 0:Tajték-Zsoldos | 1:Viharszárnyú Hal | 2:Korall-Lovag | 3:. | 4:. | 5:.
+[10:17:13] [SNAPSHOT]   Zenit: 0:[hidden:Csalóka Hullám] | 1:[hidden:Örvény-nyelés] | 2:. | 3:. | 4:. | 5:.
+[10:17:13] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=2 | kez=11 | osforras=9 | pakli=10 | temeto=9
+[10:17:13] [SNAPSHOT]   Kez: Lángoló Pörölyös, Kirobbanó Erő, Lángnyelv Adeptus, Robbanó Pajzs, Utolsó Szikra, Magma-Elementál, ... (+5)
+[10:17:13] [SNAPSHOT]   Horizont: 0:Törp Lávakovács | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:13] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:13] [LEGAL_ACTIONS] ---
+[10:17:13] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:17:13] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:17:13] [LEGAL_ACTIONS] 2. | play_entity | lap=Áramlat-táncos Pengemester | zona=horizont | lane=3 | source=hand
+[10:17:13] [LEGAL_ACTIONS] 3. | play_entity | lap=Áramlat-táncos Pengemester | zona=horizont | lane=4 | source=hand
+[10:17:13] [LEGAL_ACTIONS] 4. | play_entity | lap=Áramlat-táncos Pengemester | zona=horizont | lane=5 | source=hand
+[10:17:13] [LEGAL_ACTIONS] 5. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=2 | source=hand
+[10:17:13] [LEGAL_ACTIONS] 6. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=3 | source=hand
+[10:17:13] [LEGAL_ACTIONS] 7. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=4 | source=hand
+[10:17:13] [LEGAL_ACTIONS] 8. | play_entity | lap=Áramlat-táncos Pengemester | zona=zenit | lane=5 | source=hand
+[10:17:13] [COMMAND] choice=a | active_player=Jatekos_1
+[10:17:13] [AI_STEP] player=Jatekos_1 | action={'action_type': 'play_entity', 'player': 'Jatekos_1', 'card_name': 'Áramlat-táncos Pengemester', 'zone': 'horizont', 'lane': 3, 'source': 'hand'}
+[10:17:13] [AI_STEP] ---
+[10:17:13] [AI_STEP] === AI STEP ===
+[10:17:13] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:17:13] [AI_STEP] Valasztott akcio: tipus=play_entity | lap=Áramlat-táncos Pengemester | zona=horizont | lane=3
+[10:17:13] [ACTION_RESULT] ---
+[10:17:13] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:17:13] [ACTION_RESULT] ok=True | reason=-
+[10:17:13] [ACTION_RESULT] tipus=play_entity | status=executed | lap=Áramlat-táncos Pengemester | zona=horizont | lane=3 | winner=-
+[10:17:13] [ACTION_RESULT] details={'survived_on_board': True}
+[10:17:13] [EVENTS] ---
+[10:17:13] [EVENTS] === UJ ESEMENYEK ===
+[10:17:13] [EVENTS] action_executed | idx=30 | player=Jatekos_1 | lap=Áramlat-táncos Pengemester | zona=horizont | lane=3 | details={'action_type': 'play_entity', 'status': 'executed'}
+[10:17:13] [EVENTS] entity_played | idx=31 | player=Jatekos_1 | lap=Áramlat-táncos Pengemester | zona=horizont | lane=3 | details={'survived_on_board': True}
+[10:17:13] [EVENTS] board_changed | idx=32 | player=Jatekos_1 | lap=Áramlat-táncos Pengemester | zona=horizont | lane=3 | details={'cause': 'play_entity'}
+[10:17:13] [SNAPSHOT] ---
+[10:17:13] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:17:13] [SNAPSHOT] Kor: 10 | Aktiv jatekos: Jatekos_1 | Fazis: play
+[10:17:13] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:17:13] [SNAPSHOT] Meccs vege: nem | Gyoztes: -
+[10:17:13] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=4 | kez=2 | osforras=9 | pakli=11 | temeto=8
+[10:17:13] [SNAPSHOT]   Kez: A Zátony Éneke, Csalóka Hullám
+[10:17:13] [SNAPSHOT]   Horizont: 0:Tajték-Zsoldos | 1:Viharszárnyú Hal | 2:Korall-Lovag | 3:Áramlat-táncos Pengemester | 4:. | 5:.
+[10:17:13] [SNAPSHOT]   Zenit: 0:[hidden:Csalóka Hullám] | 1:[hidden:Örvény-nyelés] | 2:. | 3:. | 4:. | 5:.
+[10:17:13] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=2 | kez=11 | osforras=9 | pakli=10 | temeto=9
+[10:17:13] [SNAPSHOT]   Kez: Lángoló Pörölyös, Kirobbanó Erő, Lángnyelv Adeptus, Robbanó Pajzs, Utolsó Szikra, Magma-Elementál, ... (+5)
+[10:17:13] [SNAPSHOT]   Horizont: 0:Törp Lávakovács | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:13] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:13] [LEGAL_ACTIONS] ---
+[10:17:13] [LEGAL_ACTIONS] === LEGAL AKCIOK ===
+[10:17:13] [LEGAL_ACTIONS] 1. | end_turn | ok=default_progression
+[10:17:13] [COMMAND] choice=a | active_player=Jatekos_1
+[10:17:13] [AI_STEP] player=Jatekos_1 | action={'action_type': 'end_turn', 'player': 'Jatekos_1', 'reason': 'default_progression'}
+[10:17:13] [AI_STEP] ---
+[10:17:13] [AI_STEP] === AI STEP ===
+[10:17:13] [AI_STEP] ok=True | reason=- | player=Jatekos_1
+[10:17:13] [AI_STEP] Valasztott akcio: tipus=end_turn | lap=- | zona=- | lane=-
+[10:17:13] [ACTION_RESULT] ---
+[10:17:13] [ACTION_RESULT] === ACTION EREDMENY ===
+[10:17:13] [ACTION_RESULT] ok=True | reason=-
+[10:17:13] [ACTION_RESULT] tipus=end_turn | status=executed | lap=- | zona=- | lane=- | winner=Jatekos_1
+[10:17:13] [ACTION_RESULT] details={'advanced_via': 'kor_futtatasa'}
+[10:17:13] [EVENTS] ---
+[10:17:13] [EVENTS] === UJ ESEMENYEK ===
+[10:17:13] [EVENTS] action_executed | idx=33 | player=Jatekos_1 | details={'action_type': 'end_turn', 'status': 'executed'}
+[10:17:13] [EVENTS] turn_advanced | idx=34 | player=Jatekos_1 | details={'advanced_via': 'kor_futtatasa'}
+[10:17:13] [EVENTS] winner_declared | idx=35 | player=Jatekos_1
+[10:17:13] [SNAPSHOT] ---
+[10:17:13] [SNAPSHOT] === AKTUALIS ALLAPOT ===
+[10:17:13] [SNAPSHOT] Kor: 10 | Aktiv jatekos: Jatekos_1 | Fazis: finished
+[10:17:13] [SNAPSHOT] Emberi oldal: p1 (Jatekos_1) | Soron: EMBER
+[10:17:13] [SNAPSHOT] Meccs vege: igen | Gyoztes: Jatekos_1
+[10:17:13] [SNAPSHOT] P1 | nev=Jatekos_1 | realm=Aqua | pecset=4 | kez=2 | osforras=10 | pakli=9 | temeto=9
+[10:17:13] [SNAPSHOT]   Kez: A Zátony Éneke, Buborék-pajzs
+[10:17:13] [SNAPSHOT]   Horizont: 0:Tajték-Zsoldos | 1:Viharszárnyú Hal | 2:Korall-Lovag | 3:Áramlat-táncos Pengemester | 4:. | 5:.
+[10:17:13] [SNAPSHOT]   Zenit: 0:[hidden:Csalóka Hullám] | 1:[hidden:Örvény-nyelés] | 2:. | 3:. | 4:. | 5:.
+[10:17:13] [SNAPSHOT] P2 | nev=Jatekos_2 | realm=Ignis | pecset=0 | kez=13 | osforras=9 | pakli=10 | temeto=10
+[10:17:13] [SNAPSHOT]   Kez: Lángoló Pörölyös, Kirobbanó Erő, Lángnyelv Adeptus, Robbanó Pajzs, Utolsó Szikra, Magma-Elementál, ... (+7)
+[10:17:13] [SNAPSHOT]   Horizont: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:13] [SNAPSHOT]   Zenit: 0:. | 1:. | 2:. | 3:. | 4:. | 5:.
+[10:17:13] [SESSION_END] status=finished | winner=Jatekos_1 | reason=overflow
