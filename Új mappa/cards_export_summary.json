@@ -1,0 +1,133 @@
+{
+  "source_file": "cards.xlsx",
+  "export_created": "2026-05-25T09:48:49",
+  "format_version": "AETERNA_text_export_1.0",
+  "sheets": [
+    {
+      "sheet_name": "IGNIS",
+      "range": "A1:V117",
+      "rows_including_header": 117,
+      "card_rows": 116,
+      "columns": 22,
+      "type_counts": {
+        "Entitás": 60,
+        "Rituálé": 16,
+        "Ige": 16,
+        "Jel": 16,
+        "Sík": 8
+      },
+      "clan_counts": {
+        "Hamvaskezű": 58,
+        "Lángidéző": 58
+      }
+    },
+    {
+      "sheet_name": "AQUA",
+      "range": "A1:V119",
+      "rows_including_header": 119,
+      "card_rows": 118,
+      "columns": 22,
+      "type_counts": {
+        "Entitás": 60,
+        "Rituálé": 17,
+        "Ige": 17,
+        "Jel": 16,
+        "Sík": 8
+      },
+      "clan_counts": {
+        "Mélység Őrző": 58,
+        "Áramlat-táncos": 60
+      }
+    },
+    {
+      "sheet_name": "TERRA",
+      "range": "A1:V117",
+      "rows_including_header": 117,
+      "card_rows": 116,
+      "columns": 22,
+      "type_counts": {
+        "Entitás": 60,
+        "Ige": 16,
+        "Rituálé": 16,
+        "Jel": 16,
+        "Sík": 8
+      },
+      "clan_counts": {
+        "Ős-Druidák": 58,
+        "Vadon Vadászai": 58
+      }
+    },
+    {
+      "sheet_name": "LUX",
+      "range": "A1:V117",
+      "rows_including_header": 117,
+      "card_rows": 116,
+      "columns": 22,
+      "type_counts": {
+        "Entitás": 60,
+        "Ige": 16,
+        "Rituálé": 16,
+        "Jel": 16,
+        "Sík": 8
+      },
+      "clan_counts": {
+        "Fényhozó Lovagrend": 58,
+        "Aeterna Papjai": 58
+      }
+    },
+    {
+      "sheet_name": "UMBRA",
+      "range": "A1:V117",
+      "rows_including_header": 117,
+      "card_rows": 116,
+      "columns": 22,
+      "type_counts": {
+        "Entitás": 60,
+        "Ige": 16,
+        "Rituálé": 16,
+        "Jel": 16,
+        "Sík": 8
+      },
+      "clan_counts": {
+        "Árnyékszindikátus": 58,
+        "Lélekaratók": 58
+      }
+    },
+    {
+      "sheet_name": "VENTUS",
+      "range": "A1:V117",
+      "rows_including_header": 117,
+      "card_rows": 116,
+      "columns": 22,
+      "type_counts": {
+        "Entitás": 60,
+        "Ige": 16,
+        "Rituálé": 16,
+        "Jel": 16,
+        "Sík": 8
+      },
+      "clan_counts": {
+        "Viharhozók": 58,
+        "Égbolt Úrai": 58
+      }
+    },
+    {
+      "sheet_name": "AETHER",
+      "range": "A1:V117",
+      "rows_including_header": 117,
+      "card_rows": 116,
+      "columns": 22,
+      "type_counts": {
+        "Entitás": 60,
+        "Ige": 16,
+        "Rituálé": 16,
+        "Jel": 16,
+        "Sík": 8
+      },
+      "clan_counts": {
+        "Fogaskerék Szövetség": 58,
+        "Koborlók": 58
+      }
+    }
+  ]
+}

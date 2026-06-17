@@ -4,7 +4,7 @@ import os
 import random
 import uuid
 
-from data.loader import kartyak_betoltese_xlsx
+from data.loader import kartyak_betoltese
 from engine.config import set_active_engine_config
 from engine.effect_diagnostics_v2 import install_effect_diagnostics
 from engine.game import AeternaSzimulacio
@@ -233,16 +233,17 @@ def _resolve_cards(config=None):
     if isinstance(config, dict) and config.get("cards") is not None:
         return list(config["cards"])
 
-    xlsx_path = None
+    card_data_path = None
     if isinstance(config, dict):
-        xlsx_path = config.get("xlsx_path")
+        card_data_path = config.get("jsonl_path") or config.get("card_data_path") or config.get("xlsx_path")
 
-    if not xlsx_path:
-        xlsx_path = os.path.join(os.getcwd(), "cards.xlsx")
+    if not card_data_path:
+        default_jsonl_path = os.path.join(os.getcwd(), "EXPORT_RUNTIME.jsonl")
+        card_data_path = default_jsonl_path if os.path.exists(default_jsonl_path) else os.path.join(os.getcwd(), "cards.xlsx")
 
-    cards = kartyak_betoltese_xlsx(xlsx_path)
+    cards = kartyak_betoltese(card_data_path)
     if not cards:
-        raise ValueError(f"Nem sikerult kartyakat betolteni innen: {xlsx_path}")
+        raise ValueError(f"Nem sikerult kartyakat betolteni innen: {card_data_path}")
     return cards
 
 

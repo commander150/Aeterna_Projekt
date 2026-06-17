@@ -54,6 +54,17 @@ class Kartya:
         self.machine_description = normalize_metadata_value(_get(19, "gepi_leiras", default=""))
         self.interpretation_status = normalize_status_value(_get(20, "ertelmezesi_statusz", default=""))
         self.engine_notes = normalize_metadata_value(_get(21, "engine_megjegyzes", default=""))
+        self.card_id = normalize_metadata_value(_get(22, "card_id", default=""))
+        self.generated_print_id = normalize_metadata_value(_get(23, "generated_print_id", default=""))
+        self.set_id = normalize_metadata_value(_get(24, "set_id", default=""))
+        self.collector_number = normalize_metadata_value(_get(25, "collector_number", default=""))
+        self.rarity = normalize_metadata_value(_get(26, "rarity", default=""))
+        self.treatment = normalize_metadata_value(_get(27, "treatment", default=""))
+        self.art_variant = normalize_metadata_value(_get(28, "art_variant", default=""))
+        self.print_status = normalize_metadata_value(_get(29, "print_status", default=""))
+        self.version = normalize_metadata_value(_get(30, "version", default=""))
+        self.reprint_of = normalize_metadata_value(_get(31, "reprint_of", default=""))
+        self.play_legal_status = normalize_metadata_value(_get(32, "play_legal_status", default=""))
 
         if self.keywords and self.canonical_text == self.kepesseg and "kepesseg_canonical" not in row:
             self.canonical_text = self.kepesseg

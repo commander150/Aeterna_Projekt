@@ -1,10 +1,27 @@
+import json
+import os
+import tempfile
 import unittest
 
-from data.loader import normalize_row_mapping, validate_row_mapping
+from data.loader import (
+    kartyak_betoltese_jsonl,
+    load_card_rows_jsonl,
+    normalize_row_mapping,
+    validate_row_mapping,
+)
 from engine.card import Kartya, CsataEgyseg
 
 
 class TestKartyaModel(unittest.TestCase):
+    def _write_jsonl(self, rows):
+        handle = tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8", suffix=".jsonl")
+        try:
+            for row in rows:
+                handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+            return handle.name
+        finally:
+            handle.close()
+
     def test_numeric_fields_are_cleanly_converted(self):
         row = [
             "Teszt Lap", "Entitás", "Solaris", "-", "Ember", "Harcos",
@@ -401,6 +418,101 @@ class TestKartyaModel(unittest.TestCase):
         issues = validate_row_mapping(normalized, row_index=8, sheet_name="Teszt")
 
         self.assertFalse(any("unknown_enum_value:zona_felismerve:burst" in issue for issue in issues))
+
+    def test_jsonl_loader_normalizes_runtime_rows_and_generates_print_id(self):
+        path = self._write_jsonl(
+            [
+                {
+                    "Card_ID": "IGN-HAM-001",
+                    "Kártya név": "Hamvas Teszt",
+                    "Típus": "Entitas",
+                    "Birodalom": "Ignis",
+                    "Klán": "Hamvaskez",
+                    "Magnitudó": "1.0",
+                    "Aura": 2.0,
+                    "ATK": "3.0",
+                    "HP": 4.0,
+                    "Képesség": "Teszt kepesseg",
+                    "Set_ID": "CORE01",
+                    "Rarity": "C",
+                    "Treatment": "NF",
+                    "Art_Variant": "A1",
+                    "Print_Status": "P1",
+                    "Version": "V1",
+                }
+            ]
+        )
+        self.addCleanup(lambda: os.path.exists(path) and os.remove(path))
+
+        rows, warnings = load_card_rows_jsonl(path)
+        cards = kartyak_betoltese_jsonl(path)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["card_id"], "IGN-HAM-001")
+        self.assertEqual(rows[0]["magnitudo"], 1)
+        self.assertEqual(rows[0]["aura_koltseg"], 2)
+        self.assertEqual(rows[0]["tamadas"], 3)
+        self.assertEqual(rows[0]["eletero"], 4)
+        self.assertEqual(rows[0]["generated_print_id"], "CORE01-IGN-HAM-001-C-NF-A1-P1-V1")
+        self.assertFalse(any("collector_number" in warning for warning in warnings))
+        self.assertEqual(cards[0].card_id, "IGN-HAM-001")
+        self.assertEqual(cards[0].generated_print_id, "CORE01-IGN-HAM-001-C-NF-A1-P1-V1")
+        self.assertEqual(cards[0].collector_number, "")
+
+    def test_jsonl_loader_warns_for_duplicate_card_id_and_unknown_enum_without_crash(self):
+        path = self._write_jsonl(
+            [
+                {
+                    "Card_ID": "IGN-HAM-001",
+                    "Kártya név": "Első",
+                    "Típus": "Ige",
+                    "Birodalom": "Ignis",
+                    "Magnitudó": 1,
+                    "Aura": 1,
+                    "ATK": "none",
+                    "HP": "none",
+                    "Képesség": "Teszt",
+                    "Zóna_Felismerve": "furcsa_zone",
+                    "Set_ID": "CORE01",
+                    "Rarity": "C",
+                    "Treatment": "NF",
+                    "Art_Variant": "A1",
+                    "Print_Status": "P1",
+                    "Version": "V1",
+                },
+                {
+                    "Card_ID": "IGN-HAM-001",
+                    "Kártya név": "Második",
+                    "Típus": "Ige",
+                    "Birodalom": "Ignis",
+                    "Magnitudó": 1,
+                    "Aura": 1,
+                    "ATK": "none",
+                    "HP": "none",
+                    "Képesség": "Teszt",
+                    "Set_ID": "CORE01",
+                    "Rarity": "X",
+                    "Treatment": "NF",
+                    "Art_Variant": "A1",
+                    "Print_Status": "P1",
+                    "Version": "V1",
+                    "Print_ID": "SHOULD-NOT-BE-STORED",
+                },
+            ]
+        )
+        self.addCleanup(lambda: os.path.exists(path) and os.remove(path))
+
+        rows, warnings = load_card_rows_jsonl(path)
+        cards = kartyak_betoltese_jsonl(path)
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(len(cards), 2)
+        self.assertTrue(any("duplicate_card_id:IGN-HAM-001" in warning for warning in warnings))
+        self.assertTrue(any("unknown_enum_value:zona_felismerve:furcsa_zone" in warning for warning in warnings))
+        self.assertTrue(any("unknown_runtime_enum_value:rarity:X" in warning for warning in warnings))
+        self.assertTrue(any("ignored_stored_print_id" in warning for warning in warnings))
+        self.assertNotIn("print_id", rows[1])
+        self.assertEqual(rows[1]["generated_print_id"], "CORE01-IGN-HAM-001-X-NF-A1-P1-V1")
 
 
 if __name__ == "__main__":

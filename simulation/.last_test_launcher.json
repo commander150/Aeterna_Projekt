@@ -1,12 +1,12 @@
 {
-  "profile_name": "seeded_matchup",
+  "profile_name": "smoke_random",
   "overrides": {
     "games": 3,
-    "random_seed": 105,
-    "player1_realm": "aether",
-    "player2_realm": "ventus",
-    "player1_deck_preset": "aether_control_test",
-    "player2_deck_preset": "ventus_tempo_test",
-    "random_realm_fallback": false
+    "random_seed": null,
+    "player1_realm": null,
+    "player2_realm": null,
+    "player1_deck_preset": null,
+    "player2_deck_preset": null,
+    "random_realm_fallback": true
   }
 }

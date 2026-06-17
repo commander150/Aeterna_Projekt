@@ -8,6 +8,7 @@ from simulation.runner import futtat_szimulaciot
 
 PROGRAM_MAPPA = os.path.dirname(os.path.abspath(__file__))
 XLSX_FAJL = os.path.join(PROGRAM_MAPPA, "cards.xlsx")
+JSONL_FAJL = os.path.join(PROGRAM_MAPPA, "EXPORT_RUNTIME.jsonl")
 
 # =========================
 # SZIMULACIOS BEALLITASOK
@@ -49,13 +50,14 @@ if __name__ == "__main__":
         config = _config_from_main_settings()
         create_logger(config, base_dir=PROGRAM_MAPPA, logger=naplo)
 
-        print(f"Kártya fájl: {XLSX_FAJL}")
+        kartya_fajl = JSONL_FAJL if os.path.exists(JSONL_FAJL) else XLSX_FAJL
+        print(f"Kártya fájl: {kartya_fajl}")
 
-        if not os.path.exists(XLSX_FAJL):
-            print("HIBA: cards.xlsx nem található!")
+        if not os.path.exists(kartya_fajl):
+            print("HIBA: kártya adatfájl nem található!")
         else:
             print(f"Aktív konfiguráció: {config.describe()}")
-            futtat_szimulaciot(XLSX_FAJL, config=config)
+            futtat_szimulaciot(kartya_fajl, config=config)
 
         print("\nKész!")
 

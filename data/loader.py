@@ -1,4 +1,6 @@
+import json
 import os
+import re
 from openpyxl import load_workbook
 from engine.card_metadata import (
     DURATION_ALIASES,
@@ -23,6 +25,19 @@ from engine.card import Kartya
 
 
 HEADER_ALIASES = {
+    "card_id": "card_id",
+    "generated_print_id": "generated_print_id",
+    "print_id": "print_id",
+    "set_id": "set_id",
+    "collector_number": "collector_number",
+    "rarity": "rarity",
+    "treatment": "treatment",
+    "art_variant": "art_variant",
+    "print_status": "print_status",
+    "version": "version",
+    "reprint_of": "reprint_of",
+    "play_legal_status": "play_legal_status",
+    "szabalyi_kartya_id": "card_id",
     "kartya_nev": "kartya_nev",
     "tipus": "kartyatipus",
     "kartyatipus": "kartyatipus",
@@ -91,6 +106,30 @@ INTEGER_FIELDS = {
     "eletero",
 }
 
+RUNTIME_PRINT_COMPONENTS = (
+    "set_id",
+    "card_id",
+    "rarity",
+    "treatment",
+    "art_variant",
+    "print_status",
+    "version",
+)
+
+RUNTIME_REQUIRED_FIELDS = {
+    "card_id",
+    "set_id",
+    "rarity",
+    "treatment",
+    "art_variant",
+    "print_status",
+    "version",
+}
+
+RUNTIME_ENUM_VALUES = {
+    "rarity": {"C", "UC", "R", "SR", "MR", "UR", "P"},
+}
+
 REQUIRED_TEXT_FIELDS = {
     "kartya_nev",
     "kartyatipus",
@@ -141,6 +180,10 @@ def _normalize_header_name(header):
     normalized = normalize_lookup_text(header)
     normalized = normalized.replace(" ", "_")
     return HEADER_ALIASES.get(normalized, normalized)
+
+
+def _normalize_jsonl_mapping(raw_mapping):
+    return {_normalize_header_name(key): value for key, value in raw_mapping.items()}
 
 
 def _row_to_mapping(headers, row):
@@ -331,6 +374,110 @@ def validate_row_mapping(mapping, row_index=None, sheet_name=None):
     return [f"{location} {issue}".strip() for issue in issues]
 
 
+def generate_print_id(mapping):
+    parts = []
+    for field_name in RUNTIME_PRINT_COMPONENTS:
+        value = mapping.get(field_name)
+        text = str(value).strip() if value is not None else ""
+        if not text or normalize_lookup_text(text) in {"blank", "none", "-"}:
+            return ""
+        parts.append(text)
+    return "-".join(parts)
+
+
+def _runtime_field_warnings(normalized, row_index):
+    warnings = []
+    card_id = str(normalized.get("card_id") or "").strip()
+    if card_id and not re.fullmatch(r"[A-Z0-9]+-[A-Z0-9]+-[0-9]{3}", card_id):
+        warnings.append(f"line={row_index} suspicious_field_format:card_id:{card_id}")
+
+    art_variant = str(normalized.get("art_variant") or "").strip()
+    if art_variant and not re.fullmatch(r"A[0-9]+", art_variant):
+        warnings.append(f"line={row_index} suspicious_field_format:art_variant:{art_variant}")
+
+    for field_name, allowed_values in RUNTIME_ENUM_VALUES.items():
+        value = str(normalized.get(field_name) or "").strip()
+        if value and value not in allowed_values:
+            warnings.append(f"line={row_index} unknown_runtime_enum_value:{field_name}:{value}")
+    return warnings
+
+
+def _normalize_runtime_row(raw_mapping, row_index):
+    warnings = []
+    if not isinstance(raw_mapping, dict):
+        return None, [f"line={row_index} invalid_jsonl_row:not_object"]
+
+    first_key = next(iter(raw_mapping), None)
+    if first_key != "Card_ID":
+        warnings.append(f"line={row_index} suspicious_field_order:first_field_not_Card_ID:{first_key}")
+
+    runtime_mapping = _normalize_jsonl_mapping(raw_mapping)
+    if "print_id" in runtime_mapping:
+        warnings.append(f"line={row_index} ignored_stored_print_id")
+        runtime_mapping.pop("print_id", None)
+
+    normalized = normalize_row_mapping(runtime_mapping)
+    for field_name, value in runtime_mapping.items():
+        if field_name not in normalized and field_name != "print_id":
+            normalized[field_name] = value
+
+    for field_name in RUNTIME_REQUIRED_FIELDS:
+        value = normalized.get(field_name)
+        if value is None or not str(value).strip():
+            warnings.append(f"line={row_index} hianyzo_runtime_mezo:{field_name}")
+    warnings.extend(_runtime_field_warnings(normalized, row_index))
+
+    generated_print_id = generate_print_id(normalized)
+    if generated_print_id:
+        normalized["generated_print_id"] = generated_print_id
+    else:
+        warnings.append(f"line={row_index} generated_print_id_nem_kepezheto")
+
+    normalized["_source"] = "jsonl"
+    normalized["_row_index"] = row_index
+    normalized["_validation_issues"] = validate_row_mapping(normalized, row_index=row_index, sheet_name="EXPORT_RUNTIME")
+    warnings.extend(normalized["_validation_issues"])
+    return normalized, warnings
+
+
+def load_card_rows_jsonl(fajl_utvonal):
+    if not os.path.exists(fajl_utvonal):
+        raise FileNotFoundError(fajl_utvonal)
+
+    rows = []
+    validation_issues = []
+    seen_card_ids = {}
+
+    with open(fajl_utvonal, "r", encoding="utf-8-sig") as handle:
+        for row_index, line in enumerate(handle, start=1):
+            if not line.strip():
+                continue
+            try:
+                raw_mapping = json.loads(line)
+            except json.JSONDecodeError as exc:
+                validation_issues.append(f"line={row_index} invalid_json:{exc.msg}")
+                continue
+
+            normalized, warnings = _normalize_runtime_row(raw_mapping, row_index)
+            validation_issues.extend(warnings)
+            if normalized is None:
+                continue
+
+            card_id = str(normalized.get("card_id") or "").strip()
+            if not card_id:
+                validation_issues.append(f"line={row_index} hianyzo_runtime_mezo:card_id")
+            elif card_id in seen_card_ids:
+                validation_issues.append(
+                    f"line={row_index} duplicate_card_id:{card_id}:first_line={seen_card_ids[card_id]}"
+                )
+            else:
+                seen_card_ids[card_id] = row_index
+
+            rows.append(normalized)
+
+    return rows, validation_issues
+
+
 def load_card_rows_xlsx(fajl_utvonal):
     if not os.path.exists(fajl_utvonal):
         raise FileNotFoundError(fajl_utvonal)
@@ -391,3 +538,29 @@ def kartyak_betoltese_xlsx(fajl_utvonal):
 
     naplo.ir(f"Sikeresen betoltve {len(osszes_kartya)} kartya.")
     return osszes_kartya
+
+
+def kartyak_betoltese_jsonl(fajl_utvonal):
+    if not os.path.exists(fajl_utvonal):
+        naplo.ir(f"HIBA: Nem talalhato a kartyafajl itt: {fajl_utvonal}")
+        return []
+
+    naplo.ir(f"JSONL betoltese: {fajl_utvonal}")
+    rows, validation_issues = load_card_rows_jsonl(fajl_utvonal)
+    osszes_kartya = [Kartya(row) for row in rows]
+
+    if validation_issues:
+        naplo.ir(f"[VALIDATION] {len(validation_issues)} figyelmeztetes az EXPORT_RUNTIME.jsonl betoltes soran.")
+        for issue in validation_issues[:20]:
+            naplo.ir(f"[VALIDATION] {issue}")
+        if len(validation_issues) > 20:
+            naplo.ir(f"[VALIDATION] ... tovabbi {len(validation_issues) - 20} figyelmeztetes")
+
+    naplo.ir(f"Sikeresen betoltve {len(osszes_kartya)} kartya.")
+    return osszes_kartya
+
+
+def kartyak_betoltese(fajl_utvonal):
+    if str(fajl_utvonal).lower().endswith(".jsonl"):
+        return kartyak_betoltese_jsonl(fajl_utvonal)
+    return kartyak_betoltese_xlsx(fajl_utvonal)

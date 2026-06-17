@@ -5,7 +5,7 @@ from engine.config import set_active_engine_config
 from engine.logging_utils import log_block_reason, log_shared_path
 from utils.logger import naplo
 from stats.analyzer import stats
-from data.loader import kartyak_betoltese_xlsx
+from data.loader import kartyak_betoltese
 from engine.game import AeternaSzimulacio
 from simulation.config import SimulationConfig, normalize_realm_name
 from simulation.deck_presets import resolve_deck_preset_cards
@@ -218,7 +218,7 @@ def futtat_szimulaciot(xlsx_utvonal, meccsek_szama=3, config=None):
         else:
             naplo.tech("SEED", "random_seed=None")
 
-        kartyak = kartyak_betoltese_xlsx(xlsx_utvonal)
+        kartyak = kartyak_betoltese(xlsx_utvonal)
         if not kartyak:
             return None
 
