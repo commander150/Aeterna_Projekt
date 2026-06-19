@@ -1,0 +1,6 @@
+{"Kód": "C", "Név": "Common", "Réteg": "gyakoriság", "Leírás": "Gyakori lap.", "Használati megjegyzés": "Egyszerűbb, kezdőbarát vagy alapfunkciót hordozó lapokhoz."}
+{"Kód": "UC", "Név": "Uncommon", "Réteg": "gyakoriság", "Leírás": "Kevésbé gyakori lap.", "Használati megjegyzés": "Kissé összetettebb klán- vagy birodalmi szereplapokhoz."}
+{"Kód": "R", "Név": "Rare", "Réteg": "gyakoriság", "Leírás": "Ritka lap.", "Használati megjegyzés": "Erősebb, karakteresebb vagy pakliépitő lapokhoz; tesztgyanú gyakori."}
+{"Kód": "SR", "Név": "Super Rare", "Réteg": "gyakoriság", "Leírás": "Kiemelt ritka lap.", "Használati megjegyzés": "Komplexebb, ikonikusabb vagy nagy hatású lapokhoz."}
+{"Kód": "UR", "Név": "Ultra Rare", "Réteg": "gyakoriság", "Leírás": "Nagyon ritka, kiemelt lap.", "Használati megjegyzés": "Nagy finisher, Hős vagy látványos mechanikai központ esetén."}
+{"Kód": "LEG", "Név": "Legendary / Egyedi", "Réteg": "gyakoriság", "Leírás": "Egyedi, különösen kiemelt lap.", "Használati megjegyzés": "Hős vagy egyedi világépítési súlyú lapokhoz; külön balanszteszt szükséges."}

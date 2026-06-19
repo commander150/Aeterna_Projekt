@@ -21,14 +21,19 @@ class TestXlsxExport(unittest.TestCase):
             )
         )
 
-    def test_replaces_empty_cells_with_none(self):
-        self.assertEqual(self.records[0], {"név": "Árvíztűrő", "pont": 12, "megjegyzés": "none"})
+    def test_skips_empty_cells(self):
+        self.assertEqual(self.records[0], {"név": "Árvíztűrő", "pont": 12})
         self.assertEqual(self.records[1]["pont"], 5.5)
 
     def test_converts_whole_number_floats_to_integers(self):
         self.assertEqual(xlsx_export.normalize_value(5.0), 5)
         self.assertIsInstance(xlsx_export.normalize_value(5.0), int)
         self.assertEqual(xlsx_export.normalize_value(5.5), 5.5)
+
+    def test_literal_none_is_not_empty(self):
+        self.assertFalse(xlsx_export.is_empty_value("none"))
+        self.assertFalse(xlsx_export.is_empty_value(" NONE "))
+        self.assertTrue(xlsx_export.is_empty_value("   "))
 
     def test_writes_jsonl_with_utf8_characters(self):
         output = io.StringIO()
@@ -45,7 +50,7 @@ class TestXlsxExport(unittest.TestCase):
 
         self.assertEqual(count, 2)
         self.assertEqual(rows[0], ["név", "pont", "megjegyzés"])
-        self.assertEqual(rows[1], ["Árvíztűrő", "12", "none"])
+        self.assertEqual(rows[1], ["Árvíztűrő", "12", ""])
         self.assertEqual(rows[2], ["Második", "5.5", "rendben"])
 
     def test_builds_default_output_name_from_source_and_sheet(self):
@@ -53,6 +58,119 @@ class TestXlsxExport(unittest.TestCase):
 
         self.assertEqual(path.name, "Munkaforrás__Első_Lap.jsonl")
         self.assertEqual(path.parent, xlsx_export.DEFAULT_OUTPUT_DIR)
+
+    def test_resolves_runtime_profile_options(self):
+        profile, sheet_name, output_path, output_format = xlsx_export.resolve_export_options(
+            "runtime_cards",
+            None,
+            None,
+            None,
+        )
+
+        self.assertEqual(profile.name, "runtime_cards")
+        self.assertEqual(sheet_name, "7. EXPORT_RUNTIME")
+        self.assertEqual(output_path.name, "EXPORT_RUNTIME.jsonl")
+        self.assertEqual(output_format, "jsonl")
+
+    def test_generic_sheet_requires_manual_sheet_format_and_output(self):
+        with self.assertRaisesRegex(xlsx_export.ExportError, "generic_sheet"):
+            xlsx_export.resolve_export_options("generic_sheet", "Adatok", None, "jsonl")
+
+    def test_profile_warnings_for_missing_required_field(self):
+        warnings = []
+        profile = xlsx_export.ExportProfile(
+            name="teszt",
+            sheet_name="Adatok",
+            output_filename="teszt.jsonl",
+            output_format="jsonl",
+            required_fields=("id",),
+            number_fields=("pont",),
+        )
+
+        records = list(xlsx_export.iter_records([(None, "nemszám")], ("id", "pont"), profile=profile, warnings=warnings))
+
+        self.assertEqual(records, [{"pont": "nemszám"}])
+        self.assertIn("hiányzó kötelező mező: id", warnings[0])
+        self.assertIn("nem számként értelmezhető mező: pont", warnings[1])
+
+    def test_lookups_profiles_keep_literal_none_values(self):
+        cases = [
+            ("lookups_runtime", "Race"),
+            ("lookups_runtime", "Keyword"),
+            ("lookups_runtime", "Trigger"),
+            ("lookups_print_product", "Reprint_Of"),
+            ("lookups_workflow_audit", "Audit_Status"),
+            ("lookups_design_catalog", "Generation_Profile"),
+        ]
+        headers = xlsx_export.LOOKUPS_FIELDS
+
+        for profile_name, lookup_group in cases:
+            with self.subTest(profile=profile_name, lookup_group=lookup_group):
+                warnings = []
+                profile = xlsx_export.PROFILES[profile_name]
+                records = list(
+                    xlsx_export.iter_records(
+                        [(lookup_group, "none", "none", "active", "none", "runtime_validation", 999.0, "CARDS_MASTER", "teszt")],
+                        headers,
+                        profile=profile,
+                        warnings=warnings,
+                    )
+                )
+
+                self.assertEqual(warnings, [])
+                self.assertEqual(len(records), 1)
+                self.assertEqual(set(records[0]), set(xlsx_export.LOOKUPS_FIELDS))
+                self.assertEqual(records[0]["Value"], "none")
+                self.assertEqual(records[0]["Label_HU"], "none")
+                self.assertEqual(records[0]["Canonical_Value"], "none")
+                self.assertEqual(records[0]["Sort_Order"], 999)
+
+    def test_lookups_profiles_skip_truly_empty_value_with_warning(self):
+        warnings = []
+        profile = xlsx_export.PROFILES["lookups_runtime"]
+
+        records = list(
+            xlsx_export.iter_records(
+                [("Race", None, "Race", "active", None, "runtime_validation", 10.0, "CARDS_MASTER", "teszt")],
+                xlsx_export.LOOKUPS_FIELDS,
+                profile=profile,
+                warnings=warnings,
+            )
+        )
+
+        self.assertEqual(records, [])
+        self.assertIn("sor kihagyva: üres kötelező mező: Value", warnings[0])
+
+    def test_lookups_profiles_fill_empty_canonical_value_from_value(self):
+        warnings = []
+        profile = xlsx_export.PROFILES["lookups_runtime"]
+
+        records = list(
+            xlsx_export.iter_records(
+                [("Race", "Ember", "Ember", "active", None, "runtime_validation", 10.0, "CARDS_MASTER", "teszt")],
+                xlsx_export.LOOKUPS_FIELDS,
+                profile=profile,
+                warnings=warnings,
+            )
+        )
+
+        self.assertEqual(warnings, [])
+        self.assertEqual(records[0]["Canonical_Value"], "Ember")
+
+    def test_literal_none_is_allowed_in_optional_number_fields(self):
+        warnings = []
+        profile = xlsx_export.ExportProfile(
+            name="teszt",
+            sheet_name="Adatok",
+            output_filename="teszt.jsonl",
+            output_format="jsonl",
+            number_fields=("pont",),
+        )
+
+        records = list(xlsx_export.iter_records([("none",)], ("pont",), profile=profile, warnings=warnings))
+
+        self.assertEqual(records, [{"pont": "none"}])
+        self.assertEqual(warnings, [])
 
     def test_menu_selects_numbered_option(self):
         answers = iter(["hibás", "2"])

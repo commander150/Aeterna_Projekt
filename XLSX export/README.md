@@ -29,6 +29,31 @@ Az interaktív választómenü parancssorból is elindítható:
 python xlsx_export.py
 ```
 
+## Profilalapú export
+
+A profilok AETERNA-specifikus lapot, kimeneti fájlnevet, kötelező mezőket és
+számmező-normalizálást használnak. Az üres cellák, illetve a `none` értékű
+helykitöltők kimaradnak a rekordokból.
+
+```powershell
+python xlsx_export.py "source\AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx" --profile runtime_cards
+python xlsx_export.py "source\AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx" --profile decklists
+python xlsx_export.py "source\AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx" --profile lookups_runtime
+```
+
+Elérhető profilok:
+
+- `runtime_cards` → `7. EXPORT_RUNTIME` → `exports/EXPORT_RUNTIME.jsonl`
+- `decklists` → `15. PRODUCT_DECKLISTS` → `exports/PRODUCT_DECKLISTS.jsonl`
+- `lookups_runtime` → `5A. LOOKUPS_RUNTIME` → `exports/LOOKUPS_RUNTIME.jsonl`
+- `lookups_print_product` → `5B. LOOKUPS_PRINT_PRODUCT` → `exports/LOOKUPS_PRINT_PRODUCT.jsonl`
+- `lookups_workflow_audit` → `5C. LOOKUPS_WORKFLOW_AUDIT` → `exports/LOOKUPS_WORKFLOW_AUDIT.jsonl`
+- `lookups_design_catalog` → `5D. LOOKUPS_DESIGN_CATALOG` → `exports/LOOKUPS_DESIGN_CATALOG.jsonl`
+- `generic_sheet` → kézzel megadott lapnév, formátum és kimenet
+
+Ha a profil warningot talál, az export nem áll le. A warningok megjelennek a
+konzolban, és külön `.warnings.txt` fájlba is mentődnek a kimenet mellé.
+
 Munkalapok listázása:
 
 ```powershell
@@ -50,5 +75,5 @@ Az automatikus fájlnév formája:
 Egyedi kimeneti útvonal is megadható:
 
 ```powershell
-python xlsx_export.py "source\forrás.xlsx" --sheet Adatok --format tsv --output "saját_kimenet.tsv"
+python xlsx_export.py "source\forrás.xlsx" --profile generic_sheet --sheet Adatok --format tsv --output "saját_kimenet.tsv"
 ```
