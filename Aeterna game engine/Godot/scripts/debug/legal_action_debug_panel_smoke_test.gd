@@ -19,11 +19,15 @@ func _init() -> void:
 	failed = _check_int(result.get("action_count", 0), 3, "actions") or failed
 	failed = _check_int(result.get("enabled_count", 0), 2, "enabled") or failed
 	failed = _check_int(result.get("disabled_count", 0), 1, "disabled") or failed
+	failed = _check_int(result.get("resolved_cards", 0), 3, "resolved_cards") or failed
+	failed = _check_int(result.get("missing_card_refs", 0), 0, "missing_card_refs") or failed
 	failed = _check_int(result.get("blocking_errors", 0), 0, "blocking_errors") or failed
 
 	print("actions: %d" % int(result.get("action_count", 0)))
 	print("enabled: %d" % int(result.get("enabled_count", 0)))
 	print("disabled: %d" % int(result.get("disabled_count", 0)))
+	print("resolved_cards: %d" % int(result.get("resolved_cards", 0)))
+	print("missing_card_refs: %d" % int(result.get("missing_card_refs", 0)))
 	print("blocking_errors: %d" % int(result.get("blocking_errors", 0)))
 
 	if failed:

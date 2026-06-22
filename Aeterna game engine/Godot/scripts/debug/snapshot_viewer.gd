@@ -4,10 +4,13 @@ class_name SnapshotViewer
 
 const JsonFileLoaderScript = preload("res://scripts/contract_loader/json_file_loader.gd")
 const SampleContractsLoaderScript = preload("res://scripts/contract_loader/sample_contracts_loader.gd")
+const CardReferenceResolverScript = preload("res://scripts/debug/card_reference_resolver.gd")
 
 @export var contracts_path := "res://sample_contracts"
+@export var runtime_package_path := "res://sample_runtime_package"
 
 var _label: Label
+var _card_resolver
 
 
 func _ready() -> void:
@@ -24,6 +27,10 @@ func _ready() -> void:
 
 func load_snapshot_view(base_path):
 	var result = _empty_result()
+	_card_resolver = CardReferenceResolverScript.new()
+	var package_result = _card_resolver.load_runtime_package(runtime_package_path)
+	if not bool(package_result.get("ok", false)):
+		result["errors"].append_array(package_result.get("errors", []))
 
 	var contracts_loader = SampleContractsLoaderScript.new()
 	var contracts_result = contracts_loader.load_contracts(base_path)
@@ -53,6 +60,9 @@ func load_snapshot_view(base_path):
 	result["players"] = snapshot.get("players", [])
 	result["board"] = snapshot.get("board", {})
 	result["board_entries"] = _count_board_entries(result["board"])
+	var card_ref_counts = _count_resolved_board_cards(result["board"])
+	result["resolved_cards"] = int(card_ref_counts.get("resolved_cards", 0))
+	result["missing_card_refs"] = int(card_ref_counts.get("missing_card_refs", 0))
 	return result
 
 
@@ -65,6 +75,8 @@ func print_debug_summary(result) -> void:
 	print("phase: %s" % str(result.get("phase", "")))
 	print("players: %d" % _count_players(result.get("players", [])))
 	print("board_entries: %d" % int(result.get("board_entries", 0)))
+	print("resolved_cards: %d" % int(result.get("resolved_cards", 0)))
+	print("missing_card_refs: %d" % int(result.get("missing_card_refs", 0)))
 	print("warnings: %d" % int(result.get("warnings", 0)))
 	print("blocking_errors: %d" % int(result.get("blocking_errors", 0)))
 	print("ok: %s" % str(result.get("ok", false)))
@@ -96,6 +108,8 @@ func format_snapshot(result):
 	lines.append("Diagnostics")
 	lines.append("warnings: %d" % int(result.get("warnings", 0)))
 	lines.append("blocking_errors: %d" % int(result.get("blocking_errors", 0)))
+	lines.append("resolved_cards: %d" % int(result.get("resolved_cards", 0)))
+	lines.append("missing_card_refs: %d" % int(result.get("missing_card_refs", 0)))
 	lines.append("ok: %s" % str(result.get("ok", false)))
 
 	var errors = result.get("errors", [])
@@ -166,7 +180,7 @@ func _format_card_ref(card_ref):
 	if typeof(card_ref) != TYPE_DICTIONARY:
 		return "invalid_card_ref"
 	var parts = [
-		"card_id=%s" % str(card_ref.get("card_id", "")),
+		"card=%s" % _format_card_id(card_ref.get("card_id", "")),
 		"instance_id=%s" % str(card_ref.get("instance_id", "")),
 		"zone=%s" % str(card_ref.get("zone", "")),
 	]
@@ -175,6 +189,12 @@ func _format_card_ref(card_ref):
 	if card_ref.has("position"):
 		parts.append("position=%s" % str(card_ref.get("position", "")))
 	return " ".join(parts)
+
+
+func _format_card_id(card_id):
+	if _card_resolver == null:
+		return "UNKNOWN CARD: %s" % str(card_id)
+	return _card_resolver.format_card(card_id)
 
 
 func _count_players(players):
@@ -200,6 +220,41 @@ func _count_board_entries(board):
 	return count
 
 
+func _count_resolved_board_cards(board):
+	var result = {
+		"resolved_cards": 0,
+		"missing_card_refs": 0,
+	}
+	if typeof(board) != TYPE_DICTIONARY:
+		return result
+
+	var lanes = board.get("lanes", [])
+	if typeof(lanes) == TYPE_ARRAY:
+		for lane in lanes:
+			if typeof(lane) == TYPE_DICTIONARY:
+				var card_refs = lane.get("card_refs", [])
+				_count_card_ref_array(card_refs, result)
+
+	var currents = board.get("currents", [])
+	_count_card_ref_array(currents, result)
+	return result
+
+
+func _count_card_ref_array(card_refs, result):
+	if typeof(card_refs) != TYPE_ARRAY:
+		return
+	for card_ref in card_refs:
+		if typeof(card_ref) == TYPE_DICTIONARY and card_ref.has("card_id"):
+			_count_card_id(card_ref.get("card_id", ""), result)
+
+
+func _count_card_id(card_id, result):
+	if _card_resolver != null and _card_resolver.has_card(card_id):
+		result["resolved_cards"] = int(result.get("resolved_cards", 0)) + 1
+	else:
+		result["missing_card_refs"] = int(result.get("missing_card_refs", 0)) + 1
+
+
 func _empty_result():
 	return {
 		"ok": false,
@@ -214,6 +269,8 @@ func _empty_result():
 		"players": [],
 		"board": {},
 		"board_entries": 0,
+		"resolved_cards": 0,
+		"missing_card_refs": 0,
 		"snapshot": {},
 	}
 

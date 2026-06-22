@@ -4,10 +4,13 @@ class_name LegalActionDebugPanel
 
 const JsonFileLoaderScript = preload("res://scripts/contract_loader/json_file_loader.gd")
 const SampleContractsLoaderScript = preload("res://scripts/contract_loader/sample_contracts_loader.gd")
+const CardReferenceResolverScript = preload("res://scripts/debug/card_reference_resolver.gd")
 
 @export var contracts_path := "res://sample_contracts"
+@export var runtime_package_path := "res://sample_runtime_package"
 
 var _label: Label
+var _card_resolver
 
 
 func _ready() -> void:
@@ -24,6 +27,10 @@ func _ready() -> void:
 
 func load_legal_action_view(base_path):
 	var result = _empty_result()
+	_card_resolver = CardReferenceResolverScript.new()
+	var package_result = _card_resolver.load_runtime_package(runtime_package_path)
+	if not bool(package_result.get("ok", false)):
+		result["errors"].append_array(package_result.get("errors", []))
 
 	var contracts_loader = SampleContractsLoaderScript.new()
 	var contracts_result = contracts_loader.load_contracts(base_path)
@@ -59,6 +66,9 @@ func load_legal_action_view(base_path):
 	result["action_count"] = actions.size()
 	result["enabled_count"] = _count_actions_by_enabled(actions, true)
 	result["disabled_count"] = _count_actions_by_enabled(actions, false)
+	var card_ref_counts = _count_resolved_action_cards(actions)
+	result["resolved_cards"] = int(card_ref_counts.get("resolved_cards", 0))
+	result["missing_card_refs"] = int(card_ref_counts.get("missing_card_refs", 0))
 	result["ok"] = result["ok"] and result["errors"].is_empty()
 	return result
 
@@ -71,6 +81,8 @@ func print_debug_summary(result) -> void:
 	print("actions: %d" % int(result.get("action_count", 0)))
 	print("enabled: %d" % int(result.get("enabled_count", 0)))
 	print("disabled: %d" % int(result.get("disabled_count", 0)))
+	print("resolved_cards: %d" % int(result.get("resolved_cards", 0)))
+	print("missing_card_refs: %d" % int(result.get("missing_card_refs", 0)))
 	print("warnings: %d" % int(result.get("warnings", 0)))
 	print("blocking_errors: %d" % int(result.get("blocking_errors", 0)))
 	print("ok: %s" % str(result.get("ok", false)))
@@ -107,6 +119,8 @@ func format_panel(result):
 	lines.append("actions: %d" % int(result.get("action_count", 0)))
 	lines.append("enabled: %d" % int(result.get("enabled_count", 0)))
 	lines.append("disabled: %d" % int(result.get("disabled_count", 0)))
+	lines.append("resolved_cards: %d" % int(result.get("resolved_cards", 0)))
+	lines.append("missing_card_refs: %d" % int(result.get("missing_card_refs", 0)))
 	lines.append("warnings: %d" % int(result.get("warnings", 0)))
 	lines.append("blocking_errors: %d" % int(result.get("blocking_errors", 0)))
 	lines.append("ok: %s" % str(result.get("ok", false)))
@@ -134,7 +148,7 @@ func _format_action(action):
 		]
 	]
 	if action.has("source_card_id"):
-		lines.append("  source_card_id: %s" % str(action.get("source_card_id", "")))
+		lines.append("  source_card_id: %s" % _format_card_id(action.get("source_card_id", "")))
 	if action.has("target_refs"):
 		lines.append("  target_refs: %s" % _format_target_refs(action.get("target_refs", [])))
 	if action.has("cost_summary"):
@@ -150,10 +164,21 @@ func _format_target_refs(target_refs):
 	var parts = []
 	for target_ref in target_refs:
 		if typeof(target_ref) == TYPE_DICTIONARY:
-			parts.append("%s:%s" % [str(target_ref.get("type", "")), str(target_ref.get("id", ""))])
+			var target_type = str(target_ref.get("type", ""))
+			var target_id = str(target_ref.get("id", ""))
+			if target_type == "card" or target_type == "card_id":
+				parts.append("%s:%s" % [target_type, _format_card_id(target_id)])
+			else:
+				parts.append("%s:%s" % [target_type, target_id])
 		else:
 			parts.append("invalid_target_ref")
 	return ", ".join(parts)
+
+
+func _format_card_id(card_id):
+	if _card_resolver == null:
+		return "UNKNOWN CARD: %s" % str(card_id)
+	return _card_resolver.format_card(card_id)
 
 
 func _format_cost_summary(cost_summary):
@@ -173,6 +198,35 @@ func _count_actions_by_enabled(actions, enabled):
 		if _is_action_enabled(action) == bool(enabled):
 			count += 1
 	return count
+
+
+func _count_resolved_action_cards(actions):
+	var result = {
+		"resolved_cards": 0,
+		"missing_card_refs": 0,
+	}
+	if typeof(actions) != TYPE_ARRAY:
+		return result
+	for action in actions:
+		if typeof(action) != TYPE_DICTIONARY:
+			continue
+		if action.has("source_card_id"):
+			_count_card_id(action.get("source_card_id", ""), result)
+		var target_refs = action.get("target_refs", [])
+		if typeof(target_refs) == TYPE_ARRAY:
+			for target_ref in target_refs:
+				if typeof(target_ref) == TYPE_DICTIONARY:
+					var target_type = str(target_ref.get("type", ""))
+					if target_type == "card" or target_type == "card_id":
+						_count_card_id(target_ref.get("id", ""), result)
+	return result
+
+
+func _count_card_id(card_id, result):
+	if _card_resolver != null and _card_resolver.has_card(card_id):
+		result["resolved_cards"] = int(result.get("resolved_cards", 0)) + 1
+	else:
+		result["missing_card_refs"] = int(result.get("missing_card_refs", 0)) + 1
 
 
 func _is_action_enabled(action):
@@ -195,6 +249,8 @@ func _empty_result():
 		"action_count": 0,
 		"enabled_count": 0,
 		"disabled_count": 0,
+		"resolved_cards": 0,
+		"missing_card_refs": 0,
 		"legal_actions": {},
 	}
 
