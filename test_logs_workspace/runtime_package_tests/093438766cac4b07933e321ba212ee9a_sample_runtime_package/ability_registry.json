@@ -1,0 +1,38 @@
+{
+  "ability_registry": [
+    {
+      "module_id": "sample_damage_1",
+      "module_type": "effect",
+      "label_hu": "Sebzes minta modul",
+      "support_status": "declared_only",
+      "input_parameters": [
+        {
+          "name": "amount",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "output_events": [
+        "damage_declared"
+      ],
+      "diagnostics": []
+    },
+    {
+      "module_id": "sample_aura_gain",
+      "module_type": "effect",
+      "label_hu": "Aura nyeres minta modul",
+      "support_status": "declared_only",
+      "input_parameters": [
+        {
+          "name": "amount",
+          "type": "int",
+          "required": true
+        }
+      ],
+      "output_events": [
+        "resource_gain_declared"
+      ],
+      "diagnostics": []
+    }
+  ]
+}

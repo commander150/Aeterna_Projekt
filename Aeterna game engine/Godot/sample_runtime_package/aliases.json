@@ -1,0 +1,20 @@
+{
+  "aliases": [
+    {
+      "lookup_group": "card_type",
+      "alias_value": "Rituálé",
+      "canonical_value": "Rituale",
+      "status": "active",
+      "danger_level": "low",
+      "notes": "Human-facing accented form mapped to runtime-safe sample value."
+    },
+    {
+      "lookup_group": "realm",
+      "alias_value": "Tűz",
+      "canonical_value": "Ignis",
+      "status": "active",
+      "danger_level": "low",
+      "notes": "Hungarian thematic alias for sample fixtures."
+    }
+  ]
+}

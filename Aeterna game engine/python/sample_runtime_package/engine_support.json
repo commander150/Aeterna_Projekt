@@ -1,0 +1,26 @@
+{
+  "schema_version": "sample-runtime-package-v1",
+  "summary": {
+    "card_statuses": {
+      "declared_only": 4,
+      "not_executed": 1
+    },
+    "ability_module_statuses": {
+      "declared_only": 2
+    },
+    "runtime_executes_abilities": false,
+    "notes_hu": "A sample package csak deklaralja a kepesseg modulokat, nem futtatja oket."
+  },
+  "supported_card_types": [
+    "Entitas",
+    "Ige",
+    "Jel",
+    "Rituale",
+    "Sik"
+  ],
+  "supported_realms": [
+    "Aqua",
+    "Ignis"
+  ],
+  "ability_execution": "not_implemented"
+}

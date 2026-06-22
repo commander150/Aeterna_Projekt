@@ -1,0 +1,75 @@
+{
+  "package_id": "aeterna.sample_runtime_package",
+  "package_version": "0.1.0",
+  "schema_version": "sample-runtime-package-v1",
+  "created_at": "2026-06-22T06:57:43+00:00",
+  "ruleset_version": "sample-ruleset-v0",
+  "source_files": [
+    {
+      "path": "tools/runtime_package/build_sample_runtime_package.py",
+      "type": "in_code_fixture"
+    }
+  ],
+  "files": [
+    {
+      "path": "manifest.json",
+      "format": "json"
+    },
+    {
+      "path": "cards.jsonl",
+      "format": "jsonl"
+    },
+    {
+      "path": "decks.jsonl",
+      "format": "jsonl"
+    },
+    {
+      "path": "lookups.json",
+      "format": "json"
+    },
+    {
+      "path": "aliases.json",
+      "format": "json"
+    },
+    {
+      "path": "ability_registry.json",
+      "format": "json"
+    },
+    {
+      "path": "engine_support.json",
+      "format": "json"
+    },
+    {
+      "path": "diagnostics.json",
+      "format": "json"
+    },
+    {
+      "path": "build_report.md",
+      "format": "md"
+    }
+  ],
+  "validation_summary": {
+    "blocking": false,
+    "card_count": 5,
+    "deck_count": 1,
+    "diagnostic_count": 1,
+    "warning_count": 1,
+    "error_count": 0
+  },
+  "engine_support_summary": {
+    "card_statuses": {
+      "declared_only": 4,
+      "not_executed": 1
+    },
+    "ability_module_statuses": {
+      "declared_only": 2
+    },
+    "runtime_executes_abilities": false,
+    "notes_hu": "A sample package csak deklaralja a kepesseg modulokat, nem futtatja oket."
+  },
+  "metadata": {
+    "generator": "build_sample_runtime_package.py",
+    "purpose_hu": "Minimalis sample runtime package szerkezet bizonyitasa.",
+    "production_export": false
+  }
+}

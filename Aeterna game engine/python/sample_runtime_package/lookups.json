@@ -1,0 +1,76 @@
+{
+  "lookups": [
+    {
+      "lookup_group": "card_type",
+      "value": "Entitas",
+      "label_hu": "Entitas",
+      "status": "active",
+      "canonical_value": "Entitas",
+      "used_for": [
+        "cards.card_type"
+      ]
+    },
+    {
+      "lookup_group": "card_type",
+      "value": "Ige",
+      "label_hu": "Ige",
+      "status": "active",
+      "canonical_value": "Ige",
+      "used_for": [
+        "cards.card_type"
+      ]
+    },
+    {
+      "lookup_group": "card_type",
+      "value": "Rituale",
+      "label_hu": "Rituale",
+      "status": "active",
+      "canonical_value": "Rituale",
+      "used_for": [
+        "cards.card_type"
+      ]
+    },
+    {
+      "lookup_group": "card_type",
+      "value": "Jel",
+      "label_hu": "Jel",
+      "status": "active",
+      "canonical_value": "Jel",
+      "used_for": [
+        "cards.card_type"
+      ]
+    },
+    {
+      "lookup_group": "card_type",
+      "value": "Sik",
+      "label_hu": "Sik",
+      "status": "active",
+      "canonical_value": "Sik",
+      "used_for": [
+        "cards.card_type"
+      ]
+    },
+    {
+      "lookup_group": "realm",
+      "value": "Ignis",
+      "label_hu": "Ignis",
+      "status": "active",
+      "canonical_value": "Ignis",
+      "used_for": [
+        "cards.realm",
+        "decks.realm"
+      ]
+    },
+    {
+      "lookup_group": "realm",
+      "value": "Aqua",
+      "label_hu": "Aqua",
+      "status": "active",
+      "canonical_value": "Aqua",
+      "used_for": [
+        "cards.realm",
+        "decks.realm"
+      ]
+    }
+  ]
+}
