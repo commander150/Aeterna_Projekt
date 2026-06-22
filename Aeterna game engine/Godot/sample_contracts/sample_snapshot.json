@@ -1,0 +1,62 @@
+{
+  "schema_version": "sample-snapshot-v1",
+  "snapshot_id": "sample-snapshot-001",
+  "match_id": "sample-match-001",
+  "active_player_id": "player-1",
+  "turn_number": 3,
+  "phase": "main",
+  "players": [
+    {
+      "player_id": "player-1",
+      "display_name": "Ignis tanonc",
+      "realm": "Ignis",
+      "seals_remaining": 5,
+      "deck_count": 32,
+      "hand_count": 4,
+      "wellspring_count": 2,
+      "void_count": 1
+    },
+    {
+      "player_id": "player-2",
+      "display_name": "Aqua ellenfel",
+      "realm": "Aqua",
+      "seals_remaining": 5,
+      "deck_count": 31,
+      "hand_count": 5,
+      "wellspring_count": 1,
+      "void_count": 0
+    }
+  ],
+  "board": {
+    "lanes": [
+      {
+        "lane_id": "lane-1",
+        "controller_player_id": "player-1",
+        "card_refs": [
+          {
+            "card_id": "SMP-IGN-001",
+            "instance_id": "card-inst-001",
+            "zone": "board"
+          }
+        ]
+      },
+      {
+        "lane_id": "lane-2",
+        "controller_player_id": "player-2",
+        "card_refs": []
+      }
+    ],
+    "currents": [
+      {
+        "card_id": "SMP-IGN-005",
+        "instance_id": "card-inst-005",
+        "zone": "board"
+      }
+    ]
+  },
+  "selected_card_id": "SMP-IGN-002",
+  "diagnostics": {
+    "warnings": [],
+    "blocking_errors": []
+  }
+}

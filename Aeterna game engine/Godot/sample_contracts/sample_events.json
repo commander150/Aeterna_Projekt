@@ -1,0 +1,46 @@
+{
+  "schema_version": "sample-events-v1",
+  "match_id": "sample-match-001",
+  "events": [
+    {
+      "event_id": "event-001",
+      "sequence": 1,
+      "event_type": "turn_started",
+      "actor_player_id": "player-1",
+      "message_hu": "Az Ignis tanonc kore elkezdodott."
+    },
+    {
+      "event_id": "event-002",
+      "sequence": 2,
+      "event_type": "card_drawn",
+      "actor_player_id": "player-1",
+      "card_id": "SMP-IGN-002",
+      "message_hu": "Az aktiv jatekos lapot huzott.",
+      "refs": {
+        "zone": "hand"
+      }
+    },
+    {
+      "event_id": "event-003",
+      "sequence": 3,
+      "event_type": "action_available",
+      "actor_player_id": "player-1",
+      "card_id": "SMP-IGN-002",
+      "message_hu": "A Szikra Ige kijatszhato."
+    },
+    {
+      "event_id": "event-004",
+      "sequence": 4,
+      "event_type": "phase_checked",
+      "actor_player_id": "player-1",
+      "message_hu": "A sample allapot main fazisban van.",
+      "refs": {
+        "phase": "main"
+      }
+    }
+  ],
+  "diagnostics": {
+    "warnings": [],
+    "blocking_errors": []
+  }
+}

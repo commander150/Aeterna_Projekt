@@ -1,0 +1,52 @@
+{
+  "schema_version": "sample-legal-actions-v1",
+  "match_id": "sample-match-001",
+  "active_player_id": "player-1",
+  "generated_for_snapshot_id": "sample-snapshot-001",
+  "actions": [
+    {
+      "action_id": "action-001",
+      "action_type": "play_card",
+      "label_hu": "Szikra Ige kijatszasa",
+      "source_card_id": "SMP-IGN-002",
+      "target_refs": [
+        {
+          "type": "player",
+          "id": "player-2"
+        }
+      ],
+      "cost_summary": {
+        "aura": 1
+      },
+      "enabled": true
+    },
+    {
+      "action_id": "action-002",
+      "action_type": "attack",
+      "label_hu": "Parazsorzo Entitas tamad",
+      "source_card_id": "SMP-IGN-001",
+      "target_refs": [
+        {
+          "type": "player",
+          "id": "player-2"
+        }
+      ],
+      "enabled": true
+    },
+    {
+      "action_id": "action-003",
+      "action_type": "play_card",
+      "label_hu": "Hamuesku Rituale kijatszasa",
+      "source_card_id": "SMP-IGN-003",
+      "cost_summary": {
+        "aura": 2
+      },
+      "enabled": false,
+      "disabled_reason": "Nincs eleg aura a sample allapotban."
+    }
+  ],
+  "diagnostics": {
+    "warnings": [],
+    "blocking_errors": []
+  }
+}
