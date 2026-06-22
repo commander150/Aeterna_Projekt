@@ -2,3 +2,5 @@
 .godot/
 /android/
 headless_smoke.log
+sample_contracts_smoke.log
+snapshot_viewer_smoke.log

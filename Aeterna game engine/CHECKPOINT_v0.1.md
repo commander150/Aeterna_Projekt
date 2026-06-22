@@ -203,6 +203,78 @@ Következtetés:
 A Godot headless contract-loader smoke test működik.
 ```
 
+### 6.1 Headless smoke test futtatási pontosítás
+
+A v0.1 könyvtárrendezés után a Godot headless smoke test újraellenőrzése során kiderült, hogy a Godot 4.7 Windows környezetben explicit logfájl nélkül headless módban natív engine-crash-t adhat az alapértelmezett `user://logs` logfájl megnyitásakor.
+
+A tapasztalt hiba:
+
+```text
+ERROR: Failed to open 'user://logs/godot2026-06-22T12.58.06.log'.
+CrashHandlerException: Program crashed with signal 11
+```
+
+A hiba nem az AETERNA loader, nem a `package_loader_smoke_test.gd`, nem a runtime package, és nem a scene-alapú contract-loader hibája volt, mert:
+
+```text
+a normál projektindítás sikeresen lefutott;
+a scene-alapú loader outputja megjelent;
+a smoke script első sora extends SceneTree;
+explicit --log-file paraméter mellett a headless smoke test sikeresen lefutott;
+a smoke test saját OK outputja megjelent.
+```
+
+A stabil headless futtatáshoz létrejött a következő kényelmi futtató:
+
+```text
+Godot\run_headless_smoke_test.bat
+```
+
+A futtató lényege:
+
+```bat
+@echo off & cd /d "%~dp0" & "G:\Godot\Godot_v4.7-stable_win64.exe" --verbose --headless --log-file "headless_smoke.log" --path "." --script "res://scripts/debug/package_loader_smoke_test.gd" & exit /b %ERRORLEVEL%
+```
+
+A `--path "."` azért használható, mert a BAT előbb belép a saját mappájába, amely maga a Godot projektgyökér. Ez elkerüli az ékezetes Windows útvonalból eredő batch-encoding problémákat, miközben továbbra is ugyanazt a Godot projektet futtatja.
+
+A sikeres headless smoke test output:
+
+```text
+Running AETERNA package loader smoke test...
+package_id: aeterna.sample_runtime_package
+package_version: 0.1.0
+schema_version: sample-runtime-package-v1
+cards: 5
+decks: 1
+lookup_groups: 2
+ability_modules: 2
+warnings: 1
+blocking_errors: 0
+AETERNA package loader smoke test: OK
+```
+
+A futtatás végén megjelenhet az alábbi Godot / Windows tanúsítvány warning:
+
+```text
+ERROR: Failed to read the root certificate store.
+```
+
+Ez az `OK` után jelenik meg, a v0.1 smoke testet nem blokkolja, és jelen állapotban nem AETERNA contract-loader hibaként kezelendő.
+
+A `headless_smoke.log` diagnosztikai logfájl nem kerül verziókezelésbe. A Godot ág `.gitignore` fájlja kizárja:
+
+```text
+headless_smoke.log
+```
+
+Következtetés:
+
+```text
+A Godot headless contract-loader smoke test működik.
+Windows / Godot 4.7 környezetben a stabil headless futtatáshoz explicit --log-file paraméter használata szükséges.
+```
+
 ---
 
 ## 7. Javított parse hiba

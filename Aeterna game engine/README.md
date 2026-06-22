@@ -209,15 +209,41 @@ blocking_errors: 0
 ok: true
 ```
 
-A headless smoke test fejlesztői / automatizált ellenőrzésre használható, de nem ez az elsődleges felhasználói futtatási mód.
+A Godot által fogyasztott sample runtime package hivatalos helye:
 
-Headless futtatás:
-
-```powershell
-godot --headless --path "E:/Letöltések/Aeterna/Aeterna_Projekt/Aeterna game engine/Godot" --script "res://scripts/debug/package_loader_smoke_test.gd"
+```text
+Aeterna game engine\Godot\sample_runtime_package\
 ```
 
-Ha a `godot` nincs PATH-ban, akkor a Godot exe teljes útvonalát kell használni.
+A Godot loader útvonala:
+
+```text
+res://sample_runtime_package
+```
+
+A headless smoke test fejlesztői / automatizált ellenőrzésre használható, de nem ez az elsődleges felhasználói futtatási mód.
+
+Windows / Godot 4.7 környezetben a headless smoke test stabil futtatásához explicit logfájl használata szükséges. Ezért a javasolt futtatási mód:
+
+```text
+Godot\run_headless_smoke_test.bat
+```
+
+A futtató a Godot projektgyökérből indul, explicit logfájlt használ, és a következő smoke scriptet futtatja:
+
+```text
+res://scripts/debug/package_loader_smoke_test.gd
+```
+
+A BAT futtató lényege:
+
+```bat
+@echo off & cd /d "%~dp0" & "G:\Godot\Godot_v4.7-stable_win64.exe" --verbose --headless --log-file "headless_smoke.log" --path "." --script "res://scripts/debug/package_loader_smoke_test.gd" & exit /b %ERRORLEVEL%
+```
+
+A `--path "."` azért használható, mert a BAT előbb belép a saját mappájába, amely maga a Godot projektgyökér. Ez elkerüli az ékezetes Windows útvonalból eredő batch-encoding problémákat, miközben továbbra is ugyanazt a Godot projektet futtatja.
+
+A `headless_smoke.log` diagnosztikai logfájl nem kerül verziókezelésbe. A Godot ág `.gitignore` fájlja kizárja.
 
 ---
 
@@ -239,6 +265,31 @@ blocking_errors: 0
 AETERNA package loader smoke test: OK
 ```
 
+A headless smoke test explicit `--log-file` paraméterrel sikeresen lefutott.
+
+A korábbi headless indítás explicit logfájl nélkül Godot natív logolási hibába futhatott:
+
+```text
+ERROR: Failed to open 'user://logs/godot2026-06-22T12.58.06.log'.
+CrashHandlerException: Program crashed with signal 11
+```
+
+Ez nem az AETERNA loader, nem a runtime package, nem a `package_loader_smoke_test.gd`, és nem a scene-alapú contract-loader hibája volt.
+
+A stabil megoldás:
+
+```text
+headless smoke test futtatása explicit --log-file paraméterrel
+```
+
+A futtatás végén megjelenhet az alábbi Godot / Windows warning:
+
+```text
+ERROR: Failed to read the root certificate store.
+```
+
+Ez az `OK` után jelenik meg, a v0.1 smoke testet nem blokkolja, és jelen állapotban nem AETERNA contract-loader hibaként kezelendő.
+
 A korábbi parse hiba oka GDScript típus-inferencia volt olyan visszatérési értéknél, amelynek típusa nem volt egyértelmű.
 
 Hibás minta:
@@ -257,6 +308,14 @@ vagy később, ha a visszatérési típus rögzített:
 
 ```gdscript
 var deck_errors: Array = loader.deck_registry.validate_deck_card_refs(loader.card_registry)
+```
+
+Következtetés:
+
+```text
+A Godot scene-alapú contract-loader működik.
+A Godot headless contract-loader smoke test működik.
+Windows / Godot 4.7 környezetben a stabil headless futtatáshoz explicit --log-file paraméter használata szükséges.
 ```
 
 ---
