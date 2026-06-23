@@ -1,0 +1,28 @@
+{
+  "schema_version": "sample-action-request-v1",
+  "match_id": "sample-match-001",
+  "snapshot_id": "sample-snapshot-001",
+  "based_on_action_id": "action-001",
+  "request_id": "action-request-001",
+  "requesting_player_id": "player-1",
+  "action_type": "play_card",
+  "source_card_id": "SMP-IGN-002",
+  "selected_targets": [
+    {
+      "type": "player",
+      "id": "player-2"
+    }
+  ],
+  "payment": {
+    "aura_paid": 1,
+    "notes_hu": "Debug/sample szintu fizetesi minta, nem vegleges fizetesi rendszer."
+  },
+  "client_context": {
+    "source": "manual_debug_sample",
+    "note_hu": "Kezzel osszeallitott action request minta, action vegrehajtas nelkul."
+  },
+  "diagnostics": {
+    "warnings": [],
+    "blocking_errors": []
+  }
+}

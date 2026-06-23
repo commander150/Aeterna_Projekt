@@ -1,0 +1,1 @@
+@echo off & cd /d "%~dp0" & "G:\Godot\Godot_v4.7-stable_win64.exe" --verbose --headless --log-file "action_request_smoke.log" --path "." --script "res://scripts/debug/action_request_smoke_test.gd" & exit /b %ERRORLEVEL%
