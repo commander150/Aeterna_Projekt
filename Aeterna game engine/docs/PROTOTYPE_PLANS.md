@@ -257,7 +257,7 @@ Javasolt következő prototípusok:
 1. Runtime package + sample contracts integration
 2. Missing card reference diagnostics
 3. Unified debug dashboard
-4. Action request / response smoke test
+4. Action response smoke / action request extension
 5. Contract consistency smoke test erősítése
 6. Ability registry support viewer
 7. Simple effect module prototype
@@ -699,7 +699,7 @@ Ajánlott sorrend:
 2. Missing card reference diagnostics.
 3. Contract consistency smoke test erősítése.
 4. Unified debug dashboard.
-5. Action request / response smoke test.
+5. Action response smoke / action request extension.
 6. Ability registry support viewer.
 7. Simple effect module prototype.
 8. Minimal GDScript rules service.

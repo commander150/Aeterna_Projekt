@@ -25,6 +25,8 @@ Kapcsolódó fő dokumentumok:
 
 ---
 
+## Általános contract alapok
+
 ### 1. Contract-first alapelv
 
 Az AETERNA Game Engine egyik központi alapelve:

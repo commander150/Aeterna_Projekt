@@ -351,10 +351,6 @@
     legal action számítás;
     AI;
     végleges UI.
-    v0.3 – Unified dashboard / consistency smoke / action request smoke
-    Elkészült
-
-    Ez a checkpoint-szakasz előkészített hely.
 
 ## v0.3 – Unified dashboard / consistency smoke / action request smoke 
 

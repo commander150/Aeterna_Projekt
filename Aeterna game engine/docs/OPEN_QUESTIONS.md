@@ -1055,7 +1055,7 @@ Nyitott kérdések:
 
 ### OQ-RULES-001 – Hivatalos főforrás-audit
 
-**Státusz:** `deferred`, `blocked_by_data_pipeline`  
+**Státusz:** `deferred`, `blocked_by_validation_layer`  
 **Célfájl:** `DECISION_MAP.md`, `ARCHITECTURE.md`
 
 - Mikor induljon külön főforrás-audit?
