@@ -1,56 +1,3 @@
-# AETERNA Game Engine – Open Questions
-
-Ez a fájl az AETERNA Game Engine dokumentációiban szereplő nyitott kérdések és döntési kapuk központi nyilvántartása.
-
-Célja, hogy a DOCX → MD migráció és dokumentum-összevonás során egyetlen megválaszolandó kérdés se vesszen el.
-
-Ez nem döntési dokumentum, hanem döntés-előkészítő kérdéslista.
-
----
-
-## Státuszok
-
-| Státusz | Jelentés |
-|---|---|
-| `open` | Még nincs megválaszolva. |
-| `partly_answered` | Részben már van irány, de nincs végleges döntés. |
-| `deferred` | Későbbi fázisra halasztva. |
-| `answered` | Megválaszolva és átvezetve. |
-| `obsolete` | Már nem aktuális. |
-| `blocked_by_prototype` | Prototípus vagy teszt kell a válaszhoz. |
-| `blocked_by_godot_prototype` | Godot/GDScript prototípus vagy smoke test kell a válaszhoz. |
-| `blocked_by_engine_test` | Engine vagy smoke test szükséges. |
-| `blocked_by_data_audit` | Kártyaadat / LOOKUPS / structured audit szükséges. |
-| `blocked_by_lookup_audit` | LOOKUPS audit szükséges. |
-| `blocked_by_rules_audit` | Szabályforrás-audit szükséges. |
-| `blocked_by_card_data_audit` | Kártyaadat-audit szükséges. |
-| `blocked_by_runtime_package_builder` | Runtime package builder vagy package report szükséges. |
-| `blocked_by_runtime_package_design` | Runtime package szerkezeti döntés szükséges. |
-| `blocked_by_engine_support_checker` | Engine support checker / unsupported feature vizsgálat szükséges. |
-| `blocked_by_ui_prototype` | UI vagy debug UI prototípus szükséges. |
-| `blocked_by_ai_test_design` | AI-tesztelési terv szükséges. |
-| `blocked_by_balance_test_design` | Balansztesztelési terv szükséges. |
-| `blocked_by_validation_layer` | Validációs réteg szükséges. |
-| `blocked_by_event_log_prototype` | Event log prototípus szükséges. |
-| `blocked_by_event_viewer_test` | Event viewer / event debug test szükséges. |
-| `blocked_by_diagnostics_design` | Diagnostics rendszerterv szükséges. |
-| `blocked_by_visibility_rules` | Rejtett információ / visibility szabályok pontosítása szükséges. |
-| `blocked_by_effect_module_prototype` | Ability/effect module prototípus szükséges. |
-| `blocked_by_keyword_audit` | Keyword audit szükséges. |
-| `blocked_by_structured_audit` | Structured mezők auditja szükséges. |
-| `blocked_by_technology_decision` | Technológiai döntés szükséges. |
-| `blocked_by_comparison_test` | Python ↔ GDScript összehasonlító teszt szükséges. |
-| `blocked_by_combat_rules_spec` | Harci szabályspecifikáció szükséges. |
-| `blocked_by_targeting_prototype` | Targeting prototípus szükséges. |
-| `blocked_by_interactive_prototype` | Interaktív prototípus szükséges. |
-| `blocked_by_reaction_prototype` | Reakcióablak prototípus szükséges. |
-| `blocked_by_rules_examples` | Konkrét szabálypéldák szükségesek. |
-| `deferred_until_interactive_ui` | Interaktív UI/prototípus fázisig halasztva. |
-| `deferred_until_ai_test` | AI-tesztelési fázisig halasztva. |
-| `ready_for_decision_later` | Később döntésre előkészíthető. |
-
----
-
 ## 1. Projektirány és célarchitektúra
 
 ### OQ-ARCH-001 – Régi Python motor sorsa
@@ -77,20 +24,6 @@ Ez nem döntési dokumentum, hanem döntés-előkészítő kérdéslista.
 
 ---
 
-### OQ-ARCH-003 – UI és rules engine szétválasztása
-
-**Státusz:** `open`, `blocked_by_prototype`  
-**Célfájl:** `ARCHITECTURE.md`, `TECHNOLOGY_DECISIONS.md`
-
-Kérdések:
-
-- Hogyan biztosítjuk, hogy a Godot UI ne tartalmazzon szabálylogikát?
-- Milyen réteg legyen a `rules_service`?
-- A Godot UI csak action requestet küldjön?
-- Milyen contract választja el az inputot a szabálymotortól?
-
----
-
 ## 2. Dokumentáció és fájlstátusz
 
 ### OQ-DOC-001 – DOCX → Markdown migráció
@@ -113,20 +46,6 @@ Kérdések:
 - A checkpoint fájl a gyökérben vagy `docs/checkpoints/` alatt legyen?
 - A régi checkpoint DOCX-ek státusza `MERGED_TO_MD` legyen-e?
 - A checkpoint tartalmazzon-e csak rövid tényeket, vagy részletes technikai naplót is?
-
----
-
-### OQ-DOC-003 – Dokumentumszaporodás elkerülése
-
-**Státusz:** `partly_answered`  
-**Célfájl:** `DECISION_MAP.md`
-
-Kérdések:
-
-- Milyen esetben készülhet új dokumentum?
-- Mikor kell meglévő dokumentumba beépíteni az új tartalmat?
-- Mi legyen az átmeneti munkatervek sorsa?
-- Törölhetők-e az átmeneti merge-tervek, ha a tartalom átkerült?
 
 ---
 
@@ -160,38 +79,6 @@ Nyitott kérdések:
 - Kell-e hosszú távon `XLSX export/source/` másolat?
 - Az exportáló által készített outputok regenerálható fájlok vagy verziózott referencia-outputok legyenek?
 - Mikor épül be az új input-mód az exportálóba?
-
-### OQ-DATA-003 – Engine support státusz
-
-**Státusz:** `open`, `blocked_by_engine_test`  
-**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`, `ABILITY_MODULE_SYSTEM.md`
-
-Kérdések:
-
-- Az `unsupported` kártya blokkolja-e a package buildet?
-- Csak akkor blokkoljon, ha deckben szerepel?
-- `partial` státusz warning vagy audit note legyen?
-- Card-local fallback megengedett-e AI-vs-AI tesztben?
-- Godot runtime esetén unsupported effect mit okozzon?
-
----
-
----
-
-### OQ-DATA-004 – Legacy alias és canonical értékek
-
-**Státusz:** `open`, `blocked_by_data_audit`  
-**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`
-
-Kérdések:
-
-- A legacy alias automatikusan canonical értékre forduljon?
-- A veszélyes alias mindig audit note legyen?
-- Mikor legyen blocking error?
-- A canonical javítás visszakerüljön-e a forrásadatba?
-- Régi Aeternal/Pecsét HP-modellre utaló értékek automatikusan tiltottak legyenek?
-
----
 
 ## 4. Snapshot
 
