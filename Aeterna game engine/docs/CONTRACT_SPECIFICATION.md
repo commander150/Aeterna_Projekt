@@ -25,7 +25,7 @@ Kapcsolódó fő dokumentumok:
 
 ---
 
-## 1. Contract-first alapelv
+### 1. Contract-first alapelv
 
 Az AETERNA Game Engine egyik központi alapelve:
 
@@ -45,7 +45,7 @@ A contractok célja:
 
 ---
 
-## 2. Fő contractok
+### 2. Fő contractok
 
 A contract-specifikáció jelenlegi fő rétegei:
 
@@ -73,7 +73,7 @@ Ez a dokumentum elsősorban az engine és frontend / AI / debug rétegek közöt
 
 ---
 
-## 3. Contractok közötti alapkapcsolat
+### 3. Contractok közötti alapkapcsolat
 
 A fő működési lánc:
 
@@ -99,7 +99,7 @@ Fontos elhatárolás:
 
 ---
 
-## 4. Közös contract mezők
+### 4. Közös contract mezők
 
 A legtöbb contractban érdemes közös azonosítókat használni.
 
@@ -126,7 +126,7 @@ Ezek nem minden contractban kötelezőek, de a fő contractok között következ
 
 ---
 
-## 5. Schema version szabály
+### 5. Schema version szabály
 
 Minden önálló contractnak rendelkeznie kell schema verzióval.
 
@@ -152,7 +152,7 @@ Nyitott kérdés:
 
 ---
 
-## 6. Visibility alapelv
+### 6. Visibility alapelv
 
 A contract-rendszer egyik legfontosabb biztonsági elve:
 
@@ -181,9 +181,9 @@ Lehetséges visibility értékek:
 
 ---
 
-# Snapshot contract
+## Snapshot contract
 
-## 7. Snapshot célja
+### 7. Snapshot célja
 
 A snapshot a match state nézőpontfüggő kivetítése.
 
@@ -203,7 +203,7 @@ A snapshot ne legyen a szabálymotor belső állapotának közvetlen dumpja.
 
 ---
 
-## 8. Snapshot típusok
+### 8. Snapshot típusok
 
 Lehetséges snapshot típusok:
 
@@ -224,7 +224,7 @@ Később szükség lehet külön AI és replay snapshotokra.
 
 ---
 
-## 9. Snapshot ajánlott fő mezői
+### 9. Snapshot ajánlott fő mezői
 
 Ajánlott snapshot mezők:
 
@@ -259,7 +259,7 @@ Ezek közül MVP-ben nem mind kötelező.
 
 ---
 
-## 10. Snapshot és match state elválasztása
+### 10. Snapshot és match state elválasztása
 
 A match state belső igaz állapot.
 
@@ -279,7 +279,7 @@ A player-visible snapshot csak azt tartalmazhatja, amit az adott játékos szab�
 
 ---
 
-## 11. Snapshot és rejtett információ
+### 11. Snapshot és rejtett információ
 
 A snapshot visibility modelljének kezelnie kell:
 
@@ -301,7 +301,7 @@ Nyitott kérdések:
 
 ---
 
-## 12. Pending decision snapshotban
+### 12. Pending decision snapshotban
 
 A snapshot tartalmazhat `pending` mezőt.
 
@@ -330,7 +330,7 @@ Nyitott kérdés:
 
 ---
 
-## 13. Pecsétmodell snapshotban
+### 13. Pecsétmodell snapshotban
 
 Rögzített szabályi irány:
 
@@ -362,7 +362,7 @@ Nyitott kérdések:
 
 ---
 
-## 14. Aeternal snapshotban
+### 14. Aeternal snapshotban
 
 Rögzített szabályi irány:
 
@@ -391,9 +391,9 @@ Nyitott kérdés:
 
 ---
 
-# Legal actions contract
+## Legal actions contract
 
-## 15. Legal actions célja
+### 15. Legal actions célja
 
 A legal actions contract megadja, hogy egy adott játékos vagy AI milyen szabályos döntéseket hozhat az adott snapshot / match state pillanatban.
 
@@ -405,7 +405,7 @@ A legal action listát a rules engine vagy egy későbbi rules service adja viss
 
 ---
 
-## 16. Legal action ajánlott fő mezői
+### 16. Legal action ajánlott fő mezői
 
 Ajánlott mezők:
 
@@ -433,7 +433,7 @@ MVP-ben nem mindegyik kötelező.
 
 ---
 
-## 17. Legal action családok
+### 17. Legal action családok
 
 Lehetséges action family értékek:
 
@@ -458,7 +458,7 @@ MVP-ben valószínűleg elég:
 
 ---
 
-## 18. MVP action type jelöltek
+### 18. MVP action type jelöltek
 
 Lehetséges MVP action type-ok:
 
@@ -487,7 +487,7 @@ Későbbi action type-ok:
 
 ---
 
-## 19. Enabled és disabled actionök
+### 19. Enabled és disabled actionök
 
 A legal action lista tartalmazhat enabled és disabled actionöket.
 
@@ -511,7 +511,7 @@ Nyitott kérdés:
 
 ---
 
-## 20. Legal action és UI mezők
+### 20. Legal action és UI mezők
 
 A legal action tartalmazhat UI-segédmezőket, de ezek nem válhatnak szabályforrássá.
 
@@ -533,7 +533,7 @@ Nyitott kérdés:
 
 ---
 
-## 21. Legal action és AI mezők
+### 21. Legal action és AI mezők
 
 A legal action később tartalmazhat AI-segédadatokat.
 
@@ -555,7 +555,7 @@ Nyitott kérdés:
 
 ---
 
-## 22. Legal action és targeting
+### 22. Legal action és targeting
 
 A targeting lehet:
 
@@ -583,7 +583,7 @@ Nyitott kérdések:
 
 ---
 
-## 23. Legal action és fizetés
+### 23. Legal action és fizetés
 
 A legal action tartalmazhat cost és payment információt.
 
@@ -605,7 +605,7 @@ Nyitott kérdések:
 
 ---
 
-## 24. Legal action és reakcióablak
+### 24. Legal action és reakcióablak
 
 A reakcióablak kapcsolódhat:
 
@@ -625,9 +625,9 @@ Nyitott kérdések:
 
 ---
 
-# Action request contract
+## Action request contract
 
-## 25. Action request célja
+### 25. Action request célja
 
 Az action request a frontend vagy AI által küldött döntési kérés.
 
@@ -639,7 +639,7 @@ A kliens action requestet küld, a rules engine pedig validálja és végrehajtj
 
 ---
 
-## 26. Action request ajánlott fő mezői
+### 26. Action request ajánlott fő mezői
 
 Ajánlott mezők:
 
@@ -662,7 +662,7 @@ MVP-ben nem biztos, hogy minden kötelező.
 
 ---
 
-## 27. Request azonosítás
+### 27. Request azonosítás
 
 Nyitott kérdések:
 
@@ -675,7 +675,7 @@ Nyitott kérdések:
 
 ---
 
-## 28. Snapshot frissesség
+### 28. Snapshot frissesség
 
 Az action request tartalmazhat `snapshot_id` és később `state_version` mezőt.
 
@@ -694,7 +694,7 @@ Nyitott kérdések:
 
 ---
 
-## 29. Action ID élettartama
+### 29. Action ID élettartama
 
 Az `action_id` valószínűleg snapshoton belül stabil.
 
@@ -707,9 +707,9 @@ Nyitott kérdések:
 
 ---
 
-# Action response contract
+## Action response contract
 
-## 30. Action response célja
+### 30. Action response célja
 
 Az action response a rules engine válasza az action requestre.
 
@@ -726,7 +726,7 @@ Tartalmazhat:
 
 ---
 
-## 31. Action response ajánlott fő mezői
+### 31. Action response ajánlott fő mezői
 
 Ajánlott mezők:
 
@@ -747,7 +747,7 @@ Ajánlott mezők:
 
 ---
 
-## 32. Validation reason jelöltek
+### 32. Validation reason jelöltek
 
 Lehetséges validation reason értékek:
 
@@ -771,7 +771,7 @@ Lehetséges validation reason értékek:
 
 ---
 
-## 33. Result status jelöltek
+### 33. Result status jelöltek
 
 Lehetséges result status értékek:
 
@@ -796,7 +796,7 @@ Lehet normál szabályeredmény, ha a hatás egy része szabályosan végrehajth
 
 ---
 
-## 34. Action response és reakcióablak
+### 34. Action response és reakcióablak
 
 Nyitott modellek:
 
@@ -811,9 +811,9 @@ Nyitott kérdés:
 
 ---
 
-# Event log contract
+## Event log contract
 
-## 35. Event log célja
+### 35. Event log célja
 
 Az event log a játék történeti rétege.
 
@@ -834,7 +834,7 @@ Az event log célja:
 
 ---
 
-## 36. Event log ajánlott fő mezői
+### 36. Event log ajánlott fő mezői
 
 Ajánlott mezők:
 
@@ -879,7 +879,7 @@ MVP-ben nem mind kötelező.
 
 ---
 
-## 37. Event layer értékek
+### 37. Event layer értékek
 
 Lehetséges event layer értékek:
 
@@ -906,7 +906,7 @@ Később bővíthető:
 
 ---
 
-## 38. Event family jelöltek
+### 38. Event family jelöltek
 
 Lehetséges event family értékek:
 
@@ -933,7 +933,7 @@ Nem használható Aeternal HP-sebzésre.
 
 ---
 
-## 39. Aeternal / Pecsét események
+### 39. Aeternal / Pecsét események
 
 Támogatandó event type jelöltek:
 
@@ -955,7 +955,7 @@ Kerülendő vagy tiltott event type jelöltek:
 
 ---
 
-## 40. Event log és rejtett információ
+### 40. Event log és rejtett információ
 
 Az event log visibility modellje kritikus.
 
@@ -974,7 +974,7 @@ Ajánlott irány:
 
 ---
 
-## 41. Explanation log
+### 41. Explanation log
 
 Az explanation log célja játékosbarát magyarázat.
 
@@ -994,7 +994,7 @@ Nyitott kérdések:
 
 ---
 
-## 42. Replay-kompatibilitás
+### 42. Replay-kompatibilitás
 
 A replay későbbi fázis.
 
@@ -1009,9 +1009,9 @@ Nyitott kérdések:
 
 ---
 
-# Diagnostics contract
+## Diagnostics contract
 
-## 43. Diagnostics célja
+### 43. Diagnostics célja
 
 A diagnostics strukturált problémanyilvántartás.
 
@@ -1033,7 +1033,7 @@ Feladata:
 
 ---
 
-## 44. Diagnostics ajánlott fő mezői
+### 44. Diagnostics ajánlott fő mezői
 
 Ajánlott diagnostics report mezők:
 
@@ -1072,7 +1072,7 @@ Egy diagnostics entry ajánlott mezői:
 
 ---
 
-## 45. Diagnostics category értékek
+### 45. Diagnostics category értékek
 
 Lehetséges category értékek:
 
@@ -1099,7 +1099,7 @@ Lehetséges category értékek:
 
 ---
 
-## 46. Diagnostics severity értékek
+### 46. Diagnostics severity értékek
 
 Lehetséges severity értékek:
 
@@ -1125,7 +1125,7 @@ Példa értelmezés:
 
 ---
 
-## 47. Blocking alapelv
+### 47. Blocking alapelv
 
 A `blocking` mező külön jelzi, hogy a probléma megakadályozza-e a buildet, betöltést, actiont vagy runtime futást.
 
@@ -1150,7 +1150,7 @@ Példák nem blokkoló problémákra:
 
 ---
 
-## 48. Diagnostics és visibility
+### 48. Diagnostics és visibility
 
 Diagnostics üzenet nem szivárogtathat rejtett információt.
 
@@ -1172,7 +1172,7 @@ Lehetséges diagnostics visibility értékek:
 
 ---
 
-## 49. LOOKUPS diagnostics
+### 49. LOOKUPS diagnostics
 
 LOOKUPS és structured audit során különösen figyelni kell:
 
@@ -1197,7 +1197,7 @@ Nyitott kérdések:
 
 ---
 
-## 50. Engine support diagnostics
+### 50. Engine support diagnostics
 
 Engine support diagnostics jelzi, hogy az adott kártya vagy ability mennyire futtatható.
 
@@ -1219,9 +1219,9 @@ Nyitott kérdések:
 
 ---
 
-# Ability registry kapcsolódás
+## Ability registry kapcsolódás
 
-## 51. Ability registry szerepe
+### 51. Ability registry szerepe
 
 Az ability registry a runtime package és az ability module rendszer közötti contract jellegű réteg.
 
@@ -1240,7 +1240,7 @@ Részletes ability module logika:
 
 ---
 
-## 52. Ability registry ajánlott mezői
+### 52. Ability registry ajánlott mezői
 
 Lehetséges mezők:
 
@@ -1265,7 +1265,7 @@ MVP-ben valószínűleg egyszerűbb registry is elég.
 
 ---
 
-## 53. Card-local fallback
+### 53. Card-local fallback
 
 Card-local fallback átmeneti lehetőség, nem hosszú távú alapműködés.
 
@@ -1283,9 +1283,9 @@ Nyitott kérdés:
 
 ---
 
-# Sample contracts
+## Sample contracts
 
-## 54. Sample contracts célja
+### 54. Sample contracts célja
 
 A sample contractok nem végleges játékcontractok.
 
@@ -1306,7 +1306,7 @@ Jelenlegi sample contract fájlok:
 
 ---
 
-## 55. Jelenlegi bizonyított sample contract réteg
+### 55. Jelenlegi bizonyított sample contract réteg
 
 A checkpointok alapján jelenleg működik:
 
@@ -1329,7 +1329,7 @@ Nem bizonyítják:
 
 ---
 
-## 56. Contract consistency checks
+### 56. Contract consistency checks
 
 A contractok között ellenőrizni kell:
 
@@ -1345,7 +1345,7 @@ A contractok között ellenőrizni kell:
 
 ---
 
-## 57. Card reference resolution
+### 57. Card reference resolution
 
 A contractokban szereplő card reference-eket fel kell tudni oldani a runtime package card registryből.
 
@@ -1362,9 +1362,9 @@ Ez a következő prototípuslépések egyik fontos célja.
 
 ---
 
-# MVP contract scope
+## MVP contract scope
 
-## 58. MVP contract scope
+### 58. MVP contract scope
 
 Az első valóban használható contract MVP tartalmazza:
 
@@ -1391,7 +1391,7 @@ Nem tartalmazza még:
 
 ---
 
-## 59. Tiltott vagy kerülendő régi modellek
+### 59. Tiltott vagy kerülendő régi modellek
 
 A contractokban kerülni kell a régi, hibás vagy félrevezető Aeternal/Pecsét HP-modellt.
 
@@ -1417,7 +1417,7 @@ Támogatandó modern fogalmak:
 
 ---
 
-## 60. Nyitott kérdések
+### 60. Nyitott kérdések
 
 A contract-réteg részletes nyitott kérdései a központi kérdéslistában szerepelnek:
 
@@ -1441,7 +1441,7 @@ Kiemelt témák:
 
 ---
 
-## 61. Következő kapcsolódó dokumentumok
+### 61. Következő kapcsolódó dokumentumok
 
 A contract-specifikáció után részletesítendő fő dokumentumok:
 
