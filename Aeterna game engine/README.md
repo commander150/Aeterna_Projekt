@@ -1,418 +1,473 @@
-# AETERNA game engine
+# AETERNA Game Engine
 
-Az **AETERNA game engine** az AETERNA kártyajáték új, contract-first digitális programegysége.
+Az **AETERNA Game Engine** az AETERNA kártyajáték új, contract-first digitális programegysége.
 
-A projekt célja nem a régi Python szimulátor közvetlen folytatása és nem is azonnali teljes játékprogram. A jelenlegi cél egy tiszta, fokozatosan bővíthető Python/Godot alap kialakítása, amelyben:
+A projekt célja nem a régi Python program közvetlen folytatása, és nem is azonnali teljes digitális játékprogram.
 
-* a Python oldal runtime package-et tud generálni;
-* a Godot/GDScript oldal contract-loaderként be tudja tölteni a package-et;
-* a két oldal JSON / JSONL alapú contractokon keresztül kommunikál;
-* a későbbi snapshot, legal action, action request, event log és diagnostics rétegek fokozatosan építhetők rá;
-* a fizikai TCG szabályi logikája továbbra is elsődleges marad.
+A jelenlegi cél egy tiszta, fokozatosan bővíthető Python / Godot alap kialakítása, amelyben:
 
----
-
-## 1. Projektstátusz
-
-Jelenlegi checkpoint:
-
-```text
-v0.1 — Python builder → sample runtime package → Godot loader
-```
-
-Ez a checkpoint sikeresen működik.
-
-A jelenlegi v0.1 állapot bizonyítja, hogy:
-
-```text
-1. Python képes kontrollált sample runtime package-et generálni.
-2. A package többfájlos contract-szerkezete működőképes.
-3. Godot képes a package betöltésére.
-4. Godot képes a kártya-, pakli-, lookup- és ability-adatok registry-kbe rendezésére.
-5. A warning diagnostics nem blokkolja a betöltést.
-6. A blocking error logika első szinten kezelhető.
-7. A Python builder és a Godot loader külön rétegként együtt tud működni.
-```
-
-A jelenlegi v0.1 állapot még nem teljes szabálymotor, nem teljes játékprogram, nem képességfuttatás és nem teljes AETERNA adatbázis.
+- a Python oldal runtime package-et tud generálni;
+- a Godot / GDScript oldal contract-loaderként be tudja tölteni a package-et;
+- a két oldal JSON / JSONL alapú contractokon keresztül kapcsolódik;
+- a snapshot, legal actions, action request / response, event log és diagnostics rétegek fokozatosan épülnek rá;
+- a fizikai AETERNA TCG szabályi logikája továbbra is elsődleges marad.
 
 ---
 
-## 2. Javasolt mappaszerkezet
+## Projektstátusz
 
-Az új programegység gyökere:
+A jelenlegi dokumentált irány:
 
-```text
-Aeterna game engine\
-```
+- contract-first architektúra;
+- külön Python és Godot ág;
+- runtime package alapú adatátadás;
+- Godot oldali loader és debug nézetek;
+- fokozatosan erősített sample contract réteg;
+- későbbi rules engine, AI és digitális kliens.
 
-Javasolt belső szerkezet:
+A jelenlegi prototípus már bizonyította:
 
-```text
-Aeterna game engine\
-  README.md
-  CHECKPOINT_v0.1.md
+- Python sample runtime package generator működését;
+- többfájlos sample runtime package előállítását;
+- Godot runtime package loader működését;
+- Godot sample contracts loader működését;
+- Snapshot viewer debug nézet működését;
+- Legal action debug panel működését;
+- Event log debug view működését;
+- kapcsolódó smoke testek futtathatóságát.
 
-  python\
-    tools\
-      runtime_package\
-        build_sample_runtime_package.py
+A pontos technikai checkpoint állapot helye:
 
-    tests\
-      test_build_sample_runtime_package.py
-
-  Godot\
-    project.godot
-
-    sample_runtime_package\
-      manifest.json
-      cards.jsonl
-      decks.jsonl
-      lookups.json
-      aliases.json
-      ability_registry.json
-      engine_support.json
-      diagnostics.json
-      build_report.md
-
-    scripts\
-      contract_loader\
-        runtime_package_loader.gd
-        json_file_loader.gd
-        jsonl_file_loader.gd
-        schema_checker.gd
-        diagnostics_reader.gd
-
-      registries\
-        card_registry.gd
-        deck_registry.gd
-        lookup_registry.gd
-        ability_registry.gd
-
-      debug\
-        package_debug_view.gd
-        package_loader_smoke_test.gd
-
-    scenes\
-      package_loader_test.tscn
-```
-
-A Godot által fogyasztott sample runtime package hivatalos helye:
-
-```text
-Aeterna game engine\Godot\sample_runtime_package\
-```
-
-A Godot loader ennek megfelelően ezt az útvonalat használja:
-
-```text
-res://sample_runtime_package
-```
+- `CHECKPOINTS.md`
 
 ---
 
-## 3. Python oldal
+## Mit nem bizonyít még a jelenlegi állapot?
 
-A Python oldal jelenlegi feladata:
+A jelenlegi prototípus még nem teljes engine.
 
-```text
-sample runtime package generálása
-alap validáció
-unit test futtatása
-```
+Még nem bizonyított:
 
-Jelenlegi futtatási mód:
-
-```powershell
-cd "E:\Letöltések\Aeterna\Aeterna_Projekt\Aeterna game engine\python"
-
-python tools/runtime_package/build_sample_runtime_package.py
-python -m unittest tests.test_build_sample_runtime_package
-```
-
-A Python generator jelenleg nem éles exportáló.
-
-Nem csinálja még:
-
-```text
-XLSX olvasás
-teljes AETERNA adatbázis feldolgozása
-szabálymotor futtatása
-képességfuttatás
-AI tesztfuttatás
-production package build
-```
-
-Későbbi kényelmi cél:
-
-```text
-A Python generator ne csak parancssorból legyen futtatható.
-```
-
-Első egyszerű megoldási lehetőség:
-
-```text
-run_build_sample_package.bat
-run_tests.bat
-```
-
-Későbbi lehetőség:
-
-```text
-egyszerű Python launcher ablak
-```
-
-például két gombbal:
-
-```text
-1. Sample package generálása
-2. Teszt futtatása
-```
+- teljes szabálymotor;
+- valódi legal action számítás szabályból;
+- action request teljes feldolgozása;
+- action-végrehajtás;
+- kártyaképességek teljes futtatása;
+- AI döntéshozatal;
+- AI-vs-AI balanszteszt;
+- végleges játék UI;
+- PvP;
+- teljes AETERNA kártyaadatbázis futtatása.
 
 ---
 
-## 4. Godot oldal
+## Mappaszerkezet
 
-A Godot projekt helye:
+A fő projektmappa:
 
-```text
-Aeterna game engine\Godot\project.godot
-```
+- `Aeterna game engine/`
 
-A Godot program elsődleges használati módja:
+Javasolt fő szerkezet:
 
-```text
-Godot editorből történő futtatás
-```
+- `python/`
+- `Godot/`
+- `docs/`
+- `README.md`
+- `CHECKPOINTS.md`
 
-Jelenlegi fő scene:
+A `python/` ág feladata:
 
-```text
-res://scenes/package_loader_test.tscn
-```
+- sample runtime package generálás;
+- későbbi exportvalidáció;
+- későbbi runtime package builder;
+- Python oldali tesztek;
+- későbbi AI-vs-AI / batch tesztelés lehetősége;
+- diagnostics és riportkészítés.
 
-A scene-alapú loader futtatás sikeres.
+A `Godot/` ág feladata:
 
-Elvárt debug output:
+- Godot projekt;
+- GDScript contract-loader;
+- registry-k;
+- debug nézetek;
+- headless smoke testek;
+- későbbi játékos UI;
+- későbbi rules runtime lehetőség.
 
-```text
-AETERNA package loader debug
-package_id: aeterna.sample_runtime_package
-package_version: 0.1.0
-schema_version: sample-runtime-package-v1
-cards: 5
-decks: 1
-lookup_groups: 2
-ability_modules: 2
-warnings: 1
-blocking_errors: 0
-ok: true
-```
+A `docs/` ág feladata:
 
-A Godot által fogyasztott sample runtime package hivatalos helye:
+- architektúra;
+- technológiai döntések;
+- contract-specifikáció;
+- runtime package specifikáció;
+- ability module rendszer;
+- prototípustervek;
+- nyitott kérdések;
+- checkpointok.
 
-```text
-Aeterna game engine\Godot\sample_runtime_package\
-```
+---
+
+## Fő dokumentumok
+
+A projekt fő dokumentációs fájljai:
+
+- `CHECKPOINTS.md`
+- `OPEN_QUESTIONS.md`
+- `docs/DECISION_MAP.md`
+- `docs/ARCHITECTURE.md`
+- `docs/TECHNOLOGY_DECISIONS.md`
+- `docs/CONTRACT_SPECIFICATION.md`
+- `docs/RUNTIME_PACKAGE_SPECIFICATION.md`
+- `docs/ABILITY_MODULE_SYSTEM.md`
+- `docs/PROTOTYPE_PLANS.md`
+
+### CHECKPOINTS.md
+
+Időrendi technikai checkpoint-napló.
+
+Tartalmazza:
+
+- mi készült el;
+- milyen smoke testek futottak;
+- milyen korlátok maradtak;
+- mi a következő biztonságos lépés.
+
+Ez a fájl a technikai állapot elsődleges rövid forrása.
+
+### OPEN_QUESTIONS.md
+
+A nyitott kérdések és döntési kapuk központi listája.
+
+Tartalmazza:
+
+- architektúra-kérdéseket;
+- runtime package kérdéseket;
+- snapshot / legal action / event log / diagnostics kérdéseket;
+- ability module kérdéseket;
+- AI / balance kérdéseket;
+- szabály- és kártyaaudit időzítési kérdéseket.
+
+### DECISION_MAP.md
+
+A projektirány és döntési térkép rövid összefoglalója.
+
+Tartalmazza:
+
+- elfogadott irányokat;
+- munkahipotéziseket;
+- mit nem csinálunk most;
+- ChatGPT / Codex / emberi döntés munkamegosztást;
+- dokumentációs rendet;
+- következő lépéseket.
+
+### ARCHITECTURE.md
+
+A technikai célarchitektúra fő térképe.
+
+Tartalmazza:
+
+- fő rétegeket;
+- adatútvonalat;
+- runtime package szerepét;
+- contract-réteget;
+- rules engine és ability engine helyét;
+- Godot és Python rétegét;
+- Aeternal / Pecsét engine-modell alapját.
+
+### TECHNOLOGY_DECISIONS.md
+
+A Python / GDScript / hibrid technológiai döntési tér.
+
+Tartalmazza:
+
+- Python lehetséges szerepeit;
+- Godot / GDScript lehetséges szerepeit;
+- hibrid modelleket;
+- döntési kapukat;
+- prototípusigényeket.
+
+### CONTRACT_SPECIFICATION.md
+
+A contract-first adatcsere fő specifikációs váza.
+
+Tartalmazza:
+
+- snapshot contract;
+- legal actions contract;
+- action request / response;
+- event log;
+- diagnostics;
+- sample contracts;
+- contract consistency irányokat.
+
+### RUNTIME_PACKAGE_SPECIFICATION.md
+
+A runtime package adatcsomag specifikációs váza.
+
+Tartalmazza:
+
+- Google Sheets → XLSX → exportáló → package adatútvonalat;
+- manifestet;
+- cards / decks / lookups / aliases / ability registry / engine support / diagnostics fájlokat;
+- validációs szinteket;
+- sample és full package elválasztását.
+
+### ABILITY_MODULE_SYSTEM.md
+
+Az ability / effect module rendszer tervezési váza.
+
+Tartalmazza:
+
+- structured ability irányt;
+- trigger / condition / cost / target / effect modulokat;
+- keyword rendszer kérdéseit;
+- execution plan kérdéseit;
+- card-local fallback szabályait;
+- Pecsét / Aeternal effect modell korlátait.
+
+### PROTOTYPE_PLANS.md
+
+A prototípusok és következő technikai lépések munkaterve.
+
+Tartalmazza:
+
+- már elkészült prototípusokat;
+- következő prototípusjelölteket;
+- mit bizonyítanak;
+- mit nem bizonyítanak;
+- smoke test elvárásokat;
+- Codex-kompatibilis feladattípusokat.
+
+---
+
+## Runtime package
+
+A runtime package a program által fogyasztható, validált adatcsomag.
+
+Nem azonos:
+
+- a Google Sheets forrással;
+- a lokális XLSX fájlokkal;
+- a nyers exportokkal;
+- a hivatalos szabályforrásokkal.
+
+Jelenlegi sample runtime package fájlok:
+
+- `manifest.json`
+- `cards.jsonl`
+- `decks.jsonl`
+- `lookups.json`
+- `aliases.json`
+- `ability_registry.json`
+- `engine_support.json`
+- `diagnostics.json`
+- `build_report.md`
+
+A Godot által fogyasztott sample package jelenlegi helye:
+
+- `Godot/sample_runtime_package/`
 
 A Godot loader útvonala:
 
-```text
-res://sample_runtime_package
-```
-
-A headless smoke test fejlesztői / automatizált ellenőrzésre használható, de nem ez az elsődleges felhasználói futtatási mód.
-
-Windows / Godot 4.7 környezetben a headless smoke test stabil futtatásához explicit logfájl használata szükséges. Ezért a javasolt futtatási mód:
-
-```text
-Godot\run_headless_smoke_test.bat
-```
-
-A futtató a Godot projektgyökérből indul, explicit logfájlt használ, és a következő smoke scriptet futtatja:
-
-```text
-res://scripts/debug/package_loader_smoke_test.gd
-```
-
-A BAT futtató lényege:
-
-```bat
-@echo off & cd /d "%~dp0" & "G:\Godot\Godot_v4.7-stable_win64.exe" --verbose --headless --log-file "headless_smoke.log" --path "." --script "res://scripts/debug/package_loader_smoke_test.gd" & exit /b %ERRORLEVEL%
-```
-
-A `--path "."` azért használható, mert a BAT előbb belép a saját mappájába, amely maga a Godot projektgyökér. Ez elkerüli az ékezetes Windows útvonalból eredő batch-encoding problémákat, miközben továbbra is ugyanazt a Godot projektet futtatja.
-
-A `headless_smoke.log` diagnosztikai logfájl nem kerül verziókezelésbe. A Godot ág `.gitignore` fájlja kizárja.
+- `res://sample_runtime_package`
 
 ---
 
-## 5. Sikeres v0.1 smoke test
+## Godot projekt
 
-Sikeres headless smoke test kimenet:
+A Godot projekt helye:
 
-```text
-Running AETERNA package loader smoke test...
-package_id: aeterna.sample_runtime_package
-package_version: 0.1.0
-schema_version: sample-runtime-package-v1
-cards: 5
-decks: 1
-lookup_groups: 2
-ability_modules: 2
-warnings: 1
-blocking_errors: 0
-AETERNA package loader smoke test: OK
-```
+- `Godot/`
 
-A headless smoke test explicit `--log-file` paraméterrel sikeresen lefutott.
+A Godot oldal jelenlegi szerepe:
 
-A korábbi headless indítás explicit logfájl nélkül Godot natív logolási hibába futhatott:
+- runtime package betöltés;
+- sample contractok betöltése;
+- registry-k kezelése;
+- debug nézetek;
+- headless smoke testek;
+- későbbi játékos UI alapja.
 
-```text
-ERROR: Failed to open 'user://logs/godot2026-06-22T12.58.06.log'.
-CrashHandlerException: Program crashed with signal 11
-```
+A Godot oldal nem végleges szabálymotor.
 
-Ez nem az AETERNA loader, nem a runtime package, nem a `package_loader_smoke_test.gd`, és nem a scene-alapú contract-loader hibája volt.
-
-A stabil megoldás:
-
-```text
-headless smoke test futtatása explicit --log-file paraméterrel
-```
-
-A futtatás végén megjelenhet az alábbi Godot / Windows warning:
-
-```text
-ERROR: Failed to read the root certificate store.
-```
-
-Ez az `OK` után jelenik meg, a v0.1 smoke testet nem blokkolja, és jelen állapotban nem AETERNA contract-loader hibaként kezelendő.
-
-A korábbi parse hiba oka GDScript típus-inferencia volt olyan visszatérési értéknél, amelynek típusa nem volt egyértelmű.
-
-Hibás minta:
-
-```gdscript
-var deck_errors := loader.deck_registry.validate_deck_card_refs(loader.card_registry)
-```
-
-Biztonságosabb forma:
-
-```gdscript
-var deck_errors = loader.deck_registry.validate_deck_card_refs(loader.card_registry)
-```
-
-vagy később, ha a visszatérési típus rögzített:
-
-```gdscript
-var deck_errors: Array = loader.deck_registry.validate_deck_card_refs(loader.card_registry)
-```
-
-Következtetés:
-
-```text
-A Godot scene-alapú contract-loader működik.
-A Godot headless contract-loader smoke test működik.
-Windows / Godot 4.7 környezetben a stabil headless futtatáshoz explicit --log-file paraméter használata szükséges.
-```
+A debug nézetek nem végleges játék UI-elemek.
 
 ---
 
-## 6. Mi nem része még a v0.1 állapotnak?
+## Python oldal
 
-A jelenlegi checkpoint még nem tartalmazza:
+A Python oldal jelenlegi szerepe:
 
-```text
-teljes szabálymotor
-kártyaképességek végrehajtása
-teljes AETERNA kártyaadatbázis
-AI-vs-AI tesztmotor
-AI-vs-játékos mód
-játékos-vs-játékos mód
-snapshot viewer
-legal action UI
-action request végrehajtás
-event log playback
-deckbuilder
-booster opening
-digitális gyűjtemény
-```
+- sample runtime package generálás;
+- unit teszt;
+- későbbi exportvalidáció;
+- későbbi full runtime package builder;
+- diagnostics és build report;
+- későbbi AI-vs-AI / batch tesztelés lehetősége.
 
-Ezek későbbi fejlesztési fázisok.
+A Python oldal jelenleg nem végleges backend-döntés.
+
+A régi Python motor nem kerül automatikusan beolvasztásra az új Aeterna game engine-be.
 
 ---
 
-## 7. Régi Python program státusza
+## Headless smoke testek
 
-A régi Python program jelenleg:
+A Godot headless smoke testeknél Windows / Godot környezetben explicit logfájl használata ajánlott.
 
-```text
-működő referencia
-átmeneti előzmény
-később archiválandó állapot
-```
+A smoke log fájlok generált melléktermékek.
 
-Nem kell azonnal törölni.
+Nem kell őket aktív dokumentációnak tekinteni.
 
-Nem kell automatikusan átemelni az új `Aeterna game engine` alá.
+A checkpointokban csak a fontos eredményt kell rögzíteni:
 
-Később archív vagy referencia szerepben megőrizhető:
-
-```text
-szabálylogikai előzményként
-AI-vs-AI tapasztalatként
-adatbetöltési és exportálási tanulságként
-tesztelési és diagnosztikai előzményként
-```
+- melyik smoke test futott;
+- sikeres volt-e;
+- volt-e blokkoló hiba;
+- milyen ismert nem blokkoló warning jelent meg.
 
 ---
 
-## 8. Következő fejlesztési irány
+## Aeternal / Pecsét engine-modell
 
-A v0.1 checkpoint után a következő fejlesztési lépcső:
+A jelenlegi rögzített szabályi irány:
 
-```text
-sample snapshot / legal action / event log contract package v0.1
-```
+- Az Aeternal maga a játékos.
+- Az Aeternal nem rendelkezik HP-val.
+- Az Aeternal nem kaphat sebzést.
+- Az Aeternal nem gyógyítható.
+- A Pecsét nem HP-alapú objektum.
+- A Pecsét feltörési / visszaállítási eseményként kezelendő.
+- Ha nincs Entitás és Pecsét, ami véd, egy célba érő támadás azonnali vereséget jelent.
 
-Ez várhatóan három statikus sample fájlt jelent:
+Kerülendő régi runtime fogalmak:
 
-```text
-sample_snapshot.json
-sample_legal_actions.json
-sample_events.json
-```
+- `player_damage`
+- `aeternal_damage`
+- `heal_player`
+- `heal_aeternal`
+- `ward_hp`
+- `seal_hp`
+- `seal_damage`
+- `ward_damage`
 
-A cél nem teljes meccsfuttatás, hanem az, hogy Godot oldalon statikus contract adatokat lehessen betölteni és megjeleníteni.
+Támogatandó modern fogalmak:
 
-Ez készíti elő a későbbi:
-
-```text
-snapshot viewer
-legal action debug panel
-event log playback
-```
-
-irányt.
+- `ward_break`
+- `ward_restore`
+- `ward_break_prevent`
+- `aeternal_unprotected`
+- `direct_attack_victory`
+- `player_defeated`
 
 ---
 
-## 9. Záró alapelv
+## Fejlesztési alapelv
 
-Az AETERNA game engine jelenlegi v0.1 célja:
+A fejlesztés kis, ellenőrizhető lépésekben történjen.
 
-```text
-a contract-first Python/Godot adatút működőképességének bizonyítása és stabilizálása
-```
+Egy jó technikai lépés:
 
-Nem cél még:
+- kicsi;
+- jól tesztelhető;
+- nem kever szabályi döntést technikai implementációval;
+- nem mozgat vagy töröl fájlokat előzetes döntés nélkül;
+- nem írja felül a hivatalos szabályforrásokat;
+- nem tesz végleges technológiai ítéletet prototípus nélkül.
 
-```text
-a teljes játékprogram elkészítése
-a régi Python engine teljes átemelése
-a szabálymotor Godotba portolása
-```
+---
 
-A következő munkák során a működő v0.1 állapotot meg kell őrizni, a mappaszerkezetet tisztítani kell, és csak ezután érdemes továbblépni a snapshot / legal action / event log prototípusra.
+## Codex szerepe
+
+Codex használható célzott technikai feladatokra.
+
+Codexnek adható:
+
+- konkrét loader módosítás;
+- konkrét smoke test;
+- konkrét debug view;
+- card reference resolver;
+- missing reference diagnostics;
+- sample JSON bővítés;
+- Python unit test;
+- GDScript smoke test;
+- manifest ellenőrzés.
+
+Codexnek ne adjunk:
+
+- teljes projektirányítást;
+- szabályi döntést;
+- balanszdöntést;
+- nagy homályos refaktort;
+- automatikus törlést;
+- mappák tömeges mozgatását;
+- végleges dokumentációs döntést;
+- hivatalos szabályforrás átírását emberi döntés nélkül.
+
+---
+
+## Következő ajánlott technikai lépés
+
+A jelenlegi dokumentációs irány alapján a következő biztonságos technikai fejlesztési lépés:
+
+**Runtime package + sample contracts integration**
+
+Cél:
+
+- snapshot / legal actions / event log card_id hivatkozásai oldódjanak fel a runtime package card registryből;
+- debug nézetekben jelenjen meg a card name, card type, realm és clan;
+- missing card reference diagnostics keletkezzen;
+- minden korábbi smoke test maradjon zöld;
+- készüljön új integration smoke test.
+
+Ez még nem rules engine.
+
+Ez még nem action-végrehajtás.
+
+Ez még nem AI.
+
+---
+
+## Mit ne csináljunk most?
+
+Most nem cél:
+
+- teljes rules engine;
+- teljes digitális kliens;
+- teljes ability execution;
+- AI-vs-AI balanszteszt;
+- PvP;
+- régi Python motor beolvasztása;
+- mappák tömeges mozgatása;
+- DOCX-ek törlése;
+- új teljes kártyaaudit;
+- hivatalos szabályforrások átírása.
+
+---
+
+## Rövid munkasorrend
+
+Javasolt sorrend:
+
+1. Dokumentációs főfájlok ellenőrzése.
+2. Nyitott kérdések státuszolása.
+3. Checkpointok és README összhangjának ellenőrzése.
+4. Runtime package + sample contracts integration technikai feladat előkészítése.
+5. Codexnek célzott technikai prompt adása.
+6. Smoke testek futtatása.
+7. Sikeres eredmény esetén CHECKPOINTS.md frissítése.
+
+---
+
+## Státusz
+
+Ez a README az Aeterna game engine belépő dokumentuma.
+
+A részletek nem itt, hanem a kapcsolódó fő dokumentumokban találhatók.
+
+A README célja:
+
+- gyors eligazítás;
+- fő irányok megmutatása;
+- dokumentumok közötti navigáció;
+- jelenlegi óvatos projektállapot rögzítése.
