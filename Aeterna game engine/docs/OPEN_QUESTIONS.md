@@ -176,8 +176,6 @@ Kérdések:
 
 ---
 
----
-
 ### OQ-DATA-004 – Legacy alias és canonical értékek
 
 **Státusz:** `open`, `blocked_by_data_audit`  
