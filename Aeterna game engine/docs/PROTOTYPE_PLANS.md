@@ -408,9 +408,11 @@ Igen, de csak akkor, ha a card reference resolution előtte vagy vele együtt vi
 
 ---
 
-## 8. Prototype 4 – Action request / response smoke test
+## 8. Prototype 4 – Action response smoke / action request extension
 
 ### Cél
+
+A sample action request smoke már elkészült; a következő nyitott rész az action response minta és a request/response kör erősítése.
 
 A statikus legal action listából egy action request minta és egy action response minta kezelése.
 
