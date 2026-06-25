@@ -252,63 +252,82 @@ Következő kapcsolódó lépések:
 
 ## 3.7 Fejlesztői build pipeline rendezése
 
-Státusz: tervezett következő technikai rendezési lépés.
+Státusz: első fázis elkészült, további fázisok nyitva.
 
 Ez a lépés nem teljes rules engine, nem teljes runtime package builder és nem publikus release pipeline.
 
 Célja az eddig külön kezelt technikai adatút egyszerűsítése és hosszabb távú fejlesztői használatra való előkészítése.
 
-A jelenlegi adatút több kézi lépésből áll:
+A build pipeline rendezés első fázisa az XLSX exporter migráció volt.
 
-1. XLSX forrásokból export készül.
-2. Az exportált adatokból runtime package készül.
-3. A runtime package átkerül vagy elérhetővé válik a Godot által fogyasztott mappában.
-4. A Godot loader ebből tölti be a sample package-et és a contract fixture-öket.
+Ebben a fázisban az eddig különálló `XLSX export/` program exporter funkciója átkerült az `Aeterna game engine/python/` alatti tooling rétegbe.
 
-Ez a korai tesztfázisban hasznos volt, mert minden lépés külön ellenőrizhető volt.
+### Elkészült első fázis
 
-Hosszabb távon viszont a fejlesztői használatban nem cél, hogy a runtime package frissítése több külön kézi folyamatból álljon.
+Az első fázisban létrejött:
 
-A cél egy későbbi egylépéses vagy kevés lépéses fejlesztői build pipeline előkészítése.
+- `Aeterna game engine/python/tools/xlsx_export/xlsx_export.py`
+- `Aeterna game engine/python/tests/test_xlsx_export.py`
+- `Aeterna game engine/python/tests/test_xlsx_export_smoke.py`
+- `Aeterna game engine/python/run_xlsx_export.bat`
+- `Aeterna game engine/python/run_xlsx_export_smoke.bat`
 
-### Bizonyítandó
+A migrált exporter jelenlegi bizonyított képességei:
 
-A build pipeline rendezése azt bizonyítsa, hogy:
+- importálható az új engine Python tooling helyről;
+- támogatja az explicit `--source-dir` opciót;
+- támogatja az explicit `--output-dir` opciót;
+- nem kötődik kötelezően a régi `XLSX export/source` mappához;
+- képes valódi XLSX inputból JSONL outputot készíteni;
+- a `lookups_runtime` profil smoke tesztben lefutott;
+- a `LOOKUPS_RUNTIME.jsonl` output létrejött;
+- az output nem üres;
+- az output soronként JSON-ként olvasható;
+- a teszt nem használja a régi `XLSX export/exports` mappát.
 
-- az XLSX exportáló funkció beépíthető az `Aeterna game engine/python/` tooling rétegébe;
-- az exportáló nem kötődik kötelezően saját `source/` és `exports/` mappához;
-- explicit source és output útvonalak használhatók;
+### Sikeres ellenőrzések
+
+Az alábbi ellenőrzések zöldek voltak:
+
+- `python -m unittest tests.test_xlsx_export`
+- `python -m unittest tests.test_xlsx_export_smoke`
+- `python -m unittest tests.test_build_sample_runtime_package`
+- `run_xlsx_export_smoke.bat`
+
+Az exporter help ellenőrzése is sikeres volt:
+
+- `python tools\xlsx_export\xlsx_export.py --help`
+
+A help listázza az új `--source-dir` és `--output-dir` opciókat.
+
+### Mit bizonyít ez?
+
+Az első fázis bizonyítja, hogy:
+
+- az XLSX exporter funkció átvihető az új engine Python tooling alá;
+- az exporter önállóan, a régi aktív programhelytől függetlenül is működhet;
+- az explicit source és output útvonalak használhatók;
 - nem kell újabb állandó XLSX input másolatot létrehozni az engine alatt;
-- a Python oldali build output és a Godot oldali consumption copy szerepe tisztán elkülönül;
-- a Godot továbbra is runtime package-et fogyaszt, nem XLSX-et;
-- a későbbi változásérzékelés / cache beépíthető lesz;
-- a korábbi Python és Godot smoke testek nem törnek el.
+- az exporter smoke tesztelhető;
+- a meglévő sample runtime package builder teszt nem tört el.
 
-### Nem cél
+### Mit nem bizonyít még?
 
-Ebben a lépésben nem cél:
+Ez a fázis még nem bizonyítja:
 
-- teljes cache-rendszer;
-- full card database package;
-- publikus release pipeline;
-- Godotból indítható Python rebuild gomb;
-- runtime package titkosítás vagy integritásvédelem;
-- régi Python engine beolvasztása;
-- Godot közvetlen XLSX-betöltése;
-- teljes rules engine;
-- ability execution;
-- AI-vs-AI teszt.
+- teljes fejlesztői build pipeline működését;
+- full runtime package buildet;
+- cache vagy `source_fingerprint` működését;
+- Godot consumption copy automatikus frissítését;
+- runtime package builder és exporter összekötését;
+- Godotból indítható rebuildet;
+- rules engine működését;
+- ability executiont;
+- AI-vs-AI tesztelést.
 
 ### Két sample_runtime_package mappa kezelése
 
-Jelenleg két `sample_runtime_package` mappa létezik:
-
-- Python oldali `sample_runtime_package`
-- Godot oldali `sample_runtime_package`
-
-Ezek nem egyenrangú canonical források.
-
-Javasolt értelmezés:
+A két `sample_runtime_package` mappa státusza változatlanul:
 
 - Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
 - Godot oldali `sample_runtime_package`: `GODOT_CONSUMPTION_COPY`
@@ -321,33 +340,36 @@ A Godot oldali package ne legyen kézzel szerkesztett canonical adatforrás.
 
 A Godot oldali package frissítése később a Python build pipeline feladata legyen.
 
-### Kapcsolódó dokumentum
+### Kapcsolódó checkpoint
 
-A részletes döntési irány a `RUNTIME_PACKAGE_SPECIFICATION.md` fájlban szerepel:
+A részletes technikai eredmény a `CHECKPOINTS.md` fájlban szerepel:
 
-- `8.1. Fejlesztői build pipeline és sample package mappák kezelése`
+- `v0.3 – XLSX exporter migration smoke`
 
-### Elvárt ellenőrzés
+### Maradt kockázatok
 
-A pipeline rendezése után legalább az alábbi ellenőrzések szükségesek:
+A Codex sandboxban a Python temporary cleanup nem tudta minden esetben azonnal törölni a `xlsx_export_smoke_tmp_*` mappát.
 
-- exporter unit test zöld;
-- sample runtime package builder unit test zöld;
-- Python sample package build működik;
-- Godot consumption package frissíthető;
-- Godot package loader smoke test zöld;
-- sample contracts smoke test zöld;
-- snapshot viewer smoke test zöld;
-- legal action debug panel smoke test zöld;
-- event log debug view smoke test zöld.
+A smoke teszt ezt warninggal jelzi.
 
-### Codexnek adható?
+A végső ellenőrzéskor nem maradt temp könyvtár.
 
-Igen, de csak célzott, kis lépésként.
+Normál fejlesztői környezetben ezt újra figyelni kell.
 
-Nem szabad úgy kiadni, hogy „rendezd át az egész pipeline-t”.
+Ha helyben is megmarad temp könyvtár, a cleanup kezelést tovább kell erősíteni.
 
-Első Codex-lépésként csak az exporter funkció új Python tooling alá migrálása és paraméterezése ajánlott, a régi `XLSX export/` mappa törlése nélkül.
+### Következő pipeline-fázisok
+
+A következő pipeline-fázisok még nyitottak:
+
+1. az új exporter fájlok emberi áttekintése;
+2. az exporter migráció elfogadása vagy korrekciója;
+3. döntés arról, mikor válik a régi `XLSX export/` mappa ténylegesen archiválhatóvá;
+4. később a runtime package builderrel való összekötés megtervezése;
+5. később a Godot consumption copy automatikus frissítésének megtervezése;
+6. később cache / `source_fingerprint` prototípus.
+
+A runtime package builderrel való összekötés külön, későbbi prototípus legyen.
 
 ---
 
@@ -926,39 +948,35 @@ Nem kell minden apró módosításból új dokumentumot készíteni.
 
 ## 20. Következő ajánlott konkrét fejlesztési lépés
 
-A jelenlegi projektállapot alapján a legjobb következő technikai lépés:
+A jelenlegi projektállapot alapján a fejlesztői build pipeline rendezésének első fázisa elkészült.
 
-Fejlesztői build pipeline rendezése
+Az XLSX exporter migráció és smoke teszt sikeres volt.
+
+A következő biztonságos lépés nem új nagy kódolási feladat, hanem az exporter migrációs eredmény áttekintése és elfogadása.
 
 Konkrét cél:
 
-- az XLSX exportáló funkció átkerüljön az `Aeterna game engine/python/` tooling rétegébe;
-- az exporter explicit source és output útvonalakat tudjon kezelni;
-- ne legyen kötelező újabb állandó XLSX input másolatot létrehozni az engine alatt;
-- a régi `XLSX export/` mappa ne legyen az aktív hosszú távú programhely;
-- a Python oldali `sample_runtime_package` státusza `GENERATED_TEST_FIXTURE` legyen;
-- a Godot oldali `sample_runtime_package` státusza `GODOT_CONSUMPTION_COPY` legyen;
-- a Godot oldali package frissítését később a Python build pipeline végezze;
-- a meglévő Python és Godot smoke testek maradjanak zöldek.
+- az új exporter fájlok áttekintése;
+- az új unit és smoke testek áttekintése;
+- a non-interaktív smoke runner ellenőrzése;
+- annak eldöntése, hogy az exporter migráció első fázisa elfogadható-e;
+- annak rögzítése, hogy a régi `XLSX export/` mappa továbbra sem törlendő, csak `OBSOLETE_AFTER_MIGRATION_CANDIDATE`;
+- annak eldöntése, hogy kell-e még kis cleanup / encoding / runner finomítás;
+- csak ezután új technikai prototípus kijelölése.
 
-Ez még nem rules engine.
+Ez még nem:
 
-Ez még nem action-végrehajtás.
+- runtime package builder bekötés;
+- Godot consumption copy automatikus frissítése;
+- full runtime package build;
+- cache / `source_fingerprint`;
+- rules engine;
+- action-végrehajtás;
+- ability execution;
+- AI-vs-AI;
+- publikus release pipeline.
 
-Ez még nem ability execution.
-
-Ez még nem publikus release pipeline.
-
-Ez jó alap a következő prototípusokhoz, mert:
-
-- csökkenti a kézi lépések számát;
-- megszünteti vagy előkészíti a duplikált source/import mappák megszüntetését;
-- tisztázza, melyik package generált output és melyik Godot consumption copy;
-- előkészíti a runtime package + sample contracts integrációt;
-- később lehetővé teszi az egylépéses fejlesztői rebuildet;
-- később cache / source_fingerprint rendszerrel bővíthető.
-
-A pipeline rendezése után a következő ajánlott prototípus:
+Az exporter migráció elfogadása után a következő ajánlott prototípus továbbra is:
 
 Runtime package + sample contracts integration
 
@@ -969,6 +987,8 @@ Ennek célja:
 - missing card reference diagnostics keletkezzen;
 - minden korábbi smoke test zöld maradjon;
 - új integration smoke test készüljön.
+
+A runtime package builder és az exporter tényleges összekötése külön döntési kapu legyen, nem automatikus következő lépés.
 
 ---
 

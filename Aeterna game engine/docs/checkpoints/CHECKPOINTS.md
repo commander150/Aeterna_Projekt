@@ -352,9 +352,160 @@
     AI;
     végleges UI.
 
-## v0.3 – Unified dashboard / consistency smoke / action request smoke 
+## v0.3 – XLSX exporter migration smoke
 
-### Elkészült 
-### Smoke testek 
-### Ismert korlátok 
+### Elkészült
+
+Ez a checkpoint az XLSX exportáló funkció első sikeres migrációját rögzíti az új AETERNA Game Engine Python tooling alá.
+
+A cél nem teljes build pipeline volt, hanem az első biztonságos lépés:
+
+- az exporter funkció áthelyezése az `Aeterna game engine/python/` alá;
+- explicit source és output útvonalak támogatása;
+- a régi `XLSX export/source` kötelező használatának megszüntetése;
+- exporter unit test átvitele;
+- valódi XLSX → JSONL smoke teszt hozzáadása;
+- non-interaktív smoke runner létrehozása.
+
+Létrejött fájlok:
+
+- `Aeterna game engine/python/tools/xlsx_export/xlsx_export.py`
+- `Aeterna game engine/python/tests/test_xlsx_export.py`
+- `Aeterna game engine/python/tests/test_xlsx_export_smoke.py`
+- `Aeterna game engine/python/run_xlsx_export.bat`
+- `Aeterna game engine/python/run_xlsx_export_smoke.bat`
+
+Az exporter új képességei:
+
+- explicit `--source-dir` opció;
+- explicit `--output-dir` opció;
+- alapértelmezett engine Python oldali export output;
+- régi exportprofilok megtartása;
+- új modulhelyről importálható működés;
+- XLSX inputból kontrollált JSONL output előállítása.
+
+A smoke teszt programozottan létrehoz egy minimális temporary XLSX fixture-t, majd a `lookups_runtime` profillal exportál.
+
+A smoke teszt ellenőrzi:
+
+- az exporter importálható az új helyről;
+- explicit source directory használható;
+- explicit output directory használható;
+- a `lookups_runtime` profil lefut;
+- létrejön a `LOOKUPS_RUNTIME.jsonl`;
+- az output nem üres;
+- az output soronként JSON-ként olvasható;
+- nem használja a régi `XLSX export/exports` mappát.
+
+### Smoke testek
+
+A tesztek az `Aeterna game engine/python` mappából futottak.
+
+Sikeres parancsok:
+
+- `python -m unittest tests.test_xlsx_export`
+- `python -m unittest tests.test_xlsx_export_smoke`
+- `python -m unittest tests.test_build_sample_runtime_package`
+- `run_xlsx_export_smoke.bat`
+
+Eredmények:
+
+- `tests.test_xlsx_export`: `Ran 18 tests ... OK`
+- `tests.test_xlsx_export_smoke`: `Ran 1 test ... OK`
+- `tests.test_build_sample_runtime_package`: `Ran 1 test ... OK`
+- `run_xlsx_export_smoke.bat`: `Ran 1 test ... OK`
+
+Az exporter help ellenőrzése is sikeres volt:
+
+- `python tools\xlsx_export\xlsx_export.py --help`
+
+A help listázza az új `--source-dir` és `--output-dir` opciókat.
+
+Smoke exporter output:
+
+- `Exportált sorok száma: 1`
+- `LOOKUPS_RUNTIME.jsonl`
+- `Warningok: 0`
+
+### Érintetlenül hagyott részek
+
+A checkpoint során nem módosult:
+
+- `XLSX export/`
+- `Aeterna game engine/Godot/`
+- `Aeterna game engine/python/tools/runtime_package/build_sample_runtime_package.py`
+- `Aeterna game engine/python/main.py`
+- `Aeterna game engine/python/data/loader.py`
+- `Aeterna game engine/python/data/decklist_loader.py`
+
+A runtime package builder még nincs összekötve az új exporterrel.
+
+A Godot oldali `sample_runtime_package` továbbra is Godot consumption copy.
+
+A Python oldali `sample_runtime_package` továbbra is generated test fixture.
+
+### Ismert korlátok
+
+Ez a checkpoint még nem bizonyítja:
+
+- teljes fejlesztői build pipeline működését;
+- full runtime package buildet;
+- cache vagy `source_fingerprint` működését;
+- Godot consumption copy automatikus frissítését;
+- runtime package builder és exporter összekötését;
+- Godotból indítható rebuildet;
+- rules engine működését;
+- ability executiont;
+- AI-vs-AI tesztelést.
+
+Ismert technikai kockázat:
+
+A Codex sandboxban a Python temporary cleanup nem tudta minden esetben azonnal törölni a `xlsx_export_smoke_tmp_*` mappát, ezért a smoke teszt warningot adhat pontos útvonallal.
+
+A végső ellenőrzéskor nem maradt temp könyvtár.
+
+Normál fejlesztői környezetben ezt újra kell figyelni. Ha helyben is megmarad temp könyvtár, a cleanup kezelést tovább kell erősíteni.
+
+### Git státusz a checkpoint idején
+
+Releváns új, untracked fájlok:
+
+- `Aeterna game engine/python/run_xlsx_export.bat`
+- `Aeterna game engine/python/run_xlsx_export_smoke.bat`
+- `Aeterna game engine/python/tests/test_xlsx_export.py`
+- `Aeterna game engine/python/tests/test_xlsx_export_smoke.py`
+- `Aeterna game engine/python/tools/xlsx_export/`
+
+Tracked tartalmi diff nem maradt.
+
+A `git diff` csak meglévő sample package fájlokra adott line-ending warningot, tartalmi módosítást nem listázott.
+
+### Státusz
+
+Az XLSX exporter migráció első fázisa sikeres.
+
+Jelenlegi státuszok:
+
+- új engine Python exporter: `KEEP_ACTIVE_SOURCE`
+- exporter unit test: `KEEP_ACTIVE_TEST`
+- exporter smoke test: `KEEP_ACTIVE_SMOKE_TEST`
+- `run_xlsx_export.bat`: `KEEP_ACTIVE_RUNNER`
+- `run_xlsx_export_smoke.bat`: `KEEP_ACTIVE_RUNNER`
+- régi `XLSX export/`: `OBSOLETE_AFTER_MIGRATION_CANDIDATE`
+- régi `XLSX export/source`: `PIPELINE_INPUT_COPY`
+- régi `XLSX export/exports`: `GENERATED_OUTPUT`
+
+A régi `XLSX export/` mappa még nem törlendő.
+
 ### Következő lépés
+
+A következő biztonságos lépés nem a rules engine és nem a runtime package builder bekötése.
+
+Javasolt következő lépés:
+
+- a checkpoint dokumentálása;
+- az új exporter fájlok áttekintése;
+- szükség esetén a README / PROTOTYPE_PLANS rövid státuszfrissítése;
+- csak ezután döntés arról, mikor kössük össze az exportert a runtime package build folyamattal.
+
+A runtime package builderrel való összekötés külön, későbbi prototípus legyen.
