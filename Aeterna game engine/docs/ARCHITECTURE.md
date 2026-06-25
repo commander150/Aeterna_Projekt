@@ -58,9 +58,15 @@ Fizikai TCG szabály- és kártyaforrások
         ↓
 Google Sheets / lokális XLSX szerkesztési források
         ↓
-Exportáló / validációs pipeline
+Python build pipeline
         ↓
-Runtime package
+nyers exportok / JSONL
+        ↓
+validáció / normalizálás / diagnostics
+        ↓
+runtime package
+        ↓
+Godot consumption copy / Python tesztek / későbbi AI és simulation
         ↓
 Rules engine / simulation / Godot loader
         ↓
@@ -71,6 +77,16 @@ Godot debug UI / későbbi játék UI / AI tesztek
 A rendszer célja nem az, hogy egyetlen nagy, összefolyó program legyen.
 
 A cél egy rétegezett, ellenőrizhető rendszer, ahol minden rétegnek világos feladata van.
+
+Az XLSX emberi szerkesztési forma.
+
+A runtime package programfogyasztási forma.
+
+A Godot ne olvasson közvetlenül XLSX-et.
+
+A Godot a Python build pipeline által előállított, validált runtime package-et fogyassza.
+
+A Python build pipeline hosszabb távon egyetlen vagy kevés lépéses fejlesztői buildfolyamatként kezelje az XLSX beolvasást, exportot, validációt, runtime package buildet és Godot consumption copy frissítést.
 
 ---
 
@@ -98,9 +114,9 @@ A digitális engine-nek tiszteletben kell tartania a hivatalos szabálymodellt.
 
 A jelenlegi elfogadott adatkezelési irány:
 
-Google Sheets = elsődleges szerkesztési felület
-lokális XLSX = letöltött helyi forrásmásolat
-XLSX export/source = pipeline input másolat, nem canonical szerkesztési forrás
+Google Sheets = elsődleges szerkesztési felület  
+lokális XLSX = Google Sheetsből letöltött helyi forrásmásolat  
+régi `XLSX export/source` = pipeline input másolat, nem canonical szerkesztési forrás
 
 A szerkesztési forrásréteg nem azonos a runtime package-dzsel.
 
@@ -114,13 +130,26 @@ A szerkesztési forrás célja:
 
 A runtime engine közvetlenül hosszú távon ne a szerkesztési XLSX-ből dolgozzon.
 
+A Godot sem közvetlenül XLSX-et fogyaszt.
+
+Az XLSX beolvasása, exportja és normalizálása a Python build pipeline feladata legyen.
+
+Az `XLSX export/` külön programhely hosszú távon megszüntethető vagy archiválható aktív eszközként, ha az exportáló funkció átkerült az `Aeterna game engine/python/` alatti tooling rétegbe.
+
+Fontos elv:
+
+ne jöjjön létre újabb állandó canonical XLSX input másolat az engine alatt.
+
+A Python tooling explicit source útvonalból dolgozzon.
+
 ---
 
-## 5. Export és validációs réteg
+## 5. Python build pipeline / export és validációs réteg
 
-Az export és validációs réteg feladata:
+A Python build pipeline feladata:
 
 * a szerkesztési források beolvasása;
+* exportprofilok futtatása;
 * nyers exportok előállítása;
 * LOOKUPS ellenőrzése;
 * canonical értékek kezelése;
@@ -128,9 +157,39 @@ Az export és validációs réteg feladata:
 * structured mezők ellenőrzése;
 * veszélyes vagy régi modellből származó értékek jelzése;
 * engine support státusz előkészítése;
-* diagnostics reportok készítése.
+* diagnostics reportok készítése;
+* runtime package build;
+* szükség esetén a Godot consumption copy frissítése.
 
 Ez a réteg választja el az emberi szerkesztési formát a programbiztos futási adattól.
+
+A pipeline belsőleg továbbra is több lépésből állhat:
+
+1. XLSX beolvasás.
+2. Nyers export generálás.
+3. Validáció.
+4. Normalizálás.
+5. Runtime package build.
+6. Godot consumption copy frissítés.
+7. Smoke test / diagnostics.
+
+Fejlesztői használatban hosszabb távon ez egyetlen vagy kevés lépéses buildfolyamatként jelenjen meg.
+
+Későbbi fejlesztési cél:
+
+* változásérzékelés;
+* cache;
+* `source_fingerprint`;
+* build mode-ok;
+* fejlesztői / baráti teszt / publikus package-kezelés szétválasztása.
+
+Nem cél ebben a rétegben:
+
+* teljes rules engine;
+* ability execution;
+* Godot közvetlen XLSX-betöltés;
+* publikus release-védelem;
+* runtime package titkosítás.
 
 ---
 
@@ -170,6 +229,30 @@ A runtime package célja:
 Hosszú távú cél:
 
 a runtime package legyen a Python és Godot közötti közös, stabil adatcontract
+
+### Sample runtime package mappák architekturális szerepe
+
+Jelenleg két `sample_runtime_package` mappa létezik:
+
+* Python oldali `sample_runtime_package`
+* Godot oldali `sample_runtime_package`
+
+Ezek nem egyenrangú canonical források.
+
+A javasolt architekturális értelmezés:
+
+* Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
+* Godot oldali `sample_runtime_package`: `GODOT_CONSUMPTION_COPY`
+
+A Python oldali mappa a build output / tesztfixture szerepét tölti be.
+
+A Godot oldali mappa a Godot loader fogyasztási példánya.
+
+A Godot oldali package ne legyen kézzel szerkesztett canonical adatforrás.
+
+A Godot oldali package frissítése később a Python build pipeline feladata legyen.
+
+A canonical kártyaadatok továbbra is a szerkesztési forrásokból, például Google Sheetsből letöltött XLSX fájlokból származnak.
 
 ---
 

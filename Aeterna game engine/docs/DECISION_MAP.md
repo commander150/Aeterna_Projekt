@@ -261,7 +261,7 @@ OPEN_QUESTIONS.md / Runtime package és adatút
 
 ---
 
-## 9. Google Sheets → XLSX → exportáló → package adatút
+## 9. Google Sheets → XLSX → Python build pipeline → runtime package adatút
 
 Elfogadott irány:
 
@@ -271,28 +271,81 @@ A Google Sheetsből letöltött lokális XLSX a helyi forrásmásolat.
 
 Az `XLSX export/` mappán belüli `.xlsx` fájlok pipeline input másolatok, nem elsődleges szerkesztési források.
 
-Az exportáló program hosszú távon kaphat olyan input-módot, hogy közvetlenül a canonical lokális forrásmappából dolgozzon.
+Az exportáló program hosszú távon ne különálló aktív programegységként éljen tovább, hanem az `Aeterna game engine/python/` alatti tooling / build pipeline részeként működjön.
 
-Jelenlegi adatút:
+A Godot továbbra se olvasson közvetlenül XLSX-et.
+
+A Godot a validált runtime package-et fogyassza.
+
+Jelenlegi elvi adatút:
 
 Google Sheets
   ↓
 lokális XLSX
   ↓
-exportáló program
+Python build pipeline
   ↓
 nyers exportok / JSONL
   ↓
+validáció / normalizálás
+  ↓
 runtime package
   ↓
-Python / Godot fogyasztás
+Godot consumption copy / Python tesztek / későbbi AI és simulation
+
+A Python build pipeline hosszabb távú feladata:
+
+- XLSX források beolvasása;
+- exportprofilok futtatása;
+- nyers exportok előállítása;
+- validáció;
+- normalizálás;
+- diagnostics generálás;
+- runtime package build;
+- szükség esetén a Godot által fogyasztott package-mappa frissítése.
+
+A fejlesztői cél nem az, hogy minden lépés külön kézi folyamat maradjon.
+
+Hosszabb távon a pipeline egyetlen fejlesztői buildfolyamatként működjön.
+
+Példa:
+
+- a fejlesztő frissíti az XLSX forrást;
+- elindít egy build parancsot vagy BAT fájlt;
+- a pipeline ellenőrzi, változott-e az input;
+- szükség esetén exportál és runtime package-et épít;
+- frissíti a Godot consumption copy-t;
+- diagnostics / build report jelzi az eredményt.
+
+A változásérzékelés / cache későbbi fejlesztési cél.
+
+Rövid távon elég lehet fájl-időbélyeg vagy hash.
+
+Hosszabb távon jobb lehet `source_fingerprint`, amely az exportált szempontból fontos XLSX-tartalmat, exportprofilt, LOOKUPS-verziót, builder-verziót és schema-verziót veszi figyelembe.
+
+A két `sample_runtime_package` mappa javasolt értelmezése:
+
+- Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
+- Godot oldali `sample_runtime_package`: `GODOT_CONSUMPTION_COPY`
+
+Egyik sem canonical szerkesztési forrás.
+
+A Godot oldali package frissítése később a Python build pipeline feladata legyen.
 
 Nyitott kérdések:
 
 * pontos canonical lokális XLSX hely;
 * `XLSX export/source/` hosszú távú szerepe;
 * generated outputok státusza;
-* direct-source exportmód implementálása.
+* exporter funkció migrálása az új Python tooling alá;
+* source/output útvonalak paraméterezése;
+* Godot consumption copy frissítési módja;
+* változásérzékelés / cache első verziója;
+* fejlesztői, baráti teszt és publikus mód közötti package-kezelési különbség.
+
+Részletes döntési irány:
+
+RUNTIME_PACKAGE_SPECIFICATION.md / 8.1. Fejlesztői build pipeline és sample package mappák kezelése
 
 ---
 
@@ -546,39 +599,71 @@ Codex ne kapjon:
 
 Most nem cél:
 
-teljes szabálymotor
-teljes digitális kliens
-AI-vs-AI balanszteszt
-új teljes kártyaaudit
-főforrás teljes újraírása
-régi Python motor automatikus átemelése
-mappák tömeges mozgatása
-DOCX-ek törlése
-újabb párhuzamos dokumentumverziók gyártása
+- teljes szabálymotor;
+- teljes digitális kliens;
+- AI-vs-AI balanszteszt;
+- új teljes kártyaaudit;
+- főforrás teljes újraírása;
+- régi Python motor automatikus átemelése;
+- mappák tömeges mozgatása;
+- DOCX-ek törlése;
+- újabb párhuzamos dokumentumverziók gyártása;
+- Godot közvetlen XLSX-betöltése;
+- teljes publikus release pipeline;
+- runtime package titkosítás vagy integritásvédelem;
+- teljes cache-rendszer.
 
 Mostani helyes fókusz:
 
-dokumentáció konszolidáció
-open questions megőrzés
-runtime package és contract specifikáció tisztítása
-Godot/Python prototípus biztonságos erősítése
+- fejlesztői build pipeline rendezése;
+- az exporter funkció új Python tooling alá migrálásának előkészítése;
+- source és output útvonalak paraméterezése;
+- a két `sample_runtime_package` mappa szerepének tisztázása;
+- Python oldali build output és Godot oldali consumption copy elválasztása;
+- runtime package és sample contracts későbbi integrációjának előkészítése;
+- open questions megőrzése és státuszolása;
+- Godot/Python prototípus biztonságos erősítése.
+
+A következő technikai lépés nem rules engine fejlesztés, hanem a build és package adatút tisztítása.
 
 ---
 
-## 20. Következő javasolt dokumentációs lépés
+## 20. Következő javasolt projektlépés
 
-A jelenlegi sorrend:
+A fő dokumentációs szerkezet első MD-köre elkészült.
 
-CHECKPOINTS.md – elkészült
-OPEN_QUESTIONS.md – összevonva / javítandó
-DECISION_MAP.md – ez a fájl
-ARCHITECTURE.md – következő nagy fődokumentum
-TECHNOLOGY_DECISIONS.md
-CONTRACT_SPECIFICATION.md
-RUNTIME_PACKAGE_SPECIFICATION.md
-ABILITY_MODULE_SYSTEM.md
-PROTOTYPE_PLANS.md
-README.md frissítés
+A következő javasolt projektlépés:
 
-A README csak akkor frissüljön véglegesen, ha a fő dokumentációs térkép már stabil.
+Fejlesztői build pipeline rendezése
+
+Cél:
+
+- az `XLSX export/` programfunkcióinak átemelése az `Aeterna game engine/python/` tooling rétegébe;
+- az exporter paraméterezhető source és output útvonalainak kialakítása;
+- az újabb állandó XLSX input másolatok elkerülése;
+- a Python oldali `sample_runtime_package` és a Godot oldali `sample_runtime_package` szerepének tisztázása;
+- a Godot consumption copy későbbi automatikus frissítésének előkészítése;
+- a meglévő Python és Godot smoke testek zölden tartása.
+
+Ez még nem:
+
+- rules engine;
+- action-végrehajtás;
+- ability execution;
+- AI-vs-AI;
+- publikus release pipeline.
+
+A pipeline rendezése után a következő ajánlott technikai prototípus:
+
+Runtime package + sample contracts integration
+
+Ennek célja:
+
+- snapshot / legal actions / event log card_id hivatkozásai a runtime package card registryből oldódjanak fel;
+- debug nézetekben megjelenjen a card name, card type, realm és clan;
+- missing card reference diagnostics keletkezzen;
+- minden korábbi smoke test zöld maradjon;
+- új integration smoke test készüljön.
+
+A README végleges frissítése csak akkor történjen meg, ha a DECISION_MAP.md, RUNTIME_PACKAGE_SPECIFICATION.md és PROTOTYPE_PLANS.md már ugyanazt a következő projektlépést jelöli.
 

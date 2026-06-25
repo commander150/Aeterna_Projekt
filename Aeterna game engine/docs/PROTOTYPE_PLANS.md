@@ -250,22 +250,134 @@ Következő kapcsolódó lépések:
 
 ---
 
+## 3.7 Fejlesztői build pipeline rendezése
+
+Státusz: tervezett következő technikai rendezési lépés.
+
+Ez a lépés nem teljes rules engine, nem teljes runtime package builder és nem publikus release pipeline.
+
+Célja az eddig külön kezelt technikai adatút egyszerűsítése és hosszabb távú fejlesztői használatra való előkészítése.
+
+A jelenlegi adatút több kézi lépésből áll:
+
+1. XLSX forrásokból export készül.
+2. Az exportált adatokból runtime package készül.
+3. A runtime package átkerül vagy elérhetővé válik a Godot által fogyasztott mappában.
+4. A Godot loader ebből tölti be a sample package-et és a contract fixture-öket.
+
+Ez a korai tesztfázisban hasznos volt, mert minden lépés külön ellenőrizhető volt.
+
+Hosszabb távon viszont a fejlesztői használatban nem cél, hogy a runtime package frissítése több külön kézi folyamatból álljon.
+
+A cél egy későbbi egylépéses vagy kevés lépéses fejlesztői build pipeline előkészítése.
+
+### Bizonyítandó
+
+A build pipeline rendezése azt bizonyítsa, hogy:
+
+- az XLSX exportáló funkció beépíthető az `Aeterna game engine/python/` tooling rétegébe;
+- az exportáló nem kötődik kötelezően saját `source/` és `exports/` mappához;
+- explicit source és output útvonalak használhatók;
+- nem kell újabb állandó XLSX input másolatot létrehozni az engine alatt;
+- a Python oldali build output és a Godot oldali consumption copy szerepe tisztán elkülönül;
+- a Godot továbbra is runtime package-et fogyaszt, nem XLSX-et;
+- a későbbi változásérzékelés / cache beépíthető lesz;
+- a korábbi Python és Godot smoke testek nem törnek el.
+
+### Nem cél
+
+Ebben a lépésben nem cél:
+
+- teljes cache-rendszer;
+- full card database package;
+- publikus release pipeline;
+- Godotból indítható Python rebuild gomb;
+- runtime package titkosítás vagy integritásvédelem;
+- régi Python engine beolvasztása;
+- Godot közvetlen XLSX-betöltése;
+- teljes rules engine;
+- ability execution;
+- AI-vs-AI teszt.
+
+### Két sample_runtime_package mappa kezelése
+
+Jelenleg két `sample_runtime_package` mappa létezik:
+
+- Python oldali `sample_runtime_package`
+- Godot oldali `sample_runtime_package`
+
+Ezek nem egyenrangú canonical források.
+
+Javasolt értelmezés:
+
+- Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
+- Godot oldali `sample_runtime_package`: `GODOT_CONSUMPTION_COPY`
+
+A Python oldali mappa a build output / tesztfixture szerepét tölti be.
+
+A Godot oldali mappa a Godot loader fogyasztási példánya.
+
+A Godot oldali package ne legyen kézzel szerkesztett canonical adatforrás.
+
+A Godot oldali package frissítése később a Python build pipeline feladata legyen.
+
+### Kapcsolódó dokumentum
+
+A részletes döntési irány a `RUNTIME_PACKAGE_SPECIFICATION.md` fájlban szerepel:
+
+- `8.1. Fejlesztői build pipeline és sample package mappák kezelése`
+
+### Elvárt ellenőrzés
+
+A pipeline rendezése után legalább az alábbi ellenőrzések szükségesek:
+
+- exporter unit test zöld;
+- sample runtime package builder unit test zöld;
+- Python sample package build működik;
+- Godot consumption package frissíthető;
+- Godot package loader smoke test zöld;
+- sample contracts smoke test zöld;
+- snapshot viewer smoke test zöld;
+- legal action debug panel smoke test zöld;
+- event log debug view smoke test zöld.
+
+### Codexnek adható?
+
+Igen, de csak célzott, kis lépésként.
+
+Nem szabad úgy kiadni, hogy „rendezd át az egész pipeline-t”.
+
+Első Codex-lépésként csak az exporter funkció új Python tooling alá migrálása és paraméterezése ajánlott, a régi `XLSX export/` mappa törlése nélkül.
+
+---
+
 ## 4. Következő prototípusok áttekintése
 
-Javasolt következő prototípusok:
+Javasolt következő prototípusok és technikai rendezési lépések:
 
-1. Runtime package + sample contracts integration
-2. Missing card reference diagnostics
-3. Unified debug dashboard
-4. Action response smoke / action request extension
-5. Contract consistency smoke test erősítése
-6. Ability registry support viewer
-7. Simple effect module prototype
-8. Minimal GDScript rules service
-9. Python / GDScript comparison scenario
-10. Full runtime package preparation audit
+1. Fejlesztői build pipeline rendezése
+2. Runtime package + sample contracts integration
+3. Missing card reference diagnostics
+4. Contract consistency smoke test erősítése
+5. Unified debug dashboard
+6. Action response smoke / action request extension
+7. Ability registry support viewer
+8. Simple effect module prototype
+9. Minimal GDScript rules service
+10. Python / GDScript comparison scenario
+11. Full runtime package preparation audit
 
-A sorrend nem teljesen merev, de az első négy lépés erősen ajánlott a rules engine előtt.
+A sorrend nem teljesen merev, de az első lépés most a pipeline rendezése legyen.
+
+Indok:
+
+- az XLSX exportáló, a Python package builder és a Godot consumption package jelenleg még külön kézi láncként viselkedik;
+- a két `sample_runtime_package` mappa státuszát tisztázni kell;
+- a későbbi integration, dashboard és action response prototípusok stabilabbak lesznek, ha a build output és a Godot consumption copy szerepe előbb rendeződik;
+- a Godot továbbra is runtime package-et fogyaszt, nem XLSX-et;
+- az exporter funkció áthelyezése az új Python tooling alá előkészíti a későbbi egylépéses fejlesztői buildet.
+
+A pipeline rendezése után érdemes visszatérni a runtime package + sample contracts integrációra.
 
 ---
 
@@ -695,22 +807,33 @@ A technikai listázás Codexnek adható, de a szabályi értékelés emberi dön
 
 Ajánlott sorrend:
 
-1. Runtime package + sample contracts integration.
-2. Missing card reference diagnostics.
-3. Contract consistency smoke test erősítése.
-4. Unified debug dashboard.
-5. Action response smoke / action request extension.
-6. Ability registry support viewer.
-7. Simple effect module prototype.
-8. Minimal GDScript rules service.
-9. Python / GDScript comparison scenario.
-10. Full runtime package preparation audit.
+1. Fejlesztői build pipeline rendezése.
+2. Runtime package + sample contracts integration.
+3. Missing card reference diagnostics.
+4. Contract consistency smoke test erősítése.
+5. Unified debug dashboard.
+6. Action response smoke / action request extension.
+7. Ability registry support viewer.
+8. Simple effect module prototype.
+9. Minimal GDScript rules service.
+10. Python / GDScript comparison scenario.
+11. Full runtime package preparation audit.
 
 Indok:
 
-Előbb a meglévő adat- és contract-rétegeket kell megerősíteni.
+Előbb a meglévő adat- és build-láncot kell tisztázni.
 
-Csak ezután érdemes valódi rules service vagy ability execution irányba lépni.
+A pipeline rendezése nem rules engine fejlesztés, hanem előkészítő technikai tisztítás.
+
+Ez segít abban, hogy:
+
+- az exporter ne külön aktív programként éljen tovább;
+- ne legyen szükség több kézzel karbantartott input/source másolatra;
+- a Python oldali build output és a Godot oldali consumption copy szerepe elkülönüljön;
+- a Godot sample package ne legyen kézzel szerkesztett adatforrás;
+- később egyetlen fejlesztői buildfolyamat frissíthesse a runtime package-et.
+
+Csak ezután érdemes a runtime package + sample contracts integrációt, a missing reference diagnosticsot, a dashboardot és az action response kört tovább erősíteni.
 
 ---
 
@@ -803,26 +926,49 @@ Nem kell minden apró módosításból új dokumentumot készíteni.
 
 ## 20. Következő ajánlott konkrét fejlesztési lépés
 
-A jelenlegi projektállapot alapján a legjobb következő technikai prototípus:
+A jelenlegi projektállapot alapján a legjobb következő technikai lépés:
+
+Fejlesztői build pipeline rendezése
+
+Konkrét cél:
+
+- az XLSX exportáló funkció átkerüljön az `Aeterna game engine/python/` tooling rétegébe;
+- az exporter explicit source és output útvonalakat tudjon kezelni;
+- ne legyen kötelező újabb állandó XLSX input másolatot létrehozni az engine alatt;
+- a régi `XLSX export/` mappa ne legyen az aktív hosszú távú programhely;
+- a Python oldali `sample_runtime_package` státusza `GENERATED_TEST_FIXTURE` legyen;
+- a Godot oldali `sample_runtime_package` státusza `GODOT_CONSUMPTION_COPY` legyen;
+- a Godot oldali package frissítését később a Python build pipeline végezze;
+- a meglévő Python és Godot smoke testek maradjanak zöldek.
+
+Ez még nem rules engine.
+
+Ez még nem action-végrehajtás.
+
+Ez még nem ability execution.
+
+Ez még nem publikus release pipeline.
+
+Ez jó alap a következő prototípusokhoz, mert:
+
+- csökkenti a kézi lépések számát;
+- megszünteti vagy előkészíti a duplikált source/import mappák megszüntetését;
+- tisztázza, melyik package generált output és melyik Godot consumption copy;
+- előkészíti a runtime package + sample contracts integrációt;
+- később lehetővé teszi az egylépéses fejlesztői rebuildet;
+- később cache / source_fingerprint rendszerrel bővíthető.
+
+A pipeline rendezése után a következő ajánlott prototípus:
 
 Runtime package + sample contracts integration
 
-Konkrét cél:
+Ennek célja:
 
 - snapshot / legal actions / event log card_id hivatkozásai a runtime package card registryből oldódjanak fel;
 - debug nézetekben megjelenjen a card name, card type, realm és clan;
 - missing card reference diagnostics keletkezzen;
 - minden korábbi smoke test zöld maradjon;
 - új integration smoke test készüljön.
-
-Ez jó alap a következő döntésekhez, mert:
-
-- nem szabálymotor;
-- nem túl nagy lépés;
-- erősíti a már működő réteget;
-- segít a Godot/Python adatút validálásában;
-- előkészíti a unified dashboardot;
-- előkészíti az action request smoke testet.
 
 ---
 
@@ -872,6 +1018,7 @@ A prototípusréteg jelenlegi állapota:
 - A v0.1 és v0.2 technikai alapok sikeresek.
 - A runtime package és sample contracts adatút működik.
 - A debug nézetek működnek.
-- A következő biztonságos lépés az integráció erősítése, nem a teljes rules engine.
+- A következő biztonságos lépés a fejlesztői build pipeline rendezése.
+- A pipeline rendezése után következhet a runtime package + sample contracts integráció erősítése.
 - A prototípusok célja döntési bizonyíték gyűjtése.
 - Codex használható célzott technikai feladatokra, de nem projektirányításra vagy szabályi döntésekre.

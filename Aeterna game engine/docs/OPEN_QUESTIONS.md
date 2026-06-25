@@ -142,24 +142,30 @@ Kérdések:
 - Mikor váljon kötelezővé a manifestes package?
 - A nyers export csak köztes réteg legyen?
 
-### OQ-DATA-002 – Google Sheets → XLSX → exportáló → package adatút
+### OQ-DATA-002 – Google Sheets → XLSX → Python build pipeline → runtime package adatút
 
-**Státusz:** `partly_answered`  
-**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`
+**Státusz:** `partly_answered`, `blocked_by_runtime_package_builder`  
+**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`, `ARCHITECTURE.md`, `DECISION_MAP.md`
 
 Jelenlegi irány:
 
 - A fő szerkesztés Google Sheetsben történik.
-- A lokális XLSX a Google Sheetsből letöltött forrás.
-- Az `XLSX export/` mappán belüli `.xlsx` fájlok másolatok / pipeline inputok.
-- Az exportáló később közvetlenül is olvashat canonical lokális forrásmappából.
+- A lokális XLSX a Google Sheetsből letöltött forrásmásolat.
+- Az `XLSX export/` mappán belüli `.xlsx` fájlok pipeline input másolatok.
+- Az exportáló funkció hosszabb távon az `Aeterna game engine/python/` tooling / build pipeline része legyen.
+- A Godot ne olvasson közvetlenül XLSX-et.
+- A Godot validált runtime package-et fogyasszon.
+- A Python build pipeline kezelje az exportot, validációt, runtime package buildet és később a Godot consumption copy frissítését.
 
 Nyitott kérdések:
 
 - Pontosan hol legyen a canonical lokális XLSX helye?
 - Kell-e hosszú távon `XLSX export/source/` másolat?
-- Az exportáló által készített outputok regenerálható fájlok vagy verziózott referencia-outputok legyenek?
-- Mikor épül be az új input-mód az exportálóba?
+- Az exportáló funkció pontosan melyik Python tooling mappába kerüljön?
+- Hogyan paraméterezhető a source és output útvonal?
+- A nyers exportok regenerálható fájlok vagy verziózott referencia-outputok legyenek?
+- Mikor szüntethető meg az `XLSX export/` külön aktív programhely státusza?
+- Milyen smoke / unit test szükséges a migráció elfogadásához?
 
 ### OQ-DATA-003 – Engine support státusz
 
@@ -190,6 +196,71 @@ Kérdések:
 - Régi Aeternal/Pecsét HP-modellre utaló értékek automatikusan tiltottak legyenek?
 
 ---
+
+### OQ-TECH-004B – Python build pipeline hosszú távú szerepe
+
+**Státusz:** `partly_answered`, `blocked_by_runtime_package_builder`  
+**Célfájl:** `TECHNOLOGY_DECISIONS.md`, `ARCHITECTURE.md`, `RUNTIME_PACKAGE_SPECIFICATION.md`
+
+Jelenlegi irány:
+
+- Python legyen az XLSX export, validáció, diagnostics, runtime package build és későbbi batch / AI tesztelés elsődleges jelölt rétege.
+- Godot a validált runtime package-et fogyassza.
+- A Godot ne olvasson közvetlenül XLSX-et.
+- Az `XLSX export/` programfunkció hosszabb távon az új engine Python tooling része legyen.
+
+Nyitott kérdések:
+
+- A Python build pipeline meddig marad csak tooling, és mikortól válhat referencia runtime réteggé?
+- A Python build pipeline része legyen-e a későbbi full package builder?
+- A Python build pipeline készítsen-e AI-vs-AI test package-eket?
+- Később release package-et is Python állítson elő?
+- Milyen határig maradjon Python oldalon a validáció, és mi kerüljön át Godot oldalra?
+- Mi a minimális bizonyíték arra, hogy az exporter migráció után az `XLSX export/` mappa külön aktív programként megszüntethető?
+
+---
+
+### OQ-DATA-005 – Fejlesztői build pipeline és változásérzékelés
+
+**Státusz:** `open`, `blocked_by_runtime_package_builder`  
+**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`, `PROTOTYPE_PLANS.md`, `TECHNOLOGY_DECISIONS.md`
+
+Kérdések:
+
+- A fejlesztői build pipeline első verziója pontosan milyen lépéseket futtasson?
+- Elég-e első körben XLSX export + runtime package build + Godot copy frissítés?
+- A smoke testek a build pipeline részei legyenek, vagy külön futtatandók?
+- Legyen-e egyetlen `build_runtime_package.bat` jellegű futtató?
+- A build pipeline mikor írjon újra outputot?
+- Elég-e első körben fájl-időbélyeg vagy hash alapú változásérzékelés?
+- Mikor szükséges érdemi `source_fingerprint`?
+- A `source_fingerprint` milyen mezőket vegyen figyelembe?
+- A cache development mode-ban csak gyorsítás legyen, vagy correctness-ellenőrzés is?
+- Később Godotból indítható legyen-e a rebuild, vagy maradjon Python/BAT oldalon?
+
+---
+
+### OQ-DATA-006 – Két sample_runtime_package mappa kezelése
+
+**Státusz:** `partly_answered`, `blocked_by_runtime_package_builder`  
+**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`, `ARCHITECTURE.md`, `PROTOTYPE_PLANS.md`
+
+Jelenlegi irány:
+
+- Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
+- Godot oldali `sample_runtime_package`: `GODOT_CONSUMPTION_COPY`
+- Egyik sem canonical szerkesztési forrás.
+- A Godot oldali package frissítése később a Python build pipeline feladata legyen.
+
+Nyitott kérdések:
+
+- Maradjon-e hosszú távon külön Python build output és Godot consumption copy?
+- A Python builder közvetlenül írhat-e a Godot consumption mappába?
+- Kell-e külön központi generated package mappa?
+- Hogyan ellenőrizzük, hogy a Godot oldali másolat egyezik a Python build outputtal?
+- A Godot oldali `sample_runtime_package` Gitben verziózott fixture maradjon, vagy regenerálható output legyen?
+- Baráti teszt buildben a package hogyan kerüljön át a Godot oldalra?
+- Publikusabb build esetén hogyan különül el a szerkesztési XLSX és a runtime package?
 
 ## 4. Snapshot
 

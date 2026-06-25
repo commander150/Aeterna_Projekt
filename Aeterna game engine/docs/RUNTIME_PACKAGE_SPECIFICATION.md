@@ -240,6 +240,186 @@ A Godot projectben lévő package fogyasztási példány ne legyen kézzel szerk
 
 ---
 
+## 8.1. Fejlesztői build pipeline és sample package mappák kezelése
+
+A jelenlegi AETERNA Game Engine prototípus több lépcsőben kezeli az adatutat:
+
+1. XLSX forrásokból export készül.
+2. Az exportált adatokból runtime package készül.
+3. A runtime package átkerül vagy elérhetővé válik a Godot által fogyasztott mappában.
+4. A Godot loader ebből tölti be a kártyákat, deckeket, lookupokat, ability registryt és diagnostics adatokat.
+
+Ez a többfokozatú felépítés a korai tesztfázisban hasznos volt, mert minden lépés külön ellenőrizhető volt.
+
+Hosszabb távon viszont a fejlesztői használatban nem cél, hogy minden alkalommal több külön kézi lépést kelljen futtatni.
+
+A cél ezért nem az adatút eldobása, hanem annak egységesebb, automatizáltabb kezelése.
+
+### Fejlesztői build pipeline irány
+
+Hosszú távon az XLSX exportáló ne különálló aktív programként éljen tovább.
+
+Az exportáló funkciói kerüljenek be az `Aeterna game engine/python/` alatti tooling / build pipeline rétegbe.
+
+A Python build pipeline feladata legyen:
+
+- XLSX források beolvasása;
+- exportprofilok futtatása;
+- nyers exportok előállítása;
+- validáció;
+- normalizálás;
+- diagnostics generálás;
+- runtime package build;
+- szükség esetén a Godot által fogyasztott package-mappa frissítése.
+
+A Godot továbbra se olvasson közvetlenül XLSX-et.
+
+A Godot feladata a validált runtime package fogyasztása marad.
+
+A runtime package maradjon a Python tooling és a Godot közötti tiszta adatcontract-határ.
+
+### Miért ne a Godot olvassa az XLSX-et?
+
+Az XLSX emberi szerkesztési forma, nem runtime formátum.
+
+A Godot loadernek nem kell Excel-szerű adatforrásokat értelmeznie.
+
+Ez több okból fontos:
+
+- a Godot loader egyszerűbb marad;
+- az XLSX-specifikus hibák a Python validációs rétegben kezelhetők;
+- a runtime package ugyanúgy használható Godot, Python tesztek, AI és későbbi simulation számára;
+- későbbi publikusabb verzióban nem kell nyers szerkesztési XLSX fájlokat a játék mellé adni;
+- a package schema és diagnostics réteg tiszta határként működhet.
+
+### Egylépéses fejlesztői build
+
+A hosszabb távú fejlesztői cél egy olyan build pipeline, amely kívülről egyetlen műveletként használható.
+
+Példa fejlesztői működés:
+
+1. A fejlesztő frissíti vagy letölti az aktuális XLSX forrásokat.
+2. Elindít egy build parancsot vagy BAT fájlt.
+3. A Python build pipeline ellenőrzi, változott-e az input.
+4. Ha szükséges, újragenerálja a nyers exportokat.
+5. Validálja és normalizálja az adatokat.
+6. Elkészíti a runtime package-et.
+7. Frissíti a Godot által fogyasztott package-mappát.
+8. Diagnostics / build report jelzi, hogy volt-e warning vagy blocking error.
+
+Ez belsőleg továbbra is több lépésből állhat, de fejlesztői használatban egyetlen folyamatként jelenjen meg.
+
+### Változásérzékelés és cache
+
+A build pipeline később tartalmazhat változásérzékelést.
+
+Cél:
+
+- ha az XLSX input és a build konfiguráció érdemben nem változott, ne készüljön új export és új runtime package;
+- ha az XLSX, LOOKUPS, exportprofil, schema vagy builder verzió változott, a pipeline automatikusan újrageneráljon.
+
+Első egyszerű megoldásként használható fájl-időbélyeg vagy fájl-hash.
+
+Hosszabb távon jobb megoldás lehet egy érdemi `source_fingerprint`, amely nem a teljes XLSX bináris fájlt, hanem az exportált szempontból fontos tartalmat azonosítja.
+
+A fingerprint figyelembe veheti:
+
+- releváns XLSX fájlok;
+- releváns sheetek;
+- használt oszlopok;
+- cellaértékek;
+- exportprofil verzió;
+- LOOKUPS verzió;
+- builder verzió;
+- runtime package schema verzió.
+
+A cache nem elsődleges MVP-követelmény, de a mappaszerkezetet úgy kell kialakítani, hogy később beépíthető legyen.
+
+### Fejlesztői, baráti teszt és publikus mód
+
+A projekt jelenlegi célja nem publikus kiadás, hanem saját és baráti tesztelés.
+
+Ezért rövid távon nem elsődleges probléma, ha a tesztelők hozzáférnek bizonyos fájlokhoz vagy módosítani tudják őket.
+
+Későbbi publikus verziónál viszont már fontosabb lesz a nyers szerkesztési források és a runtime package szétválasztása.
+
+Javasolt módok:
+
+| Mód | Javasolt működés |
+|---|---|
+| Fejlesztői mód | XLSX-ből automatikus runtime package build engedélyezett. |
+| Baráti teszt mód | Előre generált runtime package használható, erős védelem nélkül. |
+| Publikus mód | A játék ne tartalmazza a nyers szerkesztési XLSX forrásokat, csak verziózott runtime package-et. |
+| Későbbi publikus mód | Package hash, integritás-ellenőrzés vagy read-only asset kezelés is bevezethető. |
+
+### A két sample_runtime_package mappa kezelése
+
+Jelenleg két `sample_runtime_package` mappa létezik:
+
+- Python oldali `sample_runtime_package`
+- Godot oldali `sample_runtime_package`
+
+Ezek nem egyenrangú canonical források.
+
+A javasolt hosszú távú értelmezés:
+
+- a Python oldali `sample_runtime_package` a build pipeline által előállított generált output / tesztfixture;
+- a Godot oldali `sample_runtime_package` a Godot loader által fogyasztott másolat / runtime fixture;
+- egyik sem kézzel szerkesztendő canonical kártyaadatforrás;
+- a canonical kártyaadatok továbbra is a szerkesztési forrásokból, például Google Sheetsből letöltött XLSX fájlokból származnak;
+- a Godot oldali package frissítése a Python build pipeline feladata legyen.
+
+Rövid távon elfogadható, hogy a két mappa egyszerre létezik, mert fejlesztés és smoke test szempontból külön szerepük van.
+
+Hosszabb távon viszont dönteni kell, hogy:
+
+1. a Python build output és a Godot fogyasztási mappa külön marad;
+2. a Python builder közvetlenül a Godot fogyasztási mappába is tud írni;
+3. vagy egy központi generated package mappa jön létre, ahonnan a Godot csak másolatot kap.
+
+Ajánlott irány:
+
+- maradjon külön a build output és a Godot consumption copy;
+- a másolást / frissítést a build pipeline végezze;
+- a Godot oldali `sample_runtime_package` ne legyen kézzel módosított adatforrás;
+- a package manifest vagy build report jelezze, miből és mikor készült a package;
+- később a pipeline ellenőrizze, hogy a Godot oldali másolat egyezik-e a Python build outputtal.
+
+### Javasolt package-státuszok
+
+A két package-mappa és a kapcsolódó outputok javasolt státuszai:
+
+| Elem | Javasolt státusz |
+|---|---|
+| Python oldali `sample_runtime_package` | `GENERATED_TEST_FIXTURE` |
+| Godot oldali `sample_runtime_package` | `GODOT_CONSUMPTION_COPY` |
+| Godot oldali `sample_contracts` | `HAND_AUTHORED_TEST_FIXTURE` |
+| XLSX exportból készült nyers JSONL outputok | `GENERATED_OUTPUT` |
+| régi `XLSX export/source` másolatok | `PIPELINE_INPUT_COPY` |
+| régi külön `XLSX export` program | `OBSOLETE_AFTER_MIGRATION`, ha a funkció átkerült az új Python tooling alá |
+
+### Nem cél az első lépésben
+
+Az első pipeline-rendezési lépésben még nem cél:
+
+- teljes cache-rendszer;
+- teljes publikus release pipeline;
+- Godotból indítható Python rebuild gomb;
+- runtime package titkosítás vagy védelem;
+- teljes full card database package;
+- a régi Python engine beolvasztása;
+- a Godot közvetlen XLSX-betöltése.
+
+Első cél:
+
+- az exporter funkció áthelyezése az új Python tooling alá;
+- explicit source és output útvonalak támogatása;
+- újabb állandó input-másolatok elkerülése;
+- Python oldali build output és Godot oldali consumption copy szerepének tisztázása;
+- későbbi egylépéses build pipeline előkészítése.
+
+---
+
 ## 9. Package típusok
 
 Lehetséges runtime package típusok:

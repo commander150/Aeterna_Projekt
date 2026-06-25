@@ -7,7 +7,9 @@ A projekt célja nem a régi Python program közvetlen folytatása, és nem is a
 A jelenlegi cél egy tiszta, fokozatosan bővíthető Python / Godot alap kialakítása, amelyben:
 
 - a Python oldal runtime package-et tud generálni;
+- a Python oldal hosszabb távon az XLSX exportot, validációt, diagnostics réteget és runtime package buildet egy fejlesztői build pipeline-ban kezeli;
 - a Godot / GDScript oldal contract-loaderként be tudja tölteni a package-et;
+- a Godot nem közvetlenül XLSX-et olvas, hanem validált runtime package-et fogyaszt;
 - a két oldal JSON / JSONL alapú contractokon keresztül kapcsolódik;
 - a snapshot, legal actions, action request / response, event log és diagnostics rétegek fokozatosan épülnek rá;
 - a fizikai AETERNA TCG szabályi logikája továbbra is elsődleges marad.
@@ -21,6 +23,7 @@ A jelenlegi dokumentált irány:
 - contract-first architektúra;
 - külön Python és Godot ág;
 - runtime package alapú adatátadás;
+- Python oldali build pipeline irány;
 - Godot oldali loader és debug nézetek;
 - fokozatosan erősített sample contract réteg;
 - későbbi rules engine, AI és digitális kliens.
@@ -35,6 +38,13 @@ A jelenlegi prototípus már bizonyította:
 - Legal action debug panel működését;
 - Event log debug view működését;
 - kapcsolódó smoke testek futtathatóságát.
+
+A jelenlegi dokumentációs irány már rögzíti:
+
+- az XLSX exportáló funkció hosszabb távú beépítését az `Aeterna game engine/python/` tooling / build pipeline rétegébe;
+- a Godot közvetlen XLSX-betöltésének kerülését;
+- a runtime package mint Python és Godot közötti tiszta adatcontract-határ megtartását;
+- a két `sample_runtime_package` mappa eltérő státuszát.
 
 A pontos technikai checkpoint állapot helye:
 
@@ -78,11 +88,14 @@ Javasolt fő szerkezet:
 A `python/` ág feladata:
 
 - sample runtime package generálás;
-- későbbi exportvalidáció;
-- későbbi runtime package builder;
+- XLSX exportáló funkció későbbi átvétele;
+- exportprofilok futtatása;
+- validáció;
+- normalizálás;
+- diagnostics és build report;
+- runtime package build;
 - Python oldali tesztek;
-- későbbi AI-vs-AI / batch tesztelés lehetősége;
-- diagnostics és riportkészítés.
+- későbbi AI-vs-AI / batch tesztelés lehetősége.
 
 A `Godot/` ág feladata:
 
@@ -91,6 +104,8 @@ A `Godot/` ág feladata:
 - registry-k;
 - debug nézetek;
 - headless smoke testek;
+- runtime package fogyasztása;
+- sample contractok fogyasztása;
 - későbbi játékos UI;
 - későbbi rules runtime lehetőség.
 
@@ -104,6 +119,16 @@ A `docs/` ág feladata:
 - prototípustervek;
 - nyitott kérdések;
 - checkpointok.
+
+Fontos mappastátusz:
+
+- Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
+- Godot oldali `sample_runtime_package`: `GODOT_CONSUMPTION_COPY`
+- Godot oldali `sample_contracts`: `HAND_AUTHORED_TEST_FIXTURE`
+
+A Godot oldali `sample_runtime_package` ne legyen kézzel szerkesztett canonical adatforrás.
+
+A Godot oldali package frissítése később a Python build pipeline feladata legyen.
 
 ---
 
@@ -206,7 +231,10 @@ A runtime package adatcsomag specifikációs váza.
 
 Tartalmazza:
 
-- Google Sheets → XLSX → exportáló → package adatútvonalat;
+- Google Sheets → XLSX → Python build pipeline → runtime package adatútvonalat;
+- a Godot közvetlen XLSX-betöltésének elkerülését;
+- a fejlesztői build pipeline irányt;
+- a két `sample_runtime_package` mappa státuszát;
 - manifestet;
 - cards / decks / lookups / aliases / ability registry / engine support / diagnostics fájlokat;
 - validációs szinteket;
@@ -249,7 +277,15 @@ Nem azonos:
 - a Google Sheets forrással;
 - a lokális XLSX fájlokkal;
 - a nyers exportokkal;
-- a hivatalos szabályforrásokkal.
+- a hivatalos szabályforrásokkal;
+- a Godot scene-jeivel;
+- a Python belső objektumaival.
+
+A runtime package a Python tooling és a Godot közötti tiszta adatcontract-határ.
+
+A Godot nem közvetlenül XLSX-et olvas.
+
+A Godot a validált runtime package-et fogyasztja.
 
 Jelenlegi sample runtime package fájlok:
 
@@ -270,6 +306,13 @@ A Godot által fogyasztott sample package jelenlegi helye:
 A Godot loader útvonala:
 
 - `res://sample_runtime_package`
+
+A Python oldali sample package build output és a Godot oldali sample package fogyasztási példány nem egyenrangú canonical források.
+
+Javasolt státuszuk:
+
+- Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
+- Godot oldali `sample_runtime_package`: `GODOT_CONSUMPTION_COPY`
 
 ---
 
@@ -296,16 +339,23 @@ A debug nézetek nem végleges játék UI-elemek.
 
 ## Python oldal
 
-A Python oldal jelenlegi szerepe:
+A Python oldal jelenlegi és tervezett szerepe:
 
 - sample runtime package generálás;
-- unit teszt;
-- későbbi exportvalidáció;
-- későbbi full runtime package builder;
+- unit tesztek;
+- XLSX exportáló funkció későbbi átvétele;
+- exportprofilok futtatása;
+- validáció;
+- normalizálás;
 - diagnostics és build report;
+- runtime package build;
+- Godot consumption package frissítésének későbbi előkészítése;
+- későbbi full runtime package builder;
 - későbbi AI-vs-AI / batch tesztelés lehetősége.
 
 A Python oldal jelenleg nem végleges backend-döntés.
+
+A Python oldal jelenleg biztonságos adatpipeline, build tooling és tesztelési jelölt.
 
 A régi Python motor nem kerül automatikusan beolvasztásra az új Aeterna game engine-be.
 
@@ -410,21 +460,40 @@ Codexnek ne adjunk:
 
 A jelenlegi dokumentációs irány alapján a következő biztonságos technikai fejlesztési lépés:
 
-**Runtime package + sample contracts integration**
+**Fejlesztői build pipeline rendezése**
 
 Cél:
+
+- az XLSX exportáló funkció kerüljön át az `Aeterna game engine/python/` tooling rétegébe;
+- az exporter explicit source és output útvonalakat tudjon kezelni;
+- ne legyen kötelező újabb állandó XLSX input másolatot létrehozni az engine alatt;
+- a régi `XLSX export/` mappa hosszú távon ne maradjon külön aktív programhely;
+- a Python oldali `sample_runtime_package` státusza `GENERATED_TEST_FIXTURE` legyen;
+- a Godot oldali `sample_runtime_package` státusza `GODOT_CONSUMPTION_COPY` legyen;
+- a Godot oldali package frissítését később a Python build pipeline végezze;
+- a meglévő Python és Godot smoke testek maradjanak zöldek.
+
+Ez még nem rules engine.
+
+Ez még nem action-végrehajtás.
+
+Ez még nem ability execution.
+
+Ez még nem AI.
+
+Ez még nem publikus release pipeline.
+
+A pipeline rendezése után a következő ajánlott prototípus:
+
+**Runtime package + sample contracts integration**
+
+Ennek célja:
 
 - snapshot / legal actions / event log card_id hivatkozásai oldódjanak fel a runtime package card registryből;
 - debug nézetekben jelenjen meg a card name, card type, realm és clan;
 - missing card reference diagnostics keletkezzen;
 - minden korábbi smoke test maradjon zöld;
 - készüljön új integration smoke test.
-
-Ez még nem rules engine.
-
-Ez még nem action-végrehajtás.
-
-Ez még nem AI.
 
 ---
 
@@ -441,7 +510,11 @@ Most nem cél:
 - mappák tömeges mozgatása;
 - DOCX-ek törlése;
 - új teljes kártyaaudit;
-- hivatalos szabályforrások átírása.
+- hivatalos szabályforrások átírása;
+- Godot közvetlen XLSX-betöltése;
+- teljes publikus release pipeline;
+- runtime package titkosítás vagy integritásvédelem;
+- teljes cache-rendszer.
 
 ---
 
@@ -449,13 +522,15 @@ Most nem cél:
 
 Javasolt sorrend:
 
-1. Dokumentációs főfájlok ellenőrzése.
-2. Nyitott kérdések státuszolása.
-3. Checkpointok és README összhangjának ellenőrzése.
-4. Runtime package + sample contracts integration technikai feladat előkészítése.
-5. Codexnek célzott technikai prompt adása.
-6. Smoke testek futtatása.
-7. Sikeres eredmény esetén CHECKPOINTS.md frissítése.
+1. Fejlesztői build pipeline rendezése.
+2. XLSX exportáló funkció áthelyezésének és paraméterezésének előkészítése.
+3. Python oldali build output és Godot oldali consumption copy szerepének ellenőrzése.
+4. Smoke testek futtatása.
+5. Sikeres eredmény esetén CHECKPOINTS.md frissítése.
+6. Runtime package + sample contracts integration technikai feladat előkészítése.
+7. Codexnek célzott technikai prompt adása.
+8. Új integration smoke test futtatása.
+9. Eredmény alapján PROTOTYPE_PLANS.md és CHECKPOINTS.md frissítése.
 
 ---
 

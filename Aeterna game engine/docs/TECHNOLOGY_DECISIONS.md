@@ -324,15 +324,32 @@ Jelenlegi státusz:
 
 A jelenlegi legbiztonságosabb munkahipotézis:
 
-**Python marad adatpipeline, validáció, runtime package build, diagnostics, riport és AI-vs-AI / batch tesztelési jelölt oldalon.**
+**Python marad adatpipeline, XLSX/JSONL export, validáció, runtime package build, diagnostics, riport és AI-vs-AI / batch tesztelési jelölt oldalon.**
 
-**Godot/GDScript marad debug UI, játékos UI, kliens és későbbi runtime jelölt oldalon.**
+**Godot/GDScript marad runtime package fogyasztó, debug UI, játékos UI, kliens és későbbi runtime jelölt oldalon.**
 
 **A runtime package és a contract-réteg a közös határ.**
+
+**A Godot ne olvasson közvetlenül XLSX-et.**
+
+**Az XLSX exportáló funkció hosszabb távon ne különálló aktív programként éljen tovább, hanem az `Aeterna game engine/python/` tooling / build pipeline részeként.**
 
 **A végleges rules runtime döntés csak további prototípus után születhet meg.**
 
 Ez a munkahipotézis nem végleges döntés.
+
+A mostani technológiai irány nem az, hogy minden meglévő eszközt kidobjunk, hanem az, hogy a már bizonyított többfokozatú tesztpipeline fokozatosan kényelmesebb, egységesebb fejlesztői buildfolyamattá alakuljon.
+
+Belsőleg továbbra is megmaradhatnak a lépések:
+
+- XLSX beolvasás;
+- nyers export generálás;
+- validáció;
+- runtime package build;
+- Godot consumption copy frissítés;
+- smoke test / diagnostics.
+
+Fejlesztői használatban viszont hosszabb távon ez egyetlen vagy kevés lépéses buildfolyamatként jelenjen meg.
 
 ---
 
@@ -343,6 +360,9 @@ A következő technológiai döntések jelenleg biztonságosnak tekinthetők:
 * A rendszer contract-first irányban fejlődjön.
 * A runtime package legyen központi adatátadási forma.
 * A Python/Godot határ ne belső objektumokra, hanem fájlokra és contractokra épüljön.
+* A Python erős és biztonságos jelölt az adatpipeline, XLSX/JSONL export, validáció, runtime package build, diagnostics és riportkészítés rétegére.
+* A Godot/GDScript jelenleg bizonyított runtime package / sample contract fogyasztó, debug UI és későbbi játék/kliens/rules runtime jelölt.
+* A Godot ne olvasson közvetlenül XLSX-et.
 * A Godot UI ne találgasson szabályokat.
 * Az AI ne találgasson szabályokat.
 * A legal action listát később rules engine adja.
@@ -350,7 +370,12 @@ A következő technológiai döntések jelenleg biztonságosnak tekinthetők:
 * A diagnostics strukturált legyen.
 * A checkpointok smoke test eredményekre épüljenek.
 * A régi Python motort ne emeljük át automatikusan.
+* Az `XLSX export/` programfunkció hosszabb távon migrálható az új engine Python tooling alá.
 * Codex rövid, célzott technikai feladatokat kapjon.
+
+Ezek nem döntik el véglegesen, hogy a teljes rules engine Pythonban, GDScriptben vagy hibrid modellben készüljön el.
+
+A biztos döntés jelenleg a réteghatárok tisztítása.
 
 ---
 
@@ -440,7 +465,25 @@ Codex promptok formátuma:
 
 A következő biztonságos technológiai bizonyítási irányok:
 
-### 12.1 Runtime package + sample contracts integráció
+### 12.1 Fejlesztői build pipeline rendezése
+
+Cél:
+
+* az XLSX exportáló funkció beépítése az `Aeterna game engine/python/` tooling rétegébe;
+* explicit source és output útvonalak támogatása;
+* újabb állandó XLSX input másolatok elkerülése;
+* Python oldali build output és Godot oldali consumption copy szerepének tisztázása;
+* a két `sample_runtime_package` mappa státuszának rögzítése;
+* a Godot továbbra is runtime package-et fogyasszon, ne XLSX-et;
+* a későbbi egylépéses fejlesztői build előkészítése.
+
+Ez nem szabálymotor.
+
+Ez nem action-végrehajtás.
+
+Ez nem publikus release pipeline.
+
+### 12.2 Runtime package + sample contracts integráció
 
 Cél:
 
@@ -452,10 +495,27 @@ Cél:
 
 Ez nem szabálymotor.
 
-### 12.2 Unified debug dashboard
+Ez a pipeline rendezése után stabilabb alapon végezhető.
+
+### 12.3 Contract consistency smoke test erősítése
 
 Cél:
 
+* manifest ellenőrzés;
+* schema_version ellenőrzés;
+* match_id egyezés snapshot / legal actions / events között;
+* snapshot_ref ellenőrzés;
+* card reference-ek ellenőrzése;
+* diagnostics olvashatóság;
+* missing reference esetek kontrollált kezelése.
+
+Ez nem teljes validator.
+
+### 12.4 Unified debug dashboard
+
+Cél:
+
+* package summary;
 * snapshot összefoglaló;
 * legal action lista;
 * event log lista;
@@ -464,19 +524,20 @@ Cél:
 
 Ez nem interaktív játék UI.
 
-### 12.3 Action request smoke test
+### 12.5 Action response smoke / action request extension
 
 Cél:
 
-* statikus legal action alapján action request minta;
-* validation stub;
+* meglévő sample action request smoke folytatása;
 * action response minta;
+* success és rejected response minta;
 * diagnostics;
-* snapshot_ref ellenőrzés.
+* response eventek;
+* request / response consistency ellenőrzés.
 
 Ez még nem teljes action-végrehajtás.
 
-### 12.4 GDScript rules service minimál prototípus
+### 12.6 GDScript rules service minimál prototípus
 
 Cél:
 
@@ -488,7 +549,7 @@ Cél:
 
 Ez lehet az első valódi technológiai próba arra, hogy GDScript alkalmas-e szabályrétegre.
 
-### 12.5 Python ↔ GDScript comparison scenario
+### 12.7 Python ↔ GDScript comparison scenario
 
 Cél:
 
@@ -502,6 +563,26 @@ Ez csak akkor aktuális, ha már mindkét oldalon van legalább minimális actio
 ---
 
 ## 13. Döntési kapuk
+
+### Gate 0 – Fejlesztői build pipeline tisztasága
+
+Státusz: következő technikai rendezési kapu.
+
+Szükséges bizonyítás:
+
+* az XLSX exportáló funkció az új engine Python tooling alá migrálható;
+* explicit source és output útvonalak működnek;
+* nem kell újabb állandó XLSX input másolatot létrehozni az engine alatt;
+* a Python oldali `sample_runtime_package` és a Godot oldali `sample_runtime_package` szerepe elkülönül;
+* a Godot oldali consumption copy frissíthető a Python build outputból;
+* a korábbi Python és Godot smoke testek nem törnek el;
+* az `XLSX export/` mappa régi aktív programhely státusza megszüntethető vagy archiválható a migráció után.
+
+Ez a gate nem rules engine döntés.
+
+Ez a gate a további runtime package / contract integrációk technikai alapját tisztázza.
+
+---
 
 ### Gate 1 – Godot contract fogyasztás
 
@@ -587,15 +668,33 @@ Szükséges előfeltételek:
 
 A jelenlegi ajánlott sorrend:
 
-1. Runtime package + sample contracts kapcsolat erősítése.
-2. Unified debug dashboard vagy action request smoke test.
-3. Contract-specifikáció szigorítása.
-4. Runtime package specification szigorítása.
-5. Ability module system váz stabilizálása.
-6. Minimális GDScript rules service prototípus.
-7. Csak ezután döntés a GDScript runtime alkalmasságáról.
-8. Később Python ↔ GDScript comparison test.
-9. Még később AI-vs-AI és balanszteszt.
+1. Fejlesztői build pipeline rendezése.
+2. Runtime package + sample contracts kapcsolat erősítése.
+3. Contract consistency smoke test erősítése.
+4. Unified debug dashboard.
+5. Action response smoke / action request extension.
+6. Contract-specifikáció szigorítása.
+7. Runtime package specification szigorítása.
+8. Ability module system váz stabilizálása.
+9. Minimális GDScript rules service prototípus.
+10. Csak ezután döntés a GDScript runtime alkalmasságáról.
+11. Később Python ↔ GDScript comparison test.
+12. Még később AI-vs-AI és balanszteszt.
+
+Indok:
+
+A következő technológiai lépés nem a teljes engine megírása.
+
+Előbb a meglévő adat- és build-láncot kell tisztítani.
+
+A pipeline rendezése után stabilabb lesz:
+
+* a runtime package build;
+* a Godot consumption copy kezelése;
+* a sample contract integráció;
+* a debug dashboard;
+* az action request / response smoke;
+* a későbbi rules service prototípus.
 
 ---
 
@@ -620,10 +719,16 @@ A jelenlegi technológiai döntési állapot:
 
 **A contract-first + runtime package alap biztonságos és megtartandó.**
 
-**Python jelenleg erős adatpipeline, validációs, package build, diagnostics, riport és AI-vs-AI jelölt réteg.**
+**Python jelenleg erős adatpipeline, XLSX/JSONL export, validáció, package build, diagnostics, riport és AI-vs-AI jelölt réteg.**
 
 **Godot/GDScript jelenleg bizonyított package/contract fogyasztó, debug UI és későbbi játék/kliens/rules runtime jelölt.**
 
+**A Godot továbbra se olvasson közvetlenül XLSX-et.**
+
+**Az XLSX exportáló funkció hosszabb távon az új engine Python tooling / build pipeline részévé váljon.**
+
 **A végleges rules runtime technológia nyitott döntési kapu.**
 
-**A következő helyes technológiai lépés nem a teljes engine megírása, hanem a meglévő Godot/Python contract-first prototípus fokozatos erősítése.**
+**A következő helyes technológiai lépés nem a teljes engine megírása, hanem a fejlesztői build pipeline rendezése.**
+
+A pipeline rendezése után következhet a runtime package + sample contracts integráció erősítése, majd a contract consistency, dashboard és action response irány.
