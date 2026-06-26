@@ -2,6 +2,7 @@ import importlib.util
 import json
 import shutil
 import sys
+import tempfile
 import uuid
 import unittest
 from pathlib import Path
@@ -25,7 +26,7 @@ xlsx_export = load_exporter_module()
 
 class TestXlsxExportSmoke(unittest.TestCase):
     def test_profile_export_with_explicit_source_and_output_dirs(self):
-        temp_root = Path.cwd() / ("xlsx_export_smoke_tmp_%s" % uuid.uuid4().hex)
+        temp_root = Path(tempfile.gettempdir()) / ("xlsx_export_smoke_tmp_%s" % uuid.uuid4().hex)
         try:
             source_dir = temp_root / "source"
             output_dir = temp_root / "output"
@@ -59,8 +60,7 @@ class TestXlsxExportSmoke(unittest.TestCase):
             self.assertIsInstance(rows[0]["Sort_Order"], int)
         finally:
             shutil.rmtree(temp_root, ignore_errors=True)
-            if temp_root.exists():
-                print("WARNING: XLSX exporter smoke temp cleanup left directory: %s" % temp_root)
+        self.assertFalse(temp_root.exists(), "XLSX exporter smoke temp cleanup left directory: %s" % temp_root)
 
     def _write_minimal_lookups_workbook(self, xlsx_path):
         workbook = Workbook()
