@@ -140,6 +140,7 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         self.assertEqual(summary["deck_reference_errors"], 0)
         self.assertEqual(summary["unknown_realm_errors"], 0)
         self.assertEqual(summary["unknown_card_type_errors"], 0)
+        self.assertEqual(summary["diagnostic_count"], 0)
         self.assertEqual(summary["lookups_source"], "export-derived")
         self.assertNotIn("lookups", summary["fixture_components"])
 

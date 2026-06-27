@@ -298,6 +298,10 @@ def _base_diagnostics():
     ]
 
 
+def _uses_export_inputs(export_runtime_cards_path, export_runtime_decks_path, export_runtime_lookups_path):
+    return any((export_runtime_cards_path, export_runtime_decks_path, export_runtime_lookups_path))
+
+
 def _lookup_values(lookups, group):
     return {item["value"] for item in lookups if item["lookup_group"] == group and item["status"] == "active"}
 
@@ -490,7 +494,7 @@ def build_package(
     else:
         decks = _sample_decks()
     ability_registry = _sample_ability_registry()
-    diagnostics = _base_diagnostics()
+    diagnostics = [] if _uses_export_inputs(export_runtime_cards_path, export_runtime_decks_path, export_runtime_lookups_path) else _base_diagnostics()
 
     validation_summary = validate_package(cards, decks, lookups, diagnostics)
     engine_support = {

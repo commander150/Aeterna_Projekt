@@ -81,6 +81,8 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertIn("Paklik szama: 1", report)
             self.assertIn("Warningok szama: 1", report)
             self.assertIn("Blocking hibak szama: 0", report)
+            diagnostics = json.loads((output_dir / "diagnostics.json").read_text(encoding="utf-8"))["diagnostics"]
+            self.assertEqual(diagnostics[0]["code"], "MANUAL_REVIEW_PLACEHOLDER")
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
         self.assertFalse(temp_dir.exists(), "Sample runtime package test temp cleanup left directory: %s" % temp_dir)
@@ -184,6 +186,36 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
         self.assertFalse(temp_dir.exists(), "Export runtime lookups build test temp cleanup left directory: %s" % temp_dir)
+
+    def test_export_derived_build_does_not_include_sample_manual_review_diagnostic(self):
+        builder = _load_builder_module()
+
+        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_sample_runtime_package_%s" % uuid.uuid4().hex)
+        try:
+            export_cards_path = temp_dir / "EXPORT_RUNTIME.jsonl"
+            export_decks_path = temp_dir / "PRODUCT_DECKLISTS.jsonl"
+            export_lookups_path = temp_dir / "LOOKUPS_RUNTIME.jsonl"
+            output_dir = temp_dir / "sample_runtime_package"
+            temp_dir.mkdir(parents=True)
+            _write_jsonl(export_cards_path, _sample_export_records_for_builder(builder._sample_cards()))
+            _write_jsonl(export_decks_path, [_sample_decklist_row(card["card_id"], 1) for card in builder._sample_cards()])
+            _write_jsonl(export_lookups_path, _sample_lookup_rows_for_builder())
+
+            result = builder.build_package(
+                output_dir,
+                export_runtime_cards_path=export_cards_path,
+                export_runtime_decks_path=export_decks_path,
+                export_runtime_lookups_path=export_lookups_path,
+            )
+
+            self.assertFalse(result["validation_summary"]["blocking"])
+            diagnostics = json.loads((output_dir / "diagnostics.json").read_text(encoding="utf-8"))["diagnostics"]
+            self.assertEqual(diagnostics, [])
+            report = (output_dir / "build_report.md").read_text(encoding="utf-8")
+            self.assertIn("Warningok szama: 0", report)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        self.assertFalse(temp_dir.exists(), "Export-derived build test temp cleanup left directory: %s" % temp_dir)
 
 
 def _sample_export_records_for_builder(sample_cards):
