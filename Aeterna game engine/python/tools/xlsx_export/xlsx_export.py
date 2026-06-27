@@ -58,8 +58,8 @@ PROFILES = {
         sheet_name="7. EXPORT_RUNTIME",
         output_filename="EXPORT_RUNTIME.jsonl",
         output_format="jsonl",
-        required_fields=("Card_ID", "KĂˇrtya nĂ©v", "TĂ­pus", "Birodalom", "MagnitudĂł", "Aura", "Set_ID", "Collector_Number"),
-        number_fields=("MagnitudĂł", "Aura", "ATK", "HP"),
+        required_fields=("Card_ID", "Kártya név", "Típus", "Birodalom", "Magnitudó", "Aura", "Set_ID", "Collector_Number"),
+        number_fields=("Magnitudó", "Aura", "ATK", "HP"),
     ),
     "decklists": ExportProfile(
         name="decklists",
