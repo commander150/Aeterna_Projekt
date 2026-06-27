@@ -32,7 +32,14 @@ PACKAGE_BUILDER = _load_module(
 )
 
 
-def run_smoke(xlsx_path=None, source_dir=None, output_dir=None, keep_output=False, include_decklists=False):
+def run_smoke(
+    xlsx_path=None,
+    source_dir=None,
+    output_dir=None,
+    keep_output=False,
+    include_decklists=False,
+    include_lookups_runtime=False,
+):
     """Export runtime cards from XLSX and build a partial runtime package smoke output."""
     xlsx_path = _resolve_xlsx_path(xlsx_path, source_dir)
     owns_output_dir = output_dir is None
@@ -78,10 +85,32 @@ def run_smoke(xlsx_path=None, source_dir=None, output_dir=None, keep_output=Fals
             )
             decklist_warnings_path = XLSX_EXPORT.write_warnings(export_decklists_path, decklist_export_warnings)
 
+        export_lookups_path = None
+        lookups_export_count = 0
+        lookups_export_warnings = []
+        lookups_warnings_path = None
+        if include_lookups_runtime:
+            lookups_profile, lookups_sheet_name, export_lookups_path, lookups_output_format = XLSX_EXPORT.resolve_export_options(
+                "lookups_runtime",
+                None,
+                None,
+                None,
+                output_dir=export_dir,
+            )
+            lookups_export_count, lookups_export_warnings = XLSX_EXPORT.export_worksheet(
+                xlsx_path,
+                lookups_sheet_name,
+                export_lookups_path,
+                lookups_output_format,
+                profile=lookups_profile,
+            )
+            lookups_warnings_path = XLSX_EXPORT.write_warnings(export_lookups_path, lookups_export_warnings)
+
         build_result = PACKAGE_BUILDER.build_package(
             package_dir,
             export_runtime_cards_path=export_runtime_path,
             export_runtime_decks_path=export_decklists_path,
+            export_runtime_lookups_path=export_lookups_path,
         )
 
         manifest_path = package_dir / "manifest.json"
@@ -101,6 +130,11 @@ def run_smoke(xlsx_path=None, source_dir=None, output_dir=None, keep_output=Fals
             "decklist_export_rows": decklist_export_count,
             "decklist_export_warnings": len(decklist_export_warnings),
             "decklist_export_warnings_path": str(decklist_warnings_path) if decklist_warnings_path else "none",
+            "lookups_export_jsonl": str(export_lookups_path) if export_lookups_path else "none",
+            "lookups_export_jsonl_exists": export_lookups_path.exists() if export_lookups_path else False,
+            "lookups_export_rows": lookups_export_count,
+            "lookups_export_warnings": len(lookups_export_warnings),
+            "lookups_export_warnings_path": str(lookups_warnings_path) if lookups_warnings_path else "none",
             "runtime_package_output_dir": str(package_dir),
             "cards_jsonl_exists": cards_path.exists(),
             "cards_jsonl_rows": _count_jsonl_rows(cards_path),
@@ -108,14 +142,15 @@ def run_smoke(xlsx_path=None, source_dir=None, output_dir=None, keep_output=Fals
             "diagnostics_exists": diagnostics_path.exists(),
             "validation_blocking": build_result["validation_summary"]["blocking"],
             "deck_reference_errors": _count_diagnostic_code(diagnostics, "DECK_CARD_NOT_FOUND"),
+            "unknown_realm_errors": _count_diagnostic_code(diagnostics, "UNKNOWN_REALM"),
+            "unknown_card_type_errors": _count_diagnostic_code(diagnostics, "UNKNOWN_CARD_TYPE"),
             "diagnostic_count": len(diagnostics),
             "manifest_source_count": len(manifest.get("source_files", [])) if manifest else 0,
             "package_status": "smoke_partial_real_data_build",
             "cards_source": "export-derived",
             "decks_source": "export-derived" if include_decklists else "sample fixture",
-            "fixture_components": ["lookups", "aliases", "ability_registry"]
-            if include_decklists
-            else ["decks", "lookups", "aliases", "ability_registry"],
+            "lookups_source": "export-derived" if include_lookups_runtime else "sample fixture",
+            "fixture_components": _fixture_components(include_decklists, include_lookups_runtime),
             "output_kept": (not owns_output_dir) or keep_output,
         }
         return summary
@@ -137,14 +172,21 @@ def print_summary(summary):
     print(f"diagnostics_exists: {str(summary['diagnostics_exists']).lower()}")
     print(f"validation_blocking: {str(summary['validation_blocking']).lower()}")
     print(f"deck_reference_errors: {summary['deck_reference_errors']}")
+    print(f"unknown_realm_errors: {summary['unknown_realm_errors']}")
+    print(f"unknown_card_type_errors: {summary['unknown_card_type_errors']}")
     print(f"export_warnings: {summary['export_warnings']}")
     print(f"decklist_export_jsonl_exists: {str(summary['decklist_export_jsonl_exists']).lower()}")
     print(f"decklist_export_jsonl: {summary['decklist_export_jsonl']}")
     print(f"decklist_export_rows: {summary['decklist_export_rows']}")
     print(f"decklist_export_warnings: {summary['decklist_export_warnings']}")
+    print(f"lookups_export_jsonl_exists: {str(summary['lookups_export_jsonl_exists']).lower()}")
+    print(f"lookups_export_jsonl: {summary['lookups_export_jsonl']}")
+    print(f"lookups_export_rows: {summary['lookups_export_rows']}")
+    print(f"lookups_export_warnings: {summary['lookups_export_warnings']}")
     print(f"diagnostic_count: {summary['diagnostic_count']}")
     print("cards_source: export-derived")
     print(f"decks_source: {summary['decks_source']}")
+    print(f"lookups_source: {summary['lookups_source']}")
     print(f"fixture_components: {', '.join(summary['fixture_components'])}")
     print("package_status: smoke / partial real-data build")
     print(f"output_kept: {str(summary['output_kept']).lower()}")
@@ -188,6 +230,15 @@ def _count_diagnostic_code(diagnostics, code):
     return sum(1 for diagnostic in diagnostics if diagnostic.get("code") == code)
 
 
+def _fixture_components(include_decklists, include_lookups_runtime):
+    components = ["aliases", "ability_registry"]
+    if not include_lookups_runtime:
+        components.insert(0, "lookups")
+    if not include_decklists:
+        components.insert(0, "decks")
+    return components
+
+
 def build_parser():
     parser = argparse.ArgumentParser(description="Smoke build a partial runtime package from XLSX EXPORT_RUNTIME cards.")
     parser.add_argument("--xlsx", type=Path, default=None, help="Source XLSX file.")
@@ -198,6 +249,11 @@ def build_parser():
         "--include-decklists",
         action="store_true",
         help="Also export PRODUCT_DECKLISTS and use it for decks.jsonl.",
+    )
+    parser.add_argument(
+        "--include-lookups-runtime",
+        action="store_true",
+        help="Also export LOOKUPS_RUNTIME and use it for lookups.json.",
     )
     return parser
 
@@ -212,6 +268,7 @@ def main(argv=None):
             output_dir=args.output_dir,
             keep_output=args.keep_output,
             include_decklists=args.include_decklists,
+            include_lookups_runtime=args.include_lookups_runtime,
         )
         print_summary(summary)
         return 0

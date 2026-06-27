@@ -36,6 +36,17 @@ except ModuleNotFoundError:
         runtime_decks_builder_adapter.load_builder_decks_from_product_decklists_jsonl
     )
 
+try:
+    from runtime_lookups_builder_adapter import load_builder_lookups_from_runtime_lookups_jsonl
+except ModuleNotFoundError:
+    adapter_path = Path(__file__).resolve().with_name("runtime_lookups_builder_adapter.py")
+    spec = util.spec_from_file_location("runtime_lookups_builder_adapter", adapter_path)
+    runtime_lookups_builder_adapter = util.module_from_spec(spec)
+    spec.loader.exec_module(runtime_lookups_builder_adapter)
+    load_builder_lookups_from_runtime_lookups_jsonl = (
+        runtime_lookups_builder_adapter.load_builder_lookups_from_runtime_lookups_jsonl
+    )
+
 
 PACKAGE_ID = "aeterna.sample_runtime_package"
 PACKAGE_VERSION = "0.1.0"
@@ -427,14 +438,31 @@ def _build_report(cards, decks, diagnostics, validation_summary):
     )
 
 
-def build_package(output_dir=None, export_runtime_cards_path=None, export_runtime_decks_path=None):
+def build_package(
+    output_dir=None,
+    export_runtime_cards_path=None,
+    export_runtime_decks_path=None,
+    export_runtime_lookups_path=None,
+):
     repo_root = Path(__file__).resolve().parents[2]
     target_dir = Path(output_dir) if output_dir else repo_root / "sample_runtime_package"
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    lookups = _sample_lookups()
     aliases = _sample_aliases()
     source_files = [{"path": "tools/runtime_package/build_sample_runtime_package.py", "type": "in_code_fixture"}]
+    if export_runtime_lookups_path:
+        lookup_adapter_result = load_builder_lookups_from_runtime_lookups_jsonl(export_runtime_lookups_path)
+        lookups = lookup_adapter_result["lookups"]
+        source_files.append(
+            {
+                "path": str(Path(export_runtime_lookups_path)),
+                "type": "lookups_runtime_jsonl",
+                "adapter": "runtime_lookups_builder_adapter.py",
+                "summary": lookup_adapter_result["summary"],
+            }
+        )
+    else:
+        lookups = _sample_lookups()
     if export_runtime_cards_path:
         adapter_result = load_builder_cards_from_export_runtime_jsonl(export_runtime_cards_path)
         cards = adapter_result["cards"]
@@ -527,12 +555,18 @@ def main(argv=None):
         default=None,
         help="Optional PRODUCT_DECKLISTS.jsonl-style deck input. Defaults to the in-code sample deck fixture.",
     )
+    parser.add_argument(
+        "--export-runtime-lookups",
+        default=None,
+        help="Optional LOOKUPS_RUNTIME.jsonl-style lookup input. Defaults to the in-code sample lookup fixture.",
+    )
     args = parser.parse_args(argv)
 
     result = build_package(
         args.output_dir,
         export_runtime_cards_path=args.export_runtime_cards,
         export_runtime_decks_path=args.export_runtime_decks,
+        export_runtime_lookups_path=args.export_runtime_lookups,
     )
     print(f"Sample runtime package written to: {result['output_dir']}")
     print(f"Validation blocking: {str(result['validation_summary']['blocking']).lower()}")

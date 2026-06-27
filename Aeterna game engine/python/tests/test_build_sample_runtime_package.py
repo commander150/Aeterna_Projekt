@@ -122,6 +122,7 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
         temp_dir = Path(tempfile.gettempdir()) / ("aeterna_sample_runtime_package_%s" % uuid.uuid4().hex)
         try:
             export_decks_path = temp_dir / "PRODUCT_DECKLISTS.jsonl"
+            export_lookups_path = temp_dir / "LOOKUPS_RUNTIME.jsonl"
             output_dir = temp_dir / "sample_runtime_package"
             temp_dir.mkdir(parents=True)
             _write_jsonl(
@@ -132,8 +133,13 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
                     _sample_decklist_row("SMP-IGN-003", 1),
                 ],
             )
+            _write_jsonl(export_lookups_path, _sample_lookup_rows_for_builder())
 
-            result = builder.build_package(output_dir, export_runtime_decks_path=export_decks_path)
+            result = builder.build_package(
+                output_dir,
+                export_runtime_decks_path=export_decks_path,
+                export_runtime_lookups_path=export_lookups_path,
+            )
 
             self.assertEqual(result["output_dir"], output_dir)
             self.assertFalse(result["validation_summary"]["blocking"])
@@ -147,11 +153,37 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertEqual(decks[0]["card_count"], 5)
 
             manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual(manifest["source_files"][1]["type"], "product_decklists_jsonl")
-            self.assertEqual(manifest["source_files"][1]["summary"]["decks_loaded"], 1)
+            self.assertEqual(manifest["source_files"][1]["type"], "lookups_runtime_jsonl")
+            self.assertEqual(manifest["source_files"][2]["type"], "product_decklists_jsonl")
+            self.assertEqual(manifest["source_files"][2]["summary"]["decks_loaded"], 1)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
         self.assertFalse(temp_dir.exists(), "Export runtime decks build test temp cleanup left directory: %s" % temp_dir)
+
+    def test_build_package_accepts_optional_export_runtime_lookups_input(self):
+        builder = _load_builder_module()
+
+        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_sample_runtime_package_%s" % uuid.uuid4().hex)
+        try:
+            export_lookups_path = temp_dir / "LOOKUPS_RUNTIME.jsonl"
+            output_dir = temp_dir / "sample_runtime_package"
+            temp_dir.mkdir(parents=True)
+            _write_jsonl(export_lookups_path, _sample_lookup_rows_for_builder())
+
+            result = builder.build_package(output_dir, export_runtime_lookups_path=export_lookups_path)
+
+            self.assertEqual(result["output_dir"], output_dir)
+            self.assertFalse(result["validation_summary"]["blocking"])
+            lookups = json.loads((output_dir / "lookups.json").read_text(encoding="utf-8"))["lookups"]
+            self.assertIn({"lookup_group": "realm", "value": "Ignis"}, _lookup_key_values(lookups))
+            self.assertIn({"lookup_group": "card_type", "value": "Entitas"}, _lookup_key_values(lookups))
+
+            manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["source_files"][1]["type"], "lookups_runtime_jsonl")
+            self.assertEqual(manifest["source_files"][1]["summary"]["lookups_loaded"], len(_sample_lookup_rows_for_builder()))
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        self.assertFalse(temp_dir.exists(), "Export runtime lookups build test temp cleanup left directory: %s" % temp_dir)
 
 
 def _sample_export_records_for_builder(sample_cards):
@@ -205,6 +237,36 @@ def _sample_decklist_row(card_id, count):
         "Card_ID": card_id,
         "Darabszám": count,
     }
+
+
+def _sample_lookup_rows_for_builder():
+    return [
+        _lookup_row("Card_Type", "Entitas"),
+        _lookup_row("Card_Type", "Ige"),
+        _lookup_row("Card_Type", "Rituale"),
+        _lookup_row("Card_Type", "Jel"),
+        _lookup_row("Card_Type", "Sik"),
+        _lookup_row("Realm", "Ignis"),
+        _lookup_row("Realm", "IGNIS"),
+    ]
+
+
+def _lookup_row(group, value):
+    return {
+        "Lookup_Group": group,
+        "Value": value,
+        "Label_HU": value,
+        "Status": "active",
+        "Canonical_Value": value,
+        "Used_For": "runtime_validation",
+        "Sort_Order": 10,
+        "Source": "test",
+        "Notes": "temporary test fixture",
+    }
+
+
+def _lookup_key_values(lookups):
+    return [{"lookup_group": item["lookup_group"], "value": item["value"]} for item in lookups]
 
 
 if __name__ == "__main__":

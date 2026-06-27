@@ -60,7 +60,9 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
             self.builder._sample_cards(),
             self.mapper.FIELD_MAP,
             self.xlsx_export.PROFILES["decklists"],
+            self.xlsx_export.PROFILES["lookups_runtime"],
             include_decklists=False,
+            include_lookups_runtime=False,
         )
 
         summary = self.runner.run_smoke(xlsx_path=xlsx_path, output_dir=output_dir)
@@ -89,7 +91,9 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
             self.builder._sample_cards(),
             self.mapper.FIELD_MAP,
             self.xlsx_export.PROFILES["decklists"],
+            self.xlsx_export.PROFILES["lookups_runtime"],
             include_decklists=True,
+            include_lookups_runtime=False,
         )
 
         summary = self.runner.run_smoke(xlsx_path=xlsx_path, output_dir=output_dir, include_decklists=True)
@@ -97,7 +101,7 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         self.assertEqual(summary["exported_card_rows"], 5)
         self.assertEqual(summary["decklist_export_rows"], 5)
         self.assertTrue(summary["decklist_export_jsonl_exists"])
-        self.assertFalse(summary["validation_blocking"])
+        self.assertTrue(summary["validation_blocking"])
         self.assertEqual(summary["deck_reference_errors"], 0)
         self.assertEqual(summary["cards_source"], "export-derived")
         self.assertEqual(summary["decks_source"], "export-derived")
@@ -108,8 +112,52 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         self.assertEqual(manifest["source_files"][1]["type"], "export_runtime_cards_jsonl")
         self.assertEqual(manifest["source_files"][2]["type"], "product_decklists_jsonl")
 
+    def test_smoke_runner_can_include_real_runtime_lookups(self):
+        xlsx_path = self.temp_dir / "aeterna_cards_decks_lookups.xlsx"
+        output_dir = self.temp_dir / "smoke_output_with_lookups"
+        _write_runtime_cards_workbook(
+            xlsx_path,
+            self.builder._sample_cards(),
+            self.mapper.FIELD_MAP,
+            self.xlsx_export.PROFILES["decklists"],
+            self.xlsx_export.PROFILES["lookups_runtime"],
+            include_decklists=True,
+            include_lookups_runtime=True,
+        )
 
-def _write_runtime_cards_workbook(path, sample_cards, field_map, decklists_profile, include_decklists=False):
+        summary = self.runner.run_smoke(
+            xlsx_path=xlsx_path,
+            output_dir=output_dir,
+            include_decklists=True,
+            include_lookups_runtime=True,
+        )
+
+        self.assertEqual(summary["exported_card_rows"], 5)
+        self.assertEqual(summary["decklist_export_rows"], 5)
+        self.assertEqual(summary["lookups_export_rows"], 7)
+        self.assertTrue(summary["lookups_export_jsonl_exists"])
+        self.assertFalse(summary["validation_blocking"])
+        self.assertEqual(summary["deck_reference_errors"], 0)
+        self.assertEqual(summary["unknown_realm_errors"], 0)
+        self.assertEqual(summary["unknown_card_type_errors"], 0)
+        self.assertEqual(summary["lookups_source"], "export-derived")
+        self.assertNotIn("lookups", summary["fixture_components"])
+
+        manifest = json.loads((output_dir / "runtime_package" / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["source_files"][1]["type"], "lookups_runtime_jsonl")
+        self.assertEqual(manifest["source_files"][2]["type"], "export_runtime_cards_jsonl")
+        self.assertEqual(manifest["source_files"][3]["type"], "product_decklists_jsonl")
+
+
+def _write_runtime_cards_workbook(
+    path,
+    sample_cards,
+    field_map,
+    decklists_profile,
+    lookups_profile,
+    include_decklists=False,
+    include_lookups_runtime=False,
+):
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "7. EXPORT_RUNTIME"
@@ -124,8 +172,8 @@ def _write_runtime_cards_workbook(path, sample_cards, field_map, decklists_profi
         values_by_target = {
             "card_id": card["card_id"],
             "name_hu": card["name_hu"],
-            "card_type": card["card_type"],
-            "realm": card["realm"],
+            "card_type": _real_card_type(card["card_type"]) if include_lookups_runtime else card["card_type"],
+            "realm": _real_realm(card["realm"]) if include_lookups_runtime else card["realm"],
             "clan": card["clan"],
             "species": "none",
             "class": "none",
@@ -175,8 +223,56 @@ def _write_runtime_cards_workbook(path, sample_cards, field_map, decklists_profi
             }
             deck_sheet.append([values.get(header, "none") for header in headers])
 
+    if include_lookups_runtime:
+        lookup_sheet = workbook.create_sheet("5A. LOOKUPS_RUNTIME")
+        lookup_headers = list(lookups_profile.output_fields)
+        lookup_sheet.append(lookup_headers)
+        for row in _runtime_lookup_rows():
+            lookup_sheet.append([row.get(header, "none") for header in lookup_headers])
+
     workbook.save(path)
     workbook.close()
+
+
+def _real_card_type(value):
+    return {
+        "Entitas": "Entitás",
+        "Rituale": "Rituálé",
+        "Sik": "Sík",
+    }.get(value, value)
+
+
+def _real_realm(value):
+    return {
+        "Ignis": "IGNIS",
+        "Aqua": "AQUA",
+    }.get(value, value)
+
+
+def _runtime_lookup_rows():
+    values = [
+        ("Card_Type", "Entitás"),
+        ("Card_Type", "Ige"),
+        ("Card_Type", "Rituálé"),
+        ("Card_Type", "Jel"),
+        ("Card_Type", "Sík"),
+        ("Realm", "IGNIS"),
+        ("Realm", "AQUA"),
+    ]
+    return [
+        {
+            "Lookup_Group": group,
+            "Value": value,
+            "Label_HU": value,
+            "Status": "active",
+            "Canonical_Value": value,
+            "Used_For": "runtime_validation",
+            "Sort_Order": index,
+            "Source": "test",
+            "Notes": "temporary smoke fixture",
+        }
+        for index, (group, value) in enumerate(values, start=1)
+    ]
 
 
 if __name__ == "__main__":

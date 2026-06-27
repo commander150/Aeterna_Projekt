@@ -125,13 +125,13 @@ def _infer_deck_type(deck_id):
 def _infer_realm(product_id, deck_id):
     text = f"{product_id} {deck_id}".upper()
     realm_codes = {
-        "IGN": "Ignis",
-        "AQU": "Aqua",
-        "TER": "Terra",
-        "LUX": "Lux",
-        "UMB": "Umbra",
-        "VEN": "Ventus",
-        "AET": "Aether",
+        "IGN": "IGNIS",
+        "AQU": "AQUA",
+        "TER": "TERRA",
+        "LUX": "LUX",
+        "UMB": "UMBRA",
+        "VEN": "VENTUS",
+        "AET": "AETHER",
     }
     for code, realm in realm_codes.items():
         if code in text or realm in text:

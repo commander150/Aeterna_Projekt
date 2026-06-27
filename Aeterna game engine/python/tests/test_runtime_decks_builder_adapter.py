@@ -49,7 +49,7 @@ class TestRuntimeDecksBuilderAdapter(unittest.TestCase):
         deck = result["decks"][0]
         self.assertEqual(deck["deck_id"], "DECK-IGN-HAM-TEST-001")
         self.assertEqual(deck["product_id"], "TEST-CORE01-IGNIS")
-        self.assertEqual(deck["realm"], "Ignis")
+        self.assertEqual(deck["realm"], "IGNIS")
         self.assertEqual(deck["deck_type"], "test_deck")
         self.assertEqual(deck["card_count"], 6)
         self.assertEqual(
