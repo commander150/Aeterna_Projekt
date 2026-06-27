@@ -1916,6 +1916,235 @@ A következő dokumentációs rendezési irány:
 - duplikált dokumentumszerepek tisztázása;
 - későbbi archiválási javaslatok előkészítése, de törlés vagy mozgatás nélkül.
 
+# 7.11 Dokumentációs fenntarthatósági rend
+
+Státusz: aktív dokumentációs rendezési döntés.
+
+Az AETERNA projektben sok dokumentációs, audit-, report-, checkpoint-, specifikációs és draftjellegű fájl jött létre.
+
+Ez önmagában nem hiba, mert ezek a dokumentumok sok korábbi döntést, munkafázist, auditot, Codex-vizsgálatot, technikai tervet és projektállapotot őriznek meg.
+
+Ugyanakkor a dokumentációs rendszer hosszú távon nem fenntartható, ha minden dokumentumot aktív, folyamatosan karbantartandó forrásként kezelünk.
+
+A cél ezért nem az, hogy minden dokumentumot állandóan átírjunk, hanem az, hogy világos dokumentumszerepek és karbantartási szintek legyenek.
+
+## 7.11.1 Alapelv
+
+Nem minden dokumentum aktív fődokumentum.
+
+A projekt dokumentumait szerep szerint kell kezelni:
+
+- hivatalos forrás;
+- aktív irányító dokumentum;
+- aktív munkadokumentum;
+- technikai specifikáció;
+- checkpoint / napló;
+- referencia;
+- átvezetett vagy kiváltott dokumentum;
+- draft / Codex-jegyzet;
+- archív jelölt;
+- generált riport.
+
+A dokumentációs rend célja, hogy a tényleges projektmunka ne vesszen el a túl sok párhuzamos dokumentum kézi karbantartásában.
+
+## 7.11.2 Dokumentum-tier rendszer
+
+A projektben az alábbi dokumentumstátuszokat kell használni.
+
+| Tier | Státusz | Jelentés |
+|---|---|---|
+| `TIER_0_OFFICIAL_SOURCE` | Hivatalos forrás | Hivatalos szabályforrás vagy canonical adatforrás. Ritkán módosul, verziózott, emberi döntéssel. |
+| `TIER_1_ACTIVE_CONTROL_DOC` | Aktív irányító dokumentum | Kevés legyen belőle. Ezek határozzák meg a projekt aktuális irányát, prioritását és státuszát. |
+| `TIER_2_ACTIVE_WORKDOC` | Aktív munkadokumentum | Egy konkrét munkafolyamatot támogat. Nem feltétlen projektirányító dokumentum. |
+| `TIER_3_ACTIVE_SPEC` | Aktív specifikáció | Technikai specifikáció, contract, architektúra vagy runtime package dokumentum. |
+| `TIER_4_CHECKPOINT_LOG` | Checkpoint / napló | Haladási napló. Nem kell visszamenőleg folyamatosan átírni, új checkpointtal bővül. |
+| `TIER_5_REFERENCE` | Referencia | Hasznos visszakeresési forrás, de nem napi karbantartású dokumentum. |
+| `TIER_6_MIGRATED_OR_SUPERSEDED` | Átvezetett / kiváltott | Tartalma részben vagy egészben átkerült máshová. Nem aktív főforrás. |
+| `TIER_7_DRAFT_OR_CODEX_NOTE` | Draft / Codex-jegyzet | AI-válasz, Codex-draft, előkészítő jegyzet. Nem hivatalos dokumentum. |
+| `TIER_8_ARCHIVE_CANDIDATE_AFTER_APPROVAL` | Archiválási jelölt | Később archiválható, de most nem törlendő és nem mozgatandó. |
+| `GENERATED_REPORT` | Generált riport | Audit-, stats-, triage- vagy exportált riport. Nem kézi fődokumentum. |
+
+Ezek a státuszok nem törlési vagy mozgatási utasítások.
+
+Archiválás, törlés vagy mappamozgatás csak külön jóváhagyással történhet.
+
+## 7.11.3 Minimális aktívan karbantartandó dokumentumkészlet
+
+A projektben törekedni kell arra, hogy legfeljebb kb. 8–10 dokumentum legyen ténylegesen aktív, rendszeresen karbantartandó fődokumentum.
+
+Javasolt aktív készlet:
+
+| Szerep | Dokumentum | Javasolt tier |
+|---|---|---|
+| Gyökér projektbelépő | `README.md` | `TIER_1_ACTIVE_CONTROL_DOC` |
+| Projektirányító dokumentum | `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v5.1.md` | `TIER_1_ACTIVE_CONTROL_DOC` |
+| Projekt-térkép / fájlstátusz | `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.2.md` | `TIER_1_ACTIVE_CONTROL_DOC` |
+| Alapjáték főforrás | `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4v.docx` | `TIER_0_OFFICIAL_SOURCE` |
+| Kiegészítő főforrás | `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx` | `TIER_0_OFFICIAL_SOURCE` |
+| Kártyaadatbázis munkaforrás | `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx` | `TIER_0_OFFICIAL_SOURCE` |
+| Engine architektúra | `Aeterna game engine/docs/ARCHITECTURE.md` | `TIER_3_ACTIVE_SPEC` |
+| Engine döntési térkép | `Aeterna game engine/docs/DECISION_MAP.md` | `TIER_3_ACTIVE_SPEC` |
+| Nyitott kérdések | `Aeterna game engine/docs/OPEN_QUESTIONS.md` | `TIER_2_ACTIVE_WORKDOC` |
+| Prototípus terv | `Aeterna game engine/docs/PROTOTYPE_PLANS.md` | `TIER_2_ACTIVE_WORKDOC` |
+| Checkpoint napló | `Aeterna game engine/docs/checkpoints/CHECKPOINTS.md` | `TIER_4_CHECKPOINT_LOG` |
+
+A fenti lista nem jelenti azt, hogy minden más dokumentum értéktelen.
+
+A többi dokumentum lehet referencia, specifikáció, munkadokumentum, draft, archív jelölt vagy generált riport.
+
+## 7.11.4 Karbantartási szabály
+
+A dokumentumokat nem azonos gyakorisággal kell frissíteni.
+
+### Minden nagy projektirány-változás után frissítendő
+
+- `README.md`, ha a belépési projektkép változik;
+- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v5.1.md`, ha prioritás vagy projektirány változik;
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.2.md`, ha mappa-, fájl- vagy státuszdöntés változik;
+- `DECISION_MAP.md`, ha technikai döntési kapu vagy engine irány változik.
+
+### Csak checkpointkor frissítendő
+
+- `CHECKPOINTS.md`
+
+A checkpoint dokumentum napló.
+
+Nem kell minden korábbi bejegyzést visszamenőleg átírni.
+
+### Csak specifikáció-változáskor frissítendő
+
+- `ARCHITECTURE.md`
+- `CONTRACT_SPECIFICATION.md`
+- `RUNTIME_PACKAGE_SPECIFICATION.md`
+- `ABILITY_MODULE_SYSTEM.md`
+- `TECHNOLOGY_DECISIONS.md`
+
+Ezek nem általános projektállapot-naplók, hanem technikai specifikációk.
+
+### Csak forrásverzió-váltáskor frissítendő
+
+- hivatalos főforrások;
+- kártyaadatbázis munkaforrás;
+- Excel / Google Sheets struktúra- és oszlopszabvány dokumentumok;
+- kártyaaudit munkarendi dokumentumok, ha az auditmódszertan változik.
+
+### Nem folyamatosan karbantartandó
+
+- régi auditjelentések;
+- régi reportok;
+- stats riportok;
+- Codex / AI draftok;
+- archív dokumentumok;
+- régi Python motor futási út dokumentumai;
+- régi contract docx-ek, ha már MD specifikációba migráltak;
+- mappaszerkezet-pillanatképek.
+
+Ezek megőrizhetők, de nem kell minden projektváltozás után átírni őket.
+
+## 7.11.5 Duplikált dokumentumcsoportok kezelése
+
+A következő témákban több dokumentum is hasonló szerepet tölthet be.
+
+Ezeket nem szabad automatikusan törölni, de státuszolni kell őket.
+
+| Dokumentumcsoport | Kezelési elv |
+|---|---|
+| Projektirány / prioritások | Egy aktív projektterv legyen. A régi verziók referencia vagy archív jelöltek. |
+| Projekt-térkép / fájlstátusz | Egy aktív fájlstátusz-dokumentum legyen. A mappaszerkezet-listák pillanatképek. |
+| Architektúra | Régi Python motor architektúra és új game engine architektúra külön kezelendő. |
+| Runtime package / contract | Aktív MD specifikációk legyenek elsődlegesek. Régi docx contract anyagok migrált referenciák lehetnek. |
+| Checkpointok | Egy aktív checkpoint napló legyen. Régi checkpoint docx-ek referencia vagy archive candidate státuszúak. |
+| Excel / kártyaadat szabvány | Aktív munkaforrás és oszlopszabvány legyen kijelölve. Régi verziók referencia státuszúak. |
+| Audit / report | Generált riportok nem élő fődokumentumok. |
+| Codex-draftok | Nem hivatalos dokumentumok, amíg külön döntés nem emeli át őket. |
+
+## 7.11.6 Régi Python motor dokumentumai
+
+A régi Python motorhoz kapcsolódó dokumentumok nem törlendők automatikusan.
+
+Státuszuk jellemzően:
+
+- `TIER_5_REFERENCE`
+- `OLD_ENGINE_REFERENCE`
+- `OLD_ENGINE_REVIEW`
+
+Ezek hasznosak lehetnek:
+
+- régi futási út megértéséhez;
+- régi effectlogika feltárásához;
+- AI-vs-AI és balanszfigyelési mintákhoz;
+- migrálható vagy archiválható elemek eldöntéséhez.
+
+Ugyanakkor ezek nem az új `Aeterna game engine/` contract-first irány elsődleges architektúra-dokumentumai.
+
+## 7.11.7 Codex-draftok és AI-válaszok státusza
+
+A Codex-draftok, AI-válaszok és újratervezési nyersanyagok nem automatikusan hivatalos dokumentumok.
+
+Javasolt státuszuk:
+
+- `TIER_7_DRAFT_OR_CODEX_NOTE`
+
+Csak akkor válhatnak aktív dokumentációvá, ha:
+
+1. külön át lettek nézve;
+2. döntés született a beemelésükről;
+3. megfelelő dokumentumba kerültek;
+4. státuszuk és forrásszerepük rögzítve lett.
+
+A draft nem szabályforrás.
+
+A draft nem projektirányító dokumentum.
+
+A draft nem automatikus fejlesztési utasítás.
+
+## 7.11.8 Checkpoint és specifikáció elválasztása
+
+A checkpoint napló és a technikai specifikáció nem ugyanaz.
+
+A checkpoint feladata:
+
+- rögzíteni, mi történt;
+- milyen állapot zárult le;
+- milyen teszt futott;
+- milyen döntés született;
+- mi a következő lépés.
+
+A specifikáció feladata:
+
+- leírni, hogyan kell működnie egy rendszernek;
+- milyen contractok, mezők, schema-k vagy adatútvonalak érvényesek;
+- milyen implementációs határok vannak.
+
+Ezért checkpointot nem kell specifikációként kezelni, és specifikációt nem kell minden checkpoint után teljesen átírni.
+
+## 7.11.9 Dokumentációs fenntartási kockázat
+
+A dokumentációs rendszer legnagyobb kockázatai:
+
+- túl sok aktívnak látszó dokumentum;
+- ugyanaz az információ sok helyen;
+- régi Python motor és új game engine összekeverése;
+- Codex-draft hivatalos dokumentumnak látszik;
+- checkpoint és specifikáció összekeverése;
+- README-k vagy projektirányító dokumentumok ellentmondása;
+- generált report kézi fődokumentummá válása;
+- a dokumentáció fenntartása több időt vesz el, mint a tényleges kártya- vagy programfejlesztés.
+
+Ezeket a kockázatokat úgy kell csökkenteni, hogy kevesebb aktív dokumentum maradjon, a többi pedig pontos státuszt kapjon.
+
+## 7.11.10 Lezáró döntés
+
+A dokumentációs rendszer első fenntarthatósági döntése:
+
+- nem hozunk létre új dokumentumot pusztán a dokumentációs rend miatt;
+- a dokumentációs fenntartási szabály a projekt-térkép / fájlstátusz dokumentumba kerül;
+- ténylegesen aktívan karbantartandó dokumentumból kb. 8–10 maradjon;
+- a többi dokumentum referencia, munkadokumentum, specifikáció, checkpoint, draft, archív jelölt vagy generated report státuszt kapjon;
+- törlés, mozgatás vagy archiválás csak későbbi külön jóváhagyással történhet.
+
+Ez a döntés lehetővé teszi, hogy a programfejlesztés és a kártyamunka folytatható legyen anélkül, hogy minden fejlesztési kör után a teljes dokumentumrendszert újra kellene írni.
+
 ---
 
 ## 8. Források

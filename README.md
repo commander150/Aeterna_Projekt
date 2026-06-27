@@ -1,203 +1,324 @@
 # Aeterna Projekt
 
-Python alapú szimulátor és szabálymotor az **AETERNA** kártyajátékhoz.
+Az **AETERNA** egy saját fejlesztésű kártyajáték-projekt, amely jelenleg több egymástól elkülönített, de később összehangolható rétegből áll.
 
-A projekt jelenlegi elsődleges célja:
-- az AETERNA kártyák és mechanikák szabályhű kezelése
-- AI-vs-AI tesztmeccsek futtatása
-- a structured kártyaadatok engine-oldali felhasználása
-- a motor fokozatos stabilizálása, feltérképezése és későbbi bővíthetőségének előkészítése
+A projekt jelenlegi állapota hibrid:
+
+- fizikai TCG / kártyajáték szabály- és kártyatervezési projekt;
+- hivatalos főforrásokra épülő dokumentációs rendszer;
+- Google Sheets / XLSX alapú kártyaadatbázis-munkaforrás;
+- régi Python-alapú szimulációs motor, jelenleg review státuszban;
+- új `Aeterna game engine/` contract-first digitális programegység;
+- Godot alapú runtime package és sample contract fogyasztói prototípus.
+
+A projektet nem nulláról újraépítendő rendszerként kezeljük.
+
+A jelenlegi stratégia:
+
+1. meglévő értékek feltérképezése;
+2. régi és új technikai irányok szétválasztása;
+3. hivatalos szabályforrások, kártyaadat-források és runtime package adatút elkülönítése;
+4. dokumentációs és mappaszintű döntések rögzítése;
+5. célzott, kis lépésű fejlesztések;
+6. nagyobb refaktor vagy integráció csak külön döntés után.
 
 ---
 
-## Futtatás
+## Fő projektállapot
 
-```bash
-python main.py
-```
+### Hivatalos szabályi alap
+
+Az AETERNA jelenlegi aktív szabályi alapját két hivatalos főforrás alkotja:
+
+- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4v.docx`
+- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`
+
+Ezek az elsődleges szabályi referenciák minden szabályértelmezési, kártyatervezési, kártyaauditálási és későbbi engine-kompatibilitási munkánál.
+
+### Kártyaadatbázis
+
+A fő kártyaadatbázis-munkaforrás:
+
+- `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`
+
+A tényleges szerkesztési forrás Google Sheets / XLSX alapú.
+
+A lokális XLSX, JSONL, TSV vagy exportált állományokat mindig szerepük szerint kell kezelni:
+
+- canonical munkaforrás;
+- pipeline input copy;
+- generated output;
+- régi motoros referencia;
+- vagy audit / összevetési segédanyag.
+
+### Régi Python szimulációs motor
+
+A régi Python motor továbbra is értékes referencia.
+
+Jelenlegi státusza:
+
+- `OLD_ENGINE_REVIEW`
+- `OLD_ENGINE_REFERENCE`
+
+Ez azt jelenti, hogy nem törlendő és nem eldobandó, de nem is ez az elsődleges új fejlesztési irány.
+
+A régi motor hasznos lehet:
+
+- AI-vs-AI tesztelési tapasztalatokhoz;
+- balanszfigyelési mintákhoz;
+- effectlogikai előzményekhez;
+- diagnosztikai és logging megoldásokhoz;
+- régi runtime működés összevetéséhez;
+- későbbi migrációs döntések előkészítéséhez.
+
+A régi Python motor nagyobb refaktora vagy továbbfejlesztése csak külön döntés után induljon.
+
+### Új Aeterna game engine
+
+Az új digitális fejlesztési irány az `Aeterna game engine/` mappában található.
+
+Ez contract-first szemléletű programegység.
+
+Fő részei:
+
+- `Aeterna game engine/python/`
+- `Aeterna game engine/Godot/`
+
+A Python ág szerepe:
+
+- XLSX export tooling;
+- validáció;
+- runtime package build irány;
+- tesztek;
+- későbbi adat-előkészítés;
+- későbbi AI / batch jellegű feldolgozás.
+
+A Godot ág szerepe:
+
+- runtime package fogyasztás;
+- registry-k;
+- sample contractok betöltése;
+- debug nézetek;
+- smoke testek;
+- későbbi interaktív prototípus előkészítése.
+
+Fontos döntés:
+
+- Godot nem XLSX olvasó;
+- Godot nem canonical adatforrás;
+- Godot a runtime package-et és contractokat fogyasztja;
+- Python végzi az exportálási, validálási és package-előkészítési feladatokat.
 
 ---
 
-## Tesztek futtatása
+## Technikai adatpipeline aktuális döntései
 
-```bash
-python -m unittest discover -s tests -v
-```
+Az XLSX exporter első migrációs fázisa lezárult.
+
+Aktív exporter helye:
+
+- `Aeterna game engine/python/tools/xlsx_export/`
+
+Státuszok:
+
+- `Aeterna game engine/python/tools/xlsx_export/`: `KEEP_ACTIVE_SOURCE`
+- `Aeterna game engine/python/tests/test_xlsx_export.py`: `KEEP_ACTIVE_TEST`
+- `Aeterna game engine/python/tests/test_xlsx_export_smoke.py`: `KEEP_ACTIVE_SMOKE_TEST`
+- `Aeterna game engine/python/run_xlsx_export.bat`: `KEEP_ACTIVE_RUNNER_MANUAL`
+- `Aeterna game engine/python/run_xlsx_export_smoke.bat`: `KEEP_ACTIVE_RUNNER_NONINTERACTIVE`
+
+A régi `XLSX export/` mappa státusza:
+
+- `OBSOLETE_AFTER_MIGRATION_CANDIDATE`
+
+Ez még nem törlendő és nem mozgatandó.
+
+A `sample_runtime_package` két külön szerepet tölt be:
+
+- Python oldalon: `GENERATED_TEST_FIXTURE`
+- Godot oldalon: `GODOT_CONSUMPTION_COPY`
+
+A Godot oldali `sample_contracts/` státusza:
+
+- `HAND_AUTHORED_TEST_FIXTURE`
+
+---
+
+## Futtatás és tesztelés
+
+A projektben több technikai réteg van, ezért nincs egyetlen univerzális futtatási parancs az egész projektre.
+
+### Régi Python motor
+
+A régi Python motor futtatása történeti / review jellegű:
+
+- `python main.py`
+
+Ez nem az új contract-first engine teljes futtatása, hanem a régi szimulációs motor belépési útja.
+
+### Új engine Python tooling
+
+Az új Python tooling az `Aeterna game engine/python/` mappában található.
+
+A konkrét futtatás és tesztelés az ottani runner BAT fájlokkal és unit tesztekkel történik.
+
+Fontosabb ismert elemek:
+
+- `run_xlsx_export.bat`
+- `run_xlsx_export_smoke.bat`
+- `run_build_sample_package.bat`
+- `run_tests.bat`
+
+A `run_xlsx_export.bat` manuális runner, interaktív lehet.
+
+Audit / CI jellegű futtatáshoz a non-interaktív smoke runner előnyösebb.
+
+### Godot ág
+
+A Godot ág az `Aeterna game engine/Godot/` mappában található.
+
+Jelenlegi szerepe:
+
+- runtime package betöltés;
+- sample contractok fogyasztása;
+- debug nézetek;
+- smoke tesztek.
+
+A Godot ág nem közvetlen XLSX feldolgozó és nem canonical adatforrás.
 
 ---
 
 ## Projektirányító dokumentumok
 
-A projekt jövőbeli módosításainál, refaktorainál, promptolásánál és fejlesztési döntéseinél az alábbi dokumentumok számítanak elsődleges referenciának.
+A projekt fejlesztésénél, dokumentációs döntéseinél, Codex-feladatoknál és refaktor előtt az aktuális projektirányító dokumentumokat kell figyelembe venni.
 
-### 1. `ARCHITEKTURA_ES_HIVATALOS_FUTASI_UT.md`
+Kiemelten fontos dokumentumok:
 
-Ez a dokumentum rögzíti:
-- a jelenlegi hivatalos futási utat
-- az aktív core runtime modulokat
-- a wrapper / átmeneti rétegek fő elhatárolását
+- `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.2.md`
+- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v5.1.md`
+- `Aeterna dokumentációk/AETERNA_MUNKAFOLYAMAT_ES_ADATKEZELES_1.2.md`
+- `Aeterna dokumentációk/AETERNA_EXCEL_STRUKTURA_ES_OSZLOPSZABVANY_1.2.md`
+- `Aeterna dokumentációk/AETERNA – KÁRTYAÁLLOMÁNY AUDITÁLÁSI MUNKAREND ÉS HIBAKATEGÓRIÁK 1.2v.md`
+- `Aeterna game engine/docs/ARCHITECTURE.md`
+- `Aeterna game engine/docs/RUNTIME_PACKAGE_SPECIFICATION.md`
+- `Aeterna game engine/docs/CONTRACT_SPECIFICATION.md`
+- `Aeterna game engine/docs/TECHNOLOGY_DECISIONS.md`
+- `Aeterna game engine/docs/checkpoints/CHECKPOINTS.md`
 
-Ezt kell alapnak venni, ha az a kérdés, hogy:
-- mi a tényleges futási lánc
-- mely modulok számítanak elsődleges runtime rétegnek
-- mi számít wrappernek vagy kompatibilitási rétegnek
+Régi Python motorhoz kapcsolódó referencia:
 
-### 2. `PROJEKT_TERKEP_ES_FAJLSTATUSZ.md`
+- `ARCHITEKTURA_ES_HIVATALOS_FUTASI_UT.md`
 
-Ez a dokumentum rögzíti:
-- a projekt fő mappáit és fájljait
-- hogy mi micsoda
-- melyik fájl mire szolgál
-- mely elemek aktív runtime, dokumentáció, audit, report vagy cleanup-jelöltek
-
-Ezt kell alapnak venni, ha az a kérdés, hogy:
-- melyik fájl milyen szerepet tölt be
-- mit szabad módosítani
-- mit kell megtartani
-- mit kell később refaktorálni vagy rendezni
-
-### 3. `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK.md`
-
-Ez a dokumentum rögzíti:
-- a projekt aktuális céljait
-- a prioritási sorrendet
-- a jelenlegi fókuszokat
-- a GitHub-használat alapelveit
-- a rövid, közép- és hosszú távú fejlesztési irányokat
-
-Ezt kell alapnak venni, ha az a kérdés, hogy:
-- min dolgozunk most
-- mi a következő logikus lépés
-- mit nem akarunk most csinálni
-- hogyan kell a fejlesztést követhetően vinni
-
-### 4. `GITHUB_MUNKAREND_ES_COMMIT_SZABALYOK.md`
-
-Ez a dokumentum rögzíti:
-- a GitHub-alapú munkarendet
-- a commitok és branchek használatának alapelveit
-- a különböző típusú változtatások elkülönítésének szabályait
-- az egyszerű, követhető fejlesztési működés minimál szabályait
-
-Ezt kell alapnak venni, ha az a kérdés, hogy:
-- mit commitoljunk együtt és mit ne
-- mikor kell külön branch
-- hogyan legyen a GitHub történet követhető
-- hogyan kell a projekt változtatásait rendezett formában vezetni
+Ez jelenleg a régi Python szimulációs motor futási útjának referenciája, nem az új contract-first engine teljes célarchitektúrája.
 
 ---
 
-## Munkaszabály jövőbeli módosításokhoz
+## Jelenlegi elsődleges fókusz
 
-A jövőbeli fejlesztések, promptok, refaktorok és új feladatok esetén az alábbi alapelvet kell követni:
+A jelenlegi elsődleges fókusz nem egyetlen nagy fejlesztési lépés.
 
-1. Először a projektirányító dokumentumokat kell figyelembe venni.
-2. A módosításoknak igazodniuk kell a hivatalos futási úthoz és az aktuális projekttervhez.
-3. Új feladat vagy változtatás előtt tisztázni kell, hogy:
-   - érinti-e a core runtime-ot
-   - dokumentációs, report vagy audit jellegű-e
-   - cleanup / refaktor / mechanikai fejlesztés / tesztelési célból történik-e
-4. A projektet nem teljes újrakezdésként kezeljük, hanem:
-   - feltérképezés
-   - stabilizáció
-   - cleanup
-   - célzott refaktor
-   - későbbi bővítés
-   logika szerint fejlesztjük tovább.
+Aktuális munkairányok:
 
----
+1. dokumentációs és mappaszintű rendezés;
+2. aktív, elavult, átvezetett és review státuszú dokumentumok elkülönítése;
+3. technikai adatpipeline döntések rögzítése;
+4. új contract-first engine adatútjának tisztán tartása;
+5. kártyaadatbázis és hivatalos főforrások kapcsolatának tisztítása;
+6. következő programfejlesztési döntési kapu előkészítése.
 
-## Jelenlegi stratégiai irány
+A következő programfejlesztési jelölt:
 
-A projekt jelenlegi fő iránya:
+- exporter output contract mapping terv
 
-1. a meglévő rendszer pontos feltérképezése
-2. a fájlok és rétegek szerepének tisztázása
-3. a túlterhelt részek (különösen a report / audit / historical rétegek) rendezése
-4. a motor stabilizálása
-5. a későbbi Godot-integráció előkészítése úgy, hogy a Python motor backendként használható maradjon
+Ez még nem runtime package builder integráció.
 
 ---
 
-## Fontos megjegyzés
+## Amit most nem csinálunk
 
-A projekt jelenlegi állapota hibrid:
-- részben structured / canonical alapon működő runtime
-- részben shared helper alapú runtime
-- részben card-local név-alapú speciális logika
+Jelenlegi nem-célok:
 
-Ezért új feladatnál mindig tisztázni kell, hogy a kérdés:
-- structured réteget érint
-- shared runtime réteget érint
-- card-local speciális handlert érint
-- vagy csak dokumentációs / cleanup / logikai rendezési kérdés
-
----
-
-## Későbbi cél
-
-A hosszú távú cél az, hogy a jelenlegi Python motor olyan állapotba kerüljön, hogy később **Godot frontendhez kapcsolható backendként** működhessen.
-
-Ez azt jelenti, hogy a mostani munkáknál is figyelembe kell venni:
-- a tiszta állapotkezelést
-- a világos futási határokat
-- a későbbi frontend-integráció lehetőségét
-- a túl szoros konzolos / belső kódhoz kötött megoldások elkerülését
+- régi Python motor nagy refaktora;
+- régi `XLSX export/` mappa törlése vagy mozgatása;
+- Godot közvetlen XLSX olvasóvá alakítása;
+- teljes runtime package builder integráció előzetes mapping nélkül;
+- teljes Godot játék-UI fejlesztés;
+- tömeges kártyaátírás előzetes audit nélkül;
+- dokumentumok tömeges átírása fenntartási stratégia nélkül;
+- sok nagy irány egyidejű összekeverése.
 
 ---
 
-## Ajánlott prompt-előtag jövőbeli munkákhoz
+## Dokumentációs fenntartási megjegyzés
 
-A jövőbeli asszisztensi vagy Codex-munkáknál ajánlott ezzel kezdeni a feladatot:
+A projektben sok dokumentum jött létre.
 
-```text
-Mielőtt a feladatra válaszolsz, igazodj az alábbi projektirányító dokumentumokhoz:
-- ARCHITEKTURA_ES_HIVATALOS_FUTASI_UT.md
-- PROJEKT_TERKEP_ES_FAJLSTATUSZ.md
-- AKTUALIS_PROJEKTTERV_ES_PRIORITASOK.md
-- GITHUB_MUNKAREND_ES_COMMIT_SZABALYOK.md
+Ez önmagában hasznos, mert megőrizte a döntéseket, auditokat, státuszokat és korábbi munkafázisokat, de hosszú távon fenntartási kockázatot is jelent.
 
-A választ ezek figyelembevételével add meg. Mindig tisztázd, hogy a kérés:
-- core runtime,
-- supporting runtime,
-- wrapper,
-- docs,
-- tests,
-- stats/report,
-- vagy cleanup/refaktor kategóriába tartozik.
+Nem cél, hogy minden dokumentum folyamatosan, párhuzamosan frissüljön.
 
-A projektet nem 0-ról újraépítendő rendszerként kezeljük, hanem feltérképezés → stabilizáció → cleanup → célzott refaktor logika szerint.
-```
+Későbbi dokumentációs rendezési cél:
 
-Rövidebb változat:
+- kevés aktív irányító dokumentum kijelölése;
+- régi vagy átvezetett dokumentumok referencia státuszba tétele;
+- archiválási jelöltek kijelölése törlés nélkül;
+- dokumentumszerepek tisztázása;
+- duplikált tartalmak csökkentése;
+- csak a valóban aktív dokumentumok folyamatos karbantartása.
 
-```text
-Igazodj a projektirányító dokumentumokhoz:
-- ARCHITEKTURA_ES_HIVATALOS_FUTASI_UT.md
-- PROJEKT_TERKEP_ES_FAJLSTATUSZ.md
-- AKTUALIS_PROJEKTTERV_ES_PRIORITASOK.md
-- GITHUB_MUNKAREND_ES_COMMIT_SZABALYOK.md
-
-A feladatot ezekkel összhangban kezeld.
-```
+Ez a dokumentációs fenntartási kérdés külön projektfeladatként kezelendő.
 
 ---
 
-## Jelenlegi helyzet röviden
+## Codex és fejlesztési munkarend
 
-A projekt jelenleg nem teljes újrakezdésre váró rendszer, hanem olyan meglévő motor, amely:
-- már rendelkezik működő maggal
-- több rétegben részben rendezett
-- részben átmeneti / hibrid állapotban van
-- és most a következő fő fázisba lépett:
-  **feltérképezés, rendezés, összekapcsolás és követhető fejlesztési működés**
+Codex vagy más asszisztensi munka előtt mindig tisztázni kell:
+
+- melyik mappát érinti;
+- melyik technikai réteget érinti;
+- régi Python motoros referencia-e;
+- új contract-first engine fejlesztés-e;
+- dokumentációs audit-e;
+- kártyaadatbázis-munka-e;
+- cleanup / refaktor / törlési javaslat-e;
+- generated output vagy canonical forrás érintett-e.
+
+Általános szabályok:
+
+- ne legyen túl nagy, általános „nézd át az egész projektet” feladat;
+- előbb read-only audit, utána döntés, utána célzott módosítás;
+- minden Git parancs legyen `git --no-pager`;
+- interaktív runner ne fusson audit/CI célra;
+- törlés, mozgatás, archiválás csak külön jóváhagyással;
+- régi motor és új engine ne keveredjen egy feladatban;
+- dokumentáció és programfejlesztés ne fusson össze kontroll nélkül.
 
 ---
 
-## Fontos elv
+## Rövid prompt-előtag Codex feladatokhoz
 
-A projekt jövőbeli fejlesztésében törekedni kell arra, hogy:
-- a GitHub történet követhető legyen
-- a változtatások ne keverjenek össze több különböző célt
-- a dokumentáció, runtime, cleanup és report jellegű módosítások elkülöníthetők maradjanak
-- a projektirányító dokumentumok naprakészek maradjanak
+Igazodj az aktuális AETERNA projektirányító dokumentumokhoz.
+
+A projekt jelenleg hibrid:
+
+- hivatalos TCG szabály- és kártyatervezési dokumentáció;
+- régi Python szimulációs motor review státuszban;
+- új `Aeterna game engine/` contract-first Python tooling + Godot fogyasztói ág;
+- runtime package alapú adatcontract.
+
+A feladat előtt tisztázd, hogy a kérés:
+
+- dokumentációs audit;
+- kártyaadatbázis-munka;
+- régi Python motor review;
+- új engine Python tooling;
+- Godot fogyasztói réteg;
+- runtime package / contract;
+- teszt;
+- generated output;
+- cleanup / refaktor;
+- vagy archiválási javaslat.
+
+Ne módosíts, törölj, mozgass vagy commitolj külön engedély nélkül.
+
+Ha módosítás kell, előbb pontosítsd, mely fájlokra korlátozódik.
