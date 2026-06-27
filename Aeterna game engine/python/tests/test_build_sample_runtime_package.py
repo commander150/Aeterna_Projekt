@@ -116,6 +116,43 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             shutil.rmtree(temp_dir, ignore_errors=True)
         self.assertFalse(temp_dir.exists(), "Export runtime cards build test temp cleanup left directory: %s" % temp_dir)
 
+    def test_build_package_accepts_optional_export_runtime_decks_input(self):
+        builder = _load_builder_module()
+
+        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_sample_runtime_package_%s" % uuid.uuid4().hex)
+        try:
+            export_decks_path = temp_dir / "PRODUCT_DECKLISTS.jsonl"
+            output_dir = temp_dir / "sample_runtime_package"
+            temp_dir.mkdir(parents=True)
+            _write_jsonl(
+                export_decks_path,
+                [
+                    _sample_decklist_row("SMP-IGN-001", 2),
+                    _sample_decklist_row("SMP-IGN-002", 2),
+                    _sample_decklist_row("SMP-IGN-003", 1),
+                ],
+            )
+
+            result = builder.build_package(output_dir, export_runtime_decks_path=export_decks_path)
+
+            self.assertEqual(result["output_dir"], output_dir)
+            self.assertFalse(result["validation_summary"]["blocking"])
+            decks = [
+                json.loads(line)
+                for line in (output_dir / "decks.jsonl").read_text(encoding="utf-8").splitlines()
+                if line
+            ]
+            self.assertEqual(len(decks), 1)
+            self.assertEqual(decks[0]["deck_id"], "DECK-IGN-HAM-TEST-001")
+            self.assertEqual(decks[0]["card_count"], 5)
+
+            manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["source_files"][1]["type"], "product_decklists_jsonl")
+            self.assertEqual(manifest["source_files"][1]["summary"]["decks_loaded"], 1)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        self.assertFalse(temp_dir.exists(), "Export runtime decks build test temp cleanup left directory: %s" % temp_dir)
+
 
 def _sample_export_records_for_builder(sample_cards):
     mapper = _load_mapper_module()
@@ -159,6 +196,15 @@ def _write_jsonl(path, records):
     with path.open("w", encoding="utf-8", newline="\n") as handle:
         for record in records:
             handle.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
+
+
+def _sample_decklist_row(card_id, count):
+    return {
+        "Product_ID": "TEST-CORE01-IGNIS",
+        "Deck_ID": "DECK-IGN-HAM-TEST-001",
+        "Card_ID": card_id,
+        "Darabszám": count,
+    }
 
 
 if __name__ == "__main__":

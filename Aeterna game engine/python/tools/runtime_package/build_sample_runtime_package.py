@@ -25,6 +25,17 @@ except ModuleNotFoundError:
         runtime_cards_builder_adapter.load_builder_cards_from_export_runtime_jsonl
     )
 
+try:
+    from runtime_decks_builder_adapter import load_builder_decks_from_product_decklists_jsonl
+except ModuleNotFoundError:
+    adapter_path = Path(__file__).resolve().with_name("runtime_decks_builder_adapter.py")
+    spec = util.spec_from_file_location("runtime_decks_builder_adapter", adapter_path)
+    runtime_decks_builder_adapter = util.module_from_spec(spec)
+    spec.loader.exec_module(runtime_decks_builder_adapter)
+    load_builder_decks_from_product_decklists_jsonl = (
+        runtime_decks_builder_adapter.load_builder_decks_from_product_decklists_jsonl
+    )
+
 
 PACKAGE_ID = "aeterna.sample_runtime_package"
 PACKAGE_VERSION = "0.1.0"
@@ -416,7 +427,7 @@ def _build_report(cards, decks, diagnostics, validation_summary):
     )
 
 
-def build_package(output_dir=None, export_runtime_cards_path=None):
+def build_package(output_dir=None, export_runtime_cards_path=None, export_runtime_decks_path=None):
     repo_root = Path(__file__).resolve().parents[2]
     target_dir = Path(output_dir) if output_dir else repo_root / "sample_runtime_package"
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -437,7 +448,19 @@ def build_package(output_dir=None, export_runtime_cards_path=None):
         )
     else:
         cards = _sample_cards()
-    decks = _sample_decks()
+    if export_runtime_decks_path:
+        deck_adapter_result = load_builder_decks_from_product_decklists_jsonl(export_runtime_decks_path)
+        decks = deck_adapter_result["decks"]
+        source_files.append(
+            {
+                "path": str(Path(export_runtime_decks_path)),
+                "type": "product_decklists_jsonl",
+                "adapter": "runtime_decks_builder_adapter.py",
+                "summary": deck_adapter_result["summary"],
+            }
+        )
+    else:
+        decks = _sample_decks()
     ability_registry = _sample_ability_registry()
     diagnostics = _base_diagnostics()
 
@@ -499,9 +522,18 @@ def main(argv=None):
         default=None,
         help="Optional EXPORT_RUNTIME.jsonl-style card input. Defaults to the in-code sample card fixture.",
     )
+    parser.add_argument(
+        "--export-runtime-decks",
+        default=None,
+        help="Optional PRODUCT_DECKLISTS.jsonl-style deck input. Defaults to the in-code sample deck fixture.",
+    )
     args = parser.parse_args(argv)
 
-    result = build_package(args.output_dir, export_runtime_cards_path=args.export_runtime_cards)
+    result = build_package(
+        args.output_dir,
+        export_runtime_cards_path=args.export_runtime_cards,
+        export_runtime_decks_path=args.export_runtime_decks,
+    )
     print(f"Sample runtime package written to: {result['output_dir']}")
     print(f"Validation blocking: {str(result['validation_summary']['blocking']).lower()}")
     print(f"Files: {', '.join(result['files'])}")

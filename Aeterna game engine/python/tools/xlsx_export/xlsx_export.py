@@ -66,8 +66,8 @@ PROFILES = {
         sheet_name="15. PRODUCT_DECKLISTS",
         output_filename="PRODUCT_DECKLISTS.jsonl",
         output_format="jsonl",
-        required_fields=("Product_ID", "Deck_ID", "Card_ID", "DarabszĂˇm"),
-        number_fields=("DarabszĂˇm",),
+        required_fields=("Product_ID", "Deck_ID", "Card_ID", "Darabszám"),
+        number_fields=("Darabszám",),
     ),
     "lookups_runtime": ExportProfile(
         name="lookups_runtime",

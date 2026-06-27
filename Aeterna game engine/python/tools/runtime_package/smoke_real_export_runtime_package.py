@@ -32,7 +32,7 @@ PACKAGE_BUILDER = _load_module(
 )
 
 
-def run_smoke(xlsx_path=None, source_dir=None, output_dir=None, keep_output=False):
+def run_smoke(xlsx_path=None, source_dir=None, output_dir=None, keep_output=False, include_decklists=False):
     """Export runtime cards from XLSX and build a partial runtime package smoke output."""
     xlsx_path = _resolve_xlsx_path(xlsx_path, source_dir)
     owns_output_dir = output_dir is None
@@ -57,9 +57,31 @@ def run_smoke(xlsx_path=None, source_dir=None, output_dir=None, keep_output=Fals
         )
         warnings_path = XLSX_EXPORT.write_warnings(export_runtime_path, export_warnings)
 
+        export_decklists_path = None
+        decklist_export_count = 0
+        decklist_export_warnings = []
+        decklist_warnings_path = None
+        if include_decklists:
+            deck_profile, deck_sheet_name, export_decklists_path, deck_output_format = XLSX_EXPORT.resolve_export_options(
+                "decklists",
+                None,
+                None,
+                None,
+                output_dir=export_dir,
+            )
+            decklist_export_count, decklist_export_warnings = XLSX_EXPORT.export_worksheet(
+                xlsx_path,
+                deck_sheet_name,
+                export_decklists_path,
+                deck_output_format,
+                profile=deck_profile,
+            )
+            decklist_warnings_path = XLSX_EXPORT.write_warnings(export_decklists_path, decklist_export_warnings)
+
         build_result = PACKAGE_BUILDER.build_package(
             package_dir,
             export_runtime_cards_path=export_runtime_path,
+            export_runtime_decks_path=export_decklists_path,
         )
 
         manifest_path = package_dir / "manifest.json"
@@ -74,6 +96,11 @@ def run_smoke(xlsx_path=None, source_dir=None, output_dir=None, keep_output=Fals
             "exported_card_rows": export_count,
             "export_warnings": len(export_warnings),
             "export_warnings_path": str(warnings_path) if warnings_path else "none",
+            "decklist_export_jsonl": str(export_decklists_path) if export_decklists_path else "none",
+            "decklist_export_jsonl_exists": export_decklists_path.exists() if export_decklists_path else False,
+            "decklist_export_rows": decklist_export_count,
+            "decklist_export_warnings": len(decklist_export_warnings),
+            "decklist_export_warnings_path": str(decklist_warnings_path) if decklist_warnings_path else "none",
             "runtime_package_output_dir": str(package_dir),
             "cards_jsonl_exists": cards_path.exists(),
             "cards_jsonl_rows": _count_jsonl_rows(cards_path),
@@ -85,7 +112,10 @@ def run_smoke(xlsx_path=None, source_dir=None, output_dir=None, keep_output=Fals
             "manifest_source_count": len(manifest.get("source_files", [])) if manifest else 0,
             "package_status": "smoke_partial_real_data_build",
             "cards_source": "export-derived",
-            "fixture_components": ["decks", "lookups", "aliases", "ability_registry"],
+            "decks_source": "export-derived" if include_decklists else "sample fixture",
+            "fixture_components": ["lookups", "aliases", "ability_registry"]
+            if include_decklists
+            else ["decks", "lookups", "aliases", "ability_registry"],
             "output_kept": (not owns_output_dir) or keep_output,
         }
         return summary
@@ -108,9 +138,14 @@ def print_summary(summary):
     print(f"validation_blocking: {str(summary['validation_blocking']).lower()}")
     print(f"deck_reference_errors: {summary['deck_reference_errors']}")
     print(f"export_warnings: {summary['export_warnings']}")
+    print(f"decklist_export_jsonl_exists: {str(summary['decklist_export_jsonl_exists']).lower()}")
+    print(f"decklist_export_jsonl: {summary['decklist_export_jsonl']}")
+    print(f"decklist_export_rows: {summary['decklist_export_rows']}")
+    print(f"decklist_export_warnings: {summary['decklist_export_warnings']}")
     print(f"diagnostic_count: {summary['diagnostic_count']}")
     print("cards_source: export-derived")
-    print("fixture_components: decks, lookups, aliases, ability_registry")
+    print(f"decks_source: {summary['decks_source']}")
+    print(f"fixture_components: {', '.join(summary['fixture_components'])}")
     print("package_status: smoke / partial real-data build")
     print(f"output_kept: {str(summary['output_kept']).lower()}")
 
@@ -159,6 +194,11 @@ def build_parser():
     parser.add_argument("--source-dir", type=Path, default=None, help="Directory used to find or validate the source XLSX.")
     parser.add_argument("--output-dir", type=Path, default=None, help="Optional smoke output directory.")
     parser.add_argument("--keep-output", action="store_true", help="Keep temporary output when --output-dir is omitted.")
+    parser.add_argument(
+        "--include-decklists",
+        action="store_true",
+        help="Also export PRODUCT_DECKLISTS and use it for decks.jsonl.",
+    )
     return parser
 
 
@@ -171,6 +211,7 @@ def main(argv=None):
             source_dir=args.source_dir,
             output_dir=args.output_dir,
             keep_output=args.keep_output,
+            include_decklists=args.include_decklists,
         )
         print_summary(summary)
         return 0

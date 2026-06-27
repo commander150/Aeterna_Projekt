@@ -42,6 +42,7 @@ def _load_module(module_name, path):
 class TestSmokeRealExportRuntimePackage(unittest.TestCase):
     def setUp(self):
         self.runner = _load_module("smoke_real_export_runtime_package", SCRIPT_PATH)
+        self.xlsx_export = self.runner.XLSX_EXPORT
         self.mapper = _load_module("runtime_card_mapper", MAPPER_PATH)
         self.builder = _load_module("build_sample_runtime_package", BUILDER_PATH)
         self.temp_dir = Path(tempfile.gettempdir()) / ("real_export_runtime_package_smoke_%s" % uuid.uuid4().hex)
@@ -54,7 +55,13 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
     def test_smoke_runner_builds_partial_package_from_xlsx(self):
         xlsx_path = self.temp_dir / "aeterna_cards.xlsx"
         output_dir = self.temp_dir / "smoke_output"
-        _write_runtime_cards_workbook(xlsx_path, self.builder._sample_cards(), self.mapper.FIELD_MAP)
+        _write_runtime_cards_workbook(
+            xlsx_path,
+            self.builder._sample_cards(),
+            self.mapper.FIELD_MAP,
+            self.xlsx_export.PROFILES["decklists"],
+            include_decklists=False,
+        )
 
         summary = self.runner.run_smoke(xlsx_path=xlsx_path, output_dir=output_dir)
 
@@ -66,6 +73,7 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         self.assertFalse(summary["validation_blocking"])
         self.assertEqual(summary["deck_reference_errors"], 0)
         self.assertEqual(summary["cards_source"], "export-derived")
+        self.assertEqual(summary["decks_source"], "sample fixture")
         self.assertIn("decks", summary["fixture_components"])
         self.assertTrue((output_dir / "exports" / "EXPORT_RUNTIME.jsonl").is_file())
         self.assertTrue((output_dir / "runtime_package" / "cards.jsonl").is_file())
@@ -73,8 +81,35 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         manifest = json.loads((output_dir / "runtime_package" / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["source_files"][1]["type"], "export_runtime_cards_jsonl")
 
+    def test_smoke_runner_can_include_real_decklists(self):
+        xlsx_path = self.temp_dir / "aeterna_cards_and_decks.xlsx"
+        output_dir = self.temp_dir / "smoke_output_with_decks"
+        _write_runtime_cards_workbook(
+            xlsx_path,
+            self.builder._sample_cards(),
+            self.mapper.FIELD_MAP,
+            self.xlsx_export.PROFILES["decklists"],
+            include_decklists=True,
+        )
 
-def _write_runtime_cards_workbook(path, sample_cards, field_map):
+        summary = self.runner.run_smoke(xlsx_path=xlsx_path, output_dir=output_dir, include_decklists=True)
+
+        self.assertEqual(summary["exported_card_rows"], 5)
+        self.assertEqual(summary["decklist_export_rows"], 5)
+        self.assertTrue(summary["decklist_export_jsonl_exists"])
+        self.assertFalse(summary["validation_blocking"])
+        self.assertEqual(summary["deck_reference_errors"], 0)
+        self.assertEqual(summary["cards_source"], "export-derived")
+        self.assertEqual(summary["decks_source"], "export-derived")
+        self.assertNotIn("decks", summary["fixture_components"])
+        self.assertTrue((output_dir / "exports" / "PRODUCT_DECKLISTS.jsonl").is_file())
+
+        manifest = json.loads((output_dir / "runtime_package" / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["source_files"][1]["type"], "export_runtime_cards_jsonl")
+        self.assertEqual(manifest["source_files"][2]["type"], "product_decklists_jsonl")
+
+
+def _write_runtime_cards_workbook(path, sample_cards, field_map, decklists_profile, include_decklists=False):
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "7. EXPORT_RUNTIME"
@@ -120,6 +155,25 @@ def _write_runtime_cards_workbook(path, sample_cards, field_map):
             else:
                 row.append(values_by_target[field_map[header]])
         worksheet.append(row)
+
+    if include_decklists:
+        deck_sheet = workbook.create_sheet("15. PRODUCT_DECKLISTS")
+        headers = list(decklists_profile.required_fields)
+        for optional_header in ("Kártya_Név", "Szerep_A_Pakliban", "Megjegyzés"):
+            if optional_header not in headers:
+                headers.append(optional_header)
+        deck_sheet.append(headers)
+        for card in sample_cards:
+            values = {
+                "Product_ID": "TEST-CORE01-IGNIS",
+                "Deck_ID": "DECK-IGN-HAM-TEST-001",
+                "Card_ID": card["card_id"],
+                "Kártya_Név": card["name_hu"],
+                decklists_profile.required_fields[3]: 1,
+                "Szerep_A_Pakliban": "smoke",
+                "Megjegyzés": "temporary smoke fixture",
+            }
+            deck_sheet.append([values.get(header, "none") for header in headers])
 
     workbook.save(path)
     workbook.close()
