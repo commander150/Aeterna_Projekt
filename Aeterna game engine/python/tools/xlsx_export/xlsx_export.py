@@ -7,6 +7,7 @@ import csv
 import json
 import re
 import sys
+import unicodedata
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from pathlib import Path
@@ -122,6 +123,17 @@ PROFILES = {
     ),
 }
 
+PROFILE_HEADER_ALIASES = {
+    "runtime_cards": {
+        "Kártya név": ("Kartya nev", "Kártya_Név", "Kartya_Nev"),
+        "Típus": ("Tipus",),
+        "Magnitudó": ("Magnitúdó", "Magnitudo"),
+    },
+    "decklists": {
+        "Darabszám": ("Darabszam",),
+    },
+}
+
 
 def is_empty_value(value: Any) -> bool:
     if value is None:
@@ -149,11 +161,46 @@ def normalize_value(value: Any, force_number: bool = False) -> Any:
     return value
 
 
-def load_headers(first_row: Sequence[Any] | None) -> list[str]:
+def normalize_header_text(value: Any) -> str:
+    text = str(normalize_value(value))
+    text = unicodedata.normalize("NFC", text)
+    text = text.replace("\u00a0", " ")
+    text = re.sub(r"\s+", " ", text.strip())
+    return text
+
+
+def header_lookup_key(value: Any) -> str:
+    return normalize_header_text(value).casefold()
+
+
+def resolve_header_alias(header: Any, profile: ExportProfile | None = None, warnings: list[str] | None = None) -> str:
+    normalized_header = normalize_header_text(header)
+    profile = profile or PROFILES["generic_sheet"]
+    alias_map = _header_alias_map(profile)
+    resolved_header = alias_map.get(header_lookup_key(normalized_header), normalized_header)
+    if resolved_header != normalized_header and warnings is not None:
+        warnings.append(f"{profile.name}: header alias: {normalized_header!r} -> {resolved_header!r}")
+    return resolved_header
+
+
+def _header_alias_map(profile: ExportProfile) -> dict[str, str]:
+    aliases = {}
+    for canonical_header, alias_values in PROFILE_HEADER_ALIASES.get(profile.name, {}).items():
+        aliases[header_lookup_key(canonical_header)] = canonical_header
+        for alias_value in alias_values:
+            aliases[header_lookup_key(alias_value)] = canonical_header
+    return aliases
+
+
+def load_headers(
+    first_row: Sequence[Any] | None,
+    profile: ExportProfile | None = None,
+    warnings: list[str] | None = None,
+) -> list[str]:
     if first_row is None:
         raise ExportError("A kivĂˇlasztott munkalap ĂĽres, nincs fejlĂ©csora.")
 
-    headers = [str(normalize_value(value)) for value in first_row]
+    headers = [resolve_header_alias(value, profile=profile, warnings=warnings) for value in first_row]
     if len(set(headers)) != len(headers):
         raise ExportError("A fejlĂ©c oszlopnevei nem lehetnek azonosak.")
     return headers
@@ -284,7 +331,7 @@ def export_worksheet(
             raise ExportError(f"Nincs ilyen munkalap: {sheet_name}")
 
         rows = workbook[sheet_name].iter_rows(values_only=True)
-        headers = load_headers(next(rows, None))
+        headers = load_headers(next(rows, None), profile=profile, warnings=warnings)
         validate_profile_headers(headers, profile, warnings)
         records = iter_records(rows, headers, profile=profile, warnings=warnings)
 

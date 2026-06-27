@@ -86,6 +86,135 @@ class TestXlsxExport(unittest.TestCase):
         self.assertEqual(output_path.name, "EXPORT_RUNTIME.jsonl")
         self.assertEqual(output_format, "jsonl")
 
+    def test_runtime_cards_accepts_exact_hungarian_headers_without_warning(self):
+        warnings = []
+        profile = xlsx_export.PROFILES["runtime_cards"]
+
+        headers = xlsx_export.load_headers(
+            (
+                "Card_ID",
+                "Kártya név",
+                "Típus",
+                "Birodalom",
+                "Magnitudó",
+                "Aura",
+                "ATK",
+                "HP",
+                "Set_ID",
+                "Collector_Number",
+            ),
+            profile=profile,
+            warnings=warnings,
+        )
+        xlsx_export.validate_profile_headers(headers, profile, warnings)
+
+        self.assertEqual(warnings, [])
+        self.assertIn("Kártya név", headers)
+        self.assertIn("Típus", headers)
+        self.assertIn("Magnitudó", headers)
+
+    def test_runtime_cards_accepts_alias_headers(self):
+        warnings = []
+        profile = xlsx_export.PROFILES["runtime_cards"]
+
+        headers = xlsx_export.load_headers(
+            ("Card_ID", "Kartya nev", "Tipus", "Birodalom", "Magnitudo", "Aura", "Set_ID", "Collector_Number"),
+            profile=profile,
+            warnings=warnings,
+        )
+        xlsx_export.validate_profile_headers(headers, profile, warnings)
+        records = list(
+            xlsx_export.iter_records(
+                [("CARD-001", "Sample", "Entitas", "Ignis", 1.0, 2.0, "SET", 1.0)],
+                headers,
+                profile=profile,
+                warnings=warnings,
+            )
+        )
+
+        self.assertGreaterEqual(len(warnings), 3)
+        self.assertEqual(records[0]["Kártya név"], "Sample")
+        self.assertEqual(records[0]["Típus"], "Entitas")
+        self.assertEqual(records[0]["Magnitudó"], 1)
+
+    def test_decklists_accepts_exact_count_header_without_warning(self):
+        warnings = []
+        profile = xlsx_export.PROFILES["decklists"]
+
+        headers = xlsx_export.load_headers(
+            ("Product_ID", "Deck_ID", "Card_ID", "Darabszám"),
+            profile=profile,
+            warnings=warnings,
+        )
+        xlsx_export.validate_profile_headers(headers, profile, warnings)
+
+        self.assertEqual(warnings, [])
+        self.assertIn("Darabszám", headers)
+
+    def test_decklists_accepts_count_alias_header(self):
+        warnings = []
+        profile = xlsx_export.PROFILES["decklists"]
+
+        headers = xlsx_export.load_headers(
+            ("Product_ID", "Deck_ID", "Card_ID", "Darabszam"),
+            profile=profile,
+            warnings=warnings,
+        )
+        xlsx_export.validate_profile_headers(headers, profile, warnings)
+        records = list(
+            xlsx_export.iter_records(
+                [("PRODUCT-001", "DECK-001", "CARD-001", 2.0)],
+                headers,
+                profile=profile,
+                warnings=warnings,
+            )
+        )
+
+        self.assertGreaterEqual(len(warnings), 1)
+        self.assertEqual(records[0]["Darabszám"], 2)
+
+    def test_required_field_still_errors_without_alias_match(self):
+        warnings = []
+        profile = xlsx_export.PROFILES["runtime_cards"]
+        headers = xlsx_export.load_headers(
+            ("Card_ID", "Card_Name", "Típus", "Birodalom", "Magnitudó", "Aura", "Set_ID", "Collector_Number"),
+            profile=profile,
+            warnings=warnings,
+        )
+
+        with self.assertRaises(xlsx_export.ExportError):
+            xlsx_export.validate_profile_headers(headers, profile, warnings)
+
+    def test_unknown_extra_header_does_not_block_export(self):
+        warnings = []
+        profile = xlsx_export.PROFILES["runtime_cards"]
+        headers = xlsx_export.load_headers(
+            (
+                "Card_ID",
+                "Kártya név",
+                "Típus",
+                "Birodalom",
+                "Magnitudó",
+                "Aura",
+                "Set_ID",
+                "Collector_Number",
+                "Extra_Header",
+            ),
+            profile=profile,
+            warnings=warnings,
+        )
+        xlsx_export.validate_profile_headers(headers, profile, warnings)
+        records = list(
+            xlsx_export.iter_records(
+                [("CARD-001", "Sample", "Entitas", "Ignis", 1.0, 2.0, "SET", 1.0, "extra")],
+                headers,
+                profile=profile,
+                warnings=warnings,
+            )
+        )
+
+        self.assertEqual(records[0]["Extra_Header"], "extra")
+
     def test_generic_sheet_requires_manual_sheet_format_and_output(self):
         with self.assertRaises(xlsx_export.ExportError):
             xlsx_export.resolve_export_options("generic_sheet", "Adatok", None, "jsonl")
