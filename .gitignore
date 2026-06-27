@@ -8,3 +8,4 @@ env/
 *.log
 log_*.txt
 LOG/
+TEMP/
