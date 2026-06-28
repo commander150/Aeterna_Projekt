@@ -1,14 +1,14 @@
 extends SceneTree
 
 
-const SampleContractsLoaderScript = preload("res://scripts/contract_loader/sample_contracts_loader.gd")
-const CONTRACTS_PATH = "res://sample_contracts"
+const DebugContractsLoaderScript = preload("res://scripts/contract_loader/debug_contracts_loader.gd")
+const CONTRACTS_PATH = "res://debug_contracts"
 
 
 func _init() -> void:
-	print("Running AETERNA sample contracts smoke test...")
+	print("Running AETERNA debug contracts smoke test...")
 
-	var loader = SampleContractsLoaderScript.new()
+	var loader = DebugContractsLoaderScript.new()
 	var result = loader.load_contracts(CONTRACTS_PATH)
 	var counts = result.get("loaded_counts", {})
 	var diagnostics = result.get("diagnostics_summary", {})
@@ -30,11 +30,11 @@ func _init() -> void:
 	print("blocking_errors: %d" % int(diagnostics.get("blocking_errors", 0)))
 
 	if failed:
-		print("AETERNA sample contracts smoke test: FAILED")
+		print("AETERNA debug contracts smoke test: FAILED")
 		quit(1)
 		return
 
-	print("AETERNA sample contracts smoke test: OK")
+	print("AETERNA debug contracts smoke test: OK")
 	quit()
 
 

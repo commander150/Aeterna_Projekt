@@ -2,7 +2,7 @@ extends SceneTree
 
 
 const UnifiedDebugDashboardScript = preload("res://scripts/debug/unified_debug_dashboard.gd")
-const CONTRACTS_PATH = "res://sample_contracts"
+const CONTRACTS_PATH = "res://debug_contracts"
 
 
 func _init() -> void:

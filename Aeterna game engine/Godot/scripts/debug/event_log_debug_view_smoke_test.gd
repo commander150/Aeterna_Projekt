@@ -2,7 +2,7 @@ extends SceneTree
 
 
 const EventLogDebugViewScript = preload("res://scripts/debug/event_log_debug_view.gd")
-const CONTRACTS_PATH = "res://sample_contracts"
+const CONTRACTS_PATH = "res://debug_contracts"
 
 
 func _init() -> void:

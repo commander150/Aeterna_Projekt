@@ -33,7 +33,7 @@ A jelenlegi prototípus már bizonyította:
 - Python sample runtime package generator működését;
 - többfájlos sample runtime package előállítását;
 - Godot runtime package loader működését;
-- Godot sample contracts loader működését;
+- Godot debug contracts loader működését;
 - Snapshot viewer debug nézet működését;
 - Legal action debug panel működését;
 - Event log debug view működését;
@@ -123,10 +123,10 @@ A `docs/` ág feladata:
 Fontos mappastátusz:
 
 - Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
-- Godot oldali `sample_runtime_package`: `GODOT_CONSUMPTION_COPY`
-- Godot oldali `sample_contracts`: `HAND_AUTHORED_TEST_FIXTURE`
+- Godot oldali `runtime_package`: `GODOT_CONSUMPTION_COPY`
+- Godot oldali `debug_contracts`: `HAND_AUTHORED_DEBUG_FIXTURE`
 
-A Godot oldali `sample_runtime_package` ne legyen kézzel szerkesztett canonical adatforrás.
+A Godot oldali `runtime_package` ne legyen kézzel szerkesztett canonical adatforrás.
 
 A Godot oldali package frissítése később a Python build pipeline feladata legyen.
 
@@ -222,7 +222,7 @@ Tartalmazza:
 - action request / response;
 - event log;
 - diagnostics;
-- sample contracts;
+- debug contracts;
 - contract consistency irányokat.
 
 ### RUNTIME_PACKAGE_SPECIFICATION.md
@@ -485,7 +485,7 @@ Ez még nem publikus release pipeline.
 
 A pipeline rendezése után a következő ajánlott prototípus:
 
-**Runtime package + sample contracts integration**
+**Runtime package + debug contracts integration**
 
 Ennek célja:
 
@@ -527,7 +527,7 @@ Javasolt sorrend:
 3. Python oldali build output és Godot oldali consumption copy szerepének ellenőrzése.
 4. Smoke testek futtatása.
 5. Sikeres eredmény esetén CHECKPOINTS.md frissítése.
-6. Runtime package + sample contracts integration technikai feladat előkészítése.
+6. Runtime package + debug contracts integration technikai feladat előkészítése.
 7. Codexnek célzott technikai prompt adása.
 8. Új integration smoke test futtatása.
 9. Eredmény alapján PROTOTYPE_PLANS.md és CHECKPOINTS.md frissítése.

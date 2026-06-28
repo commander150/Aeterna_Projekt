@@ -4,7 +4,7 @@ extends SceneTree
 const JsonFileLoaderScript = preload("res://scripts/contract_loader/json_file_loader.gd")
 const CardReferenceResolverScript = preload("res://scripts/debug/card_reference_resolver.gd")
 
-const CONTRACTS_PATH = "res://sample_contracts"
+const CONTRACTS_PATH = "res://debug_contracts"
 const RUNTIME_PACKAGE_PATH = "res://runtime_package"
 const ACTION_REQUEST_SCHEMA = "sample-action-request-v1"
 
@@ -82,7 +82,7 @@ func _run_action_request_check(contracts_path, runtime_package_path):
 
 	result["match_id_consistent"] = result["match_id"] == str(snapshot.get("match_id", "")) and result["match_id"] == str(legal_actions.get("match_id", "")) and result["match_id"] == str(events.get("match_id", ""))
 	if not bool(result["match_id_consistent"]):
-		result["errors"].append("action request match_id does not match sample contracts.")
+		result["errors"].append("action request match_id does not match debug contracts.")
 
 	result["snapshot_id_valid"] = result["snapshot_id"] == str(snapshot.get("snapshot_id", ""))
 	if not bool(result["snapshot_id_valid"]):

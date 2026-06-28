@@ -3,10 +3,10 @@ class_name LegalActionDebugPanel
 
 
 const JsonFileLoaderScript = preload("res://scripts/contract_loader/json_file_loader.gd")
-const SampleContractsLoaderScript = preload("res://scripts/contract_loader/sample_contracts_loader.gd")
+const DebugContractsLoaderScript = preload("res://scripts/contract_loader/debug_contracts_loader.gd")
 const CardReferenceResolverScript = preload("res://scripts/debug/card_reference_resolver.gd")
 
-@export var contracts_path := "res://sample_contracts"
+@export var contracts_path := "res://debug_contracts"
 @export var runtime_package_path := "res://runtime_package"
 
 var _label: Label
@@ -32,7 +32,7 @@ func load_legal_action_view(base_path):
 	if not bool(package_result.get("ok", false)):
 		result["errors"].append_array(package_result.get("errors", []))
 
-	var contracts_loader = SampleContractsLoaderScript.new()
+	var contracts_loader = DebugContractsLoaderScript.new()
 	var contracts_result = contracts_loader.load_contracts(base_path)
 	result["ok"] = bool(contracts_result.get("ok", false))
 	result["warnings"] = int(contracts_result.get("diagnostics_summary", {}).get("warnings", 0))

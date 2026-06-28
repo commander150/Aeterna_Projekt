@@ -2,10 +2,10 @@ extends SceneTree
 
 
 const JsonFileLoaderScript = preload("res://scripts/contract_loader/json_file_loader.gd")
-const SampleContractsLoaderScript = preload("res://scripts/contract_loader/sample_contracts_loader.gd")
+const DebugContractsLoaderScript = preload("res://scripts/contract_loader/debug_contracts_loader.gd")
 const CardReferenceResolverScript = preload("res://scripts/debug/card_reference_resolver.gd")
 
-const CONTRACTS_PATH = "res://sample_contracts"
+const CONTRACTS_PATH = "res://debug_contracts"
 const RUNTIME_PACKAGE_PATH = "res://runtime_package"
 const SNAPSHOT_SCHEMA = "sample-snapshot-v1"
 const LEGAL_ACTIONS_SCHEMA = "sample-legal-actions-v1"
@@ -56,7 +56,7 @@ func _init() -> void:
 func _run_consistency_check(contracts_path, runtime_package_path):
 	var result = _empty_result()
 
-	var contracts_loader = SampleContractsLoaderScript.new()
+	var contracts_loader = DebugContractsLoaderScript.new()
 	var contracts_result = contracts_loader.load_contracts(contracts_path)
 	result["warnings"] = int(contracts_result.get("diagnostics_summary", {}).get("warnings", 0))
 	result["blocking_errors"] = int(contracts_result.get("diagnostics_summary", {}).get("blocking_errors", 0))

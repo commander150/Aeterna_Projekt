@@ -2,7 +2,7 @@ extends SceneTree
 
 
 const LegalActionDebugPanelScript = preload("res://scripts/debug/legal_action_debug_panel.gd")
-const CONTRACTS_PATH = "res://sample_contracts"
+const CONTRACTS_PATH = "res://debug_contracts"
 
 
 func _init() -> void:

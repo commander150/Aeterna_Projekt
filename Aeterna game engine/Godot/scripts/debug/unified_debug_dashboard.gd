@@ -6,7 +6,7 @@ const SnapshotViewerScript = preload("res://scripts/debug/snapshot_viewer.gd")
 const LegalActionDebugPanelScript = preload("res://scripts/debug/legal_action_debug_panel.gd")
 const EventLogDebugViewScript = preload("res://scripts/debug/event_log_debug_view.gd")
 
-@export var contracts_path := "res://sample_contracts"
+@export var contracts_path := "res://debug_contracts"
 
 var _label: Label
 var _snapshot_viewer

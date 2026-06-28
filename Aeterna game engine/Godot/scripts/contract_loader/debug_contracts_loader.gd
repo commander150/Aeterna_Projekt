@@ -1,5 +1,5 @@
 extends RefCounted
-class_name SampleContractsLoader
+class_name DebugContractsLoader
 
 
 const JsonFileLoaderScript = preload("res://scripts/contract_loader/json_file_loader.gd")
@@ -70,7 +70,7 @@ func load_contracts(base_path):
 
 
 func print_debug_summary(result):
-	print("AETERNA sample contracts debug")
+	print("AETERNA debug contracts debug")
 	print("snapshot_schema: %s" % str(result.get("snapshot_schema", "")))
 	print("legal_actions_schema: %s" % str(result.get("legal_actions_schema", "")))
 	print("events_schema: %s" % str(result.get("events_schema", "")))
