@@ -112,14 +112,14 @@ class TestRuntimeCardsBuilderAdapter(unittest.TestCase):
         self.assertIsInstance(result["cards"][0], dict)
         json.dumps(result["cards"][0], ensure_ascii=False, separators=(",", ":"))
 
-    def test_does_not_write_to_sample_runtime_package(self):
-        before = _sample_runtime_package_snapshot()
+    def test_does_not_write_to_fixture_runtime_package(self):
+        before = _fixture_runtime_package_snapshot()
         input_path = self.temp_dir / "EXPORT_RUNTIME.jsonl"
         _write_jsonl(input_path, [_sample_export_record("CARD-001")])
 
         self.adapter.load_builder_cards_from_export_runtime_jsonl(input_path)
 
-        after = _sample_runtime_package_snapshot()
+        after = _fixture_runtime_package_snapshot()
         self.assertEqual(after, before)
 
 
@@ -129,8 +129,8 @@ def _write_jsonl(path, records):
             handle.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
 
 
-def _sample_runtime_package_snapshot():
-    path = ENGINE_PYTHON_DIR / "sample_runtime_package"
+def _fixture_runtime_package_snapshot():
+    path = ENGINE_PYTHON_DIR / "fixture_runtime_package"
     if not path.exists():
         return []
     return sorted(str(item.relative_to(path)) for item in path.rglob("*") if item.is_file())

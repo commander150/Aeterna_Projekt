@@ -449,7 +449,7 @@ def build_package(
     export_runtime_lookups_path=None,
 ):
     repo_root = Path(__file__).resolve().parents[2]
-    target_dir = Path(output_dir) if output_dir else repo_root / "sample_runtime_package"
+    target_dir = Path(output_dir) if output_dir else repo_root / "fixture_runtime_package"
     target_dir.mkdir(parents=True, exist_ok=True)
 
     aliases = _sample_aliases()
@@ -547,7 +547,7 @@ def main(argv=None):
         "--output-dir",
         "--output",
         default=None,
-        help="Optional output directory. Defaults to ./sample_runtime_package from the repository root.",
+        help="Optional output directory. Defaults to ./fixture_runtime_package from the repository root.",
     )
     parser.add_argument(
         "--export-runtime-cards",

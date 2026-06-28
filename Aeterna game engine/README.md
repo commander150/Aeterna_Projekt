@@ -44,7 +44,7 @@ A jelenlegi dokumentációs irány már rögzíti:
 - az XLSX exportáló funkció hosszabb távú beépítését az `Aeterna game engine/python/` tooling / build pipeline rétegébe;
 - a Godot közvetlen XLSX-betöltésének kerülését;
 - a runtime package mint Python és Godot közötti tiszta adatcontract-határ megtartását;
-- a két `sample_runtime_package` mappa eltérő státuszát.
+- a Python oldali `fixture_runtime_package` és a Godot oldali `runtime_package` eltérő státuszát.
 
 A pontos technikai checkpoint állapot helye:
 
@@ -122,7 +122,7 @@ A `docs/` ág feladata:
 
 Fontos mappastátusz:
 
-- Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
+- Python oldali `fixture_runtime_package`: `GENERATED_TEST_FIXTURE`
 - Godot oldali `runtime_package`: `GODOT_CONSUMPTION_COPY`
 - Godot oldali `debug_contracts`: `HAND_AUTHORED_DEBUG_FIXTURE`
 
@@ -234,7 +234,7 @@ Tartalmazza:
 - Google Sheets → XLSX → Python build pipeline → runtime package adatútvonalat;
 - a Godot közvetlen XLSX-betöltésének elkerülését;
 - a fejlesztői build pipeline irányt;
-- a két `sample_runtime_package` mappa státuszát;
+- a Python oldali `fixture_runtime_package` és a Godot oldali `runtime_package` státuszát;
 - manifestet;
 - cards / decks / lookups / aliases / ability registry / engine support / diagnostics fájlokat;
 - validációs szinteket;
@@ -311,7 +311,7 @@ A Python oldali sample package build output és a Godot oldali runtime package f
 
 Javasolt státuszuk:
 
-- Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
+- Python oldali `fixture_runtime_package`: `GENERATED_TEST_FIXTURE`
 - Godot oldali `runtime_package`: `GODOT_CONSUMPTION_COPY`
 
 ---
@@ -468,8 +468,8 @@ Cél:
 - az exporter explicit source és output útvonalakat tudjon kezelni;
 - ne legyen kötelező újabb állandó XLSX input másolatot létrehozni az engine alatt;
 - a régi `XLSX export/` mappa hosszú távon ne maradjon külön aktív programhely;
-- a Python oldali `sample_runtime_package` státusza `GENERATED_TEST_FIXTURE` legyen;
-- a Godot oldali `sample_runtime_package` státusza `GODOT_CONSUMPTION_COPY` legyen;
+- a Python oldali `fixture_runtime_package` státusza `GENERATED_TEST_FIXTURE` legyen;
+- a Godot oldali `runtime_package` státusza `GODOT_CONSUMPTION_COPY` legyen;
 - a Godot oldali package frissítését később a Python build pipeline végezze;
 - a meglévő Python és Godot smoke testek maradjanak zöldek.
 

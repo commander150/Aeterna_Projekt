@@ -29,9 +29,9 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
     def test_build_sample_runtime_package_smoke(self):
         builder = _load_builder_module()
 
-        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_sample_runtime_package_%s" % uuid.uuid4().hex)
+        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_fixture_runtime_package_%s" % uuid.uuid4().hex)
         try:
-            output_dir = Path(temp_dir) / "sample_runtime_package"
+            output_dir = Path(temp_dir) / "fixture_runtime_package"
             result = builder.build_package(output_dir)
 
             self.assertEqual(result["output_dir"], output_dir)
@@ -90,10 +90,10 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
     def test_build_package_accepts_optional_export_runtime_cards_input(self):
         builder = _load_builder_module()
 
-        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_sample_runtime_package_%s" % uuid.uuid4().hex)
+        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_fixture_runtime_package_%s" % uuid.uuid4().hex)
         try:
             export_cards_path = temp_dir / "EXPORT_RUNTIME.jsonl"
-            output_dir = temp_dir / "sample_runtime_package"
+            output_dir = temp_dir / "fixture_runtime_package"
             temp_dir.mkdir(parents=True)
             _write_jsonl(export_cards_path, _sample_export_records_for_builder(builder._sample_cards()))
 
@@ -121,11 +121,11 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
     def test_build_package_accepts_optional_export_runtime_decks_input(self):
         builder = _load_builder_module()
 
-        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_sample_runtime_package_%s" % uuid.uuid4().hex)
+        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_fixture_runtime_package_%s" % uuid.uuid4().hex)
         try:
             export_decks_path = temp_dir / "PRODUCT_DECKLISTS.jsonl"
             export_lookups_path = temp_dir / "LOOKUPS_RUNTIME.jsonl"
-            output_dir = temp_dir / "sample_runtime_package"
+            output_dir = temp_dir / "fixture_runtime_package"
             temp_dir.mkdir(parents=True)
             _write_jsonl(
                 export_decks_path,
@@ -165,10 +165,10 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
     def test_build_package_accepts_optional_export_runtime_lookups_input(self):
         builder = _load_builder_module()
 
-        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_sample_runtime_package_%s" % uuid.uuid4().hex)
+        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_fixture_runtime_package_%s" % uuid.uuid4().hex)
         try:
             export_lookups_path = temp_dir / "LOOKUPS_RUNTIME.jsonl"
-            output_dir = temp_dir / "sample_runtime_package"
+            output_dir = temp_dir / "fixture_runtime_package"
             temp_dir.mkdir(parents=True)
             _write_jsonl(export_lookups_path, _sample_lookup_rows_for_builder())
 
@@ -190,12 +190,12 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
     def test_export_derived_build_does_not_include_sample_manual_review_diagnostic(self):
         builder = _load_builder_module()
 
-        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_sample_runtime_package_%s" % uuid.uuid4().hex)
+        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_fixture_runtime_package_%s" % uuid.uuid4().hex)
         try:
             export_cards_path = temp_dir / "EXPORT_RUNTIME.jsonl"
             export_decks_path = temp_dir / "PRODUCT_DECKLISTS.jsonl"
             export_lookups_path = temp_dir / "LOOKUPS_RUNTIME.jsonl"
-            output_dir = temp_dir / "sample_runtime_package"
+            output_dir = temp_dir / "fixture_runtime_package"
             temp_dir.mkdir(parents=True)
             _write_jsonl(export_cards_path, _sample_export_records_for_builder(builder._sample_cards()))
             _write_jsonl(export_decks_path, [_sample_decklist_row(card["card_id"], 1) for card in builder._sample_cards()])

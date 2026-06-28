@@ -164,7 +164,7 @@ def _read_jsonl(path):
 def _repo_output_snapshot():
     watched_paths = [
         ENGINE_PYTHON_DIR / "exports",
-        ENGINE_PYTHON_DIR / "sample_runtime_package",
+        ENGINE_PYTHON_DIR / "fixture_runtime_package",
     ]
     snapshot = {}
     for path in watched_paths:
