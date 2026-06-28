@@ -7,7 +7,7 @@ const SampleContractsLoaderScript = preload("res://scripts/contract_loader/sampl
 const CardReferenceResolverScript = preload("res://scripts/debug/card_reference_resolver.gd")
 
 @export var contracts_path := "res://sample_contracts"
-@export var runtime_package_path := "res://sample_runtime_package"
+@export var runtime_package_path := "res://runtime_package"
 
 var _label: Label
 var _card_resolver

@@ -5,7 +5,7 @@ const JsonFileLoaderScript = preload("res://scripts/contract_loader/json_file_lo
 const CardReferenceResolverScript = preload("res://scripts/debug/card_reference_resolver.gd")
 
 const CONTRACTS_PATH = "res://sample_contracts"
-const RUNTIME_PACKAGE_PATH = "res://sample_runtime_package"
+const RUNTIME_PACKAGE_PATH = "res://runtime_package"
 const ACTION_REQUEST_SCHEMA = "sample-action-request-v1"
 
 

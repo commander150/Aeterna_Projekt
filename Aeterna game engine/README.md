@@ -299,20 +299,20 @@ Jelenlegi sample runtime package fájlok:
 - `diagnostics.json`
 - `build_report.md`
 
-A Godot által fogyasztott sample package jelenlegi helye:
+A Godot által fogyasztott runtime package jelenlegi helye:
 
-- `Godot/sample_runtime_package/`
+- `Godot/runtime_package/`
 
 A Godot loader útvonala:
 
-- `res://sample_runtime_package`
+- `res://runtime_package`
 
-A Python oldali sample package build output és a Godot oldali sample package fogyasztási példány nem egyenrangú canonical források.
+A Python oldali sample package build output és a Godot oldali runtime package fogyasztási példány nem egyenrangú canonical források.
 
 Javasolt státuszuk:
 
 - Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
-- Godot oldali `sample_runtime_package`: `GODOT_CONSUMPTION_COPY`
+- Godot oldali `runtime_package`: `GODOT_CONSUMPTION_COPY`
 
 ---
 

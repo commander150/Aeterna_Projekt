@@ -2,7 +2,7 @@ extends SceneTree
 
 
 const RuntimePackageLoaderScript = preload("res://scripts/contract_loader/runtime_package_loader.gd")
-const PACKAGE_PATH = "res://sample_runtime_package"
+const PACKAGE_PATH = "res://runtime_package"
 
 
 func _init() -> void:

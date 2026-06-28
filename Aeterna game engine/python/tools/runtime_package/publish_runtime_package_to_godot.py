@@ -19,7 +19,7 @@ DEFAULT_XLSX_PATH = (
     / "AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx"
 )
 DEFAULT_TEMP_OUTPUT_DIR = PROJECT_TEMP_DIR / "publish_runtime_package_candidate"
-DEFAULT_GODOT_PACKAGE_DIR = ENGINE_DIR / "Godot" / "sample_runtime_package"
+DEFAULT_GODOT_PACKAGE_DIR = ENGINE_DIR / "Godot" / "runtime_package"
 
 PACKAGE_FILES = [
     "manifest.json",

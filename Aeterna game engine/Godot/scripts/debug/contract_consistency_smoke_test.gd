@@ -6,7 +6,7 @@ const SampleContractsLoaderScript = preload("res://scripts/contract_loader/sampl
 const CardReferenceResolverScript = preload("res://scripts/debug/card_reference_resolver.gd")
 
 const CONTRACTS_PATH = "res://sample_contracts"
-const RUNTIME_PACKAGE_PATH = "res://sample_runtime_package"
+const RUNTIME_PACKAGE_PATH = "res://runtime_package"
 const SNAPSHOT_SCHEMA = "sample-snapshot-v1"
 const LEGAL_ACTIONS_SCHEMA = "sample-legal-actions-v1"
 const EVENTS_SCHEMA = "sample-events-v1"

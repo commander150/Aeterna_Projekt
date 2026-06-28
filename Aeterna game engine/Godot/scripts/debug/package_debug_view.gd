@@ -4,7 +4,7 @@ class_name PackageDebugView
 
 const RuntimePackageLoaderScript = preload("res://scripts/contract_loader/runtime_package_loader.gd")
 
-@export var package_path := "res://sample_runtime_package"
+@export var package_path := "res://runtime_package"
 
 var _label: Label
 
