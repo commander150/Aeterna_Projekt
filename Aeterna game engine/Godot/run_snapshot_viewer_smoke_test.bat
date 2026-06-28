@@ -1,1 +1,1 @@
-@echo off & cd /d "%~dp0" & "G:\Godot\Godot_v4.7-stable_win64.exe" --verbose --headless --log-file "snapshot_viewer_smoke.log" --path "." --script "res://scripts/debug/snapshot_viewer_smoke_test.gd" & exit /b %ERRORLEVEL%
+@echo off & cd /d "%~dp0" & if not exist "logs" mkdir "logs" & "G:\Godot\Godot_v4.7-stable_win64.exe" --verbose --headless --log-file "logs/snapshot_viewer_smoke.log" --path "." --script "res://scripts/debug/snapshot_viewer_smoke_test.gd" & exit /b %ERRORLEVEL%

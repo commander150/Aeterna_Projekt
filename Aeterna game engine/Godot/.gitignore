@@ -9,3 +9,5 @@ event_log_debug_view_smoke.log
 unified_debug_dashboard_smoke.log
 contract_consistency_smoke.log
 action_request_smoke.log
+logs/*.log
+!logs/.gitkeep

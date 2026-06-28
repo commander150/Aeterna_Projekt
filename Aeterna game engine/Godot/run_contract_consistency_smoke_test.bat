@@ -1,1 +1,1 @@
-@echo off & cd /d "%~dp0" & "G:\Godot\Godot_v4.7-stable_win64.exe" --verbose --headless --log-file "contract_consistency_smoke.log" --path "." --script "res://scripts/debug/contract_consistency_smoke_test.gd" & exit /b %ERRORLEVEL%
+@echo off & cd /d "%~dp0" & if not exist "logs" mkdir "logs" & "G:\Godot\Godot_v4.7-stable_win64.exe" --verbose --headless --log-file "logs/contract_consistency_smoke.log" --path "." --script "res://scripts/debug/contract_consistency_smoke_test.gd" & exit /b %ERRORLEVEL%

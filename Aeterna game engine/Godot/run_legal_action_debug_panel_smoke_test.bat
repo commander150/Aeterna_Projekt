@@ -1,1 +1,1 @@
-@echo off & cd /d "%~dp0" & "G:\Godot\Godot_v4.7-stable_win64.exe" --verbose --headless --log-file "legal_action_debug_panel_smoke.log" --path "." --script "res://scripts/debug/legal_action_debug_panel_smoke_test.gd" & exit /b %ERRORLEVEL%
+@echo off & cd /d "%~dp0" & if not exist "logs" mkdir "logs" & "G:\Godot\Godot_v4.7-stable_win64.exe" --verbose --headless --log-file "logs/legal_action_debug_panel_smoke.log" --path "." --script "res://scripts/debug/legal_action_debug_panel_smoke_test.gd" & exit /b %ERRORLEVEL%
