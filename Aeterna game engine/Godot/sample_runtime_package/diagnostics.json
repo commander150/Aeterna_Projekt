@@ -1,17 +1,3 @@
 {
-  "diagnostics": [
-    {
-      "diagnostic_id": "diag_sample_manual_review",
-      "severity": "warning",
-      "category": "sample_data",
-      "code": "MANUAL_REVIEW_PLACEHOLDER",
-      "message_hu": "A Rituale kartya kepessege csak strukturalt minta, nem futtathato szabaly.",
-      "blocking": false,
-      "object_ref": {
-        "type": "card",
-        "id": "SMP-IGN-003"
-      },
-      "suggested_action": "Eles adatfeldolgozas elott add meg a vegleges ertelmezest."
-    }
-  ]
+  "diagnostics": []
 }

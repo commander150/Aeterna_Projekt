@@ -14,7 +14,7 @@
       "sequence": 2,
       "event_type": "card_drawn",
       "actor_player_id": "player-1",
-      "card_id": "SMP-IGN-002",
+      "card_id": "IGN-HAM-046",
       "message_hu": "Az aktiv jatekos lapot huzott.",
       "refs": {
         "zone": "hand"
@@ -25,7 +25,7 @@
       "sequence": 3,
       "event_type": "action_available",
       "actor_player_id": "player-1",
-      "card_id": "SMP-IGN-002",
+      "card_id": "IGN-HAM-046",
       "message_hu": "A Szikra Ige kijatszhato."
     },
     {

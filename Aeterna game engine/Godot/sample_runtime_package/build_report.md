@@ -1,8 +1,8 @@
 # AETERNA sample runtime package build report
 
-- Kartyak szama: 5
-- Paklik szama: 1
-- Warningok szama: 1
+- Kartyak szama: 814
+- Paklik szama: 28
+- Warningok szama: 0
 - Blocking hibak szama: 0
 - Validation blocking: false
 

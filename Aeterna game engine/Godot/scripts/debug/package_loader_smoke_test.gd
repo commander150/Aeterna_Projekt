@@ -16,11 +16,11 @@ func _init() -> void:
 
 	failed = _check_bool(result.get("ok", false), true, "loader_result.ok") or failed
 	failed = _check_value(result.get("package_id", ""), "aeterna.sample_runtime_package", "package_id") or failed
-	failed = _check_int(counts.get("cards", 0), 5, "cards") or failed
-	failed = _check_int(counts.get("decks", 0), 1, "decks") or failed
-	failed = _check_int(counts.get("lookup_groups", 0), 2, "lookup_groups") or failed
+	failed = _check_int(counts.get("cards", 0), 814, "cards") or failed
+	failed = _check_int(counts.get("decks", 0), 28, "decks") or failed
+	failed = _check_int(counts.get("lookup_groups", 0), 17, "lookup_groups") or failed
 	failed = _check_int(counts.get("ability_modules", 0), 2, "ability_modules") or failed
-	failed = _check_int(diagnostics.get("warnings", 0), 1, "warnings") or failed
+	failed = _check_int(diagnostics.get("warnings", 0), 0, "warnings") or failed
 	failed = _check_int(diagnostics.get("blocking_errors", 0), 0, "blocking_errors") or failed
 
 	print("package_id: %s" % str(result.get("package_id", "")))

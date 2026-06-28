@@ -2,8 +2,7 @@
   "schema_version": "sample-runtime-package-v1",
   "summary": {
     "card_statuses": {
-      "declared_only": 4,
-      "not_executed": 1
+      "not_evaluated": 814
     },
     "ability_module_statuses": {
       "declared_only": 2
@@ -12,15 +11,20 @@
     "notes_hu": "A sample package csak deklaralja a kepesseg modulokat, nem futtatja oket."
   },
   "supported_card_types": [
-    "Entitas",
+    "Entitás",
     "Ige",
     "Jel",
-    "Rituale",
-    "Sik"
+    "Rituálé",
+    "Sík"
   ],
   "supported_realms": [
-    "Aqua",
-    "Ignis"
+    "AETHER",
+    "AQUA",
+    "IGNIS",
+    "LUX",
+    "TERRA",
+    "UMBRA",
+    "VENTUS"
   ],
   "ability_execution": "not_implemented"
 }

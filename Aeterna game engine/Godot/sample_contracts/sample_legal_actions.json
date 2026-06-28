@@ -8,7 +8,7 @@
       "action_id": "action-001",
       "action_type": "play_card",
       "label_hu": "Szikra Ige kijatszasa",
-      "source_card_id": "SMP-IGN-002",
+      "source_card_id": "IGN-HAM-046",
       "target_refs": [
         {
           "type": "player",
@@ -24,7 +24,7 @@
       "action_id": "action-002",
       "action_type": "attack",
       "label_hu": "Parazsorzo Entitas tamad",
-      "source_card_id": "SMP-IGN-001",
+      "source_card_id": "IGN-HAM-001",
       "target_refs": [
         {
           "type": "player",
@@ -37,7 +37,7 @@
       "action_id": "action-003",
       "action_type": "play_card",
       "label_hu": "Hamuesku Rituale kijatszasa",
-      "source_card_id": "SMP-IGN-003",
+      "source_card_id": "IGN-HAM-032",
       "cost_summary": {
         "aura": 2
       },

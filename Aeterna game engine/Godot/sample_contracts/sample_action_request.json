@@ -6,7 +6,7 @@
   "request_id": "action-request-001",
   "requesting_player_id": "player-1",
   "action_type": "play_card",
-  "source_card_id": "SMP-IGN-002",
+  "source_card_id": "IGN-HAM-046",
   "selected_targets": [
     {
       "type": "player",

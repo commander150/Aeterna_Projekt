@@ -34,7 +34,7 @@
         "controller_player_id": "player-1",
         "card_refs": [
           {
-            "card_id": "SMP-IGN-001",
+            "card_id": "IGN-HAM-001",
             "instance_id": "card-inst-001",
             "zone": "board"
           }
@@ -48,13 +48,13 @@
     ],
     "currents": [
       {
-        "card_id": "SMP-IGN-005",
+        "card_id": "IGN-HAM-056",
         "instance_id": "card-inst-005",
         "zone": "board"
       }
     ]
   },
-  "selected_card_id": "SMP-IGN-002",
+  "selected_card_id": "IGN-HAM-046",
   "diagnostics": {
     "warnings": [],
     "blocking_errors": []
