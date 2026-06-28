@@ -66,7 +66,7 @@ OUTPUT_FILES = [
 ]
 
 
-def _sample_lookups():
+def _fixture_lookups():
     return [
         {
             "lookup_group": "card_type",
@@ -127,7 +127,7 @@ def _sample_lookups():
     ]
 
 
-def _sample_aliases():
+def _fixture_aliases():
     return [
         {
             "lookup_group": "card_type",
@@ -148,7 +148,7 @@ def _sample_aliases():
     ]
 
 
-def _sample_cards():
+def _fixture_cards():
     return [
         {
             "card_id": "SMP-IGN-001",
@@ -238,7 +238,7 @@ def _sample_cards():
     ]
 
 
-def _sample_decks():
+def _fixture_decks():
     return [
         {
             "deck_id": "SMP-DECK-IGNIS-001",
@@ -260,7 +260,7 @@ def _sample_decks():
     ]
 
 
-def _sample_ability_registry():
+def _fixture_ability_registry():
     return [
         {
             "module_id": "sample_damage_1",
@@ -283,7 +283,7 @@ def _sample_ability_registry():
     ]
 
 
-def _base_diagnostics():
+def _fixture_base_diagnostics():
     return [
         {
             "diagnostic_id": "diag_sample_manual_review",
@@ -452,7 +452,7 @@ def build_package(
     target_dir = Path(output_dir) if output_dir else repo_root / "fixture_runtime_package"
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    aliases = _sample_aliases()
+    aliases = _fixture_aliases()
     source_files = [{"path": "tools/runtime_package/build_sample_runtime_package.py", "type": "in_code_fixture"}]
     if export_runtime_lookups_path:
         lookup_adapter_result = load_builder_lookups_from_runtime_lookups_jsonl(export_runtime_lookups_path)
@@ -466,7 +466,7 @@ def build_package(
             }
         )
     else:
-        lookups = _sample_lookups()
+        lookups = _fixture_lookups()
     if export_runtime_cards_path:
         adapter_result = load_builder_cards_from_export_runtime_jsonl(export_runtime_cards_path)
         cards = adapter_result["cards"]
@@ -479,7 +479,7 @@ def build_package(
             }
         )
     else:
-        cards = _sample_cards()
+        cards = _fixture_cards()
     if export_runtime_decks_path:
         deck_adapter_result = load_builder_decks_from_product_decklists_jsonl(export_runtime_decks_path)
         decks = deck_adapter_result["decks"]
@@ -492,9 +492,9 @@ def build_package(
             }
         )
     else:
-        decks = _sample_decks()
-    ability_registry = _sample_ability_registry()
-    diagnostics = [] if _uses_export_inputs(export_runtime_cards_path, export_runtime_decks_path, export_runtime_lookups_path) else _base_diagnostics()
+        decks = _fixture_decks()
+    ability_registry = _fixture_ability_registry()
+    diagnostics = [] if _uses_export_inputs(export_runtime_cards_path, export_runtime_decks_path, export_runtime_lookups_path) else _fixture_base_diagnostics()
 
     validation_summary = validate_package(cards, decks, lookups, diagnostics)
     engine_support = {

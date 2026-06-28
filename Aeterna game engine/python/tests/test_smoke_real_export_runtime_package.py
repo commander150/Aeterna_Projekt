@@ -57,7 +57,7 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         output_dir = self.temp_dir / "smoke_output"
         _write_runtime_cards_workbook(
             xlsx_path,
-            self.builder._sample_cards(),
+            self.builder._fixture_cards(),
             self.mapper.FIELD_MAP,
             self.xlsx_export.PROFILES["decklists"],
             self.xlsx_export.PROFILES["lookups_runtime"],
@@ -88,7 +88,7 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         output_dir = self.temp_dir / "smoke_output_with_decks"
         _write_runtime_cards_workbook(
             xlsx_path,
-            self.builder._sample_cards(),
+            self.builder._fixture_cards(),
             self.mapper.FIELD_MAP,
             self.xlsx_export.PROFILES["decklists"],
             self.xlsx_export.PROFILES["lookups_runtime"],
@@ -117,7 +117,7 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         output_dir = self.temp_dir / "smoke_output_with_lookups"
         _write_runtime_cards_workbook(
             xlsx_path,
-            self.builder._sample_cards(),
+            self.builder._fixture_cards(),
             self.mapper.FIELD_MAP,
             self.xlsx_export.PROFILES["decklists"],
             self.xlsx_export.PROFILES["lookups_runtime"],

@@ -36,7 +36,7 @@ def _load_mapper_module():
     return module
 
 
-def _sample_export_record(card_id="CARD-001"):
+def _fixture_export_record(card_id="CARD-001"):
     mapper = _load_mapper_module()
     values_by_target = {
         "card_id": card_id,
@@ -81,7 +81,7 @@ class TestRuntimeCardsBuilderAdapter(unittest.TestCase):
 
     def test_loads_temporary_export_runtime_fixture(self):
         input_path = self.temp_dir / "EXPORT_RUNTIME.jsonl"
-        _write_jsonl(input_path, [_sample_export_record("CARD-001")])
+        _write_jsonl(input_path, [_fixture_export_record("CARD-001")])
 
         result = self.adapter.load_builder_cards_from_export_runtime_jsonl(input_path)
 
@@ -92,7 +92,7 @@ class TestRuntimeCardsBuilderAdapter(unittest.TestCase):
 
     def test_builder_required_fields_are_present(self):
         input_path = self.temp_dir / "EXPORT_RUNTIME.jsonl"
-        _write_jsonl(input_path, [_sample_export_record("CARD-001"), _sample_export_record("CARD-002")])
+        _write_jsonl(input_path, [_fixture_export_record("CARD-001"), _fixture_export_record("CARD-002")])
 
         result = self.adapter.load_builder_cards_from_export_runtime_jsonl(input_path)
 
@@ -104,7 +104,7 @@ class TestRuntimeCardsBuilderAdapter(unittest.TestCase):
 
     def test_output_remains_jsonl_compatible_dict_list(self):
         input_path = self.temp_dir / "EXPORT_RUNTIME.jsonl"
-        _write_jsonl(input_path, [_sample_export_record("CARD-001")])
+        _write_jsonl(input_path, [_fixture_export_record("CARD-001")])
 
         result = self.adapter.load_builder_cards_from_export_runtime_jsonl(input_path)
 
@@ -115,7 +115,7 @@ class TestRuntimeCardsBuilderAdapter(unittest.TestCase):
     def test_does_not_write_to_fixture_runtime_package(self):
         before = _fixture_runtime_package_snapshot()
         input_path = self.temp_dir / "EXPORT_RUNTIME.jsonl"
-        _write_jsonl(input_path, [_sample_export_record("CARD-001")])
+        _write_jsonl(input_path, [_fixture_export_record("CARD-001")])
 
         self.adapter.load_builder_cards_from_export_runtime_jsonl(input_path)
 

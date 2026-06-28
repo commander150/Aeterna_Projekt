@@ -23,7 +23,7 @@ def _load_converter_module():
     return module
 
 
-def _sample_export_record(card_id="CARD-001"):
+def _fixture_export_record(card_id="CARD-001"):
     return {
         "Card_ID": card_id,
         "Kártya név": "Parázsőrző Entitás",
@@ -64,7 +64,7 @@ class TestRuntimeCardsJsonlConverter(unittest.TestCase):
     def test_converts_two_valid_export_records(self):
         input_path = self.temp_dir / "EXPORT_RUNTIME.jsonl"
         output_path = self.temp_dir / "cards.jsonl"
-        _write_jsonl(input_path, [_sample_export_record("CARD-001"), _sample_export_record("CARD-002")])
+        _write_jsonl(input_path, [_fixture_export_record("CARD-001"), _fixture_export_record("CARD-002")])
 
         summary = self.converter.convert_export_runtime_jsonl_to_cards_jsonl(input_path, output_path)
 
@@ -81,7 +81,7 @@ class TestRuntimeCardsJsonlConverter(unittest.TestCase):
     def test_summary_counts_valid_records(self):
         input_path = self.temp_dir / "EXPORT_RUNTIME.jsonl"
         output_path = self.temp_dir / "cards.jsonl"
-        _write_jsonl(input_path, [_sample_export_record("CARD-001")])
+        _write_jsonl(input_path, [_fixture_export_record("CARD-001")])
 
         summary = self.converter.convert_export_runtime_jsonl_to_cards_jsonl(input_path, output_path)
 
@@ -98,7 +98,7 @@ class TestRuntimeCardsJsonlConverter(unittest.TestCase):
     def test_mapping_error_is_written_in_non_strict_mode(self):
         input_path = self.temp_dir / "EXPORT_RUNTIME.jsonl"
         output_path = self.temp_dir / "cards.jsonl"
-        record = _sample_export_record("")
+        record = _fixture_export_record("")
         _write_jsonl(input_path, [record])
 
         summary = self.converter.convert_export_runtime_jsonl_to_cards_jsonl(input_path, output_path, strict=False)
@@ -115,7 +115,7 @@ class TestRuntimeCardsJsonlConverter(unittest.TestCase):
     def test_mapping_error_does_not_write_output_in_strict_mode(self):
         input_path = self.temp_dir / "EXPORT_RUNTIME.jsonl"
         output_path = self.temp_dir / "cards.jsonl"
-        record = _sample_export_record("")
+        record = _fixture_export_record("")
         _write_jsonl(input_path, [record])
 
         summary = self.converter.convert_export_runtime_jsonl_to_cards_jsonl(input_path, output_path, strict=True)
@@ -143,7 +143,7 @@ class TestRuntimeCardsJsonlConverter(unittest.TestCase):
         before = _repo_output_snapshot()
         input_path = self.temp_dir / "EXPORT_RUNTIME.jsonl"
         output_path = self.temp_dir / "cards.jsonl"
-        _write_jsonl(input_path, [_sample_export_record("CARD-001")])
+        _write_jsonl(input_path, [_fixture_export_record("CARD-001")])
 
         self.converter.convert_export_runtime_jsonl_to_cards_jsonl(input_path, output_path)
 

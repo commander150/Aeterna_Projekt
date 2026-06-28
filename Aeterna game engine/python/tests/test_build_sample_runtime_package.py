@@ -95,7 +95,7 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             export_cards_path = temp_dir / "EXPORT_RUNTIME.jsonl"
             output_dir = temp_dir / "fixture_runtime_package"
             temp_dir.mkdir(parents=True)
-            _write_jsonl(export_cards_path, _sample_export_records_for_builder(builder._sample_cards()))
+            _write_jsonl(export_cards_path, _fixture_export_records_for_builder(builder._fixture_cards()))
 
             result = builder.build_package(output_dir, export_runtime_cards_path=export_cards_path)
 
@@ -130,12 +130,12 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             _write_jsonl(
                 export_decks_path,
                 [
-                    _sample_decklist_row("SMP-IGN-001", 2),
-                    _sample_decklist_row("SMP-IGN-002", 2),
-                    _sample_decklist_row("SMP-IGN-003", 1),
+                    _fixture_decklist_row("SMP-IGN-001", 2),
+                    _fixture_decklist_row("SMP-IGN-002", 2),
+                    _fixture_decklist_row("SMP-IGN-003", 1),
                 ],
             )
-            _write_jsonl(export_lookups_path, _sample_lookup_rows_for_builder())
+            _write_jsonl(export_lookups_path, _fixture_lookup_rows_for_builder())
 
             result = builder.build_package(
                 output_dir,
@@ -170,7 +170,7 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             export_lookups_path = temp_dir / "LOOKUPS_RUNTIME.jsonl"
             output_dir = temp_dir / "fixture_runtime_package"
             temp_dir.mkdir(parents=True)
-            _write_jsonl(export_lookups_path, _sample_lookup_rows_for_builder())
+            _write_jsonl(export_lookups_path, _fixture_lookup_rows_for_builder())
 
             result = builder.build_package(output_dir, export_runtime_lookups_path=export_lookups_path)
 
@@ -182,7 +182,7 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
 
             manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest["source_files"][1]["type"], "lookups_runtime_jsonl")
-            self.assertEqual(manifest["source_files"][1]["summary"]["lookups_loaded"], len(_sample_lookup_rows_for_builder()))
+            self.assertEqual(manifest["source_files"][1]["summary"]["lookups_loaded"], len(_fixture_lookup_rows_for_builder()))
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
         self.assertFalse(temp_dir.exists(), "Export runtime lookups build test temp cleanup left directory: %s" % temp_dir)
@@ -197,9 +197,9 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             export_lookups_path = temp_dir / "LOOKUPS_RUNTIME.jsonl"
             output_dir = temp_dir / "fixture_runtime_package"
             temp_dir.mkdir(parents=True)
-            _write_jsonl(export_cards_path, _sample_export_records_for_builder(builder._sample_cards()))
-            _write_jsonl(export_decks_path, [_sample_decklist_row(card["card_id"], 1) for card in builder._sample_cards()])
-            _write_jsonl(export_lookups_path, _sample_lookup_rows_for_builder())
+            _write_jsonl(export_cards_path, _fixture_export_records_for_builder(builder._fixture_cards()))
+            _write_jsonl(export_decks_path, [_fixture_decklist_row(card["card_id"], 1) for card in builder._fixture_cards()])
+            _write_jsonl(export_lookups_path, _fixture_lookup_rows_for_builder())
 
             result = builder.build_package(
                 output_dir,
@@ -218,10 +218,10 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
         self.assertFalse(temp_dir.exists(), "Export-derived build test temp cleanup left directory: %s" % temp_dir)
 
 
-def _sample_export_records_for_builder(sample_cards):
+def _fixture_export_records_for_builder(fixture_cards):
     mapper = _load_mapper_module()
     records = []
-    for card in sample_cards:
+    for card in fixture_cards:
         values_by_target = {
             "card_id": card["card_id"],
             "name_hu": card["name_hu"],
@@ -262,7 +262,7 @@ def _write_jsonl(path, records):
             handle.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
 
 
-def _sample_decklist_row(card_id, count):
+def _fixture_decklist_row(card_id, count):
     return {
         "Product_ID": "TEST-CORE01-IGNIS",
         "Deck_ID": "DECK-IGN-HAM-TEST-001",
@@ -271,7 +271,7 @@ def _sample_decklist_row(card_id, count):
     }
 
 
-def _sample_lookup_rows_for_builder():
+def _fixture_lookup_rows_for_builder():
     return [
         _lookup_row("Card_Type", "Entitas"),
         _lookup_row("Card_Type", "Ige"),

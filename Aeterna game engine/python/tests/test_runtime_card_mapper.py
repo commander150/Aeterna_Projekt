@@ -14,7 +14,7 @@ def _load_mapper_module():
     return module
 
 
-def _sample_export_record():
+def _fixture_export_record():
     return {
         "Card_ID": "CARD-001",
         "Kártya név": "Parázsőrző Entitás",
@@ -47,7 +47,7 @@ class TestRuntimeCardMapper(unittest.TestCase):
         self.mapper = _load_mapper_module()
 
     def test_maps_basic_export_record_to_runtime_card(self):
-        result = self.mapper.map_export_runtime_card(_sample_export_record())
+        result = self.mapper.map_export_runtime_card(_fixture_export_record())
 
         self.assertEqual(result["card_id"], "CARD-001")
         self.assertEqual(result["name_hu"], "Parázsőrző Entitás")
@@ -70,7 +70,7 @@ class TestRuntimeCardMapper(unittest.TestCase):
         self.assertEqual(result["diagnostics"], [])
 
     def test_numeric_fields_keep_integer_values(self):
-        result = self.mapper.map_export_runtime_card(_sample_export_record())
+        result = self.mapper.map_export_runtime_card(_fixture_export_record())
 
         self.assertEqual(result["magnitude"], 1)
         self.assertIsInstance(result["magnitude"], int)
@@ -82,13 +82,13 @@ class TestRuntimeCardMapper(unittest.TestCase):
         self.assertIsInstance(result["hp"], int)
 
     def test_keywords_and_effect_tags_are_lists(self):
-        result = self.mapper.map_export_runtime_card(_sample_export_record())
+        result = self.mapper.map_export_runtime_card(_fixture_export_record())
 
         self.assertEqual(result["keywords"], ["őrző", "reakció"])
         self.assertEqual(result["effect_tags"], ["damage", "fire"])
 
     def test_missing_card_id_returns_error_diagnostic(self):
-        record = _sample_export_record()
+        record = _fixture_export_record()
         record["Card_ID"] = ""
 
         result = self.mapper.map_export_runtime_card(record)
@@ -100,7 +100,7 @@ class TestRuntimeCardMapper(unittest.TestCase):
         self.assertTrue(result["diagnostics"][0]["blocking"])
 
     def test_missing_optional_field_does_not_fail_mapping(self):
-        record = _sample_export_record()
+        record = _fixture_export_record()
         del record["Klán"]
         record["Kulcsszavak_Felismerve"] = None
 
@@ -114,7 +114,7 @@ class TestRuntimeCardMapper(unittest.TestCase):
     def test_mapper_does_not_create_persistent_repo_output(self):
         before = _repo_output_snapshot()
 
-        self.mapper.map_export_runtime_card(_sample_export_record())
+        self.mapper.map_export_runtime_card(_fixture_export_record())
 
         after = _repo_output_snapshot()
         self.assertEqual(after, before)
