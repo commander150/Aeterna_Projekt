@@ -136,8 +136,8 @@ A Godot oldali package frissítése később a Python build pipeline feladata le
 
 A projekt fő dokumentációs fájljai:
 
-- `CHECKPOINTS.md`
-- `OPEN_QUESTIONS.md`
+- `docs/checkpoints/CHECKPOINTS.md`
+- `docs/OPEN_QUESTIONS.md`
 - `docs/DECISION_MAP.md`
 - `docs/ARCHITECTURE.md`
 - `docs/TECHNOLOGY_DECISIONS.md`

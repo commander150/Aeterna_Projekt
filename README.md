@@ -207,7 +207,7 @@ Kiemelten fontos dokumentumok:
 
 Régi Python motorhoz kapcsolódó referencia:
 
-- `ARCHITEKTURA_ES_HIVATALOS_FUTASI_UT.md`
+- `Aeterna dokumentációk/reference/ARCHITEKTURA_ES_HIVATALOS_FUTASI_UT.md`
 
 Ez jelenleg a régi Python szimulációs motor futási útjának referenciája, nem az új contract-first engine teljes célarchitektúrája.
 
