@@ -167,6 +167,31 @@ Nyitott kérdések:
 - Mikor szüntethető meg az `XLSX export/` külön aktív programhely státusza?
 - Milyen smoke / unit test szükséges a migráció elfogadásához?
 
+Kiegészítő döntési kapu – TEMP candidate pipeline:
+
+Jelenlegi átmeneti irány:
+
+* Az XLSX → runtime package → Godot publish útvonalban a `TEMP/` alatti candidate runtime package elfogadott fejlesztői staging megoldás.
+* A candidate package célja, hogy a Godot fogyasztási mappa csak validált runtime package-et kapjon.
+* A `TEMP/` használata jelenleg biztonsági kapu: előbb build, validáció és diagnostics ellenőrzés történik, és csak ezután frissülhet a Godot `runtime_package` mappája.
+
+Nyitott véglegesítési kérdések:
+
+* A végleges pipeline-ban maradjon-e `TEMP/` alapú candidate staging?
+* Vagy legyen külön, tisztább build/output mappa, például `build/runtime_package_candidate/`?
+* Legyen-e package registry vagy verziózott runtime package kiadási mappa?
+* Mikor írhat a pipeline közvetlenül a Godot runtime package mappába?
+* Ha közvetlen Godot publish lesz, milyen validációs és rollback védelem kell?
+* Mikor tekinthető a `TEMP/` alapú megoldás kiválthatónak?
+* Mely package outputok legyenek verziózottak, és melyek legyenek regenerálható build artifactok?
+
+Jelenlegi döntés:
+
+* A `TEMP/` candidate pipeline rövid távon elfogadott.
+* A `TEMP/` candidate pipeline nem végleges architektúra.
+* Véglegesítés előtt külön build output / package publish döntés szükséges.
+
+
 ### OQ-DATA-003 – Engine support státusz
 
 **Státusz:** `open`, `blocked_by_engine_test`  
