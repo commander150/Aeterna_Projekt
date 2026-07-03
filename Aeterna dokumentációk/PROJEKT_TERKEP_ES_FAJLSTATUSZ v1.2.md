@@ -158,8 +158,8 @@ A régi futási út továbbra is hasznos, mert megmutatja, milyen működő Pyth
 - megjegyzés: kiemelten fontos dokumentációs forrás
 
 #### `AETERNA_Seed_Convention_v1.docx`
-- státusz: aktív dokumentáció
-- szerep: seed-konvenció és tesztprofil-azonosítás leírása
+- státusz: `KEEP_ACTIVE_REFERENCE`
+- szerep: seed-konvenció és tesztprofil-azonosítási referencia
 - runtime szerep: jelenleg nincs közvetlen kódoldali szerepe
 - haszon: tesztek reprodukálhatósága, logazonosítás
 - megjegyzés: később opcionálisan integrálható a kódba
@@ -206,8 +206,8 @@ A régi futási út továbbra is hasznos, mert megmutatja, milyen működő Pyth
 - megjegyzés: később tisztázni kell, hogy referencia, archív vagy cleanup-jelölt
 
 #### `cleanup_candidates.md`
-- státusz: aktív audit-dokumentum
-- szerep: soft cleanup jelöltek listája
+- státusz: `ARCHIVE_REVIEW`
+- szerep: korábbi cleanup-jelölt lista / történeti rendezési nyom
 - runtime szerep: nincs
 - haszon: takarítási döntések előkészítése
 - megjegyzés: nem törlési lista, hanem audit
@@ -2153,8 +2153,8 @@ A dokumentum jelenlegi verziója két forrásrétegre támaszkodik.
 
 ### 8.1 Régi Python motor és korábbi projektirány forrásai
 
-- `ARCHITEKTURA_ES_HIVATALOS_FUTASI_UT.md`
-- `cleanup_candidates.md`
+- `Aeterna dokumentációk/reference/ARCHITEKTURA_ES_HIVATALOS_FUTASI_UT.md`
+- `Aeterna dokumentációk/archive_review/cleanup_candidates.md`
 - `EFFECT_RETEG_AKTIV_UTVONAL.md`
 - `EFFECT_TRIGGER_HATAROK.md`
 - `kartya_tabla_szabvany_frissett.md`
@@ -2162,7 +2162,7 @@ A dokumentum jelenlegi verziója két forrásrétegre támaszkodik.
 - `README.md`
 - `main.py`
 - `Aeterna Kártyajáték szabályrendszer.docx`
-- `AETERNA_Seed_Convention_v1.docx`
+- `Aeterna dokumentációk/reference/AETERNA_Seed_Convention_v1.docx`
 
 Ezek elsősorban a régi Python szimulációs motor, a structured runtime és a korábbi projektfeltérképezés szempontjából hasznosak.
 
