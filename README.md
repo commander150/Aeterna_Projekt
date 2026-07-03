@@ -124,14 +124,23 @@ Státuszok:
 - `Aeterna game engine/python/tools/xlsx_export/`: `KEEP_ACTIVE_SOURCE`
 - `Aeterna game engine/python/tests/test_xlsx_export.py`: `KEEP_ACTIVE_TEST`
 - `Aeterna game engine/python/tests/test_xlsx_export_smoke.py`: `KEEP_ACTIVE_SMOKE_TEST`
-- `Aeterna game engine/python/run_xlsx_export.bat`: `KEEP_ACTIVE_RUNNER_MANUAL`
+- `Aeterna game engine/python/publish_runtime_package_to_godot.bat`: `KEEP_ACTIVE_PRIMARY_PIPELINE_RUNNER`
+- `Aeterna game engine/python/run_xlsx_export.bat`: `KEEP_ACTIVE_RUNNER_MANUAL_RAW_EXPORT`
 - `Aeterna game engine/python/run_xlsx_export_smoke.bat`: `KEEP_ACTIVE_RUNNER_NONINTERACTIVE`
 
 A régi `XLSX export/` mappa státusza:
 
 - `OBSOLETE_AFTER_MIGRATION_CANDIDATE`
 
-Ez még nem törlendő és nem mozgatandó.
+Ez még nem törlendő és nem mozgatandó, de nem aktív pipeline input.
+
+Elsődleges fejlesztői runtime package út:
+
+- `Aeterna game engine/python/publish_runtime_package_to_godot.bat`
+
+Ez a canonical kártyaadatbázis XLSX-ből TEMP alatti candidate runtime package-et épít, validál, és csak sikeres validáció után publikál a Godot `runtime_package/` mappába.
+
+A `run_xlsx_export.bat` csak nyers/debug export runner. Nem ez a fő Godot pipeline.
 
 A `sample_runtime_package` két külön szerepet tölt be:
 
@@ -172,12 +181,15 @@ A konkrét futtatás és tesztelés az ottani runner BAT fájlokkal és unit tes
 
 Fontosabb ismert elemek:
 
+- `publish_runtime_package_to_godot.bat`
 - `run_xlsx_export.bat`
 - `run_xlsx_export_smoke.bat`
 - `run_build_sample_package.bat`
 - `run_tests.bat`
 
-A `run_xlsx_export.bat` manuális runner, interaktív lehet.
+A `publish_runtime_package_to_godot.bat` az elsődleges fejlesztői XLSX → runtime package → Godot publikáló út.
+
+A `run_xlsx_export.bat` manuális nyers/debug export runner, nem a fő runtime package pipeline.
 
 Audit / CI jellegű futtatáshoz a non-interaktív smoke runner előnyösebb.
 

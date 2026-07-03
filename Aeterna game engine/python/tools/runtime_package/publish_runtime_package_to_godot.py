@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import shutil
 import sys
+import uuid
 from importlib import util
 from pathlib import Path
 
@@ -61,10 +62,7 @@ def publish_runtime_package(
     temp_output_dir = Path(temp_output_dir)
     godot_package_dir = Path(godot_package_dir)
 
-    _ensure_temp_output_dir(temp_output_dir)
-    if temp_output_dir.exists():
-        shutil.rmtree(temp_output_dir)
-    temp_output_dir.mkdir(parents=True, exist_ok=True)
+    temp_output_dir = _create_candidate_output_dir(temp_output_dir)
 
     summary = SMOKE_RUNNER.run_smoke(
         xlsx_path=Path(xlsx_path),
@@ -189,6 +187,24 @@ def _ensure_temp_output_dir(path):
     temp_root = PROJECT_TEMP_DIR.resolve()
     if resolved != temp_root and temp_root not in resolved.parents:
         raise PublishError("temp-output-dir must be under project TEMP: %s" % temp_root)
+
+
+def _create_candidate_output_dir(path):
+    path = Path(path)
+    _ensure_temp_output_dir(path)
+    if not path.exists():
+        path.mkdir(parents=True, exist_ok=False)
+        return path
+
+    parent = path.parent
+    for _attempt in range(100):
+        candidate = parent / ("%s_%s" % (path.name, uuid.uuid4().hex[:8]))
+        _ensure_temp_output_dir(candidate)
+        if not candidate.exists():
+            candidate.mkdir(parents=True, exist_ok=False)
+            return candidate
+    raise PublishError("could not allocate unique temp output dir under project TEMP")
+
 
 
 def _format_validation_errors(errors, summary):

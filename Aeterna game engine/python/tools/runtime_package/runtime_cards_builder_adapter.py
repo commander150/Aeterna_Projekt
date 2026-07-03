@@ -38,7 +38,10 @@ def load_builder_cards_from_export_runtime_jsonl(
         cards = _read_converted_cards(converted_path) if converted_path.exists() else []
     finally:
         if converted_path.exists():
-            converted_path.unlink()
+            try:
+                converted_path.unlink()
+            except OSError:
+                pass
 
     builder_cards = [
         add_builder_card_defaults(

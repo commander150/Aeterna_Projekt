@@ -1,6 +1,4 @@
 import importlib.util
-import os
-import shutil
 import sys
 import uuid
 import unittest
@@ -41,7 +39,6 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
         self.publisher.SMOKE_RUNNER = self.original_runner
         self.publisher.validate_candidate = self.original_validate_candidate
         self.publisher.shutil.copy2 = self.original_copy2
-        _remove_tree(self.temp_root)
 
     def test_invalid_validation_blocks_publish(self):
         self.publisher.SMOKE_RUNNER = _StubSmokeRunner()
@@ -91,6 +88,26 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
         self.assertEqual(summary["would_copy_files"], self.publisher.PACKAGE_FILES)
         self.assertEqual(self.copied_files, [])
 
+    def test_existing_candidate_output_uses_fresh_candidate_dir(self):
+        existing_output = self.temp_output_dir / "exports" / "EXPORT_RUNTIME.jsonl"
+        existing_output.parent.mkdir(parents=True)
+        existing_output.write_text("old\n", encoding="utf-8")
+        self.publisher.SMOKE_RUNNER = _StubSmokeRunner()
+        self.publisher.validate_candidate = lambda _summary, _candidate: []
+
+        summary = self.publisher.publish_runtime_package(
+            xlsx_path=self.temp_root / "source.xlsx",
+            temp_output_dir=self.temp_output_dir,
+            godot_package_dir=self.godot_package_dir,
+            dry_run=True,
+        )
+
+        self.assertTrue(summary["dry_run"])
+        self.assertTrue(existing_output.exists())
+        candidate_dir = Path(summary["candidate_package_dir"]).parent
+        self.assertNotEqual(candidate_dir, self.temp_output_dir)
+        self.assertTrue(candidate_dir.name.startswith(self.temp_output_dir.name + "_"))
+
     def _record_copy(self, source, target):
         self.copied_files.append((Path(source).name, Path(target).name))
 
@@ -115,18 +132,5 @@ class _StubSmokeRunner:
             "unknown_realm_errors": 0,
             "unknown_card_type_errors": 0,
         }
-
-def _remove_tree(path):
-    def _onerror(function, failing_path, _exc_info):
-        try:
-            os.chmod(failing_path, 0o700)
-            function(failing_path)
-        except OSError:
-            pass
-
-    if path.exists():
-        shutil.rmtree(path, onerror=_onerror)
-
-
 if __name__ == "__main__":
     unittest.main()

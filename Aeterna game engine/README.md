@@ -314,6 +314,14 @@ Javasolt státuszuk:
 - Python oldali `fixture_runtime_package`: `GENERATED_TEST_FIXTURE`
 - Godot oldali `runtime_package`: `GODOT_CONSUMPTION_COPY`
 
+Elsődleges fejlesztői runtime package publikáló út:
+
+- `python/publish_runtime_package_to_godot.bat`
+
+Ez a canonical kártyaadatbázis XLSX-ből TEMP alatti candidate runtime package-et épít, validál, és csak sikeres validáció után másol a Godot `runtime_package/` mappába.
+
+A `python/run_xlsx_export.bat` csak alacsonyabb szintű nyers/debug export runner, nem a fő Godot pipeline.
+
 ---
 
 ## Godot projekt
@@ -343,13 +351,13 @@ A Python oldal jelenlegi és tervezett szerepe:
 
 - sample runtime package generálás;
 - unit tesztek;
-- XLSX exportáló funkció későbbi átvétele;
+- XLSX exportáló funkció;
 - exportprofilok futtatása;
 - validáció;
 - normalizálás;
 - diagnostics és build report;
 - runtime package build;
-- Godot consumption package frissítésének későbbi előkészítése;
+- Godot runtime package validált publikálása;
 - későbbi full runtime package builder;
 - későbbi AI-vs-AI / batch tesztelés lehetősége.
 
