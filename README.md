@@ -150,11 +150,17 @@ A projektben több technikai réteg van, ezért nincs egyetlen univerzális futt
 
 ### Régi Python motor
 
-A régi Python motor futtatása történeti / review jellegű:
+A régi Python motor jelenleg archív / review jellegű referencia.
+
+Helye:
+
+- `Archive/old python engine/`
+
+Korábbi belépési útja ebben a mappában:
 
 - `python main.py`
 
-Ez nem az új contract-first engine teljes futtatása, hanem a régi szimulációs motor belépési útja.
+Ez nem az új contract-first engine teljes futtatása, hanem a régi szimulációs motor történeti belépési útja. Új fejlesztés vagy refaktor csak külön döntési kör után induljon rajta.
 
 ### Új engine Python tooling
 
