@@ -330,7 +330,7 @@ A jelenlegi fázisban kerülendő:
 - nem kezdünk teljes engine-refaktorba a főforrás-alapú megfelelési audit előtt;
 - nem javítunk tömegesen kártyákat előzetes szabályforrás szerinti hibakategorizálás nélkül;
 - nem adunk Codexnek általános „nézd át a programot” típusú feladatot;
-- nem használunk régi szabálydokumentumot vagy beszélgetési emléket döntési alapként, ha az eltér az 1.0v főforrástól;
+- nem használunk régi szabálydokumentumot vagy beszélgetési emléket döntési alapként, ha az eltér a két 1.4v hivatalos főforrástól;
 - nem keverjük össze a kártyaadat-hibát, engine-hibát, dokumentációs hiányt és balanszproblémát.
 
 ---
@@ -499,7 +499,7 @@ mindkét dokumentum 1.4v állapotban közös forrás-összehangoló auditon eset
 a korábbi források ezután nem aktív szabályi referenciák, hanem archív / történeti háttéranyagok;
 a további szabályi, kártyatervezési, kártyaauditálási és engine-kompatibilitási döntések elsődleges alapja ez a két 1.4v főforrás.
 
-### 5.10 Kártyaállomány auditja az 1.0v főforrás alapján
+### 5.10 Kártyaállomány auditja a két 1.4v hivatalos főforrás alapján
 
 Állapot: következő aktív munkafázis
 
@@ -509,8 +509,8 @@ A kártyák javítása, újratervezése és új kártyák létrehozása előtt l
 
 Kötelező előkészítő dokumentumok:
 
-AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK
-AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK
+`Aeterna dokumentációk/reference/AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK 1.0v.md`
+`Aeterna dokumentációk/reference/AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK 1.1v.md`
 
 Az Ötletláda célja:
 
@@ -526,7 +526,7 @@ a kártyatervezéshez használható elemek pontos felsorolása;
 a két 1.4v főforrásból származó használható Birodalmak, Klánok, Fajok, Kasztok, Vérvonalak, kulcsszavak és szabályi korlátok összegyűjtése;
 a kiegészítői elemek státuszának elkülönítése;
 a tiltott, archív vagy csak későbbi munkában használható elemek külön jelölése;
-a cards.xlsx strukturált mezőinek későbbi javításához szükséges tervezési alap biztosítása.
+az `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx` structured mezőinek későbbi javításához szükséges tervezési alap biztosítása.
 
 ### 5.11 Kártyaállomány újratervezése és auditja a két 1.4v főforrás alapján
 
