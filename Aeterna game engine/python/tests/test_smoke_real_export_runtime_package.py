@@ -93,7 +93,7 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
             self.xlsx_export.PROFILES["decklists"],
             self.xlsx_export.PROFILES["lookups_runtime"],
             include_decklists=True,
-            include_lookups_runtime=False,
+            include_lookups_runtime=True,
         )
 
         summary = self.runner.run_smoke(xlsx_path=xlsx_path, output_dir=output_dir, include_decklists=True)
@@ -114,6 +114,7 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
 
     def test_smoke_runner_can_include_real_runtime_lookups(self):
         xlsx_path = self.temp_dir / "aeterna_cards_decks_lookups.xlsx"
+        lookups_xlsx_path = self.temp_dir / "LOOKUPS.xlsx"
         output_dir = self.temp_dir / "smoke_output_with_lookups"
         _write_runtime_cards_workbook(
             xlsx_path,
@@ -124,9 +125,11 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
             include_decklists=True,
             include_lookups_runtime=True,
         )
+        _write_lookups_workbook(lookups_xlsx_path)
 
         summary = self.runner.run_smoke(
             xlsx_path=xlsx_path,
+            lookups_xlsx_path=lookups_xlsx_path,
             output_dir=output_dir,
             include_decklists=True,
             include_lookups_runtime=True,
@@ -134,14 +137,15 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
 
         self.assertEqual(summary["exported_card_rows"], 5)
         self.assertEqual(summary["decklist_export_rows"], 5)
-        self.assertEqual(summary["lookups_export_rows"], 7)
+        self.assertGreater(summary["lookups_export_rows"], 7)
         self.assertTrue(summary["lookups_export_jsonl_exists"])
         self.assertFalse(summary["validation_blocking"])
         self.assertEqual(summary["deck_reference_errors"], 0)
         self.assertEqual(summary["unknown_realm_errors"], 0)
         self.assertEqual(summary["unknown_card_type_errors"], 0)
         self.assertEqual(summary["diagnostic_count"], 0)
-        self.assertEqual(summary["lookups_source"], "export-derived")
+        self.assertEqual(summary["lookups_xlsx_path"], str(lookups_xlsx_path))
+        self.assertEqual(summary["lookups_source"], "LOOKUPS.xlsx:RUNTIME_CORE+RUNTIME_ABILITY")
         self.assertNotIn("lookups", summary["fixture_components"])
 
         manifest = json.loads((output_dir / "runtime_package" / "manifest.json").read_text(encoding="utf-8"))
@@ -274,6 +278,49 @@ def _runtime_lookup_rows():
         }
         for index, (group, value) in enumerate(values, start=1)
     ]
+
+
+def _write_lookups_workbook(path):
+    workbook = Workbook()
+    default_sheet = workbook.active
+    workbook.remove(default_sheet)
+    core_sheet = workbook.create_sheet("RUNTIME_CORE")
+    ability_sheet = workbook.create_sheet("RUNTIME_ABILITY")
+    headers = [
+        "Lookup_Group",
+        "Value",
+        "Label_HU",
+        "Status",
+        "Canonical_Value",
+        "Used_For",
+        "Sort_Order",
+        "Source",
+        "Notes",
+    ]
+    core_sheet.append(headers)
+    ability_sheet.append(headers)
+    for row in _runtime_lookup_rows():
+        target_sheet = ability_sheet if row["Lookup_Group"] in ("Keyword", "Trigger", "Target", "Effect_Tag", "Duration") else core_sheet
+        row = dict(row)
+        row["Value"] = _canonical_lookup_value(row["Lookup_Group"], row["Value"])
+        row["Canonical_Value"] = row["Value"]
+        target_sheet.append([row.get(header, "none") for header in headers])
+    workbook.save(path)
+    workbook.close()
+
+
+def _canonical_lookup_value(group, value):
+    if group == "Card_Type":
+        return {
+            "EntitĂˇs": "entity",
+            "Ige": "incantation",
+            "RituĂˇlĂ©": "ritual",
+            "Jel": "sigil",
+            "SĂ­k": "plane",
+        }.get(value, value)
+    if group == "Realm":
+        return str(value).lower()
+    return value
 
 
 if __name__ == "__main__":

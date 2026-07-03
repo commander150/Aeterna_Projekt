@@ -19,6 +19,7 @@ DEFAULT_XLSX_PATH = (
     / "Aeterna dokumentációk"
     / "AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx"
 )
+DEFAULT_LOOKUPS_XLSX_PATH = PROJECT_ROOT / "Aeterna dokumentációk" / "LOOKUPS.xlsx"
 DEFAULT_TEMP_OUTPUT_DIR = PROJECT_TEMP_DIR / "publish_runtime_package_candidate"
 DEFAULT_GODOT_PACKAGE_DIR = ENGINE_DIR / "Godot" / "runtime_package"
 
@@ -55,6 +56,7 @@ SMOKE_RUNNER = _load_module(
 
 def publish_runtime_package(
     xlsx_path=DEFAULT_XLSX_PATH,
+    lookups_xlsx_path=DEFAULT_LOOKUPS_XLSX_PATH,
     temp_output_dir=DEFAULT_TEMP_OUTPUT_DIR,
     godot_package_dir=DEFAULT_GODOT_PACKAGE_DIR,
     dry_run=False,
@@ -69,6 +71,7 @@ def publish_runtime_package(
         output_dir=temp_output_dir,
         include_decklists=True,
         include_lookups_runtime=True,
+        lookups_xlsx_path=Path(lookups_xlsx_path),
     )
     candidate_package_dir = temp_output_dir / "runtime_package"
     validation_errors = validate_candidate(summary, candidate_package_dir)
@@ -124,6 +127,8 @@ def validate_candidate(summary, candidate_package_dir):
 
 def print_publish_summary(summary):
     print("AETERNA runtime package publish")
+    print("xlsx_path: %s" % summary.get("xlsx_path", ""))
+    print("lookups_xlsx_path: %s" % summary.get("lookups_xlsx_path", ""))
     print("candidate_package_dir: %s" % summary.get("candidate_package_dir", ""))
     print("godot_package_dir: %s" % summary.get("godot_package_dir", ""))
     print("cards_count: %s" % summary.get("cards_jsonl_rows", ""))
@@ -146,6 +151,12 @@ def build_parser():
     parser = argparse.ArgumentParser(description="Validate and publish a runtime package candidate to Godot.")
     parser.add_argument("--xlsx", type=Path, default=DEFAULT_XLSX_PATH, help="Source XLSX file.")
     parser.add_argument(
+        "--lookups-xlsx",
+        type=Path,
+        default=DEFAULT_LOOKUPS_XLSX_PATH,
+        help="Canonical LOOKUPS.xlsx source file.",
+    )
+    parser.add_argument(
         "--temp-output-dir",
         type=Path,
         default=DEFAULT_TEMP_OUTPUT_DIR,
@@ -167,6 +178,7 @@ def main(argv=None):
     try:
         summary = publish_runtime_package(
             xlsx_path=args.xlsx,
+            lookups_xlsx_path=args.lookups_xlsx,
             temp_output_dir=args.temp_output_dir,
             godot_package_dir=args.godot_package_dir,
             dry_run=args.dry_run,

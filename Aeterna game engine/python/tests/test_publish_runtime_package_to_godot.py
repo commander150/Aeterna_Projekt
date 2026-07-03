@@ -48,6 +48,7 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
         with self.assertRaises(self.publisher.PublishError):
             self.publisher.publish_runtime_package(
                 xlsx_path=self.temp_root / "source.xlsx",
+                lookups_xlsx_path=self.temp_root / "LOOKUPS.xlsx",
                 temp_output_dir=self.temp_output_dir,
                 godot_package_dir=self.godot_package_dir,
             )
@@ -61,6 +62,7 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
 
         summary = self.publisher.publish_runtime_package(
             xlsx_path=self.temp_root / "source.xlsx",
+            lookups_xlsx_path=self.temp_root / "LOOKUPS.xlsx",
             temp_output_dir=self.temp_output_dir,
             godot_package_dir=self.godot_package_dir,
         )
@@ -78,6 +80,7 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
 
         summary = self.publisher.publish_runtime_package(
             xlsx_path=self.temp_root / "source.xlsx",
+            lookups_xlsx_path=self.temp_root / "LOOKUPS.xlsx",
             temp_output_dir=self.temp_output_dir,
             godot_package_dir=self.godot_package_dir,
             dry_run=True,
@@ -85,6 +88,8 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
 
         self.assertFalse(summary["published"])
         self.assertTrue(summary["dry_run"])
+        self.assertEqual(summary["lookups_xlsx_path"], str(self.temp_root / "LOOKUPS.xlsx"))
+        self.assertEqual(summary["lookups_source"], "LOOKUPS.xlsx:RUNTIME_CORE+RUNTIME_ABILITY")
         self.assertEqual(summary["would_copy_files"], self.publisher.PACKAGE_FILES)
         self.assertEqual(self.copied_files, [])
 
@@ -97,6 +102,7 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
 
         summary = self.publisher.publish_runtime_package(
             xlsx_path=self.temp_root / "source.xlsx",
+            lookups_xlsx_path=self.temp_root / "LOOKUPS.xlsx",
             temp_output_dir=self.temp_output_dir,
             godot_package_dir=self.godot_package_dir,
             dry_run=True,
@@ -119,13 +125,15 @@ class _StubSmokeRunner:
         output_dir,
         include_decklists,
         include_lookups_runtime,
+        lookups_xlsx_path=None,
     ):
         return {
             "xlsx_path": str(xlsx_path),
+            "lookups_xlsx_path": str(lookups_xlsx_path),
             "runtime_package_output_dir": str(Path(output_dir) / "runtime_package"),
             "cards_jsonl_rows": 2,
             "decks_source": "export-derived",
-            "lookups_source": "export-derived",
+            "lookups_source": "LOOKUPS.xlsx:RUNTIME_CORE+RUNTIME_ABILITY",
             "validation_blocking": False,
             "diagnostic_count": 0,
             "deck_reference_errors": 0,

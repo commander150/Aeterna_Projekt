@@ -30,6 +30,10 @@ PACKAGE_BUILDER = _load_module(
     "build_sample_runtime_package",
     ENGINE_PYTHON_DIR / "tools" / "runtime_package" / "build_sample_runtime_package.py",
 )
+LOOKUPS_XLSX_READER = _load_module(
+    "lookups_xlsx_reader",
+    ENGINE_PYTHON_DIR / "tools" / "runtime_package" / "lookups_xlsx_reader.py",
+)
 
 
 def run_smoke(
@@ -39,6 +43,7 @@ def run_smoke(
     keep_output=False,
     include_decklists=False,
     include_lookups_runtime=False,
+    lookups_xlsx_path=None,
 ):
     """Export runtime cards from XLSX and build a partial runtime package smoke output."""
     xlsx_path = _resolve_xlsx_path(xlsx_path, source_dir)
@@ -90,21 +95,28 @@ def run_smoke(
         lookups_export_warnings = []
         lookups_warnings_path = None
         if include_lookups_runtime:
-            lookups_profile, lookups_sheet_name, export_lookups_path, lookups_output_format = XLSX_EXPORT.resolve_export_options(
-                "lookups_runtime",
-                None,
-                None,
-                None,
-                output_dir=export_dir,
-            )
-            lookups_export_count, lookups_export_warnings = XLSX_EXPORT.export_worksheet(
-                xlsx_path,
-                lookups_sheet_name,
-                export_lookups_path,
-                lookups_output_format,
-                profile=lookups_profile,
-            )
-            lookups_warnings_path = XLSX_EXPORT.write_warnings(export_lookups_path, lookups_export_warnings)
+            export_lookups_path = export_dir / "LOOKUPS_RUNTIME.jsonl"
+            if lookups_xlsx_path:
+                lookups_xlsx_path = Path(lookups_xlsx_path)
+                lookup_reader_result = LOOKUPS_XLSX_READER.load_runtime_lookups_from_xlsx(lookups_xlsx_path)
+                lookups_export_count = _write_lookup_jsonl(export_lookups_path, lookup_reader_result["lookups"])
+                lookups_export_warnings = lookup_reader_result["summary"].get("diagnostics", [])
+            else:
+                lookups_profile, lookups_sheet_name, export_lookups_path, lookups_output_format = XLSX_EXPORT.resolve_export_options(
+                    "lookups_runtime",
+                    None,
+                    None,
+                    None,
+                    output_dir=export_dir,
+                )
+                lookups_export_count, lookups_export_warnings = XLSX_EXPORT.export_worksheet(
+                    xlsx_path,
+                    lookups_sheet_name,
+                    export_lookups_path,
+                    lookups_output_format,
+                    profile=lookups_profile,
+                )
+                lookups_warnings_path = XLSX_EXPORT.write_warnings(export_lookups_path, lookups_export_warnings)
 
         build_result = PACKAGE_BUILDER.build_package(
             package_dir,
@@ -120,6 +132,7 @@ def run_smoke(
         manifest = _read_json(manifest_path)
         summary = {
             "xlsx_path": str(xlsx_path),
+            "lookups_xlsx_path": str(lookups_xlsx_path) if lookups_xlsx_path else "none",
             "export_runtime_jsonl": str(export_runtime_path),
             "export_runtime_jsonl_exists": export_runtime_path.exists(),
             "exported_card_rows": export_count,
@@ -149,7 +162,7 @@ def run_smoke(
             "package_status": "smoke_partial_real_data_build",
             "cards_source": "export-derived",
             "decks_source": "export-derived" if include_decklists else "sample fixture",
-            "lookups_source": "export-derived" if include_lookups_runtime else "sample fixture",
+            "lookups_source": _lookups_source(include_lookups_runtime, lookups_xlsx_path),
             "fixture_components": _fixture_components(include_decklists, include_lookups_runtime),
             "output_kept": (not owns_output_dir) or keep_output,
         }
@@ -162,6 +175,7 @@ def run_smoke(
 def print_summary(summary):
     print("AETERNA real EXPORT_RUNTIME package smoke")
     print(f"xlsx_path: {summary['xlsx_path']}")
+    print(f"lookups_xlsx_path: {summary.get('lookups_xlsx_path', 'none')}")
     print(f"exported_card_rows: {summary['exported_card_rows']}")
     print(f"export_runtime_jsonl_exists: {str(summary['export_runtime_jsonl_exists']).lower()}")
     print(f"export_runtime_jsonl: {summary['export_runtime_jsonl']}")
@@ -239,6 +253,47 @@ def _fixture_components(include_decklists, include_lookups_runtime):
     return components
 
 
+def _lookups_source(include_lookups_runtime, lookups_xlsx_path):
+    if not include_lookups_runtime:
+        return "sample fixture"
+    if lookups_xlsx_path:
+        return "LOOKUPS.xlsx:RUNTIME_CORE+RUNTIME_ABILITY"
+    return "embedded 5A. LOOKUPS_RUNTIME"
+
+
+def _write_lookup_jsonl(path, lookups):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with Path(path).open("w", encoding="utf-8", newline="\n") as handle:
+        rows_written = 0
+        for lookup in lookups:
+            for row in _lookup_to_export_rows(lookup):
+                handle.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
+                rows_written += 1
+    return rows_written
+
+
+def _lookup_to_export_rows(lookup):
+    rows = [_lookup_to_export_row(lookup, lookup["value"])]
+    label_hu = lookup.get("label_hu", "none")
+    if label_hu not in ("none", lookup["value"]):
+        rows.append(_lookup_to_export_row(lookup, label_hu))
+    return rows
+
+
+def _lookup_to_export_row(lookup, value):
+    return {
+        "Lookup_Group": lookup["lookup_group"],
+        "Value": value,
+        "Label_HU": lookup["label_hu"],
+        "Status": lookup["status"],
+        "Canonical_Value": lookup["canonical_value"],
+        "Used_For": ";".join(lookup["used_for"]),
+        "Sort_Order": lookup["sort_order"],
+        "Source": lookup["source"],
+        "Notes": lookup["notes"],
+    }
+
+
 def build_parser():
     parser = argparse.ArgumentParser(description="Smoke build a partial runtime package from XLSX EXPORT_RUNTIME cards.")
     parser.add_argument("--xlsx", type=Path, default=None, help="Source XLSX file.")
@@ -253,8 +308,9 @@ def build_parser():
     parser.add_argument(
         "--include-lookups-runtime",
         action="store_true",
-        help="Also export LOOKUPS_RUNTIME and use it for lookups.json.",
+        help="Also export runtime lookups and use them for lookups.json.",
     )
+    parser.add_argument("--lookups-xlsx", type=Path, default=None, help="Canonical LOOKUPS.xlsx source file.")
     return parser
 
 
@@ -269,6 +325,7 @@ def main(argv=None):
             keep_output=args.keep_output,
             include_decklists=args.include_decklists,
             include_lookups_runtime=args.include_lookups_runtime,
+            lookups_xlsx_path=args.lookups_xlsx,
         )
         print_summary(summary)
         return 0
