@@ -150,17 +150,19 @@ A projektben több technikai réteg van, ezért nincs egyetlen univerzális futt
 
 ### Régi Python motor
 
-A régi Python motor jelenleg archív / review jellegű referencia.
+A régi Python motor jelenleg legacy / review jellegű referencia.
 
-Helye:
+Jelenleg még megtalálható működő belépési pontként az új engine Python mappájában is:
+
+- `Aeterna game engine/python/main.py`
+
+Ez történeti okból maradt meg, mert a korábbi szimulációs program ezt használta belépési pontként.
+
+Archív / összevetési másolata:
 
 - `Archive/old python engine/`
 
-Korábbi belépési útja ebben a mappában:
-
-- `python main.py`
-
-Ez nem az új contract-first engine teljes futtatása, hanem a régi szimulációs motor történeti belépési útja. Új fejlesztés vagy refaktor csak külön döntési kör után induljon rajta.
+Fontos: ez a `main.py` nem az új contract-first engine végleges belépési pontja. Új engine belépési pontot később külön, egyértelmű névvel kell létrehozni, hogy ne keveredjen a legacy szimulátorral.
 
 ### Új engine Python tooling
 
