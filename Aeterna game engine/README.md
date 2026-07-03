@@ -48,7 +48,7 @@ A jelenlegi dokumentációs irány már rögzíti:
 
 A pontos technikai checkpoint állapot helye:
 
-- `CHECKPOINTS.md`
+- `docs/checkpoints/CHECKPOINTS.md`
 
 ---
 
