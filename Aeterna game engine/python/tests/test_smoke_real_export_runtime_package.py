@@ -146,12 +146,25 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         self.assertEqual(summary["diagnostic_count"], 0)
         self.assertEqual(summary["lookups_xlsx_path"], str(lookups_xlsx_path))
         self.assertEqual(summary["lookups_source"], "LOOKUPS.xlsx:RUNTIME_CORE+RUNTIME_ABILITY")
+        self.assertEqual(summary["normalization_aliases_source"], "LOOKUPS.xlsx:RUNTIME_LEGACY_ALIAS")
+        self.assertEqual(summary["normalization_aliases_count"], 2)
+        self.assertEqual(summary["normalization_aliases_requires_audit_count"], 1)
+        self.assertEqual(summary["normalization_aliases_allowed_count"], 1)
         self.assertNotIn("lookups", summary["fixture_components"])
 
         manifest = json.loads((output_dir / "runtime_package" / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["source_files"][1]["type"], "lookups_runtime_jsonl")
         self.assertEqual(manifest["source_files"][2]["type"], "export_runtime_cards_jsonl")
         self.assertEqual(manifest["source_files"][3]["type"], "product_decklists_jsonl")
+        self.assertEqual(manifest["source_files"][4]["type"], "lookups_xlsx_runtime_legacy_aliases")
+        manifest_files = {item["path"] for item in manifest["files"]}
+        self.assertIn("normalization_aliases.json", manifest_files)
+        normalization_aliases = json.loads(
+            (output_dir / "runtime_package" / "normalization_aliases.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(normalization_aliases["normalization_aliases"]), 2)
+        self.assertTrue(normalization_aliases["normalization_aliases"][1]["requires_audit"])
+        self.assertFalse(normalization_aliases["normalization_aliases"][1]["normalization_allowed"])
 
 
 def _write_runtime_cards_workbook(
@@ -286,6 +299,7 @@ def _write_lookups_workbook(path):
     workbook.remove(default_sheet)
     core_sheet = workbook.create_sheet("RUNTIME_CORE")
     ability_sheet = workbook.create_sheet("RUNTIME_ABILITY")
+    legacy_alias_sheet = workbook.create_sheet("RUNTIME_LEGACY_ALIAS")
     headers = [
         "Lookup_Group",
         "Value",
@@ -299,12 +313,15 @@ def _write_lookups_workbook(path):
     ]
     core_sheet.append(headers)
     ability_sheet.append(headers)
+    legacy_alias_sheet.append(headers)
     for row in _runtime_lookup_rows():
         target_sheet = ability_sheet if row["Lookup_Group"] in ("Keyword", "Trigger", "Target", "Effect_Tag", "Duration") else core_sheet
         row = dict(row)
         row["Value"] = _canonical_lookup_value(row["Lookup_Group"], row["Value"])
         row["Canonical_Value"] = row["Value"]
         target_sheet.append([row.get(header, "none") for header in headers])
+    for row in _runtime_legacy_alias_rows():
+        legacy_alias_sheet.append([row.get(header, "none") for header in headers])
     workbook.save(path)
     workbook.close()
 
@@ -321,6 +338,33 @@ def _canonical_lookup_value(group, value):
     if group == "Realm":
         return str(value).lower()
     return value
+
+
+def _runtime_legacy_alias_rows():
+    return [
+        {
+            "Lookup_Group": "Card_Type",
+            "Value": "tactic",
+            "Label_HU": "taktika",
+            "Status": "legacy",
+            "Canonical_Value": "ritual",
+            "Used_For": "runtime_normalization",
+            "Sort_Order": 10,
+            "Source": "test",
+            "Notes": "temporary smoke fixture",
+        },
+        {
+            "Lookup_Group": "Card_Type",
+            "Value": "spell",
+            "Label_HU": "varazslat",
+            "Status": "legacy",
+            "Canonical_Value": "audit_required",
+            "Used_For": "runtime_normalization",
+            "Sort_Order": 20,
+            "Source": "test",
+            "Notes": "temporary smoke fixture",
+        },
+    ]
 
 
 if __name__ == "__main__":

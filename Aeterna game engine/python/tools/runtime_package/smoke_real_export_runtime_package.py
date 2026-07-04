@@ -34,6 +34,10 @@ LOOKUPS_XLSX_READER = _load_module(
     "lookups_xlsx_reader",
     ENGINE_PYTHON_DIR / "tools" / "runtime_package" / "lookups_xlsx_reader.py",
 )
+LEGACY_ALIASES_READER = _load_module(
+    "runtime_legacy_aliases_reader",
+    ENGINE_PYTHON_DIR / "tools" / "runtime_package" / "runtime_legacy_aliases_reader.py",
+)
 
 
 def run_smoke(
@@ -118,11 +122,28 @@ def run_smoke(
                 )
                 lookups_warnings_path = XLSX_EXPORT.write_warnings(export_lookups_path, lookups_export_warnings)
 
+        normalization_aliases_payload = PACKAGE_BUILDER.build_normalization_aliases_payload([])
+        normalization_aliases_source = None
+        if lookups_xlsx_path:
+            legacy_aliases_result = LEGACY_ALIASES_READER.load_runtime_legacy_aliases_from_xlsx(lookups_xlsx_path)
+            normalization_aliases_payload = PACKAGE_BUILDER.build_normalization_aliases_payload(
+                legacy_aliases_result["aliases"]
+            )
+            normalization_aliases_source = {
+                "path": str(Path(lookups_xlsx_path)),
+                "type": "lookups_xlsx_runtime_legacy_aliases",
+                "sheet": "RUNTIME_LEGACY_ALIAS",
+                "adapter": "runtime_legacy_aliases_reader.py",
+                "summary": legacy_aliases_result["summary"],
+            }
+
         build_result = PACKAGE_BUILDER.build_package(
             package_dir,
             export_runtime_cards_path=export_runtime_path,
             export_runtime_decks_path=export_decklists_path,
             export_runtime_lookups_path=export_lookups_path,
+            normalization_aliases_payload=normalization_aliases_payload,
+            normalization_aliases_source=normalization_aliases_source,
         )
 
         manifest_path = package_dir / "manifest.json"
@@ -148,6 +169,10 @@ def run_smoke(
             "lookups_export_rows": lookups_export_count,
             "lookups_export_warnings": len(lookups_export_warnings),
             "lookups_export_warnings_path": str(lookups_warnings_path) if lookups_warnings_path else "none",
+            "normalization_aliases_source": _normalization_aliases_source(lookups_xlsx_path),
+            "normalization_aliases_count": normalization_aliases_payload["summary"]["records_loaded"],
+            "normalization_aliases_requires_audit_count": normalization_aliases_payload["summary"]["requires_audit"],
+            "normalization_aliases_allowed_count": normalization_aliases_payload["summary"]["normalization_allowed"],
             "runtime_package_output_dir": str(package_dir),
             "cards_jsonl_exists": cards_path.exists(),
             "cards_jsonl_rows": _count_jsonl_rows(cards_path),
@@ -197,6 +222,10 @@ def print_summary(summary):
     print(f"lookups_export_jsonl: {summary['lookups_export_jsonl']}")
     print(f"lookups_export_rows: {summary['lookups_export_rows']}")
     print(f"lookups_export_warnings: {summary['lookups_export_warnings']}")
+    print(f"normalization_aliases_source: {summary['normalization_aliases_source']}")
+    print(f"normalization_aliases_count: {summary['normalization_aliases_count']}")
+    print(f"normalization_aliases_requires_audit_count: {summary['normalization_aliases_requires_audit_count']}")
+    print(f"normalization_aliases_allowed_count: {summary['normalization_aliases_allowed_count']}")
     print(f"diagnostic_count: {summary['diagnostic_count']}")
     print("cards_source: export-derived")
     print(f"decks_source: {summary['decks_source']}")
@@ -259,6 +288,12 @@ def _lookups_source(include_lookups_runtime, lookups_xlsx_path):
     if lookups_xlsx_path:
         return "LOOKUPS.xlsx:RUNTIME_CORE+RUNTIME_ABILITY"
     return "embedded 5A. LOOKUPS_RUNTIME"
+
+
+def _normalization_aliases_source(lookups_xlsx_path):
+    if lookups_xlsx_path:
+        return "LOOKUPS.xlsx:RUNTIME_LEGACY_ALIAS"
+    return "none"
 
 
 def _write_lookup_jsonl(path, lookups):

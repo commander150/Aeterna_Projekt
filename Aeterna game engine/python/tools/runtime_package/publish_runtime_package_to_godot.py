@@ -31,6 +31,7 @@ PACKAGE_FILES = [
     "diagnostics.json",
     "engine_support.json",
     "aliases.json",
+    "normalization_aliases.json",
     "ability_registry.json",
     "build_report.md",
 ]
@@ -134,6 +135,16 @@ def print_publish_summary(summary):
     print("cards_count: %s" % summary.get("cards_jsonl_rows", ""))
     print("decks_source: %s" % summary.get("decks_source", ""))
     print("lookups_source: %s" % summary.get("lookups_source", ""))
+    print("normalization_aliases_source: %s" % summary.get("normalization_aliases_source", ""))
+    print("normalization_aliases_count: %s" % summary.get("normalization_aliases_count", ""))
+    print(
+        "normalization_aliases_requires_audit_count: %s"
+        % summary.get("normalization_aliases_requires_audit_count", "")
+    )
+    print(
+        "normalization_aliases_allowed_count: %s"
+        % summary.get("normalization_aliases_allowed_count", "")
+    )
     print("validation_blocking: %s" % str(summary.get("validation_blocking", "")).lower())
     print("diagnostic_count: %s" % summary.get("diagnostic_count", ""))
     print("deck_reference_errors: %s" % summary.get("deck_reference_errors", ""))

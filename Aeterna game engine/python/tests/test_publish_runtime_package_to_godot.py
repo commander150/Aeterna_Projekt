@@ -90,6 +90,10 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
         self.assertTrue(summary["dry_run"])
         self.assertEqual(summary["lookups_xlsx_path"], str(self.temp_root / "LOOKUPS.xlsx"))
         self.assertEqual(summary["lookups_source"], "LOOKUPS.xlsx:RUNTIME_CORE+RUNTIME_ABILITY")
+        self.assertEqual(summary["normalization_aliases_source"], "LOOKUPS.xlsx:RUNTIME_LEGACY_ALIAS")
+        self.assertEqual(summary["normalization_aliases_count"], 2)
+        self.assertEqual(summary["normalization_aliases_requires_audit_count"], 1)
+        self.assertEqual(summary["normalization_aliases_allowed_count"], 1)
         self.assertEqual(summary["would_copy_files"], self.publisher.PACKAGE_FILES)
         self.assertEqual(self.copied_files, [])
 
@@ -134,6 +138,10 @@ class _StubSmokeRunner:
             "cards_jsonl_rows": 2,
             "decks_source": "export-derived",
             "lookups_source": "LOOKUPS.xlsx:RUNTIME_CORE+RUNTIME_ABILITY",
+            "normalization_aliases_source": "LOOKUPS.xlsx:RUNTIME_LEGACY_ALIAS",
+            "normalization_aliases_count": 2,
+            "normalization_aliases_requires_audit_count": 1,
+            "normalization_aliases_allowed_count": 1,
             "validation_blocking": False,
             "diagnostic_count": 0,
             "deck_reference_errors": 0,

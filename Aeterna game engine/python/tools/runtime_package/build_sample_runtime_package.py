@@ -59,6 +59,7 @@ OUTPUT_FILES = [
     "decks.jsonl",
     "lookups.json",
     "aliases.json",
+    "normalization_aliases.json",
     "ability_registry.json",
     "engine_support.json",
     "diagnostics.json",
@@ -302,6 +303,22 @@ def _uses_export_inputs(export_runtime_cards_path, export_runtime_decks_path, ex
     return any((export_runtime_cards_path, export_runtime_decks_path, export_runtime_lookups_path))
 
 
+def build_normalization_aliases_payload(aliases):
+    aliases = list(aliases or [])
+    return {
+        "normalization_aliases": aliases,
+        "summary": {
+            "records_loaded": len(aliases),
+            "normalization_allowed": sum(1 for alias in aliases if alias.get("normalization_allowed")),
+            "requires_audit": sum(1 for alias in aliases if alias.get("requires_audit")),
+        },
+    }
+
+
+def _empty_normalization_aliases_payload():
+    return build_normalization_aliases_payload([])
+
+
 def _lookup_values(lookups, group):
     return {item["value"] for item in lookups if item["lookup_group"] == group and item["status"] == "active"}
 
@@ -447,6 +464,8 @@ def build_package(
     export_runtime_cards_path=None,
     export_runtime_decks_path=None,
     export_runtime_lookups_path=None,
+    normalization_aliases_payload=None,
+    normalization_aliases_source=None,
 ):
     repo_root = Path(__file__).resolve().parents[2]
     target_dir = Path(output_dir) if output_dir else repo_root / "fixture_runtime_package"
@@ -493,6 +512,10 @@ def build_package(
         )
     else:
         decks = _fixture_decks()
+    if normalization_aliases_payload is None:
+        normalization_aliases_payload = _empty_normalization_aliases_payload()
+    elif normalization_aliases_source:
+        source_files.append(normalization_aliases_source)
     ability_registry = _fixture_ability_registry()
     diagnostics = [] if _uses_export_inputs(export_runtime_cards_path, export_runtime_decks_path, export_runtime_lookups_path) else _fixture_base_diagnostics()
 
@@ -526,6 +549,7 @@ def build_package(
     _write_jsonl(target_dir / "decks.jsonl", decks)
     _write_json(target_dir / "lookups.json", {"lookups": lookups})
     _write_json(target_dir / "aliases.json", {"aliases": aliases})
+    _write_json(target_dir / "normalization_aliases.json", normalization_aliases_payload)
     _write_json(target_dir / "ability_registry.json", {"ability_registry": ability_registry})
     _write_json(target_dir / "engine_support.json", engine_support)
     _write_json(target_dir / "diagnostics.json", {"diagnostics": diagnostics})

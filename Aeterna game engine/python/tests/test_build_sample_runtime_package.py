@@ -43,6 +43,7 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
                 "decks.jsonl",
                 "lookups.json",
                 "aliases.json",
+                "normalization_aliases.json",
                 "ability_registry.json",
                 "engine_support.json",
                 "diagnostics.json",
@@ -83,6 +84,11 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertIn("Blocking hibak szama: 0", report)
             diagnostics = json.loads((output_dir / "diagnostics.json").read_text(encoding="utf-8"))["diagnostics"]
             self.assertEqual(diagnostics[0]["code"], "MANUAL_REVIEW_PLACEHOLDER")
+            normalization_aliases = json.loads(
+                (output_dir / "normalization_aliases.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(normalization_aliases["normalization_aliases"], [])
+            self.assertEqual(normalization_aliases["summary"]["records_loaded"], 0)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
         self.assertFalse(temp_dir.exists(), "Sample runtime package test temp cleanup left directory: %s" % temp_dir)
