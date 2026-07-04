@@ -32,6 +32,7 @@ PACKAGE_FILES = [
     "engine_support.json",
     "aliases.json",
     "normalization_aliases.json",
+    "normalization_audit_report.json",
     "ability_registry.json",
     "build_report.md",
 ]
@@ -145,6 +146,9 @@ def print_publish_summary(summary):
         "normalization_aliases_allowed_count: %s"
         % summary.get("normalization_aliases_allowed_count", "")
     )
+    print("normalization_audit_matches: %s" % summary.get("normalization_audit_matches", ""))
+    print("normalization_audit_requires_audit: %s" % summary.get("normalization_audit_requires_audit", ""))
+    print("normalization_audit_allowed: %s" % summary.get("normalization_audit_allowed", ""))
     print("validation_blocking: %s" % str(summary.get("validation_blocking", "")).lower())
     print("diagnostic_count: %s" % summary.get("diagnostic_count", ""))
     print("deck_reference_errors: %s" % summary.get("deck_reference_errors", ""))

@@ -94,7 +94,11 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
         self.assertEqual(summary["normalization_aliases_count"], 2)
         self.assertEqual(summary["normalization_aliases_requires_audit_count"], 1)
         self.assertEqual(summary["normalization_aliases_allowed_count"], 1)
+        self.assertEqual(summary["normalization_audit_matches"], 3)
+        self.assertEqual(summary["normalization_audit_requires_audit"], 1)
+        self.assertEqual(summary["normalization_audit_allowed"], 2)
         self.assertEqual(summary["would_copy_files"], self.publisher.PACKAGE_FILES)
+        self.assertIn("normalization_audit_report.json", summary["would_copy_files"])
         self.assertEqual(self.copied_files, [])
 
     def test_existing_candidate_output_uses_fresh_candidate_dir(self):
@@ -142,6 +146,9 @@ class _StubSmokeRunner:
             "normalization_aliases_count": 2,
             "normalization_aliases_requires_audit_count": 1,
             "normalization_aliases_allowed_count": 1,
+            "normalization_audit_matches": 3,
+            "normalization_audit_requires_audit": 1,
+            "normalization_audit_allowed": 2,
             "validation_blocking": False,
             "diagnostic_count": 0,
             "deck_reference_errors": 0,

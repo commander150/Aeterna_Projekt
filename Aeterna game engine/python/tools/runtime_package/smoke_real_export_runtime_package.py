@@ -151,6 +151,7 @@ def run_smoke(
         cards_path = package_dir / "cards.jsonl"
         diagnostics = _read_diagnostics(diagnostics_path)
         manifest = _read_json(manifest_path)
+        normalization_audit_summary = build_result.get("normalization_audit_summary", {})
         summary = {
             "xlsx_path": str(xlsx_path),
             "lookups_xlsx_path": str(lookups_xlsx_path) if lookups_xlsx_path else "none",
@@ -173,6 +174,9 @@ def run_smoke(
             "normalization_aliases_count": normalization_aliases_payload["summary"]["records_loaded"],
             "normalization_aliases_requires_audit_count": normalization_aliases_payload["summary"]["requires_audit"],
             "normalization_aliases_allowed_count": normalization_aliases_payload["summary"]["normalization_allowed"],
+            "normalization_audit_matches": int(normalization_audit_summary.get("matches_total", 0)),
+            "normalization_audit_requires_audit": int(normalization_audit_summary.get("requires_audit", 0)),
+            "normalization_audit_allowed": int(normalization_audit_summary.get("normalization_allowed", 0)),
             "runtime_package_output_dir": str(package_dir),
             "cards_jsonl_exists": cards_path.exists(),
             "cards_jsonl_rows": _count_jsonl_rows(cards_path),
@@ -226,6 +230,9 @@ def print_summary(summary):
     print(f"normalization_aliases_count: {summary['normalization_aliases_count']}")
     print(f"normalization_aliases_requires_audit_count: {summary['normalization_aliases_requires_audit_count']}")
     print(f"normalization_aliases_allowed_count: {summary['normalization_aliases_allowed_count']}")
+    print(f"normalization_audit_matches: {summary['normalization_audit_matches']}")
+    print(f"normalization_audit_requires_audit: {summary['normalization_audit_requires_audit']}")
+    print(f"normalization_audit_allowed: {summary['normalization_audit_allowed']}")
     print(f"diagnostic_count: {summary['diagnostic_count']}")
     print("cards_source: export-derived")
     print(f"decks_source: {summary['decks_source']}")

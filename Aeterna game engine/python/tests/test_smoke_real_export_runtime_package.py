@@ -150,6 +150,9 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         self.assertEqual(summary["normalization_aliases_count"], 2)
         self.assertEqual(summary["normalization_aliases_requires_audit_count"], 1)
         self.assertEqual(summary["normalization_aliases_allowed_count"], 1)
+        self.assertEqual(summary["normalization_audit_matches"], 0)
+        self.assertEqual(summary["normalization_audit_requires_audit"], 0)
+        self.assertEqual(summary["normalization_audit_allowed"], 0)
         self.assertNotIn("lookups", summary["fixture_components"])
 
         manifest = json.loads((output_dir / "runtime_package" / "manifest.json").read_text(encoding="utf-8"))
@@ -159,12 +162,17 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         self.assertEqual(manifest["source_files"][4]["type"], "lookups_xlsx_runtime_legacy_aliases")
         manifest_files = {item["path"] for item in manifest["files"]}
         self.assertIn("normalization_aliases.json", manifest_files)
+        self.assertIn("normalization_audit_report.json", manifest_files)
         normalization_aliases = json.loads(
             (output_dir / "runtime_package" / "normalization_aliases.json").read_text(encoding="utf-8")
         )
         self.assertEqual(len(normalization_aliases["normalization_aliases"]), 2)
         self.assertTrue(normalization_aliases["normalization_aliases"][1]["requires_audit"])
         self.assertFalse(normalization_aliases["normalization_aliases"][1]["normalization_allowed"])
+        normalization_audit = json.loads(
+            (output_dir / "runtime_package" / "normalization_audit_report.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(normalization_audit["summary"]["matches_total"], 0)
 
 
 def _write_runtime_cards_workbook(

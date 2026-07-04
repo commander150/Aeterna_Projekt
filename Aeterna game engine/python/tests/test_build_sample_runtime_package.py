@@ -44,6 +44,7 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
                 "lookups.json",
                 "aliases.json",
                 "normalization_aliases.json",
+                "normalization_audit_report.json",
                 "ability_registry.json",
                 "engine_support.json",
                 "diagnostics.json",
@@ -89,6 +90,13 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             )
             self.assertEqual(normalization_aliases["normalization_aliases"], [])
             self.assertEqual(normalization_aliases["summary"]["records_loaded"], 0)
+            normalization_audit = json.loads(
+                (output_dir / "normalization_audit_report.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(normalization_audit["normalization_audit"], [])
+            self.assertEqual(normalization_audit["summary"]["matches_total"], 0)
+            self.assertEqual(normalization_audit["summary"]["requires_audit"], 0)
+            self.assertIn("Normalization audit matches: 0", report)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
         self.assertFalse(temp_dir.exists(), "Sample runtime package test temp cleanup left directory: %s" % temp_dir)
@@ -222,6 +230,86 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
         self.assertFalse(temp_dir.exists(), "Export-derived build test temp cleanup left directory: %s" % temp_dir)
+
+    def test_build_package_writes_normalization_audit_report_from_alias_payload(self):
+        builder = _load_builder_module()
+
+        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_fixture_runtime_package_%s" % uuid.uuid4().hex)
+        try:
+            output_dir = temp_dir / "fixture_runtime_package"
+            temp_dir.mkdir(parents=True)
+            aliases_payload = builder.build_normalization_aliases_payload(
+                [
+                    {
+                        "lookup_group": "card_type",
+                        "alias_value": "Entitas",
+                        "canonical_value": "entity",
+                        "normalization_allowed": True,
+                        "requires_audit": False,
+                        "notes": "Fixture card type alias.",
+                    },
+                    {
+                        "lookup_group": "card_type",
+                        "alias_value": "Ige",
+                        "canonical_value": "incantation",
+                        "normalization_allowed": True,
+                        "requires_audit": False,
+                        "notes": "Fixture card type alias.",
+                    },
+                    {
+                        "lookup_group": "card_type",
+                        "alias_value": "Rituale",
+                        "canonical_value": "ritual",
+                        "normalization_allowed": True,
+                        "requires_audit": False,
+                        "notes": "Fixture card type alias.",
+                    },
+                    {
+                        "lookup_group": "card_type",
+                        "alias_value": "Jel",
+                        "canonical_value": "sigil",
+                        "normalization_allowed": True,
+                        "requires_audit": False,
+                        "notes": "Fixture card type alias.",
+                    },
+                    {
+                        "lookup_group": "card_type",
+                        "alias_value": "Sik",
+                        "canonical_value": "plane",
+                        "normalization_allowed": True,
+                        "requires_audit": False,
+                        "notes": "Fixture card type alias.",
+                    },
+                    {
+                        "lookup_group": "realm",
+                        "alias_value": "Ignis",
+                        "canonical_value": "audit_required",
+                        "normalization_allowed": False,
+                        "requires_audit": True,
+                        "notes": "Fixture realm audit.",
+                    },
+                ]
+            )
+
+            result = builder.build_package(output_dir, normalization_aliases_payload=aliases_payload)
+
+            self.assertFalse(result["validation_summary"]["blocking"])
+            self.assertEqual(result["normalization_audit_summary"]["matches_total"], 11)
+            self.assertEqual(result["normalization_audit_summary"]["normalization_allowed"], 5)
+            self.assertEqual(result["normalization_audit_summary"]["requires_audit"], 6)
+            report = json.loads((output_dir / "normalization_audit_report.json").read_text(encoding="utf-8"))
+            self.assertEqual(report["summary"]["matches_total"], 11)
+            self.assertTrue(all(row["applied"] is False for row in report["normalization_audit"]))
+            manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
+            manifest_files = {item["path"] for item in manifest["files"]}
+            self.assertIn("normalization_audit_report.json", manifest_files)
+            build_report = (output_dir / "build_report.md").read_text(encoding="utf-8")
+            self.assertIn("Normalization audit matches: 11", build_report)
+            self.assertIn("Normalization audit requires audit: 6", build_report)
+            self.assertIn("Normalization audit allowed preview: 5", build_report)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        self.assertFalse(temp_dir.exists(), "Normalization audit build test temp cleanup left directory: %s" % temp_dir)
 
 
 def _fixture_export_records_for_builder(fixture_cards):
