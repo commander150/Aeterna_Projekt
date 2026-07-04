@@ -2,7 +2,7 @@
   "package_id": "aeterna.sample_runtime_package",
   "package_version": "0.1.0",
   "schema_version": "sample-runtime-package-v1",
-  "created_at": "2026-06-27T20:06:10+00:00",
+  "created_at": "2026-07-04T16:26:46+00:00",
   "ruleset_version": "sample-ruleset-v0",
   "source_files": [
     {
@@ -10,110 +10,18 @@
       "type": "in_code_fixture"
     },
     {
-      "path": "E:\\Letöltések\\Aeterna\\Aeterna_Projekt\\TEMP\\real_runtime_package_preflight\\exports\\LOOKUPS_RUNTIME.jsonl",
+      "path": "E:\\Letöltések\\Aeterna\\Aeterna_Projekt\\TEMP\\publish_runtime_package_candidate_4bf521d4\\exports\\LOOKUPS_RUNTIME.jsonl",
       "type": "lookups_runtime_jsonl",
       "adapter": "runtime_lookups_builder_adapter.py",
       "summary": {
-        "records_read": 1045,
-        "lookups_loaded": 1032,
-        "diagnostics": [
-          {
-            "severity": "error",
-            "code": "MISSING_LOOKUP_FIELD",
-            "line_number": 48,
-            "message": "LOOKUPS_RUNTIME row is missing Lookup_Group or Value.",
-            "blocking": true
-          },
-          {
-            "severity": "error",
-            "code": "MISSING_LOOKUP_FIELD",
-            "line_number": 69,
-            "message": "LOOKUPS_RUNTIME row is missing Lookup_Group or Value.",
-            "blocking": true
-          },
-          {
-            "severity": "error",
-            "code": "MISSING_LOOKUP_FIELD",
-            "line_number": 101,
-            "message": "LOOKUPS_RUNTIME row is missing Lookup_Group or Value.",
-            "blocking": true
-          },
-          {
-            "severity": "error",
-            "code": "MISSING_LOOKUP_FIELD",
-            "line_number": 112,
-            "message": "LOOKUPS_RUNTIME row is missing Lookup_Group or Value.",
-            "blocking": true
-          },
-          {
-            "severity": "error",
-            "code": "MISSING_LOOKUP_FIELD",
-            "line_number": 123,
-            "message": "LOOKUPS_RUNTIME row is missing Lookup_Group or Value.",
-            "blocking": true
-          },
-          {
-            "severity": "error",
-            "code": "MISSING_LOOKUP_FIELD",
-            "line_number": 139,
-            "message": "LOOKUPS_RUNTIME row is missing Lookup_Group or Value.",
-            "blocking": true
-          },
-          {
-            "severity": "error",
-            "code": "MISSING_LOOKUP_FIELD",
-            "line_number": 245,
-            "message": "LOOKUPS_RUNTIME row is missing Lookup_Group or Value.",
-            "blocking": true
-          },
-          {
-            "severity": "error",
-            "code": "MISSING_LOOKUP_FIELD",
-            "line_number": 499,
-            "message": "LOOKUPS_RUNTIME row is missing Lookup_Group or Value.",
-            "blocking": true
-          },
-          {
-            "severity": "error",
-            "code": "MISSING_LOOKUP_FIELD",
-            "line_number": 679,
-            "message": "LOOKUPS_RUNTIME row is missing Lookup_Group or Value.",
-            "blocking": true
-          },
-          {
-            "severity": "error",
-            "code": "MISSING_LOOKUP_FIELD",
-            "line_number": 718,
-            "message": "LOOKUPS_RUNTIME row is missing Lookup_Group or Value.",
-            "blocking": true
-          },
-          {
-            "severity": "error",
-            "code": "MISSING_LOOKUP_FIELD",
-            "line_number": 749,
-            "message": "LOOKUPS_RUNTIME row is missing Lookup_Group or Value.",
-            "blocking": true
-          },
-          {
-            "severity": "error",
-            "code": "MISSING_LOOKUP_FIELD",
-            "line_number": 782,
-            "message": "LOOKUPS_RUNTIME row is missing Lookup_Group or Value.",
-            "blocking": true
-          },
-          {
-            "severity": "error",
-            "code": "MISSING_LOOKUP_FIELD",
-            "line_number": 805,
-            "message": "LOOKUPS_RUNTIME row is missing Lookup_Group or Value.",
-            "blocking": true
-          }
-        ],
-        "error_count": 13
+        "records_read": 2080,
+        "lookups_loaded": 2080,
+        "diagnostics": [],
+        "error_count": 0
       }
     },
     {
-      "path": "E:\\Letöltések\\Aeterna\\Aeterna_Projekt\\TEMP\\real_runtime_package_preflight\\exports\\EXPORT_RUNTIME.jsonl",
+      "path": "E:\\Letöltések\\Aeterna\\Aeterna_Projekt\\TEMP\\publish_runtime_package_candidate_4bf521d4\\exports\\EXPORT_RUNTIME.jsonl",
       "type": "export_runtime_cards_jsonl",
       "adapter": "runtime_cards_builder_adapter.py",
       "summary": {
@@ -126,7 +34,7 @@
       }
     },
     {
-      "path": "E:\\Letöltések\\Aeterna\\Aeterna_Projekt\\TEMP\\real_runtime_package_preflight\\exports\\PRODUCT_DECKLISTS.jsonl",
+      "path": "E:\\Letöltések\\Aeterna\\Aeterna_Projekt\\TEMP\\publish_runtime_package_candidate_4bf521d4\\exports\\PRODUCT_DECKLISTS.jsonl",
       "type": "product_decklists_jsonl",
       "adapter": "runtime_decks_builder_adapter.py",
       "summary": {
@@ -134,6 +42,21 @@
         "decks_loaded": 28,
         "diagnostics": [],
         "error_count": 0
+      }
+    },
+    {
+      "path": "E:\\Letöltések\\Aeterna\\Aeterna_Projekt\\Aeterna dokumentációk\\LOOKUPS.xlsx",
+      "type": "lookups_xlsx_runtime_legacy_aliases",
+      "sheet": "RUNTIME_LEGACY_ALIAS",
+      "adapter": "runtime_legacy_aliases_reader.py",
+      "summary": {
+        "sheet_read": "RUNTIME_LEGACY_ALIAS",
+        "records_read": 1014,
+        "aliases_loaded": 1011,
+        "skipped_empty_value": 3,
+        "requires_audit_count": 108,
+        "normalization_allowed_count": 903,
+        "diagnostics": []
       }
     }
   ],
@@ -156,6 +79,10 @@
     },
     {
       "path": "aliases.json",
+      "format": "json"
+    },
+    {
+      "path": "normalization_aliases.json",
       "format": "json"
     },
     {

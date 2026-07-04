@@ -18,8 +18,9 @@ func _init() -> void:
 	failed = _check_value(result.get("package_id", ""), "aeterna.sample_runtime_package", "package_id") or failed
 	failed = _check_int(counts.get("cards", 0), 814, "cards") or failed
 	failed = _check_int(counts.get("decks", 0), 28, "decks") or failed
-	failed = _check_int(counts.get("lookup_groups", 0), 17, "lookup_groups") or failed
+	failed = _check_int(counts.get("lookup_groups", 0), 32, "lookup_groups") or failed
 	failed = _check_int(counts.get("ability_modules", 0), 2, "ability_modules") or failed
+	failed = _check_int(counts.get("normalization_aliases", 0), 1011, "normalization_aliases") or failed
 	failed = _check_int(diagnostics.get("warnings", 0), 0, "warnings") or failed
 	failed = _check_int(diagnostics.get("blocking_errors", 0), 0, "blocking_errors") or failed
 

@@ -15,7 +15,12 @@
     "Ige",
     "Jel",
     "Rituálé",
-    "Sík"
+    "Sík",
+    "entity",
+    "incantation",
+    "plane",
+    "ritual",
+    "sigil"
   ],
   "supported_realms": [
     "AETHER",
@@ -24,7 +29,14 @@
     "LUX",
     "TERRA",
     "UMBRA",
-    "VENTUS"
+    "VENTUS",
+    "aether",
+    "aqua",
+    "ignis",
+    "lux",
+    "terra",
+    "umbra",
+    "ventus"
   ],
   "ability_execution": "not_implemented"
 }
