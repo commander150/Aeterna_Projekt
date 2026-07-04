@@ -42,6 +42,7 @@ A jelenlegi prototípus már bizonyította:
 A jelenlegi dokumentációs irány már rögzíti:
 
 - az XLSX exportáló funkció hosszabb távú beépítését az `Aeterna game engine/python/` tooling / build pipeline rétegébe;
+- a runtime package pipeline source split irányát: kártyák/deckek az 1.9v kártyaadatbázis XLSX-ből, runtime lookupok a külön `LOOKUPS.xlsx` fájlból;
 - a Godot közvetlen XLSX-betöltésének kerülését;
 - a runtime package mint Python és Godot közötti tiszta adatcontract-határ megtartását;
 - a Python oldali `fixture_runtime_package` és a Godot oldali `runtime_package` eltérő státuszát.

@@ -138,7 +138,16 @@ Elsődleges fejlesztői runtime package út:
 
 - `Aeterna game engine/python/publish_runtime_package_to_godot.bat`
 
-Ez a canonical kártyaadatbázis XLSX-ből TEMP alatti candidate runtime package-et épít, validál, és csak sikeres validáció után publikál a Godot `runtime_package/` mappába.
+Ez a jelenlegi source split alapján TEMP alatti candidate runtime package-et épít, validál, és csak sikeres validáció után publikál a Godot `runtime_package/` mappába.
+
+Aktuális bemeneti források:
+
+* kártyaadatok és decklisták: `Aeterna dokumentációk/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`
+* runtime lookupok: `Aeterna dokumentációk/LOOKUPS.xlsx`
+* legacy alias / normalizációs forrásjelölt: `Aeterna dokumentációk/LOOKUPS.xlsx / RUNTIME_LEGACY_ALIAS`
+
+A `RUNTIME_LEGACY_ALIAS` még nincs runtime package outputba vagy publish pipeline-ba bekötve.
+
 
 A `run_xlsx_export.bat` csak nyers/debug export runner. Nem ez a fő Godot pipeline.
 
