@@ -509,3 +509,171 @@ Javasolt következő lépés:
 - csak ezután döntés arról, mikor kössük össze az exportert a runtime package build folyamattal.
 
 A runtime package builderrel való összekötés külön, későbbi prototípus legyen.
+
+## v0.4 – Runtime package publish pipeline és LOOKUPS source split
+
+### Elkészült
+
+A v0.4 checkpoint célja az volt, hogy az XLSX exporter migráció után a runtime package build és Godot publish irány is biztonságosabb, dokumentáltabb adatútra kerüljön.
+
+A checkpoint során elkészült:
+
+* elsődleges runtime package publish runner kijelölése;
+* `publish_runtime_package_to_godot.bat` elsődleges fejlesztői pipeline runnerként kezelése;
+* kétlépcsős TEMP candidate pipeline megtartása:
+
+  * runtime package candidate build;
+  * validáció;
+  * csak sikeres validáció után Godot `runtime_package/` frissítés;
+* a régi `XLSX export/source` aktív pipeline input szerepének megszüntetése;
+* `run_xlsx_export.bat` debug / raw export runner szerepének pontosítása;
+* `LOOKUPS.xlsx` runtime lookup reader létrehozása;
+* `LOOKUPS.xlsx` bekötése runtime lookup forrásként;
+* `RUNTIME_CORE` és `RUNTIME_ABILITY` sheetek használata runtime lookup inputként;
+* `RUNTIME_LEGACY_ALIAS` külön legacy alias / normalizációs reader előkészítése;
+* `aliases.json` sample / placeholder státuszának tisztázása;
+* a két aktív XLSX-forrás szerepének dokumentálása.
+
+Jelenlegi elfogadott source split:
+
+* kártyaadatok és decklisták:
+
+  * `Aeterna dokumentációk/AETERNA – KÁRTYAÁLLOMÁNY MUNKAFORRÁS 1.9v.xlsx`
+  * illetve az aktuális fájlnév szerint: `Aeterna dokumentációk/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`
+* runtime lookupok:
+
+  * `Aeterna dokumentációk/LOOKUPS.xlsx`
+  * sheetek: `RUNTIME_CORE`, `RUNTIME_ABILITY`
+* legacy alias / normalizációs forrásjelölt:
+
+  * `Aeterna dokumentációk/LOOKUPS.xlsx`
+  * sheet: `RUNTIME_LEGACY_ALIAS`
+
+Fontos döntések:
+
+* A Godot továbbra sem olvas közvetlenül XLSX-et.
+* A Godot a validált runtime package-et fogyasztja.
+* A kártyák és decklisták továbbra is az 1.9v kártyaadatbázis workbookból jönnek.
+* A runtime lookupok már a külön `LOOKUPS.xlsx` fájlból jönnek.
+* A `RUNTIME_ABILITY` jelenleg controlled vocabulary / runtime lookup input, nem executable `ability_registry.json` forrás.
+* A `RUNTIME_LEGACY_ALIAS` még nincs runtime package outputba kötve.
+* Az `aliases.json` jelenleg sample / placeholder runtime package fájl, nem canonical normalizációs forrás.
+
+### Létrejött vagy érintett fő elemek
+
+Új vagy frissített Python tooling elemek:
+
+* `tools/runtime_package/lookups_xlsx_reader.py`
+* `tools/runtime_package/runtime_legacy_aliases_reader.py`
+* `tools/runtime_package/publish_runtime_package_to_godot.py`
+* `tools/runtime_package/smoke_real_export_runtime_package.py`
+* `publish_runtime_package_to_godot.bat`
+* `run_xlsx_export.bat`
+
+Új vagy frissített tesztek:
+
+* `tests.test_lookups_xlsx_reader`
+* `tests.test_runtime_legacy_aliases_reader`
+* `tests.test_runtime_lookups_builder_adapter`
+* `tests.test_smoke_real_export_runtime_package`
+* `tests.test_publish_runtime_package_to_godot`
+* `tests.test_xlsx_export_smoke`
+* `tests.test_build_sample_runtime_package`
+* `tests.test_runtime_cards_builder_adapter`
+
+Frissített dokumentációs területek:
+
+* `README.md`
+* `Aeterna game engine/README.md`
+* `docs/RUNTIME_PACKAGE_SPECIFICATION.md`
+* `docs/OPEN_QUESTIONS.md`
+
+### Sikeres tesztek
+
+A checkpoint alatt sikeresen futott tesztek és ellenőrzések:
+
+* `python -m unittest tests.test_xlsx_export_smoke`
+* `python -m unittest tests.test_publish_runtime_package_to_godot`
+* `python -m unittest tests.test_build_sample_runtime_package`
+* `python -m unittest tests.test_runtime_cards_builder_adapter`
+* `python -m unittest tests.test_runtime_lookups_builder_adapter`
+* `python -m unittest tests.test_lookups_xlsx_reader`
+* `python -m unittest tests.test_runtime_legacy_aliases_reader`
+* `python -m unittest tests.test_smoke_real_export_runtime_package`
+* `publish_runtime_package_to_godot.bat --dry-run`
+
+A sikeres dry-run főbb eredményei:
+
+* cards: 814
+* runtime lookup source: `LOOKUPS.xlsx:RUNTIME_CORE+RUNTIME_ABILITY`
+* validation blocking: false
+* diagnostic_count: 0
+* deck_reference_errors: 0
+* unknown_realm_errors: 0
+* unknown_card_type_errors: 0
+* dry_run: true
+* published: false
+
+### Ismert korlátok
+
+Ez a checkpoint még nem bizonyítja:
+
+* teljes rules engine működését;
+* ability execution működését;
+* `ability_registry.json` végleges előállítását;
+* `aliases.json` végleges runtime contract szerepét;
+* `RUNTIME_LEGACY_ALIAS` runtime package outputba kötését;
+* `normalization_aliases.json` vagy más végleges alias output séma létét;
+* Godot oldali alias-normalizációt;
+* cache vagy source fingerprint működését;
+* végleges build output / package registry struktúrát;
+* TEMP candidate pipeline végleges architektúraként való elfogadását.
+
+Fontos nyitott döntések:
+
+* Maradjon-e a TEMP candidate pipeline hosszú távon?
+* Legyen-e külön `build/` vagy `generated/` runtime package output mappa?
+* Legyen-e verziózott package registry / release mappa?
+* Mi legyen a valódi legacy normalizációs output neve:
+
+  * `normalization_aliases.json`
+  * `legacy_aliases.json`
+  * új sémájú `aliases.json`
+  * vagy diagnostics input?
+* Mikor javíthat automatikusan a pipeline legacy alias alapján?
+* Mikor kell emberi audit?
+* Mikor legyen blocking error?
+
+### Státusz
+
+A v0.4 checkpoint sikeres.
+
+Jelenlegi státuszok:
+
+* `publish_runtime_package_to_godot.bat`: `KEEP_ACTIVE_PRIMARY_PIPELINE_RUNNER`
+* `run_xlsx_export.bat`: `KEEP_ACTIVE_RUNNER_MANUAL_RAW_EXPORT`
+* `LOOKUPS.xlsx / RUNTIME_CORE`: `KEEP_ACTIVE_RUNTIME_LOOKUP_SOURCE`
+* `LOOKUPS.xlsx / RUNTIME_ABILITY`: `KEEP_ACTIVE_RUNTIME_LOOKUP_SOURCE`
+* `LOOKUPS.xlsx / RUNTIME_LEGACY_ALIAS`: `PREPARED_NORMALIZATION_SOURCE`
+* `aliases.json`: `SAMPLE_PLACEHOLDER_RUNTIME_FILE`
+* Godot `runtime_package/`: `GODOT_CONSUMPTION_COPY`
+* TEMP candidate pipeline: `ACCEPTED_TRANSITIONAL_STAGING`
+
+### Következő lépés
+
+A következő biztonságos lépés nem a rules engine és nem az ability execution.
+
+Javasolt következő lépés:
+
+* döntés a legacy alias / normalizációs runtime output nevéről és sémájáról;
+* előzetes ajánlott irány: `normalization_aliases.json`;
+* csak ezután érdemes a `runtime_legacy_aliases_reader.py` kimenetét runtime package outputba kötni.
+
+Nem cél a következő lépésben:
+
+* teljes szabálymotor;
+* Godot alias-normalizáció;
+* ability execution;
+* AI-vs-AI teszt;
+* publikus release pipeline;
+* TEMP candidate végleges architektúrává nyilvánítása.
