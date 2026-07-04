@@ -37,6 +37,7 @@ func _format_result(result: Dictionary) -> String:
 		"decks: %d" % int(counts.get("decks", 0)),
 		"lookup_groups: %d" % int(counts.get("lookup_groups", 0)),
 		"ability_modules: %d" % int(counts.get("ability_modules", 0)),
+		"normalization_aliases: %d" % int(counts.get("normalization_aliases", 0)),
 		"warnings: %d" % int(summary.get("warnings", 0)),
 		"blocking_errors: %d" % int(summary.get("blocking_errors", 0)),
 	]

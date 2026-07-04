@@ -51,6 +51,7 @@ func load_package(package_path: String) -> Dictionary:
 	var decks_result := JsonlFileLoaderScript.read_jsonl(_join_path(package_path, "decks.jsonl"))
 	var lookups_result := JsonFileLoaderScript.read_json(_join_path(package_path, "lookups.json"))
 	var aliases_result := JsonFileLoaderScript.read_json(_join_path(package_path, "aliases.json"))
+	var normalization_aliases_result := _read_optional_json(package_path, "normalization_aliases.json")
 	var ability_result := JsonFileLoaderScript.read_json(_join_path(package_path, "ability_registry.json"))
 	var engine_support_result := JsonFileLoaderScript.read_json(_join_path(package_path, "engine_support.json"))
 	var diagnostics_result := JsonFileLoaderScript.read_json(_join_path(package_path, "diagnostics.json"))
@@ -59,6 +60,7 @@ func load_package(package_path: String) -> Dictionary:
 	_collect_read_errors(result, decks_result)
 	_collect_read_errors(result, lookups_result)
 	_collect_read_errors(result, aliases_result)
+	_collect_read_errors(result, normalization_aliases_result)
 	_collect_read_errors(result, ability_result)
 	_collect_read_errors(result, engine_support_result)
 	_collect_read_errors(result, diagnostics_result)
@@ -94,6 +96,7 @@ func load_package(package_path: String) -> Dictionary:
 		"lookup_groups": lookup_registry.get_group_count(),
 		"ability_modules": ability_registry.count(),
 		"aliases": _count_wrapped_array(aliases_result.get("data"), "aliases"),
+		"normalization_aliases": _count_wrapped_array(normalization_aliases_result.get("data"), "normalization_aliases"),
 		"engine_support_files": engine_support_files,
 	}
 	result["audit_notes"].append("Abilities are registered only; no card ability execution is performed.")
@@ -112,6 +115,7 @@ func print_debug_summary(result: Dictionary) -> void:
 	print("decks: %d" % int(counts.get("decks", 0)))
 	print("lookup_groups: %d" % int(counts.get("lookup_groups", 0)))
 	print("ability_modules: %d" % int(counts.get("ability_modules", 0)))
+	print("normalization_aliases: %d" % int(counts.get("normalization_aliases", 0)))
 	var summary = result.get("diagnostics_summary", {})
 	print("warnings: %d" % int(summary.get("warnings", 0)))
 	print("blocking_errors: %d" % int(summary.get("blocking_errors", 0)))
@@ -135,6 +139,7 @@ func _empty_result() -> Dictionary:
 			"lookup_groups": 0,
 			"ability_modules": 0,
 			"aliases": 0,
+			"normalization_aliases": 0,
 			"engine_support_files": 0,
 		},
 		"diagnostics_summary": {
@@ -154,6 +159,17 @@ func _finalize_result(result: Dictionary) -> Dictionary:
 func _collect_read_errors(result: Dictionary, read_result: Dictionary) -> void:
 	if not bool(read_result.get("ok", false)):
 		result["errors"].append_array(read_result.get("errors", []))
+
+
+func _read_optional_json(package_path: String, relative_path: String) -> Dictionary:
+	var full_path := _join_path(package_path, relative_path)
+	if not FileAccess.file_exists(full_path):
+		return {
+			"ok": true,
+			"data": {},
+			"errors": [],
+		}
+	return JsonFileLoaderScript.read_json(full_path)
 
 
 func _count_wrapped_array(data, key: String) -> int:

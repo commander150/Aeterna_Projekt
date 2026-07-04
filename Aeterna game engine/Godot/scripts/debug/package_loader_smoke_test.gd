@@ -30,6 +30,7 @@ func _init() -> void:
 	print("decks: %d" % int(counts.get("decks", 0)))
 	print("lookup_groups: %d" % int(counts.get("lookup_groups", 0)))
 	print("ability_modules: %d" % int(counts.get("ability_modules", 0)))
+	print("normalization_aliases: %d" % int(counts.get("normalization_aliases", 0)))
 	print("warnings: %d" % int(diagnostics.get("warnings", 0)))
 	print("blocking_errors: %d" % int(diagnostics.get("blocking_errors", 0)))
 
