@@ -687,6 +687,45 @@ Fontos elhatárolás:
 * az `aliases.json` továbbra is sample / placeholder státuszú fájl;
 * a tényleges alias-normalizáció későbbi külön döntési és implementációs lépés marad.
 
+### Normalization audit report publikálása
+
+A runtime package most már tartalmazza:
+
+* `normalization_audit_report.json`
+
+A manifest is tartalmazza ezt a fájlt.
+
+A report célja:
+
+* diagnostics-only;
+* preview-only;
+* nem ír át kártyaadatot;
+* nem ír át deckadatot;
+* nem módosítja a validation blocking státuszt.
+
+A publish eredménye:
+
+* `validation_blocking: false`
+* `diagnostic_count: 0`
+* `published: true`
+
+Aktuális report summary:
+
+* `matches_total: 0`
+* `normalization_allowed: 0`
+* `requires_audit: 0`
+
+Fontos értelmezés:
+
+* a 0 találat nem hiba;
+* azt jelzi, hogy az első körben vizsgált mezőkben nincs legacy alias match;
+* a C lépés előtt dönteni kell, hogy bővítjük-e az auditált mezők körét.
+
+TEMP cleanup megjegyzés:
+
+* a TEMP candidate mappák takarítási policyje későbbi technikai döntési pont;
+* nem része ennek a commitnak.
+
 ### Státusz
 
 A v0.4 checkpoint sikeres.
