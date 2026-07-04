@@ -644,6 +644,49 @@ Fontos nyitott döntések:
 * Mikor kell emberi audit?
 * Mikor legyen blocking error?
 
+### Godot consumption copy frissítése
+
+A v0.4 checkpoint későbbi részlépéseként a validált publish pipeline ténylegesen frissítette a Godot által fogyasztott runtime package mappát.
+
+Publikált célmappa:
+
+* `Aeterna game engine/Godot/runtime_package/`
+
+A publish eredménye:
+
+* `validation_blocking: false`
+* `diagnostic_count: 0`
+* `deck_reference_errors: 0`
+* `unknown_realm_errors: 0`
+* `unknown_card_type_errors: 0`
+* `published: true`
+
+A Godot consumption copy most már tartalmazza:
+
+* `normalization_aliases.json`
+
+A manifest is tartalmazza:
+
+* `normalization_aliases.json`
+
+A `normalization_aliases.json` aktuális összefoglalója:
+
+* összes rekord: 1011
+* `requires_audit`: 108
+* `normalization_allowed`: 903
+
+Godot smoke eredmény:
+
+* Package loader smoke: OK
+* debug outputban megjelent: `normalization_aliases: 1011`
+
+Fontos elhatárolás:
+
+* a Godot továbbra sem végez alias-normalizációt;
+* a `normalization_aliases.json` jelenleg count-only módon látható Godot oldalon;
+* az `aliases.json` továbbra is sample / placeholder státuszú fájl;
+* a tényleges alias-normalizáció későbbi külön döntési és implementációs lépés marad.
+
 ### Státusz
 
 A v0.4 checkpoint sikeres.
