@@ -9,13 +9,22 @@ from __future__ import annotations
 
 FIELD_RULES = {
     "card": (
-        ("card_type", "card_type"),
-        ("realm", "realm"),
-        ("clan", "clan"),
+        {"field": "card_type", "lookup_group": "card_type", "tokenize": False},
+        {"field": "realm", "lookup_group": "realm", "tokenize": False},
+        {"field": "clan", "lookup_group": "clan", "tokenize": False},
+        {"field": "species", "lookup_group": "race", "tokenize": False},
+        {"field": "class", "lookup_group": "class", "tokenize": False},
+        {"field": "recognized_zone", "lookup_group": "zone", "tokenize": True},
+        {"field": "keywords", "lookup_group": "keyword", "tokenize": False},
+        {"field": "trigger", "lookup_group": "trigger", "tokenize": True},
+        {"field": "target", "lookup_group": "target", "tokenize": True},
+        {"field": "effect_tags", "lookup_group": "effect_tag", "tokenize": True},
+        {"field": "duration", "lookup_group": "duration", "tokenize": True},
+        {"field": "condition", "lookup_group": "condition", "tokenize": True},
+        {"field": "interpretation_status", "lookup_group": "interpretation_status", "tokenize": False},
     ),
     "deck": (
-        ("realm", "realm"),
-        ("deck_type", "deck_type"),
+        {"field": "realm", "lookup_group": "realm", "tokenize": False},
     ),
 }
 
@@ -54,6 +63,8 @@ def build_normalization_audit_report(cards, decks, normalization_aliases_payload
 
     allowed_count = sum(1 for row in audit_rows if row["normalization_allowed"])
     requires_audit_count = sum(1 for row in audit_rows if row["requires_audit"])
+    field_matches = _count_by_key(audit_rows, "field")
+    lookup_group_matches = _count_by_key(audit_rows, "lookup_group")
 
     return {
         "normalization_audit": audit_rows,
@@ -64,6 +75,8 @@ def build_normalization_audit_report(cards, decks, normalization_aliases_payload
             "normalization_allowed": allowed_count,
             "requires_audit": requires_audit_count,
             "unknown_or_unmapped": checked_values - len(audit_rows),
+            "field_matches": field_matches,
+            "lookup_group_matches": lookup_group_matches,
         },
     }
 
@@ -93,30 +106,60 @@ def _build_alias_index(aliases):
 
 def _audit_object(audit_rows, object_type, object_id, record, alias_index):
     checked_values = 0
-    for field, lookup_group in FIELD_RULES[object_type]:
-        value = record.get(field)
-        if value is None or str(value).strip() == "":
-            continue
-        checked_values += 1
-        alias = alias_index.get((lookup_group, str(value)))
-        if alias is None:
-            continue
-        requires_audit = bool(alias.get("requires_audit", False))
-        normalization_allowed = bool(alias.get("normalization_allowed", False))
-        audit_rows.append(
-            {
-                "object_type": object_type,
-                "object_id": str(object_id),
-                "field": field,
-                "value": str(value),
-                "lookup_group": lookup_group,
-                "match_type": "legacy_alias",
-                "canonical_value": str(alias.get("canonical_value", "")),
-                "normalization_allowed": normalization_allowed,
-                "requires_audit": requires_audit,
-                "suggested_action": "manual_audit_required" if requires_audit else "safe_normalization_preview",
-                "applied": False,
-                "notes": str(alias.get("notes", "")),
-            }
-        )
+    for rule in FIELD_RULES[object_type]:
+        field = rule["field"]
+        lookup_group = rule["lookup_group"]
+        values = _iter_values(record.get(field), tokenize=rule["tokenize"])
+        for value in values:
+            checked_values += 1
+            alias = alias_index.get((lookup_group, value))
+            if alias is None:
+                continue
+            requires_audit = bool(alias.get("requires_audit", False))
+            normalization_allowed = bool(alias.get("normalization_allowed", False))
+            audit_rows.append(
+                {
+                    "object_type": object_type,
+                    "object_id": str(object_id),
+                    "field": field,
+                    "value": value,
+                    "lookup_group": lookup_group,
+                    "match_type": "legacy_alias",
+                    "canonical_value": str(alias.get("canonical_value", "")),
+                    "normalization_allowed": normalization_allowed,
+                    "requires_audit": requires_audit,
+                    "suggested_action": "manual_audit_required" if requires_audit else "safe_normalization_preview",
+                    "applied": False,
+                    "notes": str(alias.get("notes", "")),
+                }
+            )
     return checked_values
+
+
+def _iter_values(value, tokenize):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        values = []
+        for item in value:
+            values.extend(_iter_values(item, tokenize=tokenize))
+        return values
+    text = str(value).strip()
+    if not text:
+        return []
+    if not tokenize:
+        return [text]
+    return [token for token in _split_tokens(text) if token]
+
+
+def _split_tokens(text):
+    normalized = text.replace(";", ",")
+    return [part.strip() for part in normalized.split(",") if part.strip()]
+
+
+def _count_by_key(rows, key):
+    counts = {}
+    for row in rows:
+        value = row.get(key, "")
+        counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
