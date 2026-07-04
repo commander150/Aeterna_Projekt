@@ -80,17 +80,31 @@ A runtime package tehát nem a szerkesztési forrás, hanem a szerkesztési forr
 
 Jelenlegi elfogadott irány:
 
-- A fő szerkesztés Google Sheetsben történik.
-- A lokális XLSX fájl a Google Sheetsből letöltött helyi munkaforrás.
-- Az XLSX export mappán belüli XLSX fájlok pipeline input másolatok.
-- Az XLSX export mappában lévő XLSX fájlok nem elsődleges canonical szerkesztési források.
-- Az exportáló később tudjon közvetlenül canonical lokális forrásmappából dolgozni.
+* A fő szerkesztés Google Sheetsben történik.
+* A lokális XLSX fájlok a Google Sheetsből letöltött helyi munkaforrások.
+* A runtime package pipeline több aktív lokális XLSX-forrásból dolgozhat.
+* A kártyák, decklistek és termék/deck adatok fő lokális forrása jelenleg:
+
+  * `Aeterna dokumentációk/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`
+* Az engine-barát runtime lookup és normalizációs segédadatok fő lokális forrása jelenleg:
+
+  * `Aeterna dokumentációk/LOOKUPS.xlsx`
+* Az 1.9v kártyaadatbázisban lévő régi LOOKUPS lapok legacy / embedded compatibility forrásnak tekintendők.
+* Hosszú távon az engine runtime lookupok forrása ne az 1.9v workbook beágyazott LOOKUPS lapja legyen, hanem a külön `LOOKUPS.xlsx`.
+* A régi `XLSX export/source` mappa nem végleges pipeline source.
+* Az exportáló és a runtime package builder útvonalai legyenek konfigurálhatók.
 
 Fontos következmény:
 
-A runtime package builder ne abból induljon ki, hogy az XLSX export/source mappa a végleges forrás.
+A runtime package builder ne abból induljon ki, hogy minden adat ugyanabból az XLSX workbookból érkezik.
 
-A hosszú távú cél az, hogy az exportáló konfigurálható bemeneti forrásból dolgozzon.
+A jelenlegi elfogadott source split:
+
+* kártyaadatok / decklisták: `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`
+* runtime lookupok: `LOOKUPS.xlsx`
+* legacy alias / normalizációs forrásjelölt: `LOOKUPS.xlsx / RUNTIME_LEGACY_ALIAS`
+
+A hosszú távú cél az, hogy a build pipeline explicit, konfigurálható bemeneti forrásokból dolgozzon, és ezekből validált runtime package-et állítson elő.
 
 ---
 
@@ -588,6 +602,15 @@ Elfogadott LOOKUPS irány:
 - active soroknál Canonical_Value általában egyezzen a Value mezővel;
 - Value = Label_HU irány kerülendő;
 - legacy aliasok külön rétegben kezelendők.
+Aktuális pipeline állapot:
+
+* A runtime lookupok jelenleg a külön `LOOKUPS.xlsx` fájlból származnak.
+* A publish pipeline a `RUNTIME_CORE` és `RUNTIME_ABILITY` sheeteket használja runtime lookup forrásként.
+* A kártyaadatok és decklisták továbbra is az 1.9v kártyaadatbázis workbookból jönnek.
+* A `RUNTIME_ABILITY` jelenleg controlled vocabulary / runtime lookup input, nem executable `ability_registry.json` forrás.
+* A `RUNTIME_LEGACY_ALIAS` külön normalizációs forrásjelölt, nem része a runtime lookupoknak.
+* A `RUNTIME_LEGACY_ALIAS` kezelése külön readerrel elő van készítve, de runtime package outputba még nincs bekötve.
+
 
 ---
 
