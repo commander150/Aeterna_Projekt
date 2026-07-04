@@ -725,49 +725,89 @@ Workflow érték ne keveredjen aktív runtime enumként, ha nem oda tartozik.
 
 ---
 
-## 20. Aliases fájl
+## 20. Aliases fájl és legacy normalizáció
 
-Az aliases fájl a legacy és alternatív értékek canonical értékre fordítását kezeli.
+Az aliases réteg a legacy, alternatív vagy korábbi adatértékek kezelésére szolgál.
 
 Jelenlegi sample forma:
 
-- aliases.json
+* aliases.json
 
-Feladata:
+Fontos aktuális státusz:
 
-- régi értékek felismerése;
-- elgépelések felismerése;
-- korábbi terminológia kezelése;
-- canonical normalizálás;
-- veszélyes aliasok jelzése;
-- audit_required értékek jelzése.
+A jelenlegi `aliases.json` még nem végleges runtime contract.
 
-Lehetséges alias mezők:
+Jelenleg:
 
-- source_value
-- canonical_value
-- alias_type
-- confidence
-- danger_level
-- status
-- diagnostic_code
-- notes
+* sample / fixture eredetű fájl;
+* a builder belső mintadataiból készül;
+* nem a `LOOKUPS.xlsx` fájlból származik;
+* nem a `RUNTIME_LEGACY_ALIAS` sheetből készül;
+* a Godot loader jelenleg csak betölti és számszerűsíti;
+* tényleges runtime alias-normalizáció még nincs bekötve.
 
-Alias típusok lehetnek:
+Ezért az `aliases.json` jelenleg nem tekinthető canonical normalizációs forrásnak.
 
-- legacy
-- typo
-- deprecated
-- display_label
-- dangerous
-- workflow_only
-- unknown_mapping
+A hosszú távú normalizációs forrásjelölt:
 
-Nyitott kérdés:
+* `Aeterna dokumentációk/LOOKUPS.xlsx`
+* sheet: `RUNTIME_LEGACY_ALIAS`
 
-- mikor javíthat automatikusan az exportáló;
-- mikor kell emberi audit;
-- mikor legyen blocking error.
+A `RUNTIME_LEGACY_ALIAS` célja:
+
+* legacy értékek felismerése;
+* korábbi terminológia kezelése;
+* alternatív vagy régi exportértékek azonosítása;
+* canonical értékre normalizálható sorok elkülönítése;
+* auditot igénylő sorok jelzése;
+* veszélyes vagy nem automatikusan javítható értékek kiszűrése.
+
+Fontos szabály:
+
+A `RUNTIME_LEGACY_ALIAS` tartalmát nem szabad vakon az `aliases.json` fájlba önteni.
+
+Különösen fontos, hogy az `audit_required` canonical értékű sorok nem automatikus runtime mappingek. Ezek emberi ellenőrzést, döntést vagy diagnostics jelzést igényelnek.
+
+Jelenlegi fejlesztői állapot:
+
+* a `runtime_legacy_aliases_reader.py` külön olvassa a `RUNTIME_LEGACY_ALIAS` sheetet;
+* a reader külön jelöli, hogy egy alias automatikusan normalizálható-e;
+* a reader külön jelöli, ha audit szükséges;
+* a reader még nem ír runtime package outputot;
+* a reader még nincs bekötve a publish pipeline-ba;
+* a reader kimenete még nem váltja ki az `aliases.json` fájlt.
+
+Lehetséges jövőbeli alias / normalizációs mezők:
+
+* lookup_group
+* alias_value
+* label_hu
+* canonical_value
+* status
+* used_for
+* sort_order
+* source
+* notes
+* requires_audit
+* normalization_allowed
+* diagnostic_code
+* danger_level
+
+Nyitott döntési pont:
+
+* maradjon-e az `aliases.json` név, de új sémával;
+* vagy készüljön külön `normalization_aliases.json`;
+* vagy készüljön külön `legacy_aliases.json`;
+* vagy a legacy alias adat részben diagnostics / audit input legyen;
+* mikor javíthat automatikusan a pipeline;
+* mikor kell emberi audit;
+* mikor legyen blocking error.
+
+Előzetes ajánlott irány:
+
+* az `aliases.json` jelenlegi formája maradjon sample / placeholder státuszban;
+* a valódi legacy normalizációhoz később külön, egyértelműbb nevű runtime package fájl készüljön, például `normalization_aliases.json`;
+* a publish pipeline-ba csak akkor kerüljön be, ha a séma és az auditkezelés eldőlt.
 
 ---
 
