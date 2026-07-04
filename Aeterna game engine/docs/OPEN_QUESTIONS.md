@@ -209,16 +209,40 @@ Kérdések:
 
 ### OQ-DATA-004 – Legacy alias és canonical értékek
 
-**Státusz:** `open`, `blocked_by_data_audit`  
+**Státusz:** `partly_answered`, `blocked_by_runtime_package_design`
 **Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`
 
-Kérdések:
+Jelenlegi irány:
 
-- A legacy alias automatikusan canonical értékre forduljon?
-- A veszélyes alias mindig audit note legyen?
-- Mikor legyen blocking error?
-- A canonical javítás visszakerüljön-e a forrásadatba?
-- Régi Aeternal/Pecsét HP-modellre utaló értékek automatikusan tiltottak legyenek?
+* A jelenlegi `aliases.json` sample / placeholder runtime package fájl.
+* Az `aliases.json` jelenleg nem canonical normalizációs forrás.
+* Az `aliases.json` nem a `LOOKUPS.xlsx` fájlból készül.
+* Az `aliases.json` nem a `RUNTIME_LEGACY_ALIAS` sheetből készül.
+* A hosszú távú legacy / alias normalizációs forrásjelölt a `LOOKUPS.xlsx` `RUNTIME_LEGACY_ALIAS` sheetje.
+* A `RUNTIME_LEGACY_ALIAS` tartalma nem önthető vakon az `aliases.json` fájlba.
+* Az `audit_required` canonical értékű sorok nem automatikus runtime mappingek.
+* A `runtime_legacy_aliases_reader.py` már külön olvassa a `RUNTIME_LEGACY_ALIAS` sheetet, de még nem ír runtime package outputot.
+* A publish pipeline-ba a legacy alias normalizáció még nincs bekötve.
+
+Nyitott kérdések:
+
+* Maradjon-e az `aliases.json` név, de új sémával?
+* Készüljön-e külön `normalization_aliases.json` fájl?
+* Készüljön-e külön `legacy_aliases.json` fájl?
+* A legacy alias adat részben diagnostics / audit input legyen-e?
+* Mely sorokat javíthatja automatikusan a pipeline?
+* Mikor kell emberi audit?
+* Mikor legyen blocking error?
+* Hogyan kezeljük az `audit_required` canonical értékű sorokat?
+* A veszélyes alias mindig audit note legyen?
+* A canonical javítás visszakerüljön-e a forrásadatba?
+* Régi Aeternal/Pecsét HP-modellre utaló értékek automatikusan tiltottak legyenek?
+
+Előzetes ajánlott irány:
+
+* Rövid távon az `aliases.json` maradjon sample / placeholder státuszban.
+* A valódi legacy normalizációhoz később külön, egyértelműbb nevű runtime package fájl készüljön, például `normalization_aliases.json`.
+* A publish pipeline-ba csak akkor kerüljön be, ha a séma, az auditkezelés és a blocking szabályok eldőltek.
 
 ---
 
