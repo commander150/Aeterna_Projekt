@@ -159,7 +159,7 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         self.assertEqual(summary["normalization_patch_plan_ready"], 0)
         self.assertEqual(summary["normalization_patch_plan_blocked"], 0)
         self.assertEqual(summary["normalization_patch_plan_applied"], 0)
-        self.assertFalse(summary["normalization_apply_enabled"])
+        self.assertTrue(summary["normalization_apply_enabled"])
         self.assertEqual(summary["normalization_apply_applied"], 0)
         self.assertEqual(summary["normalization_apply_skipped"], 0)
         self.assertEqual(summary["normalization_apply_conflicts"], 0)
@@ -199,7 +199,7 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         apply_report = json.loads(
             (output_dir / "runtime_package" / "normalization_apply_report.json").read_text(encoding="utf-8")
         )
-        self.assertFalse(apply_report["summary"]["enabled"])
+        self.assertTrue(apply_report["summary"]["enabled"])
         self.assertEqual(apply_report["summary"]["applied"], 0)
 
 

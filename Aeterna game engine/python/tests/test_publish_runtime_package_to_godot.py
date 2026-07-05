@@ -103,8 +103,8 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
         self.assertEqual(summary["normalization_patch_plan_ready"], 2)
         self.assertEqual(summary["normalization_patch_plan_blocked"], 0)
         self.assertEqual(summary["normalization_patch_plan_applied"], 0)
-        self.assertFalse(summary["normalization_apply_enabled"])
-        self.assertEqual(summary["normalization_apply_applied"], 0)
+        self.assertTrue(summary["normalization_apply_enabled"])
+        self.assertEqual(summary["normalization_apply_applied"], 2)
         self.assertEqual(summary["normalization_apply_skipped"], 0)
         self.assertEqual(summary["normalization_apply_conflicts"], 0)
         self.assertEqual(summary["would_copy_files"], self.publisher.PACKAGE_FILES)
@@ -114,7 +114,7 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
         self.assertIn("normalization_apply_report.json", summary["would_copy_files"])
         self.assertEqual(self.copied_files, [])
 
-    def test_dry_run_can_enable_normalization_apply(self):
+    def test_dry_run_can_disable_normalization_apply(self):
         self.publisher.SMOKE_RUNNER = _StubSmokeRunner()
         self.publisher.validate_candidate = lambda _summary, _candidate: []
         self.publisher.shutil.copy2 = self._record_copy
@@ -125,13 +125,13 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
             temp_output_dir=self.temp_output_dir,
             godot_package_dir=self.godot_package_dir,
             dry_run=True,
-            apply_normalization_patches=True,
+            apply_normalization_patches=False,
         )
 
         self.assertTrue(summary["dry_run"])
         self.assertFalse(summary["published"])
-        self.assertTrue(summary["normalization_apply_enabled"])
-        self.assertEqual(summary["normalization_apply_applied"], 2)
+        self.assertFalse(summary["normalization_apply_enabled"])
+        self.assertEqual(summary["normalization_apply_applied"], 0)
         self.assertEqual(summary["normalization_apply_conflicts"], 0)
         self.assertEqual(self.copied_files, [])
 
@@ -168,7 +168,7 @@ class _StubSmokeRunner:
         include_decklists,
         include_lookups_runtime,
         lookups_xlsx_path=None,
-        apply_normalization_patches=False,
+        apply_normalization_patches=True,
     ):
         return {
             "xlsx_path": str(xlsx_path),

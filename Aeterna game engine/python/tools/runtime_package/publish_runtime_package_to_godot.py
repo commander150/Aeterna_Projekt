@@ -65,7 +65,7 @@ def publish_runtime_package(
     temp_output_dir=DEFAULT_TEMP_OUTPUT_DIR,
     godot_package_dir=DEFAULT_GODOT_PACKAGE_DIR,
     dry_run=False,
-    apply_normalization_patches=False,
+    apply_normalization_patches=True,
 ):
     temp_output_dir = Path(temp_output_dir)
     godot_package_dir = Path(godot_package_dir)
@@ -202,11 +202,20 @@ def build_parser():
         help="Godot runtime package target directory.",
     )
     parser.add_argument("--dry-run", action="store_true", help="Validate candidate but do not copy to Godot.")
-    parser.add_argument(
+    normalization_group = parser.add_mutually_exclusive_group()
+    normalization_group.add_argument(
         "--apply-normalization-patches",
+        dest="apply_normalization_patches",
         action="store_true",
-        help="Opt-in: apply ready normalization patch plan rows to generated candidate cards/decks.",
+        help="Apply ready normalization patch plan rows to generated candidate cards/decks. This is the default.",
     )
+    normalization_group.add_argument(
+        "--no-apply-normalization-patches",
+        dest="apply_normalization_patches",
+        action="store_false",
+        help="Raw/debug mode: validate and publish the candidate without applying safe normalization patches.",
+    )
+    parser.set_defaults(apply_normalization_patches=True)
     return parser
 
 

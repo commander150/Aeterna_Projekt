@@ -48,7 +48,7 @@ def run_smoke(
     include_decklists=False,
     include_lookups_runtime=False,
     lookups_xlsx_path=None,
-    apply_normalization_patches=False,
+    apply_normalization_patches=True,
 ):
     """Export runtime cards from XLSX and build a partial runtime package smoke output."""
     xlsx_path = _resolve_xlsx_path(xlsx_path, source_dir)
@@ -382,11 +382,20 @@ def build_parser():
         help="Also export runtime lookups and use them for lookups.json.",
     )
     parser.add_argument("--lookups-xlsx", type=Path, default=None, help="Canonical LOOKUPS.xlsx source file.")
-    parser.add_argument(
+    normalization_group = parser.add_mutually_exclusive_group()
+    normalization_group.add_argument(
         "--apply-normalization-patches",
+        dest="apply_normalization_patches",
         action="store_true",
-        help="Opt-in: apply ready normalization patch plan rows to generated candidate cards/decks.",
+        help="Apply ready normalization patch plan rows to generated candidate cards/decks. This is the default.",
     )
+    normalization_group.add_argument(
+        "--no-apply-normalization-patches",
+        dest="apply_normalization_patches",
+        action="store_false",
+        help="Raw/debug mode: build the candidate without applying safe normalization patches.",
+    )
+    parser.set_defaults(apply_normalization_patches=True)
     return parser
 
 
