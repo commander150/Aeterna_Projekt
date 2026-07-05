@@ -14,5 +14,9 @@
 - Normalization patch plan ready: 499
 - Normalization patch plan blocked: 0
 - Normalization patch plan applied: 0
+- Normalization apply enabled: true
+- Normalization patches applied: 499
+- Normalization patches skipped: 0
+- Normalization apply conflicts: 0
 
 Ez a csomag kontrollalt fixture adatbol epult. Nem olvas XLSX-et, nem futtat kepessegeket, es nem teljes export rendszer.
