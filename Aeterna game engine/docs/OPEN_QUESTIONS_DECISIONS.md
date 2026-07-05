@@ -666,3 +666,230 @@ A `pending` mező állandó jelenléte egyszerűsíti a frontend, AI és debug r
 **Megjegyzés:**
 
 Az Ősforrás láthatósága eldőlt: ellenfél csak darabszámot és állapotot lát, konkrét kártyaazonosságot nem. A Pecsétmodell nem zárható le, amíg nincs külön döntés arról, hogy a Pecsétlapok választással, random húzással vagy hibrid módon jönnek létre.
+
+---
+
+## OQ-LA-001 / OQ-LA-002 / OQ-LA-003 / OQ-LA-004 / OQ-LA-005 / OQ-LA-006 / OQ-LA-007 / OQ-AR-001 / OQ-AR-002 / OQ-AR-003 / OQ-AR-004 / OQ-AR-005 / OQ-AR-006 / OQ-AR-007 – Legal actions, action request és action response
+
+**Forráskérdés:**
+
+- `OPEN_QUESTIONS.md / OQ-LA-001`
+- `OPEN_QUESTIONS.md / OQ-LA-002`
+- `OPEN_QUESTIONS.md / OQ-LA-003`
+- `OPEN_QUESTIONS.md / OQ-LA-004`
+- `OPEN_QUESTIONS.md / OQ-LA-005`
+- `OPEN_QUESTIONS.md / OQ-LA-006`
+- `OPEN_QUESTIONS.md / OQ-LA-007`
+- `OPEN_QUESTIONS.md / OQ-AR-001`
+- `OPEN_QUESTIONS.md / OQ-AR-002`
+- `OPEN_QUESTIONS.md / OQ-AR-003`
+- `OPEN_QUESTIONS.md / OQ-AR-004`
+- `OPEN_QUESTIONS.md / OQ-AR-005`
+- `OPEN_QUESTIONS.md / OQ-AR-006`
+- `OPEN_QUESTIONS.md / OQ-AR-007`
+
+**Jelenlegi válasz / döntési irány:**
+
+A frontend és az AI ne számolja ki önállóan a szabályos lépéseket.
+
+A legal action listát a rules engine vagy későbbi rules service adja vissza. A frontend és az AI ebből dolgozik, action requestet küld, majd az action response alapján frissül a snapshot / event log / diagnostics.
+
+**Enabled és disabled actionök:**
+
+Normál player-visible módban csak az `enabled` actionök jelenjenek meg.
+
+Debug módban láthatók lehetnek a `disabled` actionök is, `disabled_reason` mezővel.
+
+Tutorial mód később kaphat játékosbarát disabled reason / magyarázat mezőt, de ez ne legyen MVP-követelmény.
+
+Javasolt irány:
+
+- `player_visible`: csak enabled actionök;
+- `debug`: enabled + disabled actionök;
+- `tutorial`: későbbi mód, disabled reason játékosbarát szöveggel;
+- fair AI alapból csak enabled actionöket kapjon.
+
+**Reaction window / Burst / Jel:**
+
+MVP-ben legyen `reaction` action family és pending reaction window modell.
+
+A `pass_priority` / `pass_reaction` legyen külön legal action.
+
+Ha nincs valódi reakciólehetőség, a reaction window automatikusan átugorható.
+
+A reaction window jelenjen meg mindkét helyen:
+
+- snapshot `pending` mezőben;
+- legal action listában.
+
+A stack / chain jellegű modellről még ne legyen végleges döntés. Rövid távon elég a reaction queue / pending reaction window modell.
+
+Burst és Jel egyelőre ugyanabba a reaction keretrendszerbe kerülhet, de a részletes timing / priority / prevention / replacement modell későbbi ability- és rules audit döntési kapu.
+
+**Combat actionök:**
+
+A teljes combat legal action rendszer ne legyen MVP-zárás.
+
+A contract tartsa fenn a későbbi action family / action type helyét, például:
+
+- `declare_attack`
+- `choose_attack_target`
+- `choose_blocker`
+
+A combat részletes bevezetése a Pecsétmodell és combat rules spec után történjen.
+
+A Pecsét feltörése attack után később eventként és szükség esetén target-kapcsolatként is megjelenhet, de ezt most nem kell véglegesen lezárni.
+
+**Fizetés / Aura:**
+
+MVP-ben az Aura-fizetés legyen automatikus, ha egyértelmű.
+
+Kézi payment window csak akkor kell, ha:
+
+- több szabályosan választható fizetési forrás van;
+- ideiglenes Aura / különleges forrás később bekerül;
+- alternatív költség van;
+- a választás stratégiai jelentőségű.
+
+A legal action tartalmazzon `cost_summary` mezőt.
+
+A konkrét payment választék csak akkor legyen része a legal actionnek vagy pending payment ablaknak, ha tényleg van döntés.
+
+**Targeting:**
+
+Egyszerű célzásnál a play action payload már tartalmazhatja a célpontot.
+
+Többlépcsős vagy többcélpontos célzásnál legyen külön `targeting` action / pending state.
+
+A célpont érvényességének végső döntése mindig a rules engine-ben maradjon.
+
+A frontend kiemelhet célpontokat, de csak a legal action targeting adatai alapján.
+
+Javasolt irány:
+
+- simple target: play action payloadban lehet;
+- complex target: külön targeting pending/action;
+- invalid target: runtime reject vagy partial resolution csak külön szabálypéldák után;
+- frontend nem validál véglegesen, csak megjelenít.
+
+**UI mezők a legal actionben:**
+
+A legal action tartalmazhat minimális UI-segédadatot, de az UI mezők nem lehetnek szabályforrások.
+
+Rövid távon használható:
+
+- `label_hu`
+- `prompt_hu`
+- `disabled_reason_hu`
+- `highlight_hint`
+
+Hosszú távon ezek kerüljenek lokalizációs / lookup / UI rétegbe.
+
+A rules engine ne magyar szövegből vezéreljen szabályt.
+
+**AI mezők:**
+
+Fair AI ugyanazt a legal action listát kapja, mint a játékos, csak gépileg feldolgozhatóbb formában.
+
+A fair AI ne kapjon olyan információt, amit a játékos nem látna.
+
+Debug AI kaphat extra mezőket és teljesebb információt, de ne ez legyen balanszmérés alapja.
+
+AI heuristic tag vagy becsült érték később bevezethető, de ne legyen MVP-követelmény. Az AI alapból külön értékelje a legal actionöket.
+
+**Action request azonosítás:**
+
+MVP lokális debug módban elég egyszerű request modell, de már legyen opcionális `client_request_id`.
+
+Későbbi interaktív UI / PvP előtt legyen kötelező vagy erősen ajánlott:
+
+- `client_request_id`
+- `snapshot_id`
+- `state_version`
+- `action_id`
+
+MVP local/debug módban a `client_request_id` opcionális lehet.
+
+Interaktív UI-tól ajánlott.
+
+PvP / hálózati működés előtt kötelező.
+
+**Snapshot frissesség és state_version:**
+
+Legyen `state_version` már MVP-ben, akár egyszerű számlálóként.
+
+Ha az action request régi `state_version` alapján érkezik:
+
+- local debug módban lehet warning + újravalidálás;
+- normál interaktív módban inkább reject;
+- PvP előtt mindig reject.
+
+**Action ID élettartama:**
+
+Az `action_id` csak az adott snapshot / state_version kontextusában legyen stabil.
+
+Új legal action lista vagy új state_version érvényteleníti a régi action ID-kat.
+
+Hosszú életű signed / opaque action token ne legyen MVP-követelmény.
+
+AI-vs-AI tesztnél elég, ha az action ID egy adott legal action listán belül stabil.
+
+**Action response és részleges feloldás:**
+
+Javasolt alap action response státuszok:
+
+- `accepted`
+- `rejected`
+- `resolved`
+- `partially_resolved`
+- `pending_decision`
+- `pending_reaction`
+- `prevented`
+- `replaced`
+- `cancelled`
+- `failed`
+- `not_executable`
+
+Reaction window esetén az action response adhat `pending_reaction` státuszt, és az új snapshot `pending` mezője mutassa a döntési helyzetet.
+
+Partial resolution részletes szabályai még ne legyenek lezárva. Ehhez konkrét szabálypéldák kellenek.
+
+Unsupported effect esetén az action response legyen `not_executable`, és készüljön diagnostics bejegyzés. Fejlesztői/debug módban generálható event is, hogy az event logban látszódjon a kísérlet; player-visible normál módban ezt óvatosan kell szűrni, hogy ne szivárogtasson rejtett információt.
+
+**Indoklás:**
+
+A legal action contract lényege, hogy a szabálylogika ne szivárogjon át a frontendbe vagy az AI-ba. Ha a frontend és az AI csak a rules engine által adott action listából dolgozik, akkor a játékosfelület, debug UI, fair AI és későbbi PvP is ugyanarra a szabályforrásra épül.
+
+Az enabled/disabled elválasztás fejlesztésben és tutorialban hasznos, de normál játékban nem kell minden tiltott lehetőséget megmutatni. A fair AI rejtett információtól való elzárása különösen fontos, mert későbbi balanszmérésnél csak így kapunk játékosszerű döntési helyzeteket.
+
+A `state_version` és snapshot-scope action ID már MVP-ben is olcsó védelmet ad a stale actionök ellen, miközben később szigorítható PvP / hálózati működéshez.
+
+A combat, stack/chain timing, prevention/replacement és partial resolution részletei túl szabályfüggők ahhoz, hogy most véglegesen lezárjuk őket. Ezek külön példák és prototípus után zárhatók.
+
+**Átvezetési célfájl:**
+
+- `CONTRACT_SPECIFICATION.md`
+- `ABILITY_MODULE_SYSTEM.md`
+- `ARCHITECTURE.md`
+- szükség esetén később: `OPEN_QUESTIONS.md`
+
+**Javasolt OPEN_QUESTIONS státusz:**
+
+- `OQ-LA-001`: `answered`
+- `OQ-LA-002`: `partly_answered`
+- `OQ-LA-003`: `partly_answered`
+- `OQ-LA-004`: `partly_answered`
+- `OQ-LA-005`: `partly_answered`
+- `OQ-LA-006`: `partly_answered`
+- `OQ-LA-007`: `partly_answered`
+- `OQ-AR-001`: `partly_answered`
+- `OQ-AR-002`: `partly_answered`
+- `OQ-AR-003`: `answered`
+- `OQ-AR-004`: `partly_answered`
+- `OQ-AR-005`: `partly_answered`
+- `OQ-AR-006`: `partly_answered`
+- `OQ-AR-007`: `partly_answered`
+
+**Megjegyzés:**
+
+Az alap legal action / action request / action response modell elfogadott. A combat, stack/chain timing, prevention/replacement, komplex payment, complex targeting és partial resolution részletei későbbi szabálypéldákhoz és prototípushoz kötött döntési kapuk maradnak.
