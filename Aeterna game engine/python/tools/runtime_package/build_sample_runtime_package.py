@@ -90,6 +90,22 @@ PACKAGE_VERSION = "0.1.0"
 SCHEMA_VERSION = "sample-runtime-package-v1"
 RULESET_VERSION = "sample-ruleset-v0"
 
+CANONICAL_ABILITY_SUPPORT_STATUSES = {
+    "supported",
+    "partial",
+    "unsupported",
+    "not_checked",
+    "fallback_required",
+    "manual_review_required",
+}
+
+ABILITY_SUPPORT_DIAGNOSTIC_POLICY = {
+    "partial": ("warning", "ABILITY_SUPPORT_PARTIAL", False),
+    "unsupported": ("warning", "ABILITY_SUPPORT_UNSUPPORTED", False),
+    "not_checked": ("warning", "ABILITY_SUPPORT_NOT_CHECKED", False),
+    "fallback_required": ("warning", "ABILITY_SUPPORT_FALLBACK_REQUIRED", False),
+}
+
 OUTPUT_FILES = [
     "manifest.json",
     "cards.jsonl",
@@ -377,6 +393,68 @@ def _error(diagnostic_id, code, message_hu, object_ref):
     }
 
 
+def _ability_support_diagnostic(index, module, severity, code, blocking):
+    module_id = str(module.get("module_id", ""))
+    status = str(module.get("support_status", "")).strip() or "not_checked"
+    return {
+        "diagnostic_id": "diag_ability_support_%s_%s" % (index, module_id or "missing_module_id"),
+        "severity": severity,
+        "category": "ability_support",
+        "code": code,
+        "message_hu": "Ability module support_status: %s" % status,
+        "blocking": blocking,
+        "object_ref": {"type": "ability_module", "id": module_id, "index": index},
+        "suggested_action": "Ellenorizd az ability support statuszt, mielott futtathato ability logikara epitesz.",
+    }
+
+
+def collect_ability_support_diagnostics(ability_registry):
+    diagnostics = []
+    audit_notes = []
+    for index, module in enumerate(ability_registry or []):
+        if not isinstance(module, dict):
+            continue
+        status = str(module.get("support_status", "")).strip() or "not_checked"
+        if status in ABILITY_SUPPORT_DIAGNOSTIC_POLICY:
+            severity, code, blocking = ABILITY_SUPPORT_DIAGNOSTIC_POLICY[status]
+            diagnostics.append(_ability_support_diagnostic(index, module, severity, code, blocking))
+        elif status == "declared_only":
+            continue
+        elif status not in CANONICAL_ABILITY_SUPPORT_STATUSES:
+            diagnostics.append(
+                _ability_support_diagnostic(
+                    index,
+                    module,
+                    "warning",
+                    "ABILITY_SUPPORT_UNKNOWN_STATUS",
+                    False,
+                )
+            )
+        elif status == "manual_review_required":
+            audit_notes.append(
+                {
+                    "code": "ABILITY_SUPPORT_MANUAL_REVIEW_REQUIRED_AUDIT_NOTE",
+                    "message_hu": "Ability module manual review required.",
+                    "module_id": str(module.get("module_id", "")),
+                    "support_status": status,
+                }
+            )
+    declared_only_count = sum(
+        1
+        for module in ability_registry or []
+        if isinstance(module, dict) and str(module.get("support_status", "")).strip() == "declared_only"
+    )
+    if declared_only_count:
+        audit_notes.append(
+            {
+                "code": "ABILITY_SUPPORT_DECLARED_ONLY_AUDIT_NOTE",
+                "message_hu": "declared_only nem canonical support_status; jelenleg fejlesztoi/audit allapot.",
+                "count": declared_only_count,
+            }
+        )
+    return {"diagnostics": diagnostics, "audit_notes": audit_notes}
+
+
 def _normalization_apply_error(index, skipped_patch):
     object_type = skipped_patch.get("object_type") or "unknown"
     object_id = skipped_patch.get("object_id") or "unknown"
@@ -599,6 +677,8 @@ def build_package(
         source_files.append(normalization_aliases_source)
     ability_registry = _fixture_ability_registry()
     diagnostics = [] if _uses_export_inputs(export_runtime_cards_path, export_runtime_decks_path, export_runtime_lookups_path) else _fixture_base_diagnostics()
+    ability_support_policy = collect_ability_support_diagnostics(ability_registry)
+    diagnostics.extend(ability_support_policy["diagnostics"])
     normalization_audit_report = build_normalization_audit_report(cards, decks, normalization_aliases_payload)
     normalization_preview_report = build_normalization_preview_report(normalization_audit_report)
     normalization_patch_plan = build_normalization_patch_plan(normalization_preview_report)
@@ -621,6 +701,7 @@ def build_package(
         "supported_card_types": sorted(_lookup_values(lookups, "card_type")),
         "supported_realms": sorted(_lookup_values(lookups, "realm")),
         "ability_execution": "not_implemented",
+        "ability_support_audit_notes": ability_support_policy["audit_notes"],
     }
     manifest = {
         "package_id": PACKAGE_ID,

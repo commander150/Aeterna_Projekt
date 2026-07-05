@@ -88,6 +88,10 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertIn("Blocking hibak szama: 0", report)
             diagnostics = json.loads((output_dir / "diagnostics.json").read_text(encoding="utf-8"))["diagnostics"]
             self.assertEqual(diagnostics[0]["code"], "MANUAL_REVIEW_PLACEHOLDER")
+            engine_support = json.loads((output_dir / "engine_support.json").read_text(encoding="utf-8"))
+            self.assertEqual(engine_support["summary"]["ability_module_statuses"]["declared_only"], 2)
+            self.assertEqual(engine_support["ability_support_audit_notes"][0]["code"], "ABILITY_SUPPORT_DECLARED_ONLY_AUDIT_NOTE")
+            self.assertEqual(engine_support["ability_support_audit_notes"][0]["count"], 2)
             normalization_aliases = json.loads(
                 (output_dir / "normalization_aliases.json").read_text(encoding="utf-8")
             )
@@ -414,6 +418,36 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
         self.assertFalse(temp_dir.exists(), "Normalization apply build test temp cleanup left directory: %s" % temp_dir)
+
+    def test_ability_support_diagnostics_policy(self):
+        builder = _load_builder_module()
+
+        result = builder.collect_ability_support_diagnostics(
+            [
+                {"module_id": "supported_module", "support_status": "supported"},
+                {"module_id": "partial_module", "support_status": "partial"},
+                {"module_id": "unsupported_module", "support_status": "unsupported"},
+                {"module_id": "fallback_module", "support_status": "fallback_required"},
+                {"module_id": "not_checked_module", "support_status": "not_checked"},
+                {"module_id": "manual_module", "support_status": "manual_review_required"},
+                {"module_id": "declared_module", "support_status": "declared_only"},
+                {"module_id": "unknown_module", "support_status": "experimental"},
+            ]
+        )
+
+        codes = {item["code"] for item in result["diagnostics"]}
+        diagnostic_module_ids = {item["object_ref"]["id"] for item in result["diagnostics"]}
+        self.assertNotIn("supported_module", diagnostic_module_ids)
+        self.assertIn("ABILITY_SUPPORT_PARTIAL", codes)
+        self.assertIn("ABILITY_SUPPORT_UNSUPPORTED", codes)
+        self.assertIn("ABILITY_SUPPORT_FALLBACK_REQUIRED", codes)
+        self.assertIn("ABILITY_SUPPORT_NOT_CHECKED", codes)
+        self.assertIn("ABILITY_SUPPORT_UNKNOWN_STATUS", codes)
+        self.assertTrue(all(item["severity"] == "warning" for item in result["diagnostics"]))
+        self.assertTrue(all(item["blocking"] is False for item in result["diagnostics"]))
+        audit_codes = {item["code"] for item in result["audit_notes"]}
+        self.assertIn("ABILITY_SUPPORT_MANUAL_REVIEW_REQUIRED_AUDIT_NOTE", audit_codes)
+        self.assertIn("ABILITY_SUPPORT_DECLARED_ONLY_AUDIT_NOTE", audit_codes)
 
 
 def _fixture_export_records_for_builder(fixture_cards):
