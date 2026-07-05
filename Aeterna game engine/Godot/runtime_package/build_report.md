@@ -11,5 +11,8 @@
 - Normalization preview items: 503
 - Normalization preview skipped audit-required: 101
 - Normalization preview applied: 0
+- Normalization patch plan ready: 499
+- Normalization patch plan blocked: 0
+- Normalization patch plan applied: 0
 
 Ez a csomag kontrollalt fixture adatbol epult. Nem olvas XLSX-et, nem futtat kepessegeket, es nem teljes export rendszer.
