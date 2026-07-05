@@ -220,3 +220,107 @@ A contract-first megközelítés azért biztonságos, mert a későbbi végleges
 **Megjegyzés:**
 
 Ezeket nem érdemes teljesen `answered` státuszra zárni, mert a végleges runtime/backend döntéshez későbbi prototípus, összehasonlító teszt és technológiai bizonyítás kell. A mostani döntés a munkairányt zárja le, nem a végleges engine-implementációt.
+
+---
+
+## OQ-DATA-001 / OQ-DATA-002 / OQ-DATA-005 / OQ-DATA-006 – Runtime package és adatút
+
+**Forráskérdés:**
+
+- `OPEN_QUESTIONS.md / OQ-DATA-001`
+- `OPEN_QUESTIONS.md / OQ-DATA-002`
+- `OPEN_QUESTIONS.md / OQ-DATA-005`
+- `OPEN_QUESTIONS.md / OQ-DATA-006`
+
+**Jelenlegi válasz / döntési irány:**
+
+A runtime package legyen hosszú távon a kötelező programinput.
+
+Ez azt jelenti, hogy:
+
+- A Godot ne olvasson közvetlenül XLSX-et.
+- A Python tesztmotor, AI/batch tesztek és validációs rétegek is lehetőleg runtime package-ből dolgozzanak.
+- A nyers JSONL / CSV / TSV exportok maradjanak köztes, debug, audit vagy referencia-outputok.
+- A manifestes, validált runtime package legyen a tényleges programfogyasztási forma.
+- A Python build pipeline kezelje az XLSX beolvasást, exportot, validációt, normalizálást, diagnostics generálást és runtime package buildet.
+
+**Lokális forrásmappák és névhasználat:**
+
+A jelenlegi lokális dokumentum- és forráshely az `Aeterna dokumentációk/` mappa.
+
+Ez rövid távon elfogadható, de később átnevezendő, mert az ékezetes és speciális karakteres mappanevek technikai problémákat okozhatnak. A későbbi mappa- és fájlneveknél ahol lehet, angol, ASCII-barát neveket kell használni.
+
+Javasolt hosszú távú irány:
+
+- ékezetmentes / ASCII-barát projektmappák;
+- angol technikai mappanevek;
+- magyar tartalom a dokumentumok szövegében maradhat;
+- a pipeline és script útvonalak ne függjenek ékezetes mappanévtől;
+- minden source és output útvonal legyen konfigurálható.
+
+A pontos átnevezési célmappáról külön fájl- és mappaszerkezeti döntés kell. Addig a jelenlegi hely maradhat, de nem tekintendő végleges technikai névszabványnak.
+
+**`TEMP/` candidate pipeline:**
+
+A `TEMP/` alatti candidate runtime package rövid távon elfogadott fejlesztői staging megoldás, de nem végleges architektúra.
+
+A felhasználói visszajelzés alapján a `TEMP/` mappában sok visszamaradt tesztfájl keletkezhet, ezért a `TEMP/` használata csak akkor elfogadható, ha később készül hozzá ürítési, törlési vagy takarítási megoldás.
+
+Javasolt irány:
+
+- `TEMP/` rövid távon maradhat átmeneti staging mappaként;
+- a `TEMP/` nem lehet tartós build artifact vagy referencia-output hely;
+- a pipeline később kapjon explicit clean / purge funkciót;
+- a clean funkció csak ismert, generált pipeline-outputokat töröljön;
+- kézzel szerkesztett vagy canonical forrást soha ne töröljön;
+- középtávon a `TEMP/` szerepét váltsa ki tisztább build mappa, például `build/runtime_package_candidate/` és `build/reports/`.
+
+**Két `sample_runtime_package` mappa kezelése:**
+
+A Python oldali és Godot oldali `sample_runtime_package` mappák nem canonical szerkesztési források.
+
+Javasolt státuszok:
+
+- Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
+- Godot oldali `sample_runtime_package`: `GODOT_CONSUMPTION_COPY`
+
+A Godot oldali package frissítése hosszú távon a Python build pipeline feladata legyen. A pipeline később ellenőrizze, hogy a Godot oldali consumption copy egyezik-e a Python build outputtal.
+
+**Build pipeline és változásérzékelés:**
+
+A build cache és source fingerprint nem MVP-követelmény.
+
+Javasolt időbeli irány:
+
+1. **Rövid táv:** explicit build parancs vagy BAT, amely szükség esetén teljesen újragenerálja az outputokat.
+2. **Középtáv:** fájl-hash alapú változásérzékelés.
+3. **Hosszú táv:** `source_fingerprint`, amely figyelembe veszi a releváns XLSX fájlokat, sheeteket, oszlopokat, cellaértékeket, exportprofil-verziót, LOOKUPS-verziót, builder-verziót és runtime package schema-verziót.
+
+A correctness fontosabb, mint a cache vagy a gyorsítás.
+
+**Indoklás:**
+
+A runtime package tiszta contract-határt ad a Python tooling, Godot loader, későbbi AI/batch tesztek és debug nézetek között. Ha minden programréteg ugyanazt a validált package-et fogyasztja, kevesebb lesz az eltérés a nyers export, a Godot és a Python oldali értelmezés között.
+
+Az XLSX emberi szerkesztési forma, ezért ne váljon közvetlen Godot runtime inputtá. Az ékezetes / speciális karakteres mappa- és fájlnevek elkerülése pedig csökkenti a későbbi script-, tooling-, Git- és platformfüggő hibák esélyét.
+
+A `TEMP/` mappa csak akkor maradhat rövid távú segédmegoldás, ha nem válik szemétgyűjtővé: a pipeline-nak később tudnia kell, mely fájlokat generálta, és biztonságosan tudnia kell takarítani azokat.
+
+**Átvezetési célfájl:**
+
+- `RUNTIME_PACKAGE_SPECIFICATION.md`
+- `ARCHITECTURE.md`
+- `DECISION_MAP.md`
+- `PROTOTYPE_PLANS.md`
+- szükség esetén később: `OPEN_QUESTIONS.md`
+
+**Javasolt OPEN_QUESTIONS státusz:**
+
+- `OQ-DATA-001`: `answered`
+- `OQ-DATA-002`: `partly_answered`
+- `OQ-DATA-005`: `partly_answered`
+- `OQ-DATA-006`: `answered`
+
+**Megjegyzés:**
+
+Az elvi runtime package irány lezárható, de a pontos mappaátnevezési terv, a `TEMP/` takarító mechanizmus és a build/output mappaszerkezet még későbbi technikai döntést és implementációt igényel.
