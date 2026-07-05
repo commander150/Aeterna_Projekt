@@ -455,6 +455,29 @@ def collect_ability_support_diagnostics(ability_registry):
     return {"diagnostics": diagnostics, "audit_notes": audit_notes}
 
 
+def build_ability_support_summary(ability_registry, ability_support_policy):
+    status_counts = Counter(
+        str(module.get("support_status", "")).strip() or "not_checked"
+        for module in ability_registry or []
+        if isinstance(module, dict)
+    )
+    diagnostics = ability_support_policy.get("diagnostics", [])
+    audit_notes = ability_support_policy.get("audit_notes", [])
+    return {
+        "warnings": sum(1 for item in diagnostics if item.get("severity") == "warning"),
+        "audit_notes": len(audit_notes),
+        "declared_only": status_counts.get("declared_only", 0),
+        "unsupported": status_counts.get("unsupported", 0),
+        "partial": status_counts.get("partial", 0),
+        "fallback_required": status_counts.get("fallback_required", 0),
+        "not_checked": status_counts.get("not_checked", 0),
+        "manual_review_required": status_counts.get("manual_review_required", 0),
+        "unknown_support_status": sum(
+            1 for item in diagnostics if item.get("code") == "ABILITY_SUPPORT_UNKNOWN_STATUS"
+        ),
+    }
+
+
 def _normalization_apply_error(index, skipped_patch):
     object_type = skipped_patch.get("object_type") or "unknown"
     object_id = skipped_patch.get("object_id") or "unknown"
@@ -581,6 +604,7 @@ def _build_report(
     normalization_preview_report,
     normalization_patch_plan,
     normalization_apply_report,
+    ability_support_summary,
 ):
     warnings = validation_summary["warning_count"]
     blocking_errors = sum(1 for item in diagnostics if item.get("blocking"))
@@ -597,6 +621,19 @@ def _build_report(
             f"- Warningok szama: {warnings}",
             f"- Blocking hibak szama: {blocking_errors}",
             f"- Validation blocking: {str(validation_summary['blocking']).lower()}",
+            "",
+            "## Ability support diagnostics",
+            "",
+            f"- warnings: {int(ability_support_summary.get('warnings', 0))}",
+            f"- audit_notes: {int(ability_support_summary.get('audit_notes', 0))}",
+            f"- declared_only: {int(ability_support_summary.get('declared_only', 0))}",
+            f"- unsupported: {int(ability_support_summary.get('unsupported', 0))}",
+            f"- partial: {int(ability_support_summary.get('partial', 0))}",
+            f"- fallback_required: {int(ability_support_summary.get('fallback_required', 0))}",
+            f"- not_checked: {int(ability_support_summary.get('not_checked', 0))}",
+            f"- manual_review_required: {int(ability_support_summary.get('manual_review_required', 0))}",
+            f"- unknown_support_status: {int(ability_support_summary.get('unknown_support_status', 0))}",
+            "",
             f"- Normalization audit matches: {int(audit_summary.get('matches_total', 0))}",
             f"- Normalization audit requires audit: {int(audit_summary.get('requires_audit', 0))}",
             f"- Normalization audit allowed preview: {int(audit_summary.get('normalization_allowed', 0))}",
@@ -678,6 +715,7 @@ def build_package(
     ability_registry = _fixture_ability_registry()
     diagnostics = [] if _uses_export_inputs(export_runtime_cards_path, export_runtime_decks_path, export_runtime_lookups_path) else _fixture_base_diagnostics()
     ability_support_policy = collect_ability_support_diagnostics(ability_registry)
+    ability_support_summary = build_ability_support_summary(ability_registry, ability_support_policy)
     diagnostics.extend(ability_support_policy["diagnostics"])
     normalization_audit_report = build_normalization_audit_report(cards, decks, normalization_aliases_payload)
     normalization_preview_report = build_normalization_preview_report(normalization_audit_report)
@@ -701,6 +739,7 @@ def build_package(
         "supported_card_types": sorted(_lookup_values(lookups, "card_type")),
         "supported_realms": sorted(_lookup_values(lookups, "realm")),
         "ability_execution": "not_implemented",
+        "ability_support_summary": ability_support_summary,
         "ability_support_audit_notes": ability_support_policy["audit_notes"],
     }
     manifest = {
@@ -743,6 +782,7 @@ def build_package(
             normalization_preview_report,
             normalization_patch_plan,
             normalization_apply_report,
+            ability_support_summary,
         ),
         encoding="utf-8",
         newline="\n",
@@ -755,6 +795,7 @@ def build_package(
         "normalization_preview_summary": normalization_preview_report["summary"],
         "normalization_patch_plan_summary": normalization_patch_plan["summary"],
         "normalization_apply_summary": normalization_apply_report["summary"],
+        "ability_support_summary": ability_support_summary,
     }
 
 

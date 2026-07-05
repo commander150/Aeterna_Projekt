@@ -107,6 +107,10 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
         self.assertEqual(summary["normalization_apply_applied"], 2)
         self.assertEqual(summary["normalization_apply_skipped"], 0)
         self.assertEqual(summary["normalization_apply_conflicts"], 0)
+        self.assertEqual(summary["ability_support_warnings"], 0)
+        self.assertEqual(summary["ability_support_audit_notes"], 1)
+        self.assertEqual(summary["ability_support_declared_only"], 2)
+        self.assertEqual(summary["ability_support_unknown_status"], 0)
         self.assertEqual(summary["would_copy_files"], self.publisher.PACKAGE_FILES)
         self.assertIn("normalization_audit_report.json", summary["would_copy_files"])
         self.assertIn("normalization_preview_report.json", summary["would_copy_files"])
@@ -194,6 +198,15 @@ class _StubSmokeRunner:
             "normalization_apply_applied": 2 if apply_normalization_patches else 0,
             "normalization_apply_skipped": 0,
             "normalization_apply_conflicts": 0,
+            "ability_support_warnings": 0,
+            "ability_support_audit_notes": 1,
+            "ability_support_declared_only": 2,
+            "ability_support_unsupported": 0,
+            "ability_support_partial": 0,
+            "ability_support_fallback_required": 0,
+            "ability_support_not_checked": 0,
+            "ability_support_manual_review_required": 0,
+            "ability_support_unknown_status": 0,
             "validation_blocking": False,
             "diagnostic_count": 0,
             "deck_reference_errors": 0,

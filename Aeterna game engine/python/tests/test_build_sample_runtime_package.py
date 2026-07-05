@@ -90,6 +90,15 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertEqual(diagnostics[0]["code"], "MANUAL_REVIEW_PLACEHOLDER")
             engine_support = json.loads((output_dir / "engine_support.json").read_text(encoding="utf-8"))
             self.assertEqual(engine_support["summary"]["ability_module_statuses"]["declared_only"], 2)
+            self.assertEqual(engine_support["ability_support_summary"]["warnings"], 0)
+            self.assertEqual(engine_support["ability_support_summary"]["audit_notes"], 1)
+            self.assertEqual(engine_support["ability_support_summary"]["declared_only"], 2)
+            self.assertEqual(engine_support["ability_support_summary"]["unsupported"], 0)
+            self.assertEqual(engine_support["ability_support_summary"]["partial"], 0)
+            self.assertEqual(engine_support["ability_support_summary"]["fallback_required"], 0)
+            self.assertEqual(engine_support["ability_support_summary"]["not_checked"], 0)
+            self.assertEqual(engine_support["ability_support_summary"]["manual_review_required"], 0)
+            self.assertEqual(engine_support["ability_support_summary"]["unknown_support_status"], 0)
             self.assertEqual(engine_support["ability_support_audit_notes"][0]["code"], "ABILITY_SUPPORT_DECLARED_ONLY_AUDIT_NOTE")
             self.assertEqual(engine_support["ability_support_audit_notes"][0]["count"], 2)
             normalization_aliases = json.loads(
@@ -122,6 +131,9 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertEqual(normalization_apply["summary"]["applied"], 0)
             self.assertEqual(normalization_apply["summary"]["conflicts"], 0)
             self.assertIn("Normalization audit matches: 0", report)
+            self.assertIn("## Ability support diagnostics", report)
+            self.assertIn("declared_only: 2", report)
+            self.assertIn("unknown_support_status: 0", report)
             self.assertIn("Normalization preview items: 0", report)
             self.assertIn("Normalization patch plan ready: 0", report)
             self.assertIn("Normalization apply enabled: false", report)
@@ -448,6 +460,29 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
         audit_codes = {item["code"] for item in result["audit_notes"]}
         self.assertIn("ABILITY_SUPPORT_MANUAL_REVIEW_REQUIRED_AUDIT_NOTE", audit_codes)
         self.assertIn("ABILITY_SUPPORT_DECLARED_ONLY_AUDIT_NOTE", audit_codes)
+
+        summary = builder.build_ability_support_summary(
+            [
+                {"module_id": "supported_module", "support_status": "supported"},
+                {"module_id": "partial_module", "support_status": "partial"},
+                {"module_id": "unsupported_module", "support_status": "unsupported"},
+                {"module_id": "fallback_module", "support_status": "fallback_required"},
+                {"module_id": "not_checked_module", "support_status": "not_checked"},
+                {"module_id": "manual_module", "support_status": "manual_review_required"},
+                {"module_id": "declared_module", "support_status": "declared_only"},
+                {"module_id": "unknown_module", "support_status": "experimental"},
+            ],
+            result,
+        )
+        self.assertEqual(summary["warnings"], 5)
+        self.assertEqual(summary["audit_notes"], 2)
+        self.assertEqual(summary["declared_only"], 1)
+        self.assertEqual(summary["unsupported"], 1)
+        self.assertEqual(summary["partial"], 1)
+        self.assertEqual(summary["fallback_required"], 1)
+        self.assertEqual(summary["not_checked"], 1)
+        self.assertEqual(summary["manual_review_required"], 1)
+        self.assertEqual(summary["unknown_support_status"], 1)
 
 
 def _fixture_export_records_for_builder(fixture_cards):

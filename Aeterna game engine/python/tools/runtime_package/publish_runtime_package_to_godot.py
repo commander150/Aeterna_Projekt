@@ -167,6 +167,18 @@ def print_publish_summary(summary):
     print("normalization_apply_applied: %s" % summary.get("normalization_apply_applied", ""))
     print("normalization_apply_skipped: %s" % summary.get("normalization_apply_skipped", ""))
     print("normalization_apply_conflicts: %s" % summary.get("normalization_apply_conflicts", ""))
+    print("ability_support_warnings: %s" % summary.get("ability_support_warnings", ""))
+    print("ability_support_audit_notes: %s" % summary.get("ability_support_audit_notes", ""))
+    print("ability_support_declared_only: %s" % summary.get("ability_support_declared_only", ""))
+    print("ability_support_unsupported: %s" % summary.get("ability_support_unsupported", ""))
+    print("ability_support_partial: %s" % summary.get("ability_support_partial", ""))
+    print("ability_support_fallback_required: %s" % summary.get("ability_support_fallback_required", ""))
+    print("ability_support_not_checked: %s" % summary.get("ability_support_not_checked", ""))
+    print(
+        "ability_support_manual_review_required: %s"
+        % summary.get("ability_support_manual_review_required", "")
+    )
+    print("ability_support_unknown_status: %s" % summary.get("ability_support_unknown_status", ""))
     print("validation_blocking: %s" % str(summary.get("validation_blocking", "")).lower())
     print("diagnostic_count: %s" % summary.get("diagnostic_count", ""))
     print("deck_reference_errors: %s" % summary.get("deck_reference_errors", ""))

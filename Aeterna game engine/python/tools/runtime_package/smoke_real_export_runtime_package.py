@@ -157,6 +157,7 @@ def run_smoke(
         normalization_preview_summary = build_result.get("normalization_preview_summary", {})
         normalization_patch_plan_summary = build_result.get("normalization_patch_plan_summary", {})
         normalization_apply_summary = build_result.get("normalization_apply_summary", {})
+        ability_support_summary = build_result.get("ability_support_summary", {})
         summary = {
             "xlsx_path": str(xlsx_path),
             "lookups_xlsx_path": str(lookups_xlsx_path) if lookups_xlsx_path else "none",
@@ -196,6 +197,17 @@ def run_smoke(
             "normalization_apply_applied": int(normalization_apply_summary.get("applied", 0)),
             "normalization_apply_skipped": int(normalization_apply_summary.get("skipped", 0)),
             "normalization_apply_conflicts": int(normalization_apply_summary.get("conflicts", 0)),
+            "ability_support_warnings": int(ability_support_summary.get("warnings", 0)),
+            "ability_support_audit_notes": int(ability_support_summary.get("audit_notes", 0)),
+            "ability_support_declared_only": int(ability_support_summary.get("declared_only", 0)),
+            "ability_support_unsupported": int(ability_support_summary.get("unsupported", 0)),
+            "ability_support_partial": int(ability_support_summary.get("partial", 0)),
+            "ability_support_fallback_required": int(ability_support_summary.get("fallback_required", 0)),
+            "ability_support_not_checked": int(ability_support_summary.get("not_checked", 0)),
+            "ability_support_manual_review_required": int(
+                ability_support_summary.get("manual_review_required", 0)
+            ),
+            "ability_support_unknown_status": int(ability_support_summary.get("unknown_support_status", 0)),
             "runtime_package_output_dir": str(package_dir),
             "cards_jsonl_exists": cards_path.exists(),
             "cards_jsonl_rows": _count_jsonl_rows(cards_path),
@@ -262,6 +274,15 @@ def print_summary(summary):
     print(f"normalization_apply_applied: {summary['normalization_apply_applied']}")
     print(f"normalization_apply_skipped: {summary['normalization_apply_skipped']}")
     print(f"normalization_apply_conflicts: {summary['normalization_apply_conflicts']}")
+    print(f"ability_support_warnings: {summary['ability_support_warnings']}")
+    print(f"ability_support_audit_notes: {summary['ability_support_audit_notes']}")
+    print(f"ability_support_declared_only: {summary['ability_support_declared_only']}")
+    print(f"ability_support_unsupported: {summary['ability_support_unsupported']}")
+    print(f"ability_support_partial: {summary['ability_support_partial']}")
+    print(f"ability_support_fallback_required: {summary['ability_support_fallback_required']}")
+    print(f"ability_support_not_checked: {summary['ability_support_not_checked']}")
+    print(f"ability_support_manual_review_required: {summary['ability_support_manual_review_required']}")
+    print(f"ability_support_unknown_status: {summary['ability_support_unknown_status']}")
     print(f"diagnostic_count: {summary['diagnostic_count']}")
     print("cards_source: export-derived")
     print(f"decks_source: {summary['decks_source']}")
