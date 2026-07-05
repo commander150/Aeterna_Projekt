@@ -152,6 +152,7 @@ def run_smoke(
         diagnostics = _read_diagnostics(diagnostics_path)
         manifest = _read_json(manifest_path)
         normalization_audit_summary = build_result.get("normalization_audit_summary", {})
+        normalization_preview_summary = build_result.get("normalization_preview_summary", {})
         summary = {
             "xlsx_path": str(xlsx_path),
             "lookups_xlsx_path": str(lookups_xlsx_path) if lookups_xlsx_path else "none",
@@ -177,6 +178,11 @@ def run_smoke(
             "normalization_audit_matches": int(normalization_audit_summary.get("matches_total", 0)),
             "normalization_audit_requires_audit": int(normalization_audit_summary.get("requires_audit", 0)),
             "normalization_audit_allowed": int(normalization_audit_summary.get("normalization_allowed", 0)),
+            "normalization_preview_items": int(normalization_preview_summary.get("preview_items", 0)),
+            "normalization_preview_skipped_requires_audit": int(
+                normalization_preview_summary.get("skipped_requires_audit", 0)
+            ),
+            "normalization_preview_applied": int(normalization_preview_summary.get("applied", 0)),
             "runtime_package_output_dir": str(package_dir),
             "cards_jsonl_exists": cards_path.exists(),
             "cards_jsonl_rows": _count_jsonl_rows(cards_path),
@@ -233,6 +239,9 @@ def print_summary(summary):
     print(f"normalization_audit_matches: {summary['normalization_audit_matches']}")
     print(f"normalization_audit_requires_audit: {summary['normalization_audit_requires_audit']}")
     print(f"normalization_audit_allowed: {summary['normalization_audit_allowed']}")
+    print(f"normalization_preview_items: {summary['normalization_preview_items']}")
+    print(f"normalization_preview_skipped_requires_audit: {summary['normalization_preview_skipped_requires_audit']}")
+    print(f"normalization_preview_applied: {summary['normalization_preview_applied']}")
     print(f"diagnostic_count: {summary['diagnostic_count']}")
     print("cards_source: export-derived")
     print(f"decks_source: {summary['decks_source']}")

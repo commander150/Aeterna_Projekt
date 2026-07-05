@@ -109,7 +109,8 @@ def _audit_object(audit_rows, object_type, object_id, record, alias_index):
     for rule in FIELD_RULES[object_type]:
         field = rule["field"]
         lookup_group = rule["lookup_group"]
-        values = _iter_values(record.get(field), tokenize=rule["tokenize"])
+        original_value = record.get(field)
+        values = _iter_values(original_value, tokenize=rule["tokenize"])
         for value in values:
             checked_values += 1
             alias = alias_index.get((lookup_group, value))
@@ -122,6 +123,7 @@ def _audit_object(audit_rows, object_type, object_id, record, alias_index):
                     "object_type": object_type,
                     "object_id": str(object_id),
                     "field": field,
+                    "original_value": original_value,
                     "value": value,
                     "lookup_group": lookup_group,
                     "match_type": "legacy_alias",
