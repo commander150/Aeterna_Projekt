@@ -48,6 +48,16 @@ func get_modules_by_support_status(status: String) -> Array:
 	return result
 
 
+func get_support_status_counts() -> Dictionary:
+	var counts: Dictionary = {}
+	for module in _modules:
+		var status := str(module.get("support_status", "not_checked"))
+		if status.is_empty():
+			status = "not_checked"
+		counts[status] = int(counts.get(status, 0)) + 1
+	return counts
+
+
 func get_all_modules() -> Array:
 	return _modules.duplicate(true)
 

@@ -11,6 +11,14 @@ const DeckRegistryScript = preload("res://scripts/registries/deck_registry.gd")
 const LookupRegistryScript = preload("res://scripts/registries/lookup_registry.gd")
 const AbilityRegistryScript = preload("res://scripts/registries/ability_registry.gd")
 
+const SUPPORT_STATUS_ATTENTION := [
+	"unsupported",
+	"partial",
+	"fallback_required",
+	"not_checked",
+	"manual_review_required",
+]
+
 
 var card_registry: CardRegistry
 var deck_registry: DeckRegistry
@@ -89,6 +97,7 @@ func load_package(package_path: String) -> Dictionary:
 	var engine_support_files := 0
 	if typeof(engine_support_result.get("data")) == TYPE_DICTIONARY:
 		engine_support_files = 1
+	var ability_support_statuses := ability_registry.get_support_status_counts()
 
 	result["loaded_counts"] = {
 		"cards": card_registry.count(),
@@ -99,6 +108,8 @@ func load_package(package_path: String) -> Dictionary:
 		"normalization_aliases": _count_wrapped_array(normalization_aliases_result.get("data"), "normalization_aliases"),
 		"engine_support_files": engine_support_files,
 	}
+	result["ability_support_statuses"] = ability_support_statuses
+	_collect_ability_support_notes(result, ability_support_statuses)
 	result["audit_notes"].append("Abilities are registered only; no card ability execution is performed.")
 	result["package_loaded"] = result["errors"].is_empty() and not result["blocking"]
 
@@ -115,6 +126,7 @@ func print_debug_summary(result: Dictionary) -> void:
 	print("decks: %d" % int(counts.get("decks", 0)))
 	print("lookup_groups: %d" % int(counts.get("lookup_groups", 0)))
 	print("ability_modules: %d" % int(counts.get("ability_modules", 0)))
+	print("ability_support_statuses: %s" % _format_counts(result.get("ability_support_statuses", {})))
 	print("normalization_aliases: %d" % int(counts.get("normalization_aliases", 0)))
 	var summary = result.get("diagnostics_summary", {})
 	print("warnings: %d" % int(summary.get("warnings", 0)))
@@ -142,6 +154,7 @@ func _empty_result() -> Dictionary:
 			"normalization_aliases": 0,
 			"engine_support_files": 0,
 		},
+		"ability_support_statuses": {},
 		"diagnostics_summary": {
 			"total": 0,
 			"warnings": 0,
@@ -149,6 +162,28 @@ func _empty_result() -> Dictionary:
 			"blocking_errors": 0,
 		},
 	}
+
+
+func _collect_ability_support_notes(result: Dictionary, status_counts: Dictionary) -> void:
+	for status in SUPPORT_STATUS_ATTENTION:
+		var count := int(status_counts.get(status, 0))
+		if count > 0:
+			result["warnings"].append("Ability support status requires attention: %s=%d" % [status, count])
+	if int(status_counts.get("declared_only", 0)) > 0:
+		result["audit_notes"].append(
+			"Ability support status declared_only=%d: modules are registered but not executable." % int(status_counts.get("declared_only", 0))
+		)
+
+
+func _format_counts(counts) -> String:
+	if typeof(counts) != TYPE_DICTIONARY:
+		return ""
+	var keys := counts.keys()
+	keys.sort()
+	var parts: Array = []
+	for key in keys:
+		parts.append("%s=%d" % [str(key), int(counts.get(key, 0))])
+	return ", ".join(parts)
 
 
 func _finalize_result(result: Dictionary) -> Dictionary:

@@ -24,6 +24,7 @@ func _ready() -> void:
 
 func _format_result(result: Dictionary) -> String:
 	var counts = result.get("loaded_counts", {})
+	var ability_support_statuses = result.get("ability_support_statuses", {})
 	var summary = result.get("diagnostics_summary", {})
 	var lines := [
 		"AETERNA sample runtime package loader",
@@ -37,6 +38,7 @@ func _format_result(result: Dictionary) -> String:
 		"decks: %d" % int(counts.get("decks", 0)),
 		"lookup_groups: %d" % int(counts.get("lookup_groups", 0)),
 		"ability_modules: %d" % int(counts.get("ability_modules", 0)),
+		"ability_support_statuses: %s" % _format_counts(ability_support_statuses),
 		"normalization_aliases: %d" % int(counts.get("normalization_aliases", 0)),
 		"warnings: %d" % int(summary.get("warnings", 0)),
 		"blocking_errors: %d" % int(summary.get("blocking_errors", 0)),
@@ -57,3 +59,14 @@ func _format_result(result: Dictionary) -> String:
 			lines.append("- %s" % str(warning))
 
 	return "\n".join(lines)
+
+
+func _format_counts(counts) -> String:
+	if typeof(counts) != TYPE_DICTIONARY:
+		return ""
+	var keys := counts.keys()
+	keys.sort()
+	var parts: Array = []
+	for key in keys:
+		parts.append("%s=%d" % [str(key), int(counts.get(key, 0))])
+	return ", ".join(parts)
