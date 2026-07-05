@@ -8,5 +8,8 @@
 - Normalization audit matches: 604
 - Normalization audit requires audit: 101
 - Normalization audit allowed preview: 503
+- Normalization preview items: 503
+- Normalization preview skipped audit-required: 101
+- Normalization preview applied: 0
 
 Ez a csomag kontrollalt fixture adatbol epult. Nem olvas XLSX-et, nem futtat kepessegeket, es nem teljes export rendszer.
