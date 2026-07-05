@@ -324,3 +324,60 @@ A `TEMP/` mappa csak akkor maradhat rövid távú segédmegoldás, ha nem válik
 **Megjegyzés:**
 
 Az elvi runtime package irány lezárható, de a pontos mappaátnevezési terv, a `TEMP/` takarító mechanizmus és a build/output mappaszerkezet még későbbi technikai döntést és implementációt igényel.
+
+---
+
+## OQ-DIAG-001 – Severity és blocking rendszer
+
+**Forráskérdés:** `OPEN_QUESTIONS.md / OQ-DIAG-001`
+
+**Jelenlegi válasz / döntési irány:**
+
+A diagnostics rendszerben a `severity` és a `blocking` legyen két külön mező.
+
+A `severity` azt jelöli, hogy a probléma mennyire súlyos vagy milyen jellegű.
+
+A `blocking` azt jelöli, hogy az adott probléma megállítja-e a buildet, a package publish-t, a runtime betöltést vagy az adott action végrehajtását.
+
+Javasolt alap severity értékek:
+
+- `info`
+- `audit_note`
+- `warning`
+- `error`
+- `critical`
+- `balance_suspicion`
+
+Javasolt alapelv:
+
+- `warning` alapból nem blokkoló.
+- `audit_note` alapból nem blokkoló, de emberi áttekintést jelez.
+- `error` lehet blokkoló vagy nem blokkoló, a kontextustól függően.
+- `critical` alapból blokkoló.
+- `balance_suspicion` ne blokkoljon buildet vagy runtime-ot, hanem későbbi audit / balance report kategória legyen.
+
+Példák:
+
+- `warning` + `blocking: false` → nem állít meg semmit.
+- `error` + `blocking: true` → nem mehet tovább az érintett folyamat.
+- `audit_note` + `blocking: false` → emberi átnézés kell, de a pipeline mehet tovább.
+- `critical` + `blocking: true` → súlyos rendszerhiba vagy rejtett információs sérülés; a folyamat álljon meg.
+- `balance_suspicion` + `blocking: false` → balanszvizsgálati jelzés, nem engine-hiba.
+
+**Indoklás:**
+
+A severity és a blocking különválasztása azért fontos, mert nem minden súlyosnak tűnő jelzés blokkol azonos módon minden futási módban. Ugyanaz a probléma development módban lehet warning vagy audit note, publish / release candidate módban viszont blocking error.
+
+A külön mezők lehetővé teszik, hogy a diagnostics rendszer egyszerre legyen emberileg olvasható, gépileg feldolgozható és futási mód szerint szigorítható.
+
+**Átvezetési célfájl:**
+
+- `CONTRACT_SPECIFICATION.md`
+- `RUNTIME_PACKAGE_SPECIFICATION.md`
+- szükség esetén később: `OPEN_QUESTIONS.md`
+
+**Javasolt OPEN_QUESTIONS státusz:** `answered`
+
+**Megjegyzés:**
+
+A severity/blocking alapmodell ezzel eldőlt. A következő külön döntési réteg az, hogy development, publish, runtime és action execution módban mely hibatípusok legyenek blokkolók.
