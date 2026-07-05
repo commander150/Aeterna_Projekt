@@ -157,3 +157,66 @@ A projektben már kialakult egy aktív engine-dokumentációs főfájl-készlet.
 **Megjegyzés:**
 
 Ez a most létrehozott `OPEN_QUESTIONS_DECISIONS.md` kivételesen indokolt új dokumentum, mert nem duplikálja az `OPEN_QUESTIONS.md` tartalmát, hanem a kérdésindexhez kapcsolódó válasznaplóként működik.
+
+---
+
+## OQ-ARCH-001 / OQ-ARCH-002 / OQ-TECH-001 / OQ-TECH-002 / OQ-TECH-003 – Python, Godot és hibrid modell
+
+**Forráskérdés:**
+
+- `OPEN_QUESTIONS.md / OQ-ARCH-001`
+- `OPEN_QUESTIONS.md / OQ-ARCH-002`
+- `OPEN_QUESTIONS.md / OQ-TECH-001`
+- `OPEN_QUESTIONS.md / OQ-TECH-002`
+- `OPEN_QUESTIONS.md / OQ-TECH-003`
+
+**Jelenlegi válasz / döntési irány:**
+
+A projekt rövid és középtávú fejlesztési iránya a contract-first hibrid modell.
+
+Ez azt jelenti, hogy:
+
+- Python maradjon az adatpipeline, exportvalidáció, runtime package build, diagnostics, report és későbbi AI/batch tesztelés elsődleges technikai rétege.
+- Godot/GDScript maradjon runtime package fogyasztó, debug UI, vizuális kliens és későbbi interaktív játékprototípus réteg.
+- A runtime package, snapshot, legal action, action request/response, event log és diagnostics contractok legyenek a közös határfelületek.
+- A régi Python motor maradjon referencia / archív review státuszban.
+- A régi Python motor nem törlendő automatikusan, de nem is automatikusan továbbfejlesztendő fő backend.
+- A régi motorból csak külön döntéssel, célzottan, contract-first rendszerbe illeszkedő és teszttel ellenőrizhető módon emelhető át logika.
+
+**Hosszú távú célkép pontosítása:**
+
+A felhasználói célkép alapján a végső forma jelenleg inkább A-szerű lehet: Python rules/backend + Godot frontend/kliens.
+
+Ez azonban jelenleg nem végleges implementációs döntés, hanem hosszú távú célállapot-jelölt. A projekt addig contract-first hibrid modellben halad, amíg a Python-backend, GDScript-runtime vagy más hibrid végállapot technikailag nem bizonyított megfelelően.
+
+Ezért a döntés időbeli rétegzése:
+
+1. **Rövid táv:** contract-first adatút, runtime package, Godot loader/debug, Python build pipeline.
+2. **Középtáv:** Python és Godot közötti contractok erősítése, sample contractok, legal action / event log / diagnostics alapok, későbbi AI/batch tesztelési előkészítés.
+3. **Hosszú távú jelölt végállapot:** Python rules/backend + Godot frontend/kliens, ha ez technikailag, tesztelhetőségben és terjeszthetőségben megfelelőnek bizonyul.
+4. **Fenntartott döntési kapu:** GDScript teljes rules runtime vagy tisztább hibrid modell csak prototípus és összehasonlító teszt után dönthető el.
+
+**Indoklás:**
+
+A hibrid modell nem ellentétes azzal, hogy a végső célkép Python-backend-közeli lehet. A jelenlegi fejlesztési fázisban túl korai lenne véglegesen kijelenteni, hogy a teljes rules runtime Pythonban vagy GDScriptben lesz, mert a Godot oldalon jelenleg a runtime package fogyasztás és debug nézetek bizonyítottak, nem a teljes szabálymotor.
+
+A contract-first megközelítés azért biztonságos, mert a későbbi végleges technológiai döntéstől függetlenül hasznos marad. Ha a végállapot Python backend + Godot frontend lesz, a contractok akkor is tiszta határfelületet adnak. Ha később GDScript runtime erősödik, a contractok akkor is megvédik a rendszert a szabálylogika és UI összekeverésétől.
+
+**Átvezetési célfájl:**
+
+- `TECHNOLOGY_DECISIONS.md`
+- `ARCHITECTURE.md`
+- `DECISION_MAP.md`
+- szükség esetén később: `OPEN_QUESTIONS.md`
+
+**Javasolt OPEN_QUESTIONS státusz:**
+
+- `OQ-ARCH-001`: `partly_answered`
+- `OQ-ARCH-002`: `partly_answered`
+- `OQ-TECH-001`: `partly_answered`
+- `OQ-TECH-002`: `partly_answered`
+- `OQ-TECH-003`: `partly_answered`
+
+**Megjegyzés:**
+
+Ezeket nem érdemes teljesen `answered` státuszra zárni, mert a végleges runtime/backend döntéshez későbbi prototípus, összehasonlító teszt és technológiai bizonyítás kell. A mostani döntés a munkairányt zárja le, nem a végleges engine-implementációt.
