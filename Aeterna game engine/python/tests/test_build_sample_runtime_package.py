@@ -47,6 +47,7 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
                 "normalization_audit_report.json",
                 "normalization_preview_report.json",
                 "normalization_patch_plan.json",
+                "normalization_apply_report.json",
                 "ability_registry.json",
                 "engine_support.json",
                 "diagnostics.json",
@@ -110,9 +111,16 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertEqual(normalization_patch_plan["patch_plan"], [])
             self.assertEqual(normalization_patch_plan["summary"]["patches_ready"], 0)
             self.assertEqual(normalization_patch_plan["summary"]["applied"], 0)
+            normalization_apply = json.loads(
+                (output_dir / "normalization_apply_report.json").read_text(encoding="utf-8")
+            )
+            self.assertFalse(normalization_apply["summary"]["enabled"])
+            self.assertEqual(normalization_apply["summary"]["applied"], 0)
+            self.assertEqual(normalization_apply["summary"]["conflicts"], 0)
             self.assertIn("Normalization audit matches: 0", report)
             self.assertIn("Normalization preview items: 0", report)
             self.assertIn("Normalization patch plan ready: 0", report)
+            self.assertIn("Normalization apply enabled: false", report)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
         self.assertFalse(temp_dir.exists(), "Sample runtime package test temp cleanup left directory: %s" % temp_dir)
@@ -319,6 +327,8 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertEqual(result["normalization_patch_plan_summary"]["patches_ready"], 5)
             self.assertEqual(result["normalization_patch_plan_summary"]["blocked_or_ambiguous"], 0)
             self.assertEqual(result["normalization_patch_plan_summary"]["applied"], 0)
+            self.assertFalse(result["normalization_apply_summary"]["enabled"])
+            self.assertEqual(result["normalization_apply_summary"]["applied"], 0)
             report = json.loads((output_dir / "normalization_audit_report.json").read_text(encoding="utf-8"))
             self.assertEqual(report["summary"]["matches_total"], 11)
             self.assertTrue(all(row["applied"] is False for row in report["normalization_audit"]))
@@ -331,11 +341,16 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertEqual(patch_plan["summary"]["patches_ready"], 5)
             self.assertEqual(patch_plan["summary"]["blocked_or_ambiguous"], 0)
             self.assertTrue(all(row["applied"] is False for row in patch_plan["patch_plan"]))
+            apply_report = json.loads((output_dir / "normalization_apply_report.json").read_text(encoding="utf-8"))
+            self.assertFalse(apply_report["summary"]["enabled"])
+            self.assertEqual(apply_report["summary"]["patches_input"], 5)
+            self.assertEqual(apply_report["summary"]["applied"], 0)
             manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
             manifest_files = {item["path"] for item in manifest["files"]}
             self.assertIn("normalization_audit_report.json", manifest_files)
             self.assertIn("normalization_preview_report.json", manifest_files)
             self.assertIn("normalization_patch_plan.json", manifest_files)
+            self.assertIn("normalization_apply_report.json", manifest_files)
             build_report = (output_dir / "build_report.md").read_text(encoding="utf-8")
             self.assertIn("Normalization audit matches: 11", build_report)
             self.assertIn("Normalization audit requires audit: 6", build_report)
@@ -346,9 +361,59 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertIn("Normalization patch plan ready: 5", build_report)
             self.assertIn("Normalization patch plan blocked: 0", build_report)
             self.assertIn("Normalization patch plan applied: 0", build_report)
+            self.assertIn("Normalization apply enabled: false", build_report)
+            self.assertIn("Normalization patches applied: 0", build_report)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
         self.assertFalse(temp_dir.exists(), "Normalization audit build test temp cleanup left directory: %s" % temp_dir)
+
+    def test_build_package_can_apply_normalization_patches_when_enabled(self):
+        builder = _load_builder_module()
+
+        temp_dir = Path(tempfile.gettempdir()) / ("aeterna_fixture_runtime_package_%s" % uuid.uuid4().hex)
+        try:
+            output_dir = temp_dir / "fixture_runtime_package"
+            temp_dir.mkdir(parents=True)
+            aliases_payload = builder.build_normalization_aliases_payload(
+                [
+                    {
+                        "lookup_group": "clan",
+                        "alias_value": "Hamvaskez",
+                        "canonical_value": "hamvaskez",
+                        "normalization_allowed": True,
+                        "requires_audit": False,
+                        "notes": "Fixture clan alias.",
+                    }
+                ]
+            )
+
+            result = builder.build_package(
+                output_dir,
+                normalization_aliases_payload=aliases_payload,
+                apply_normalization_patches=True,
+            )
+
+            self.assertFalse(result["validation_summary"]["blocking"])
+            self.assertEqual(result["normalization_patch_plan_summary"]["patches_ready"], 5)
+            self.assertTrue(result["normalization_apply_summary"]["enabled"])
+            self.assertEqual(result["normalization_apply_summary"]["applied"], 5)
+            self.assertEqual(result["normalization_apply_summary"]["conflicts"], 0)
+            cards = [
+                json.loads(line)
+                for line in (output_dir / "cards.jsonl").read_text(encoding="utf-8").splitlines()
+                if line
+            ]
+            self.assertEqual({card["clan"] for card in cards}, {"hamvaskez"})
+            apply_report = json.loads((output_dir / "normalization_apply_report.json").read_text(encoding="utf-8"))
+            self.assertTrue(apply_report["summary"]["enabled"])
+            self.assertEqual(apply_report["summary"]["applied"], 5)
+            self.assertTrue(all(row["applied"] is True for row in apply_report["applied_patches"]))
+            build_report = (output_dir / "build_report.md").read_text(encoding="utf-8")
+            self.assertIn("Normalization apply enabled: true", build_report)
+            self.assertIn("Normalization patches applied: 5", build_report)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        self.assertFalse(temp_dir.exists(), "Normalization apply build test temp cleanup left directory: %s" % temp_dir)
 
 
 def _fixture_export_records_for_builder(fixture_cards):

@@ -103,10 +103,36 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
         self.assertEqual(summary["normalization_patch_plan_ready"], 2)
         self.assertEqual(summary["normalization_patch_plan_blocked"], 0)
         self.assertEqual(summary["normalization_patch_plan_applied"], 0)
+        self.assertFalse(summary["normalization_apply_enabled"])
+        self.assertEqual(summary["normalization_apply_applied"], 0)
+        self.assertEqual(summary["normalization_apply_skipped"], 0)
+        self.assertEqual(summary["normalization_apply_conflicts"], 0)
         self.assertEqual(summary["would_copy_files"], self.publisher.PACKAGE_FILES)
         self.assertIn("normalization_audit_report.json", summary["would_copy_files"])
         self.assertIn("normalization_preview_report.json", summary["would_copy_files"])
         self.assertIn("normalization_patch_plan.json", summary["would_copy_files"])
+        self.assertIn("normalization_apply_report.json", summary["would_copy_files"])
+        self.assertEqual(self.copied_files, [])
+
+    def test_dry_run_can_enable_normalization_apply(self):
+        self.publisher.SMOKE_RUNNER = _StubSmokeRunner()
+        self.publisher.validate_candidate = lambda _summary, _candidate: []
+        self.publisher.shutil.copy2 = self._record_copy
+
+        summary = self.publisher.publish_runtime_package(
+            xlsx_path=self.temp_root / "source.xlsx",
+            lookups_xlsx_path=self.temp_root / "LOOKUPS.xlsx",
+            temp_output_dir=self.temp_output_dir,
+            godot_package_dir=self.godot_package_dir,
+            dry_run=True,
+            apply_normalization_patches=True,
+        )
+
+        self.assertTrue(summary["dry_run"])
+        self.assertFalse(summary["published"])
+        self.assertTrue(summary["normalization_apply_enabled"])
+        self.assertEqual(summary["normalization_apply_applied"], 2)
+        self.assertEqual(summary["normalization_apply_conflicts"], 0)
         self.assertEqual(self.copied_files, [])
 
     def test_existing_candidate_output_uses_fresh_candidate_dir(self):
@@ -142,6 +168,7 @@ class _StubSmokeRunner:
         include_decklists,
         include_lookups_runtime,
         lookups_xlsx_path=None,
+        apply_normalization_patches=False,
     ):
         return {
             "xlsx_path": str(xlsx_path),
@@ -163,6 +190,10 @@ class _StubSmokeRunner:
             "normalization_patch_plan_ready": 2,
             "normalization_patch_plan_blocked": 0,
             "normalization_patch_plan_applied": 0,
+            "normalization_apply_enabled": bool(apply_normalization_patches),
+            "normalization_apply_applied": 2 if apply_normalization_patches else 0,
+            "normalization_apply_skipped": 0,
+            "normalization_apply_conflicts": 0,
             "validation_blocking": False,
             "diagnostic_count": 0,
             "deck_reference_errors": 0,

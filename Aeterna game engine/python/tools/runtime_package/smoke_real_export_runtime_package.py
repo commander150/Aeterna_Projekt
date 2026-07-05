@@ -48,6 +48,7 @@ def run_smoke(
     include_decklists=False,
     include_lookups_runtime=False,
     lookups_xlsx_path=None,
+    apply_normalization_patches=False,
 ):
     """Export runtime cards from XLSX and build a partial runtime package smoke output."""
     xlsx_path = _resolve_xlsx_path(xlsx_path, source_dir)
@@ -144,6 +145,7 @@ def run_smoke(
             export_runtime_lookups_path=export_lookups_path,
             normalization_aliases_payload=normalization_aliases_payload,
             normalization_aliases_source=normalization_aliases_source,
+            apply_normalization_patches=apply_normalization_patches,
         )
 
         manifest_path = package_dir / "manifest.json"
@@ -154,6 +156,7 @@ def run_smoke(
         normalization_audit_summary = build_result.get("normalization_audit_summary", {})
         normalization_preview_summary = build_result.get("normalization_preview_summary", {})
         normalization_patch_plan_summary = build_result.get("normalization_patch_plan_summary", {})
+        normalization_apply_summary = build_result.get("normalization_apply_summary", {})
         summary = {
             "xlsx_path": str(xlsx_path),
             "lookups_xlsx_path": str(lookups_xlsx_path) if lookups_xlsx_path else "none",
@@ -189,6 +192,10 @@ def run_smoke(
                 normalization_patch_plan_summary.get("blocked_or_ambiguous", 0)
             ),
             "normalization_patch_plan_applied": int(normalization_patch_plan_summary.get("applied", 0)),
+            "normalization_apply_enabled": bool(normalization_apply_summary.get("enabled", False)),
+            "normalization_apply_applied": int(normalization_apply_summary.get("applied", 0)),
+            "normalization_apply_skipped": int(normalization_apply_summary.get("skipped", 0)),
+            "normalization_apply_conflicts": int(normalization_apply_summary.get("conflicts", 0)),
             "runtime_package_output_dir": str(package_dir),
             "cards_jsonl_exists": cards_path.exists(),
             "cards_jsonl_rows": _count_jsonl_rows(cards_path),
@@ -251,6 +258,10 @@ def print_summary(summary):
     print(f"normalization_patch_plan_ready: {summary['normalization_patch_plan_ready']}")
     print(f"normalization_patch_plan_blocked: {summary['normalization_patch_plan_blocked']}")
     print(f"normalization_patch_plan_applied: {summary['normalization_patch_plan_applied']}")
+    print(f"normalization_apply_enabled: {str(summary['normalization_apply_enabled']).lower()}")
+    print(f"normalization_apply_applied: {summary['normalization_apply_applied']}")
+    print(f"normalization_apply_skipped: {summary['normalization_apply_skipped']}")
+    print(f"normalization_apply_conflicts: {summary['normalization_apply_conflicts']}")
     print(f"diagnostic_count: {summary['diagnostic_count']}")
     print("cards_source: export-derived")
     print(f"decks_source: {summary['decks_source']}")
@@ -371,6 +382,11 @@ def build_parser():
         help="Also export runtime lookups and use them for lookups.json.",
     )
     parser.add_argument("--lookups-xlsx", type=Path, default=None, help="Canonical LOOKUPS.xlsx source file.")
+    parser.add_argument(
+        "--apply-normalization-patches",
+        action="store_true",
+        help="Opt-in: apply ready normalization patch plan rows to generated candidate cards/decks.",
+    )
     return parser
 
 
@@ -386,6 +402,7 @@ def main(argv=None):
             include_decklists=args.include_decklists,
             include_lookups_runtime=args.include_lookups_runtime,
             lookups_xlsx_path=args.lookups_xlsx,
+            apply_normalization_patches=args.apply_normalization_patches,
         )
         print_summary(summary)
         return 0

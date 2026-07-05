@@ -35,6 +35,7 @@ PACKAGE_FILES = [
     "normalization_audit_report.json",
     "normalization_preview_report.json",
     "normalization_patch_plan.json",
+    "normalization_apply_report.json",
     "ability_registry.json",
     "build_report.md",
 ]
@@ -64,6 +65,7 @@ def publish_runtime_package(
     temp_output_dir=DEFAULT_TEMP_OUTPUT_DIR,
     godot_package_dir=DEFAULT_GODOT_PACKAGE_DIR,
     dry_run=False,
+    apply_normalization_patches=False,
 ):
     temp_output_dir = Path(temp_output_dir)
     godot_package_dir = Path(godot_package_dir)
@@ -76,6 +78,7 @@ def publish_runtime_package(
         include_decklists=True,
         include_lookups_runtime=True,
         lookups_xlsx_path=Path(lookups_xlsx_path),
+        apply_normalization_patches=apply_normalization_patches,
     )
     candidate_package_dir = temp_output_dir / "runtime_package"
     validation_errors = validate_candidate(summary, candidate_package_dir)
@@ -160,6 +163,10 @@ def print_publish_summary(summary):
     print("normalization_patch_plan_ready: %s" % summary.get("normalization_patch_plan_ready", ""))
     print("normalization_patch_plan_blocked: %s" % summary.get("normalization_patch_plan_blocked", ""))
     print("normalization_patch_plan_applied: %s" % summary.get("normalization_patch_plan_applied", ""))
+    print("normalization_apply_enabled: %s" % str(summary.get("normalization_apply_enabled", False)).lower())
+    print("normalization_apply_applied: %s" % summary.get("normalization_apply_applied", ""))
+    print("normalization_apply_skipped: %s" % summary.get("normalization_apply_skipped", ""))
+    print("normalization_apply_conflicts: %s" % summary.get("normalization_apply_conflicts", ""))
     print("validation_blocking: %s" % str(summary.get("validation_blocking", "")).lower())
     print("diagnostic_count: %s" % summary.get("diagnostic_count", ""))
     print("deck_reference_errors: %s" % summary.get("deck_reference_errors", ""))
@@ -195,6 +202,11 @@ def build_parser():
         help="Godot runtime package target directory.",
     )
     parser.add_argument("--dry-run", action="store_true", help="Validate candidate but do not copy to Godot.")
+    parser.add_argument(
+        "--apply-normalization-patches",
+        action="store_true",
+        help="Opt-in: apply ready normalization patch plan rows to generated candidate cards/decks.",
+    )
     return parser
 
 
@@ -208,6 +220,7 @@ def main(argv=None):
             temp_output_dir=args.temp_output_dir,
             godot_package_dir=args.godot_package_dir,
             dry_run=args.dry_run,
+            apply_normalization_patches=args.apply_normalization_patches,
         )
         print_publish_summary(summary)
         return 0

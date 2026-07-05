@@ -159,6 +159,10 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         self.assertEqual(summary["normalization_patch_plan_ready"], 0)
         self.assertEqual(summary["normalization_patch_plan_blocked"], 0)
         self.assertEqual(summary["normalization_patch_plan_applied"], 0)
+        self.assertFalse(summary["normalization_apply_enabled"])
+        self.assertEqual(summary["normalization_apply_applied"], 0)
+        self.assertEqual(summary["normalization_apply_skipped"], 0)
+        self.assertEqual(summary["normalization_apply_conflicts"], 0)
         self.assertNotIn("lookups", summary["fixture_components"])
 
         manifest = json.loads((output_dir / "runtime_package" / "manifest.json").read_text(encoding="utf-8"))
@@ -171,6 +175,7 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         self.assertIn("normalization_audit_report.json", manifest_files)
         self.assertIn("normalization_preview_report.json", manifest_files)
         self.assertIn("normalization_patch_plan.json", manifest_files)
+        self.assertIn("normalization_apply_report.json", manifest_files)
         normalization_aliases = json.loads(
             (output_dir / "runtime_package" / "normalization_aliases.json").read_text(encoding="utf-8")
         )
@@ -191,6 +196,11 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         )
         self.assertEqual(patch_plan["summary"]["patches_ready"], 0)
         self.assertEqual(patch_plan["summary"]["applied"], 0)
+        apply_report = json.loads(
+            (output_dir / "runtime_package" / "normalization_apply_report.json").read_text(encoding="utf-8")
+        )
+        self.assertFalse(apply_report["summary"]["enabled"])
+        self.assertEqual(apply_report["summary"]["applied"], 0)
 
 
 def _write_runtime_cards_workbook(

@@ -74,6 +74,16 @@ except ModuleNotFoundError:
     spec.loader.exec_module(normalization_patch_plan)
     build_normalization_patch_plan = normalization_patch_plan.build_normalization_patch_plan
 
+try:
+    from normalization_apply import apply_normalization_patch_plan, build_disabled_apply_report
+except ModuleNotFoundError:
+    adapter_path = Path(__file__).resolve().with_name("normalization_apply.py")
+    spec = util.spec_from_file_location("normalization_apply", adapter_path)
+    normalization_apply = util.module_from_spec(spec)
+    spec.loader.exec_module(normalization_apply)
+    apply_normalization_patch_plan = normalization_apply.apply_normalization_patch_plan
+    build_disabled_apply_report = normalization_apply.build_disabled_apply_report
+
 
 PACKAGE_ID = "aeterna.sample_runtime_package"
 PACKAGE_VERSION = "0.1.0"
@@ -90,6 +100,7 @@ OUTPUT_FILES = [
     "normalization_audit_report.json",
     "normalization_preview_report.json",
     "normalization_patch_plan.json",
+    "normalization_apply_report.json",
     "ability_registry.json",
     "engine_support.json",
     "diagnostics.json",
@@ -366,6 +377,19 @@ def _error(diagnostic_id, code, message_hu, object_ref):
     }
 
 
+def _normalization_apply_error(index, skipped_patch):
+    object_type = skipped_patch.get("object_type") or "unknown"
+    object_id = skipped_patch.get("object_id") or "unknown"
+    field = skipped_patch.get("field") or "unknown"
+    reason = skipped_patch.get("reason") or "unknown"
+    return _error(
+        "diag_normalization_apply_conflict_%s" % index,
+        "NORMALIZATION_APPLY_CONFLICT",
+        "Normalization apply conflict: %s %s.%s (%s)" % (object_type, object_id, field, reason),
+        {"type": object_type, "id": object_id, "field": field},
+    )
+
+
 def validate_package(cards, decks, lookups, diagnostics):
     known_card_types = _lookup_values(lookups, "card_type")
     known_realms = _lookup_values(lookups, "realm")
@@ -478,12 +502,14 @@ def _build_report(
     normalization_audit_report,
     normalization_preview_report,
     normalization_patch_plan,
+    normalization_apply_report,
 ):
     warnings = validation_summary["warning_count"]
     blocking_errors = sum(1 for item in diagnostics if item.get("blocking"))
     audit_summary = normalization_audit_report.get("summary", {})
     preview_summary = normalization_preview_report.get("summary", {})
     patch_summary = normalization_patch_plan.get("summary", {})
+    apply_summary = normalization_apply_report.get("summary", {})
     return "\n".join(
         [
             "# AETERNA sample runtime package build report",
@@ -502,6 +528,10 @@ def _build_report(
             f"- Normalization patch plan ready: {int(patch_summary.get('patches_ready', 0))}",
             f"- Normalization patch plan blocked: {int(patch_summary.get('blocked_or_ambiguous', 0))}",
             f"- Normalization patch plan applied: {int(patch_summary.get('applied', 0))}",
+            f"- Normalization apply enabled: {str(bool(apply_summary.get('enabled', False))).lower()}",
+            f"- Normalization patches applied: {int(apply_summary.get('applied', 0))}",
+            f"- Normalization patches skipped: {int(apply_summary.get('skipped', 0))}",
+            f"- Normalization apply conflicts: {int(apply_summary.get('conflicts', 0))}",
             "",
             "Ez a csomag kontrollalt fixture adatbol epult. Nem olvas XLSX-et, nem futtat kepessegeket, es nem teljes export rendszer.",
             "",
@@ -516,6 +546,7 @@ def build_package(
     export_runtime_lookups_path=None,
     normalization_aliases_payload=None,
     normalization_aliases_source=None,
+    apply_normalization_patches=False,
 ):
     repo_root = Path(__file__).resolve().parents[2]
     target_dir = Path(output_dir) if output_dir else repo_root / "fixture_runtime_package"
@@ -568,11 +599,22 @@ def build_package(
         source_files.append(normalization_aliases_source)
     ability_registry = _fixture_ability_registry()
     diagnostics = [] if _uses_export_inputs(export_runtime_cards_path, export_runtime_decks_path, export_runtime_lookups_path) else _fixture_base_diagnostics()
-
-    validation_summary = validate_package(cards, decks, lookups, diagnostics)
     normalization_audit_report = build_normalization_audit_report(cards, decks, normalization_aliases_payload)
     normalization_preview_report = build_normalization_preview_report(normalization_audit_report)
     normalization_patch_plan = build_normalization_patch_plan(normalization_preview_report)
+    if apply_normalization_patches:
+        normalization_apply_report = apply_normalization_patch_plan(
+            cards,
+            decks,
+            normalization_patch_plan,
+            enabled=True,
+        )
+    else:
+        normalization_apply_report = build_disabled_apply_report(normalization_patch_plan)
+    for index, skipped_patch in enumerate(normalization_apply_report.get("skipped_patches", [])):
+        diagnostics.append(_normalization_apply_error(index, skipped_patch))
+
+    validation_summary = validate_package(cards, decks, lookups, diagnostics)
     engine_support = {
         "schema_version": SCHEMA_VERSION,
         "summary": _engine_support_summary(cards, ability_registry),
@@ -606,6 +648,7 @@ def build_package(
     _write_json(target_dir / "normalization_audit_report.json", normalization_audit_report)
     _write_json(target_dir / "normalization_preview_report.json", normalization_preview_report)
     _write_json(target_dir / "normalization_patch_plan.json", normalization_patch_plan)
+    _write_json(target_dir / "normalization_apply_report.json", normalization_apply_report)
     _write_json(target_dir / "ability_registry.json", {"ability_registry": ability_registry})
     _write_json(target_dir / "engine_support.json", engine_support)
     _write_json(target_dir / "diagnostics.json", {"diagnostics": diagnostics})
@@ -618,6 +661,7 @@ def build_package(
             normalization_audit_report,
             normalization_preview_report,
             normalization_patch_plan,
+            normalization_apply_report,
         ),
         encoding="utf-8",
         newline="\n",
@@ -629,6 +673,7 @@ def build_package(
         "normalization_audit_summary": normalization_audit_report["summary"],
         "normalization_preview_summary": normalization_preview_report["summary"],
         "normalization_patch_plan_summary": normalization_patch_plan["summary"],
+        "normalization_apply_summary": normalization_apply_report["summary"],
     }
 
 
@@ -655,6 +700,11 @@ def main(argv=None):
         default=None,
         help="Optional LOOKUPS_RUNTIME.jsonl-style lookup input. Defaults to the in-code sample lookup fixture.",
     )
+    parser.add_argument(
+        "--apply-normalization-patches",
+        action="store_true",
+        help="Opt-in: apply ready normalization patch plan rows to generated candidate cards/decks.",
+    )
     args = parser.parse_args(argv)
 
     result = build_package(
@@ -662,6 +712,7 @@ def main(argv=None):
         export_runtime_cards_path=args.export_runtime_cards,
         export_runtime_decks_path=args.export_runtime_decks,
         export_runtime_lookups_path=args.export_runtime_lookups,
+        apply_normalization_patches=args.apply_normalization_patches,
     )
     print(f"Sample runtime package written to: {result['output_dir']}")
     print(f"Validation blocking: {str(result['validation_summary']['blocking']).lower()}")
