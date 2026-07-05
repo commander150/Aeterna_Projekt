@@ -381,3 +381,104 @@ A külön mezők lehetővé teszik, hogy a diagnostics rendszer egyszerre legyen
 **Megjegyzés:**
 
 A severity/blocking alapmodell ezzel eldőlt. A következő külön döntési réteg az, hogy development, publish, runtime és action execution módban mely hibatípusok legyenek blokkolók.
+
+---
+
+## OQ-DIAG-002 / OQ-DATA-003 / OQ-AR-007 – Blocking szabályok development, publish és runtime módban
+
+**Forráskérdés:**
+
+- `OPEN_QUESTIONS.md / OQ-DIAG-002`
+- `OPEN_QUESTIONS.md / OQ-DATA-003`
+- `OPEN_QUESTIONS.md / OQ-AR-007`
+
+**Jelenlegi válasz / döntési irány:**
+
+A blocking szabályokat futási mód szerint kell értelmezni.
+
+Három alapmód különüljön el:
+
+1. development build;
+2. publish / Godot consumption copy frissítés;
+3. runtime / action execution.
+
+### Development build
+
+A development build legyen megengedőbb, de ne engedjen át olyan hibát, amely a loader, a schema, a visibility vagy a minimális package-integritás szintjén veszélyes.
+
+Development buildben blokkoljon:
+
+- hibás vagy hiányzó manifest;
+- betölthetetlen package fájl;
+- sérült JSON / JSONL;
+- kötelező mező hiánya aktív runtime rekordban;
+- rejtett információ szivárgását okozó contract-hiba;
+- olyan hiba, amitől a Godot vagy Python loader összeomlana.
+
+Development buildben ne blokkoljon, csak warning / audit note legyen:
+
+- nem deckben lévő unsupported kártya;
+- partial engine support;
+- balance suspicion;
+- ismert, nem használt legacy alias;
+- még audit alatt álló, de nem futtatott kártyahatás.
+
+### Publish / Godot consumption copy frissítés
+
+Publish vagy Godot consumption copy frissítés előtt szigorúbb szabályok legyenek érvényesek, mert a Godot fogyasztási mappába csak validált package kerülhet.
+
+Publish / Godot copy frissítés előtt blokkoljon:
+
+- bármilyen manifest vagy schema hiba;
+- bármilyen `blocking: true` diagnostics;
+- deckben szereplő unsupported kártya;
+- aktív package-ben futtathatóként jelölt unsupported effect;
+- ismeretlen enum aktív runtime mezőben;
+- veszélyes legacy alias automatikus javítás nélkül;
+- Aeternal / Pecsét régi HP-modellre utaló runtime érték;
+- rejtett információs / visibility contract hiba.
+
+Publish / Godot copy frissítés előtt ne blokkoljon:
+
+- nem használt, nem deckben lévő unsupported lap, ha diagnostics jelöli;
+- balance suspicion;
+- audit note;
+- emberi ellenőrzésre váró, de runtime-ban nem aktivált adat.
+
+### Runtime / action execution
+
+Runtime és action execution közben a motor ne találgasson, és ne próbáljon unsupported logikát részben végrehajtani.
+
+Runtime / action execution közben blokkoljon vagy action rejectet okozzon:
+
+- unsupported effect végrehajtási kísérlete;
+- invalid target;
+- stale snapshotból érkező action, ha már van `state_version`;
+- rejtett információt igénylő vagy szivárogtató action;
+- olyan kártya actionje, amelynek nincs engine-supported végrehajtása;
+- hiányzó required payload.
+
+Fejlesztői módban ezek mellé részletes diagnostics készüljön. Játékosbarát módban csak egyszerű elutasítás és rövid magyarázat jelenjen meg.
+
+**Indoklás:**
+
+A development build célja a gyors fejlesztői visszajelzés, ezért nem minden hiányosság blokkoló. A publish / Godot copy frissítés már stabilabb package-et igényel, ezért szigorúbb. A runtime / action execution a legérzékenyebb réteg, mert ott a motor nem találgathat és nem hajthat végre nem támogatott vagy hiányos szabálylogikát.
+
+A visibility és rejtett információs hibák minden módban kiemelt kockázatot jelentenek, mert későbbi fair AI, PvP és játékosfelület esetén ezek szabálytalan információszivárgást okozhatnak.
+
+**Átvezetési célfájl:**
+
+- `CONTRACT_SPECIFICATION.md`
+- `RUNTIME_PACKAGE_SPECIFICATION.md`
+- `ABILITY_MODULE_SYSTEM.md`
+- szükség esetén később: `OPEN_QUESTIONS.md`
+
+**Javasolt OPEN_QUESTIONS státusz:**
+
+- `OQ-DIAG-002`: `partly_answered`
+- `OQ-DATA-003`: `partly_answered`
+- `OQ-AR-007`: `partly_answered`
+
+**Megjegyzés:**
+
+Az alap blocking modell elfogadott, de később külön részletes diagnostics mátrix kellhet az egyes hibatípusokra, LOOKUPS értékekre, engine support kategóriákra és action response státuszokra.
