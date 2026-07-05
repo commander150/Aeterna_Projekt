@@ -153,6 +153,7 @@ def run_smoke(
         manifest = _read_json(manifest_path)
         normalization_audit_summary = build_result.get("normalization_audit_summary", {})
         normalization_preview_summary = build_result.get("normalization_preview_summary", {})
+        normalization_patch_plan_summary = build_result.get("normalization_patch_plan_summary", {})
         summary = {
             "xlsx_path": str(xlsx_path),
             "lookups_xlsx_path": str(lookups_xlsx_path) if lookups_xlsx_path else "none",
@@ -183,6 +184,11 @@ def run_smoke(
                 normalization_preview_summary.get("skipped_requires_audit", 0)
             ),
             "normalization_preview_applied": int(normalization_preview_summary.get("applied", 0)),
+            "normalization_patch_plan_ready": int(normalization_patch_plan_summary.get("patches_ready", 0)),
+            "normalization_patch_plan_blocked": int(
+                normalization_patch_plan_summary.get("blocked_or_ambiguous", 0)
+            ),
+            "normalization_patch_plan_applied": int(normalization_patch_plan_summary.get("applied", 0)),
             "runtime_package_output_dir": str(package_dir),
             "cards_jsonl_exists": cards_path.exists(),
             "cards_jsonl_rows": _count_jsonl_rows(cards_path),
@@ -242,6 +248,9 @@ def print_summary(summary):
     print(f"normalization_preview_items: {summary['normalization_preview_items']}")
     print(f"normalization_preview_skipped_requires_audit: {summary['normalization_preview_skipped_requires_audit']}")
     print(f"normalization_preview_applied: {summary['normalization_preview_applied']}")
+    print(f"normalization_patch_plan_ready: {summary['normalization_patch_plan_ready']}")
+    print(f"normalization_patch_plan_blocked: {summary['normalization_patch_plan_blocked']}")
+    print(f"normalization_patch_plan_applied: {summary['normalization_patch_plan_applied']}")
     print(f"diagnostic_count: {summary['diagnostic_count']}")
     print("cards_source: export-derived")
     print(f"decks_source: {summary['decks_source']}")

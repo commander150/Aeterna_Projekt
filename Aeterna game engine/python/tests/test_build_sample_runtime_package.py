@@ -46,6 +46,7 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
                 "normalization_aliases.json",
                 "normalization_audit_report.json",
                 "normalization_preview_report.json",
+                "normalization_patch_plan.json",
                 "ability_registry.json",
                 "engine_support.json",
                 "diagnostics.json",
@@ -103,8 +104,15 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertEqual(normalization_preview["normalization_preview"], [])
             self.assertEqual(normalization_preview["summary"]["preview_items"], 0)
             self.assertEqual(normalization_preview["summary"]["applied"], 0)
+            normalization_patch_plan = json.loads(
+                (output_dir / "normalization_patch_plan.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(normalization_patch_plan["patch_plan"], [])
+            self.assertEqual(normalization_patch_plan["summary"]["patches_ready"], 0)
+            self.assertEqual(normalization_patch_plan["summary"]["applied"], 0)
             self.assertIn("Normalization audit matches: 0", report)
             self.assertIn("Normalization preview items: 0", report)
+            self.assertIn("Normalization patch plan ready: 0", report)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
         self.assertFalse(temp_dir.exists(), "Sample runtime package test temp cleanup left directory: %s" % temp_dir)
@@ -308,6 +316,9 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertEqual(result["normalization_preview_summary"]["preview_items"], 5)
             self.assertEqual(result["normalization_preview_summary"]["skipped_requires_audit"], 6)
             self.assertEqual(result["normalization_preview_summary"]["applied"], 0)
+            self.assertEqual(result["normalization_patch_plan_summary"]["patches_ready"], 5)
+            self.assertEqual(result["normalization_patch_plan_summary"]["blocked_or_ambiguous"], 0)
+            self.assertEqual(result["normalization_patch_plan_summary"]["applied"], 0)
             report = json.loads((output_dir / "normalization_audit_report.json").read_text(encoding="utf-8"))
             self.assertEqual(report["summary"]["matches_total"], 11)
             self.assertTrue(all(row["applied"] is False for row in report["normalization_audit"]))
@@ -316,10 +327,15 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertEqual(preview["summary"]["skipped_requires_audit"], 6)
             self.assertEqual(preview["summary"]["applied"], 0)
             self.assertTrue(all(row["applied"] is False for row in preview["normalization_preview"]))
+            patch_plan = json.loads((output_dir / "normalization_patch_plan.json").read_text(encoding="utf-8"))
+            self.assertEqual(patch_plan["summary"]["patches_ready"], 5)
+            self.assertEqual(patch_plan["summary"]["blocked_or_ambiguous"], 0)
+            self.assertTrue(all(row["applied"] is False for row in patch_plan["patch_plan"]))
             manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
             manifest_files = {item["path"] for item in manifest["files"]}
             self.assertIn("normalization_audit_report.json", manifest_files)
             self.assertIn("normalization_preview_report.json", manifest_files)
+            self.assertIn("normalization_patch_plan.json", manifest_files)
             build_report = (output_dir / "build_report.md").read_text(encoding="utf-8")
             self.assertIn("Normalization audit matches: 11", build_report)
             self.assertIn("Normalization audit requires audit: 6", build_report)
@@ -327,6 +343,9 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             self.assertIn("Normalization preview items: 5", build_report)
             self.assertIn("Normalization preview skipped audit-required: 6", build_report)
             self.assertIn("Normalization preview applied: 0", build_report)
+            self.assertIn("Normalization patch plan ready: 5", build_report)
+            self.assertIn("Normalization patch plan blocked: 0", build_report)
+            self.assertIn("Normalization patch plan applied: 0", build_report)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
         self.assertFalse(temp_dir.exists(), "Normalization audit build test temp cleanup left directory: %s" % temp_dir)

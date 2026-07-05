@@ -100,9 +100,13 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
         self.assertEqual(summary["normalization_preview_items"], 2)
         self.assertEqual(summary["normalization_preview_skipped_requires_audit"], 1)
         self.assertEqual(summary["normalization_preview_applied"], 0)
+        self.assertEqual(summary["normalization_patch_plan_ready"], 2)
+        self.assertEqual(summary["normalization_patch_plan_blocked"], 0)
+        self.assertEqual(summary["normalization_patch_plan_applied"], 0)
         self.assertEqual(summary["would_copy_files"], self.publisher.PACKAGE_FILES)
         self.assertIn("normalization_audit_report.json", summary["would_copy_files"])
         self.assertIn("normalization_preview_report.json", summary["would_copy_files"])
+        self.assertIn("normalization_patch_plan.json", summary["would_copy_files"])
         self.assertEqual(self.copied_files, [])
 
     def test_existing_candidate_output_uses_fresh_candidate_dir(self):
@@ -156,6 +160,9 @@ class _StubSmokeRunner:
             "normalization_preview_items": 2,
             "normalization_preview_skipped_requires_audit": 1,
             "normalization_preview_applied": 0,
+            "normalization_patch_plan_ready": 2,
+            "normalization_patch_plan_blocked": 0,
+            "normalization_patch_plan_applied": 0,
             "validation_blocking": False,
             "diagnostic_count": 0,
             "deck_reference_errors": 0,

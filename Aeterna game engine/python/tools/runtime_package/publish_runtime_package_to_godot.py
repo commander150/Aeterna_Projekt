@@ -34,6 +34,7 @@ PACKAGE_FILES = [
     "normalization_aliases.json",
     "normalization_audit_report.json",
     "normalization_preview_report.json",
+    "normalization_patch_plan.json",
     "ability_registry.json",
     "build_report.md",
 ]
@@ -156,6 +157,9 @@ def print_publish_summary(summary):
         % summary.get("normalization_preview_skipped_requires_audit", "")
     )
     print("normalization_preview_applied: %s" % summary.get("normalization_preview_applied", ""))
+    print("normalization_patch_plan_ready: %s" % summary.get("normalization_patch_plan_ready", ""))
+    print("normalization_patch_plan_blocked: %s" % summary.get("normalization_patch_plan_blocked", ""))
+    print("normalization_patch_plan_applied: %s" % summary.get("normalization_patch_plan_applied", ""))
     print("validation_blocking: %s" % str(summary.get("validation_blocking", "")).lower())
     print("diagnostic_count: %s" % summary.get("diagnostic_count", ""))
     print("deck_reference_errors: %s" % summary.get("deck_reference_errors", ""))

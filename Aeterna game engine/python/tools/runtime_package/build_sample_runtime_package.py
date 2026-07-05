@@ -65,6 +65,15 @@ except ModuleNotFoundError:
     spec.loader.exec_module(normalization_preview_report)
     build_normalization_preview_report = normalization_preview_report.build_normalization_preview_report
 
+try:
+    from normalization_patch_plan import build_normalization_patch_plan
+except ModuleNotFoundError:
+    adapter_path = Path(__file__).resolve().with_name("normalization_patch_plan.py")
+    spec = util.spec_from_file_location("normalization_patch_plan", adapter_path)
+    normalization_patch_plan = util.module_from_spec(spec)
+    spec.loader.exec_module(normalization_patch_plan)
+    build_normalization_patch_plan = normalization_patch_plan.build_normalization_patch_plan
+
 
 PACKAGE_ID = "aeterna.sample_runtime_package"
 PACKAGE_VERSION = "0.1.0"
@@ -80,6 +89,7 @@ OUTPUT_FILES = [
     "normalization_aliases.json",
     "normalization_audit_report.json",
     "normalization_preview_report.json",
+    "normalization_patch_plan.json",
     "ability_registry.json",
     "engine_support.json",
     "diagnostics.json",
@@ -460,11 +470,20 @@ def _write_jsonl(path, rows):
             handle.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
 
 
-def _build_report(cards, decks, diagnostics, validation_summary, normalization_audit_report, normalization_preview_report):
+def _build_report(
+    cards,
+    decks,
+    diagnostics,
+    validation_summary,
+    normalization_audit_report,
+    normalization_preview_report,
+    normalization_patch_plan,
+):
     warnings = validation_summary["warning_count"]
     blocking_errors = sum(1 for item in diagnostics if item.get("blocking"))
     audit_summary = normalization_audit_report.get("summary", {})
     preview_summary = normalization_preview_report.get("summary", {})
+    patch_summary = normalization_patch_plan.get("summary", {})
     return "\n".join(
         [
             "# AETERNA sample runtime package build report",
@@ -480,6 +499,9 @@ def _build_report(cards, decks, diagnostics, validation_summary, normalization_a
             f"- Normalization preview items: {int(preview_summary.get('preview_items', 0))}",
             f"- Normalization preview skipped audit-required: {int(preview_summary.get('skipped_requires_audit', 0))}",
             f"- Normalization preview applied: {int(preview_summary.get('applied', 0))}",
+            f"- Normalization patch plan ready: {int(patch_summary.get('patches_ready', 0))}",
+            f"- Normalization patch plan blocked: {int(patch_summary.get('blocked_or_ambiguous', 0))}",
+            f"- Normalization patch plan applied: {int(patch_summary.get('applied', 0))}",
             "",
             "Ez a csomag kontrollalt fixture adatbol epult. Nem olvas XLSX-et, nem futtat kepessegeket, es nem teljes export rendszer.",
             "",
@@ -550,6 +572,7 @@ def build_package(
     validation_summary = validate_package(cards, decks, lookups, diagnostics)
     normalization_audit_report = build_normalization_audit_report(cards, decks, normalization_aliases_payload)
     normalization_preview_report = build_normalization_preview_report(normalization_audit_report)
+    normalization_patch_plan = build_normalization_patch_plan(normalization_preview_report)
     engine_support = {
         "schema_version": SCHEMA_VERSION,
         "summary": _engine_support_summary(cards, ability_registry),
@@ -582,6 +605,7 @@ def build_package(
     _write_json(target_dir / "normalization_aliases.json", normalization_aliases_payload)
     _write_json(target_dir / "normalization_audit_report.json", normalization_audit_report)
     _write_json(target_dir / "normalization_preview_report.json", normalization_preview_report)
+    _write_json(target_dir / "normalization_patch_plan.json", normalization_patch_plan)
     _write_json(target_dir / "ability_registry.json", {"ability_registry": ability_registry})
     _write_json(target_dir / "engine_support.json", engine_support)
     _write_json(target_dir / "diagnostics.json", {"diagnostics": diagnostics})
@@ -593,6 +617,7 @@ def build_package(
             validation_summary,
             normalization_audit_report,
             normalization_preview_report,
+            normalization_patch_plan,
         ),
         encoding="utf-8",
         newline="\n",
@@ -603,6 +628,7 @@ def build_package(
         "validation_summary": validation_summary,
         "normalization_audit_summary": normalization_audit_report["summary"],
         "normalization_preview_summary": normalization_preview_report["summary"],
+        "normalization_patch_plan_summary": normalization_patch_plan["summary"],
     }
 
 
