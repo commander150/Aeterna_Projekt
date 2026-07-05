@@ -11,6 +11,12 @@ SCRIPT_PATH = (
     / "runtime_package"
     / "publish_runtime_package_to_godot.py"
 )
+BUILDER_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "tools"
+    / "runtime_package"
+    / "build_sample_runtime_package.py"
+)
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 PROJECT_TEMP = PROJECT_ROOT / "TEMP"
 
@@ -34,6 +40,7 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
         self.original_validate_candidate = self.publisher.validate_candidate
         self.original_copy2 = self.publisher.shutil.copy2
         self.copied_files = []
+        self.builder = _load_module("build_sample_runtime_package_for_publish_test", BUILDER_PATH)
 
     def tearDown(self):
         self.publisher.SMOKE_RUNNER = self.original_runner
@@ -110,7 +117,24 @@ class TestPublishRuntimePackageToGodot(unittest.TestCase):
         self.assertEqual(summary["ability_support_warnings"], 0)
         self.assertEqual(summary["ability_support_audit_notes"], 1)
         self.assertEqual(summary["ability_support_declared_only"], 2)
+        self.assertEqual(summary["ability_support_unsupported"], 0)
+        self.assertEqual(summary["ability_support_partial"], 0)
+        self.assertEqual(summary["ability_support_fallback_required"], 0)
+        self.assertEqual(summary["ability_support_not_checked"], 0)
+        self.assertEqual(summary["ability_support_manual_review_required"], 0)
         self.assertEqual(summary["ability_support_unknown_status"], 0)
+        self.assertEqual(
+            {
+                "supported",
+                "partial",
+                "unsupported",
+                "not_checked",
+                "fallback_required",
+                "manual_review_required",
+            },
+            self.builder.CANONICAL_ABILITY_SUPPORT_STATUSES,
+        )
+        self.assertNotIn("declared_only", self.builder.CANONICAL_ABILITY_SUPPORT_STATUSES)
         self.assertEqual(summary["would_copy_files"], self.publisher.PACKAGE_FILES)
         self.assertIn("normalization_audit_report.json", summary["would_copy_files"])
         self.assertIn("normalization_preview_report.json", summary["would_copy_files"])
