@@ -482,3 +482,187 @@ A visibility és rejtett információs hibák minden módban kiemelt kockázatot
 **Megjegyzés:**
 
 Az alap blocking modell elfogadott, de később külön részletes diagnostics mátrix kellhet az egyes hibatípusokra, LOOKUPS értékekre, engine support kategóriákra és action response státuszokra.
+
+---
+
+## OQ-SNAP-001 / OQ-SNAP-002 / OQ-SNAP-003 / OQ-SNAP-004 / OQ-SNAP-005 / OQ-SNAP-006 – Snapshot, visibility és rejtett információ
+
+**Forráskérdés:**
+
+- `OPEN_QUESTIONS.md / OQ-SNAP-001`
+- `OPEN_QUESTIONS.md / OQ-SNAP-002`
+- `OPEN_QUESTIONS.md / OQ-SNAP-003`
+- `OPEN_QUESTIONS.md / OQ-SNAP-004`
+- `OPEN_QUESTIONS.md / OQ-SNAP-005`
+- `OPEN_QUESTIONS.md / OQ-SNAP-006`
+
+**Jelenlegi válasz / döntési irány:**
+
+A snapshot nem a teljes belső match state, hanem annak nézőpontfüggő kivetítése.
+
+MVP-ben két fő snapshot típus legyen:
+
+- `debug_snapshot`
+- `player_visible_snapshot`
+
+Az `opponent_visible_snapshot` ne legyen külön alap snapshot típus az első fázisban. A `player_visible_snapshot` mindig `viewer_id` alapján készüljön; ami az egyik játékosnak ellenféloldal, az a másik játékos saját player-visible nézőpontjából származtatható.
+
+Később külön típus vagy mód lehet:
+
+- `ai_fair_snapshot`
+- `ai_debug_snapshot`
+- `spectator_snapshot`
+- `replay_snapshot`
+
+**Visibility alapelv:**
+
+A player-visible snapshot, player-visible legal action, player-visible event log és player-visible diagnostics soha nem szivárogtathat rejtett információt.
+
+A debug nézet tartalmazhat teljes belső állapotot, de mindig egyértelmű `visibility_mode: debug` vagy hasonló jelöléssel különüljön el.
+
+Javasolt mezők rejtett vagy részben rejtett objektumokra:
+
+- `visibility`
+- `known_to`
+- `face_down`
+- `revealed`
+
+Nem kell minden objektumon minden mezőnek kötelezőnek lennie, de kézlap, pakli, face-down Jel, Pecsét és más rejtett objektum esetén explicit visibility kezelés kell.
+
+**Fair AI és debug AI:**
+
+A fair AI pontosan ugyanazt lássa, mint az adott játékos.
+
+A debug AI láthat teljesebb belső állapotot engine-hibakereséshez, de balanszméréshez ne legyen alapértelmezett.
+
+**Ősforrás láthatósága:**
+
+Az Ősforrás lapazonossága csak az adott játékos számára legyen látható.
+
+Az ellenfél az Ősforrásból csak azt lássa:
+
+- hány lap van ott;
+- milyen állapotban vannak a lapok, például `ready` / `exhausted`;
+- szükség esetén összesített fizetési / aura-releváns információt.
+
+Az ellenfél ne lássa az Ősforrás konkrét kártyaazonosságait player-visible módban.
+
+A fair AI ugyanazt lássa az Ősforrásból, mint az adott játékos láthatna.
+
+**Pecsétmodell snapshotban:**
+
+A Pecsét továbbra sem HP-objektum.
+
+Tiltott / kerülendő mezők:
+
+- `ward_hp`
+- `seal_hp`
+- `seal_damage`
+- `ward_damage`
+
+A Pecsét javasolt állapotértékei:
+
+- `standing`
+- `broken`
+- `restored`
+- `removed`
+
+A Pecsét snapshot-modellje azonban nem zárható le teljesen, mert előbb el kell dönteni a Pecsét létrehozási modelljét.
+
+Nyitott Pecsét-létrehozási modellek:
+
+1. **Játékos által választott Pecsétlapok:** a játékos tudja, mely lapokat és hová helyezte le; ebben a modellben saját Pecsétjei teljesen ismertek számára.
+2. **Random húzott Pecsétlapok:** a Pecsétlapok véletlenszerűen kerülnek le; ebben a modellben dönteni kell, hogy a játékos nem látja őket, vagy lehelyezés után megnézheti.
+3. **Hibrid modell:** a játékos több lapot húz / kap, majd azokból választ Pecsétet; ebben a modellben a játékos saját Pecsétjei ismertek, de a választási tér véletlen elemet tartalmaz.
+
+A Pecsét láthatósága és snapshotbeli kártyareferenciája attól függ, melyik Pecsét-létrehozási modell lesz végleges.
+
+Addig rögzített irány:
+
+- Pecsét HP nincs;
+- Pecsétállapot kell;
+- `linked_current` valószínűleg szükséges;
+- a Pecsét konkrét lapazonosságának láthatósága nyitott szabálydöntés;
+- a Pecsét létrehozási modellje külön döntési kapu.
+
+**Pending decision snapshotban:**
+
+A `pending` mező legyen jelen minden snapshotban, de lehet üres vagy false állapotú.
+
+Ha nincs döntés:
+
+```json
+"pending": {
+  "has_pending_decision": false
+}
+```
+
+Ha van döntés:
+
+```json
+"pending": {
+  "has_pending_decision": true,
+  "window_type": "reaction",
+  "priority_player_id": "player_1",
+  "can_pass": true,
+  "expected_action_family": "reaction"
+}
+```
+
+MVP `window_type` jelöltek:
+
+- `main`
+- `reaction`
+- `targeting`
+- `choice`
+- `payment`
+- `combat`
+- `system`
+
+A `prompt_hu` rövid távon jöhet backendből vagy debug contractból, de hosszú távon lokalizációs / UI rétegre érdemes vinni. A rules engine ne magyar promptszöveg alapján vezéreljen szabályt.
+
+**Event log snapshotban:**
+
+A snapshot ne tartalmazza a teljes event logot.
+
+A snapshot tartalmazhat:
+
+- `recent_events` rövid listát;
+- `last_event_index` értéket;
+- később esetleg `next_event_index` értéket.
+
+A teljes event log külön contract / fájl / endpoint legyen.
+
+Később szükséges lehet külön szűrés:
+
+- `debug_event_log`
+- `player_visible_event_log`
+- `ai_fair_event_log`
+- `replay_event_log`
+
+**Indoklás:**
+
+A snapshot nézőpontfüggő contract. Ha a snapshot a belső match state közvetlen dumpja lenne, az könnyen rejtett információt szivárogtatna. A `viewer_id` alapú `player_visible_snapshot` egyszerűbb és biztonságosabb, mint több korai, párhuzamos snapshot típus fenntartása.
+
+Az Ősforrás lapazonosságának rejtése csökkenti az információszivárgást és összhangban van azzal, hogy az ellenfél csak a lapok számát és állapotát lássa. A Pecsétmodellnél viszont nem lehet végleges visibility döntést hozni a létrehozási modell eldöntése előtt.
+
+A `pending` mező állandó jelenléte egyszerűsíti a frontend, AI és debug réteg kezelését. A teljes event log különválasztása pedig megakadályozza, hogy a snapshot túl nagy, nehezen szűrhető vagy rejtett információt tartalmazó történeti dumpá váljon.
+
+**Átvezetési célfájl:**
+
+- `CONTRACT_SPECIFICATION.md`
+- `ARCHITECTURE.md`
+- szükség esetén később: `OPEN_QUESTIONS.md`
+
+**Javasolt OPEN_QUESTIONS státusz:**
+
+- `OQ-SNAP-001`: `partly_answered`
+- `OQ-SNAP-002`: `partly_answered`
+- `OQ-SNAP-003`: `answered`
+- `OQ-SNAP-004`: `partly_answered`
+- `OQ-SNAP-005`: `partly_answered`
+- `OQ-SNAP-006`: `partly_answered`
+
+**Megjegyzés:**
+
+Az Ősforrás láthatósága eldőlt: ellenfél csak darabszámot és állapotot lát, konkrét kártyaazonosságot nem. A Pecsétmodell nem zárható le, amíg nincs külön döntés arról, hogy a Pecsétlapok választással, random húzással vagy hibrid módon jönnek létre.
