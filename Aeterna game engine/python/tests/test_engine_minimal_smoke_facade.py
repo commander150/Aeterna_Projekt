@@ -47,6 +47,23 @@ class TestEngineMinimalSmokeFacade(unittest.TestCase):
         self.assertEqual(len(legal_actions), 1)
         self.assertEqual(legal_actions[0]["action_type"], "end_turn")
         self.assertTrue(legal_actions[0]["enabled"])
+        initial_snapshot = self.engine.create_debug_snapshot(
+            state,
+            legal_actions,
+            self.engine.validate_invariants(state, self.runtime_package),
+        )
+        self.assertEqual(initial_snapshot["snapshot_type"], "debug_snapshot")
+        self.assertEqual(initial_snapshot["visibility_mode"], "debug")
+        self.assertEqual(initial_snapshot["match_id"], state.match_id)
+        self.assertEqual(initial_snapshot["turn"], 1)
+        self.assertEqual(initial_snapshot["active_player_id"], "P1")
+        self.assertEqual(initial_snapshot["priority_player_id"], "P1")
+        self.assertEqual(initial_snapshot["legal_action_summary"]["action_count"], 1)
+        self.assertEqual(initial_snapshot["legal_action_summary"]["enabled_count"], 1)
+        self.assertEqual(initial_snapshot["legal_action_summary"]["action_types"], ["end_turn"])
+        self.assertEqual(initial_snapshot["event_log_summary"]["event_count"], 0)
+        self.assertEqual(initial_snapshot["diagnostics_summary"]["invariant_errors"], 0)
+        self.assertEqual(initial_snapshot["metadata"]["rules_scope"], "minimal_end_turn_smoke")
 
         request = self.engine.build_action_request(state, legal_actions[0])
         validation = self.engine.validate_request(state, request, legal_actions)
@@ -58,6 +75,16 @@ class TestEngineMinimalSmokeFacade(unittest.TestCase):
         self.assertEqual(self.engine.event_log(state)[0]["action_type"], "end_turn")
         self.assertEqual(state.active_player_id, "P2")
         self.assertEqual(self.engine.validate_invariants(state, self.runtime_package), [])
+        next_legal_actions = self.engine.get_legal_actions(state)
+        next_snapshot = self.engine.create_debug_snapshot(
+            state,
+            next_legal_actions,
+            self.engine.validate_invariants(state, self.runtime_package),
+        )
+        self.assertEqual(next_snapshot["active_player_id"], "P2")
+        self.assertEqual(next_snapshot["event_log_summary"]["event_count"], 1)
+        self.assertEqual(next_snapshot["event_log_summary"]["last_event_type"], "action_resolved")
+        self.assertEqual(next_snapshot["legal_action_summary"]["action_types"], ["end_turn"])
 
 
 def _pick_two_decks(runtime_package):
