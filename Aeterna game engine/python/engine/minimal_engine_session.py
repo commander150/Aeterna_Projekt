@@ -66,6 +66,9 @@ class MinimalEngineSession:
             "action_type": action.get("action_type") or (request or {}).get("action_type"),
             "events": list(response.get("events") or []),
             "event_count": int(response.get("event_count") or 0),
+            "state_version_before": response.get("state_version_before"),
+            "state_version_after": response.get("state_version_after"),
+            "new_event_sequences": list(response.get("new_event_sequences") or []),
             "diagnostics": diagnostics,
             "invariants_ok": len(diagnostics) == 0,
         }
@@ -96,6 +99,7 @@ class MinimalEngineSession:
             ),
             "match": {
                 "match_id": state.match_id,
+                "state_version": state.state_version,
                 "turn": state.turn_number,
                 "phase": state.phase,
                 "active_player_id": state.active_player_id,
@@ -108,6 +112,7 @@ class MinimalEngineSession:
             "player_snapshot_summary": self._player_snapshot_summary(self.get_player_snapshot(state.active_player_id)),
             "events": {
                 "event_count": len(events),
+                "last_event_sequence": events[-1].get("event_sequence") if events else None,
                 "event_log": events,
             },
             "diagnostics": {

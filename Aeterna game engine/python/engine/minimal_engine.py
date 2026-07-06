@@ -58,6 +58,7 @@ def create_debug_snapshot(state, legal_actions=None, diagnostics=None):
         "snapshot_type": "debug_snapshot",
         "visibility_mode": "debug",
         "match_id": state.match_id,
+        "state_version": state.state_version,
         "turn": state.turn_number,
         "turn_number": state.turn_number,
         "phase": state.phase,
@@ -89,6 +90,7 @@ def create_player_visible_snapshot(state, player_id, legal_actions=None, diagnos
         "visibility_mode": "player",
         "player_id": player_id,
         "match_id": state.match_id,
+        "state_version": state.state_version,
         "turn": state.turn_number,
         "turn_number": state.turn_number,
         "phase": state.phase,
@@ -146,4 +148,5 @@ def _event_log_summary(events):
     return {
         "event_count": len(events),
         "last_event_type": str(events[-1].get("event_type", "")) if events else None,
+        "last_event_sequence": events[-1].get("event_sequence") if events else None,
     }

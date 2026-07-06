@@ -21,6 +21,8 @@ class MatchState:
     active_player_id: str
     players: list
     phase: str
+    # 0 means the initial state before any accepted transition.
+    state_version: int = 0
     event_log: list = field(default_factory=list)
 
     def get_player(self, player_id):

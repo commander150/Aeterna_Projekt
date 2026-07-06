@@ -66,13 +66,16 @@ def apply_action(state, action):
     state.active_player_id = next_player_id
     if previous_player_id == "P2" and next_player_id == "P1":
         state.turn_number += 1
+    state.state_version += 1
 
     event = {
         "event_index": len(state.event_log),
+        "event_sequence": len(state.event_log) + 1,
         "event_type": "action_resolved",
         "player_id": previous_player_id,
         "action_type": "end_turn",
         "turn_number": state.turn_number,
+        "state_version": state.state_version,
     }
     state.event_log.append(event)
     return {

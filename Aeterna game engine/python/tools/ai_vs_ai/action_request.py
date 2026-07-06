@@ -55,7 +55,9 @@ def resolve_action_request(state, request, legal_actions):
         }
 
     before_event_count = len(state.event_log)
+    state_version_before = getattr(state, "state_version", None)
     result = apply_action(state, validation["legal_action"])
+    state_version_after = getattr(state, "state_version", None)
     events = list(state.event_log[before_event_count:])
     return {
         "request_id": request_id,
@@ -63,6 +65,9 @@ def resolve_action_request(state, request, legal_actions):
         "reason": None,
         "events": events,
         "event_count": len(events),
+        "state_version_before": state_version_before,
+        "state_version_after": state_version_after,
+        "new_event_sequences": [event.get("event_sequence") for event in events],
         "action": result.get("action"),
     }
 
