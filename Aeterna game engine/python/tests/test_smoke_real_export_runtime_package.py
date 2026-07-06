@@ -163,6 +163,27 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
         self.assertEqual(summary["normalization_apply_applied"], 0)
         self.assertEqual(summary["normalization_apply_skipped"], 0)
         self.assertEqual(summary["normalization_apply_conflicts"], 0)
+        self.assertEqual(summary["ability_support_warnings"], 0)
+        self.assertEqual(summary["ability_support_audit_notes"], 1)
+        self.assertEqual(summary["ability_support_declared_only"], 2)
+        self.assertEqual(summary["ability_support_unsupported"], 0)
+        self.assertEqual(summary["ability_support_partial"], 0)
+        self.assertEqual(summary["ability_support_fallback_required"], 0)
+        self.assertEqual(summary["ability_support_not_checked"], 0)
+        self.assertEqual(summary["ability_support_manual_review_required"], 0)
+        self.assertEqual(summary["ability_support_unknown_status"], 0)
+        self.assertEqual(
+            {
+                "supported",
+                "partial",
+                "unsupported",
+                "not_checked",
+                "fallback_required",
+                "manual_review_required",
+            },
+            self.builder.CANONICAL_ABILITY_SUPPORT_STATUSES,
+        )
+        self.assertNotIn("declared_only", self.builder.CANONICAL_ABILITY_SUPPORT_STATUSES)
         self.assertNotIn("lookups", summary["fixture_components"])
 
         manifest = json.loads((output_dir / "runtime_package" / "manifest.json").read_text(encoding="utf-8"))
