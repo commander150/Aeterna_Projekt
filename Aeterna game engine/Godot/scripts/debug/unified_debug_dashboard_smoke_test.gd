@@ -13,6 +13,8 @@ func _init() -> void:
 	var snapshot = result.get("snapshot", {})
 	var legal_actions = result.get("legal_actions", {})
 	var event_log = result.get("event_log", {})
+	var runtime_package = result.get("runtime_package", {})
+	var ability_support = runtime_package.get("ability_support_statuses", {})
 	var failed = false
 
 	failed = _check_bool(snapshot.get("ok", false), true, "snapshot.ok") or failed
@@ -28,14 +30,20 @@ func _init() -> void:
 	failed = _check_int(event_log.get("event_count", 0), 4, "events") or failed
 	failed = _check_int(event_log.get("first_sequence", 0), 1, "first_sequence") or failed
 	failed = _check_int(event_log.get("last_sequence", 0), 4, "last_sequence") or failed
+	failed = _check_bool(runtime_package.get("ok", false), true, "runtime_package.ok") or failed
+	failed = _check_int(ability_support.get("declared_only", 0), 2, "ability_support.declared_only") or failed
 	failed = _check_int(result.get("resolved_cards", 0), 7, "resolved_cards") or failed
 	failed = _check_int(result.get("missing_card_refs", 0), 0, "missing_card_refs") or failed
 	failed = _check_int(result.get("blocking_errors", 0), 0, "blocking_errors") or failed
 	failed = _check_bool(result.get("ok", false), true, "dashboard.ok") or failed
+	var formatted = dashboard.format_dashboard(result)
+	failed = _check_contains(formatted, "Ability support", "ability support block") or failed
+	failed = _check_contains(formatted, "declared_only: 2", "ability support declared_only") or failed
 
 	print("snapshot: OK")
 	print("legal_actions: OK")
 	print("event_log: OK")
+	print("ability_support: OK")
 	print("resolved_cards: %d" % int(result.get("resolved_cards", 0)))
 	print("missing_card_refs: %d" % int(result.get("missing_card_refs", 0)))
 	print("blocking_errors: %d" % int(result.get("blocking_errors", 0)))
@@ -71,4 +79,11 @@ func _check_int(actual, expected, label):
 	if int(actual) == int(expected):
 		return false
 	push_error("%s expected %d, got %d" % [label, int(expected), int(actual)])
+	return true
+
+
+func _check_contains(text, expected, label):
+	if str(text).contains(str(expected)):
+		return false
+	push_error("%s expected to contain %s" % [label, str(expected)])
 	return true
