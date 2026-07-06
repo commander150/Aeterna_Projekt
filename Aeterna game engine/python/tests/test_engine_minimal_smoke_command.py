@@ -1,5 +1,6 @@
 import importlib.util
 import io
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -53,17 +54,33 @@ class TestEngineMinimalSmokeCommand(unittest.TestCase):
         self.assertIn("invariants_ok: true", output)
         self.assertIn("diagnostics_count: 0", output)
 
-    def test_run_minimal_engine_smoke_returns_snapshots_and_event_log(self):
+    def test_structured_smoke_report_is_json_compatible(self):
+        report = self.run_command.build_minimal_engine_smoke_report(GODOT_RUNTIME_PACKAGE_DIR)
+
+        json.dumps(report, ensure_ascii=False)
+        self.assertEqual(report["schema_version"], "minimal-engine-smoke-report-v0")
+        self.assertEqual(report["report_type"], "minimal_engine_smoke")
+        self.assertIn("not a final runtime decision", report["runtime_decision_note"])
+        self.assertEqual(report["initial_snapshot_summary"]["snapshot_type"], "debug_snapshot")
+        self.assertEqual(report["post_action_snapshot_summary"]["snapshot_type"], "debug_snapshot")
+        self.assertEqual(report["initial_snapshot_summary"]["event_log_summary"]["event_count"], 0)
+        self.assertGreaterEqual(
+            report["post_action_snapshot_summary"]["event_log_summary"]["event_count"],
+            report["initial_snapshot_summary"]["event_log_summary"]["event_count"],
+        )
+        self.assertTrue(report["action_response"]["request_valid"])
+        self.assertTrue(report["action_response"]["accepted"])
+        self.assertEqual(report["action_response"]["action_type"], "end_turn")
+        self.assertEqual(report["events"]["event_log"][0]["action_type"], "end_turn")
+        self.assertEqual(report["events"]["post_event_count"], 1)
+        self.assertTrue(report["invariants"]["ok"])
+        self.assertEqual(report["diagnostics"]["count"], 0)
+
+    def test_legacy_run_function_returns_structured_report(self):
         result = self.run_command.run_minimal_engine_smoke(GODOT_RUNTIME_PACKAGE_DIR)
 
-        self.assertEqual(result["initial_snapshot"]["snapshot_type"], "debug_snapshot")
-        self.assertEqual(result["post_snapshot"]["snapshot_type"], "debug_snapshot")
-        self.assertEqual(result["initial_snapshot"]["event_log_summary"]["event_count"], 0)
-        self.assertEqual(result["post_snapshot"]["event_log_summary"]["event_count"], 1)
-        self.assertEqual(result["event_log"][0]["action_type"], "end_turn")
-        self.assertTrue(result["request_valid"])
+        self.assertEqual(result["report_type"], "minimal_engine_smoke")
         self.assertTrue(result["action_response"]["accepted"])
-        self.assertTrue(result["invariants_ok"])
 
     def test_main_reports_error_and_nonzero_exit_code(self):
         stdout = io.StringIO()

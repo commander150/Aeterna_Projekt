@@ -27,11 +27,18 @@ from minimal_engine import (  # noqa: E402
 from runtime_package_reader import load_runtime_package  # noqa: E402
 
 
+RUNTIME_DECISION_NOTE = "Python engine facade is a reference smoke/backend candidate, not a final runtime decision."
+
+
 def default_runtime_package_dir():
     return ENGINE_PYTHON_DIR.parent / "Godot" / "runtime_package"
 
 
 def run_minimal_engine_smoke(runtime_package_dir=None, match_id="ENGINE-SMOKE-COMMAND-001"):
+    return build_minimal_engine_smoke_report(runtime_package_dir, match_id=match_id)
+
+
+def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE-SMOKE-COMMAND-001"):
     package_dir = Path(runtime_package_dir) if runtime_package_dir is not None else default_runtime_package_dir()
     runtime_package = load_runtime_package(package_dir)
     deck_id_a, deck_id_b = _pick_two_decks(runtime_package)
@@ -48,45 +55,83 @@ def run_minimal_engine_smoke(runtime_package_dir=None, match_id="ENGINE-SMOKE-CO
     post_legal_actions = get_legal_actions(state)
     post_snapshot = create_debug_snapshot(state, post_legal_actions, post_invariants)
 
-    result = {
-        "match_id": state.match_id,
-        "deck_id_a": deck_id_a,
-        "deck_id_b": deck_id_b,
-        "initial_snapshot": initial_snapshot,
-        "post_snapshot": post_snapshot,
+    return {
+        "schema_version": "minimal-engine-smoke-report-v0",
+        "report_type": "minimal_engine_smoke",
+        "runtime_decision_note": RUNTIME_DECISION_NOTE,
+        "match": {
+            "match_id": state.match_id,
+            "initial_turn": initial_snapshot["turn"],
+            "initial_active_player_id": initial_snapshot["active_player_id"],
+            "post_turn": post_snapshot["turn"],
+            "post_active_player_id": post_snapshot["active_player_id"],
+        },
+        "decks": {
+            "deck_id_a": deck_id_a,
+            "deck_id_b": deck_id_b,
+        },
+        "initial_snapshot_summary": _snapshot_summary(initial_snapshot),
+        "post_action_snapshot_summary": _snapshot_summary(post_snapshot),
         "action_request": request,
-        "request_valid": bool(validation.get("valid")),
-        "action_response": response,
-        "invariants_ok": not initial_invariants and not post_invariants,
-        "diagnostics_count": len(initial_invariants) + len(post_invariants),
-        "event_log": event_log(state),
+        "action_response": {
+            "request_valid": bool(validation.get("valid")),
+            "accepted": bool(response.get("accepted")),
+            "reason": response.get("reason"),
+            "event_count": int(response.get("event_count", 0)),
+            "action_type": str((response.get("action") or {}).get("action_type", "")),
+        },
+        "events": {
+            "event_log": event_log(state),
+            "initial_event_count": int(initial_snapshot["event_log_summary"]["event_count"]),
+            "post_event_count": int(post_snapshot["event_log_summary"]["event_count"]),
+            "last_event_type": post_snapshot["event_log_summary"].get("last_event_type"),
+        },
+        "invariants": {
+            "ok": not initial_invariants and not post_invariants,
+            "initial_errors": list(initial_invariants),
+            "post_action_errors": list(post_invariants),
+        },
+        "diagnostics": {
+            "count": len(initial_invariants) + len(post_invariants),
+            "blocking_errors": len(initial_invariants) + len(post_invariants),
+            "warnings": 0,
+        },
+        "metadata": {
+            "source": "tools.engine.run_minimal_engine_smoke",
+            "runtime_package_dir": str(package_dir),
+            "rules_scope": "minimal_end_turn_smoke",
+        },
     }
-    return result
 
 
-def format_report(result):
-    initial = result["initial_snapshot"]
-    post = result["post_snapshot"]
-    response = result["action_response"]
+def format_report(report):
+    match = report["match"]
+    decks = report["decks"]
+    initial = report["initial_snapshot_summary"]
+    post = report["post_action_snapshot_summary"]
+    response = report["action_response"]
+    events = report["events"]
+    invariants = report["invariants"]
+    diagnostics = report["diagnostics"]
     lines = [
         "MINIMAL ENGINE SMOKE REPORT",
-        "match_id: %s" % result["match_id"],
-        "deck_id_a: %s" % result["deck_id_a"],
-        "deck_id_b: %s" % result["deck_id_b"],
-        "initial_turn: %s" % initial["turn"],
-        "initial_active_player_id: %s" % initial["active_player_id"],
+        "match_id: %s" % match["match_id"],
+        "deck_id_a: %s" % decks["deck_id_a"],
+        "deck_id_b: %s" % decks["deck_id_b"],
+        "initial_turn: %s" % match["initial_turn"],
+        "initial_active_player_id: %s" % match["initial_active_player_id"],
         "initial_legal_action_count: %d" % int(initial["legal_action_summary"]["action_count"]),
-        "initial_event_count: %d" % int(initial["event_log_summary"]["event_count"]),
-        "request_valid: %s" % _format_bool(result["request_valid"]),
-        "action_resolved: %s" % _format_bool(response.get("accepted")),
-        "action_type: %s" % str((response.get("action") or {}).get("action_type", "")),
-        "post_turn: %s" % post["turn"],
-        "post_active_player_id: %s" % post["active_player_id"],
-        "post_event_count: %d" % int(post["event_log_summary"]["event_count"]),
-        "last_event_type: %s" % str(post["event_log_summary"].get("last_event_type")),
-        "invariants_ok: %s" % _format_bool(result["invariants_ok"]),
-        "diagnostics_count: %d" % int(result["diagnostics_count"]),
-        "runtime_note: python engine facade is a reference smoke/backend candidate, not a final runtime decision",
+        "initial_event_count: %d" % int(events["initial_event_count"]),
+        "request_valid: %s" % _format_bool(response["request_valid"]),
+        "action_resolved: %s" % _format_bool(response["accepted"]),
+        "action_type: %s" % response["action_type"],
+        "post_turn: %s" % match["post_turn"],
+        "post_active_player_id: %s" % match["post_active_player_id"],
+        "post_event_count: %d" % int(events["post_event_count"]),
+        "last_event_type: %s" % str(events["last_event_type"]),
+        "invariants_ok: %s" % _format_bool(invariants["ok"]),
+        "diagnostics_count: %d" % int(diagnostics["count"]),
+        "runtime_note: %s" % report["runtime_decision_note"],
     ]
     return "\n".join(lines)
 
@@ -129,6 +174,22 @@ def _pick_two_decks(runtime_package):
         if len(selected) == 2:
             return selected[0], selected[1]
     raise RuntimeError("The runtime package must contain at least two decks for minimal engine smoke.")
+
+
+def _snapshot_summary(snapshot):
+    return {
+        "snapshot_type": snapshot["snapshot_type"],
+        "visibility_mode": snapshot["visibility_mode"],
+        "match_id": snapshot["match_id"],
+        "turn": snapshot["turn"],
+        "phase": snapshot["phase"],
+        "active_player_id": snapshot["active_player_id"],
+        "priority_player_id": snapshot["priority_player_id"],
+        "player_count": len(snapshot["players"]),
+        "legal_action_summary": dict(snapshot["legal_action_summary"]),
+        "event_log_summary": dict(snapshot["event_log_summary"]),
+        "diagnostics_summary": dict(snapshot["diagnostics_summary"]),
+    }
 
 
 def _format_bool(value):
