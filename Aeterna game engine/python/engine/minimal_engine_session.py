@@ -44,6 +44,12 @@ class MinimalEngineSession:
         legal_actions = self.list_legal_actions()
         return minimal_engine.create_debug_snapshot(state, legal_actions, diagnostics)
 
+    def get_player_snapshot(self, player_id):
+        state = self._require_state()
+        diagnostics = self.get_diagnostics()
+        legal_actions = self.list_legal_actions(player_id)
+        return minimal_engine.create_player_visible_snapshot(state, player_id, legal_actions, diagnostics)
+
     def list_legal_actions(self, player_id=None):
         return minimal_engine.get_legal_actions(self._require_state(), player_id)
 
@@ -99,6 +105,7 @@ class MinimalEngineSession:
                 "deck_id_b": self.deck_id_b,
             },
             "snapshot": snapshot,
+            "player_snapshot_summary": self._player_snapshot_summary(self.get_player_snapshot(state.active_player_id)),
             "events": {
                 "event_count": len(events),
                 "event_log": events,
@@ -136,6 +143,14 @@ class MinimalEngineSession:
         if len(selected) < 2:
             raise MinimalEngineSessionError("The runtime package must contain at least two decks.")
         return deck_id_a or selected[0], deck_id_b or selected[1]
+
+    def _player_snapshot_summary(self, snapshot):
+        return {
+            "snapshot_type": snapshot["snapshot_type"],
+            "visibility_mode": snapshot["visibility_mode"],
+            "player_id": snapshot["player_id"],
+            "hidden_information_model": snapshot["metadata"]["hidden_information_model"],
+        }
 
 
 class MinimalEngineSessionError(Exception):
