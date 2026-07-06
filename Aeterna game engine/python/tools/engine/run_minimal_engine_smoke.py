@@ -14,16 +14,7 @@ for module_dir in (ENGINE_DIR, AI_VS_AI_DIR):
     if str(module_dir) not in sys.path:
         sys.path.insert(0, str(module_dir))
 
-from minimal_engine import (  # noqa: E402
-    build_action_request,
-    create_debug_snapshot,
-    create_match,
-    event_log,
-    get_legal_actions,
-    resolve_request,
-    validate_invariants,
-    validate_request,
-)
+from minimal_engine_session import MinimalEngineSession  # noqa: E402
 from runtime_package_reader import load_runtime_package  # noqa: E402
 
 
@@ -41,19 +32,20 @@ def run_minimal_engine_smoke(runtime_package_dir=None, match_id="ENGINE-SMOKE-CO
 def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE-SMOKE-COMMAND-001"):
     package_dir = Path(runtime_package_dir) if runtime_package_dir is not None else default_runtime_package_dir()
     runtime_package = load_runtime_package(package_dir)
-    deck_id_a, deck_id_b = _pick_two_decks(runtime_package)
-    state = create_match(runtime_package, deck_id_a, deck_id_b, match_id=match_id)
-    initial_invariants = validate_invariants(state, runtime_package)
-    initial_legal_actions = get_legal_actions(state)
-    initial_snapshot = create_debug_snapshot(state, initial_legal_actions, initial_invariants)
+    session = MinimalEngineSession(runtime_package)
+    state = session.create_match(match_id=match_id)
+    deck_id_a = session.deck_id_a
+    deck_id_b = session.deck_id_b
+    initial_invariants = session.get_diagnostics()
+    initial_legal_actions = session.list_legal_actions()
+    initial_snapshot = session.get_debug_snapshot()
 
-    request = build_action_request(state, initial_legal_actions[0])
-    validation = validate_request(state, request, initial_legal_actions)
-    response = resolve_request(state, request, initial_legal_actions)
+    request = session.build_action_request(initial_legal_actions[0])
+    validation = session.validate_action_request(request)
+    response = session.submit_action_request(request)
 
-    post_invariants = validate_invariants(state, runtime_package)
-    post_legal_actions = get_legal_actions(state)
-    post_snapshot = create_debug_snapshot(state, post_legal_actions, post_invariants)
+    post_invariants = session.get_diagnostics()
+    post_snapshot = session.get_debug_snapshot()
 
     return {
         "schema_version": "minimal-engine-smoke-report-v0",
@@ -78,10 +70,10 @@ def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE
             "accepted": bool(response.get("accepted")),
             "reason": response.get("reason"),
             "event_count": int(response.get("event_count", 0)),
-            "action_type": str((response.get("action") or {}).get("action_type", "")),
+            "action_type": str(response.get("action_type", "")),
         },
         "events": {
-            "event_log": event_log(state),
+            "event_log": session.get_event_log(),
             "initial_event_count": int(initial_snapshot["event_log_summary"]["event_count"]),
             "post_event_count": int(post_snapshot["event_log_summary"]["event_count"]),
             "last_event_type": post_snapshot["event_log_summary"].get("last_event_type"),
@@ -160,20 +152,6 @@ def _build_parser():
     )
     parser.add_argument("--match-id", default="ENGINE-SMOKE-COMMAND-001")
     return parser
-
-
-def _pick_two_decks(runtime_package):
-    preferred = ["DECK-IGN-HAM-TEST-001", "DECK-IGN-LAN-TEST-001"]
-    available = sorted(runtime_package.decks_by_id)
-    selected = [deck_id for deck_id in preferred if deck_id in runtime_package.decks_by_id]
-    if len(selected) >= 2:
-        return selected[0], selected[1]
-    for deck_id in available:
-        if deck_id not in selected:
-            selected.append(deck_id)
-        if len(selected) == 2:
-            return selected[0], selected[1]
-    raise RuntimeError("The runtime package must contain at least two decks for minimal engine smoke.")
 
 
 def _snapshot_summary(snapshot):
