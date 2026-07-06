@@ -5,6 +5,19 @@
 - Warningok szama: 0
 - Blocking hibak szama: 0
 - Validation blocking: false
+
+## Ability support diagnostics
+
+- warnings: 0
+- audit_notes: 1
+- declared_only: 2
+- unsupported: 0
+- partial: 0
+- fallback_required: 0
+- not_checked: 0
+- manual_review_required: 0
+- unknown_support_status: 0
+
 - Normalization audit matches: 604
 - Normalization audit requires audit: 101
 - Normalization audit allowed preview: 503

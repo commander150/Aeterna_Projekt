@@ -38,5 +38,23 @@
     "umbra",
     "ventus"
   ],
-  "ability_execution": "not_implemented"
+  "ability_execution": "not_implemented",
+  "ability_support_summary": {
+    "warnings": 0,
+    "audit_notes": 1,
+    "declared_only": 2,
+    "unsupported": 0,
+    "partial": 0,
+    "fallback_required": 0,
+    "not_checked": 0,
+    "manual_review_required": 0,
+    "unknown_support_status": 0
+  },
+  "ability_support_audit_notes": [
+    {
+      "code": "ABILITY_SUPPORT_DECLARED_ONLY_AUDIT_NOTE",
+      "message_hu": "declared_only nem canonical support_status; jelenleg fejlesztoi/audit allapot.",
+      "count": 2
+    }
+  ]
 }
