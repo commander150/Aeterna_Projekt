@@ -50,6 +50,7 @@ def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE
     post_invariants = session.get_diagnostics()
     post_snapshot = session.get_debug_snapshot()
     transition_summary = session.get_transition_summary()
+    debug_session_state = session.export_debug_session_state()
 
     return {
         "schema_version": "minimal-engine-smoke-report-v0",
@@ -92,6 +93,7 @@ def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE
         },
         "response_history_count": len(session.get_action_response_history()),
         "transition_summary": transition_summary,
+        "debug_session_state_summary": _debug_session_state_summary(debug_session_state),
         "metadata": {
             "source": "tools.engine.run_minimal_engine_smoke",
             "runtime_package_dir": str(package_dir),
@@ -179,6 +181,17 @@ def _snapshot_summary(snapshot):
         "legal_action_summary": dict(snapshot["legal_action_summary"]),
         "event_log_summary": dict(snapshot["event_log_summary"]),
         "diagnostics_summary": dict(snapshot["diagnostics_summary"]),
+    }
+
+
+def _debug_session_state_summary(debug_session_state):
+    transition_summary = debug_session_state["transition_summary"]
+    return {
+        "contract_type": debug_session_state["contract_type"],
+        "state_version": transition_summary["state_version"],
+        "response_count": transition_summary["response_count"],
+        "event_count": transition_summary["event_count"],
+        "replay_support": debug_session_state["metadata"]["replay_support"],
     }
 
 

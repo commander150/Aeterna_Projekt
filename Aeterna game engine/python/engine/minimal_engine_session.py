@@ -136,6 +136,36 @@ class MinimalEngineSession:
             },
         }
 
+    def export_debug_session_state(self):
+        state = self._require_state()
+        diagnostics = self.get_diagnostics()
+        debug_snapshot = self.get_debug_snapshot()
+        action_space = self.get_action_space()
+        transition_summary = self.get_transition_summary()
+        return deepcopy(
+            {
+                "schema_version": "minimal-debug-session-state-v0",
+                "contract_type": "debug_session_state",
+                "match_id": state.match_id,
+                "debug_snapshot": debug_snapshot,
+                "action_space": action_space,
+                "transition_summary": transition_summary,
+                "last_action_response": self.get_last_action_response(),
+                "diagnostics_summary": {
+                    "count": len(diagnostics),
+                    "blocking_errors": len(diagnostics),
+                    "warnings": 0,
+                },
+                "metadata": {
+                    "source": "python.engine.minimal_engine_session",
+                    "rules_scope": "minimal_end_turn_smoke",
+                    "runtime_decision": "not_final",
+                    "replay_support": "not_implemented",
+                    "replay_future_candidate": True,
+                },
+            }
+        )
+
     def _build_action_response_contract(self, request, response):
         state = self._require_state()
         diagnostics = self.get_diagnostics()
@@ -252,6 +282,7 @@ class MinimalEngineSession:
             },
             "response_history_count": len(self._action_response_history),
             "transition_summary": self.get_transition_summary(),
+            "debug_session_state_summary": self._debug_session_state_summary(self.export_debug_session_state()),
         }
 
     def build_action_request(self, action, player_id=None):
@@ -287,6 +318,16 @@ class MinimalEngineSession:
             "visibility_mode": snapshot["visibility_mode"],
             "player_id": snapshot["player_id"],
             "hidden_information_model": snapshot["metadata"]["hidden_information_model"],
+        }
+
+    def _debug_session_state_summary(self, debug_session_state):
+        transition_summary = debug_session_state["transition_summary"]
+        return {
+            "contract_type": debug_session_state["contract_type"],
+            "state_version": transition_summary["state_version"],
+            "response_count": transition_summary["response_count"],
+            "event_count": transition_summary["event_count"],
+            "replay_support": debug_session_state["metadata"]["replay_support"],
         }
 
 

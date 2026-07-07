@@ -102,6 +102,9 @@ class TestEngineMinimalSmokeCommand(unittest.TestCase):
         self.assertEqual(report["transition_summary"]["response_count"], 1)
         self.assertEqual(report["transition_summary"]["accepted_response_count"], 1)
         self.assertEqual(report["transition_summary"]["rejected_response_count"], 0)
+        self.assertEqual(report["debug_session_state_summary"]["contract_type"], "debug_session_state")
+        self.assertEqual(report["debug_session_state_summary"]["response_count"], 1)
+        self.assertEqual(report["debug_session_state_summary"]["replay_support"], "not_implemented")
 
     def test_legacy_run_function_returns_structured_report(self):
         result = self.run_command.run_minimal_engine_smoke(GODOT_RUNTIME_PACKAGE_DIR)
