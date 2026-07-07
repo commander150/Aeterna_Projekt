@@ -57,24 +57,57 @@ class MinimalEngineSession:
         state = self._require_state()
         legal_actions = self.list_legal_actions()
         response = minimal_engine.resolve_request(state, request, legal_actions)
-        diagnostics = self.get_diagnostics()
-        action = response.get("action") or {}
-        return {
-            "request_id": response.get("request_id"),
-            "accepted": bool(response.get("accepted")),
-            "reason": response.get("reason"),
-            "action_type": action.get("action_type") or (request or {}).get("action_type"),
-            "events": list(response.get("events") or []),
-            "event_count": int(response.get("event_count") or 0),
-            "state_version_before": response.get("state_version_before"),
-            "state_version_after": response.get("state_version_after"),
-            "new_event_sequences": list(response.get("new_event_sequences") or []),
-            "diagnostics": diagnostics,
-            "invariants_ok": len(diagnostics) == 0,
-        }
+        return self._build_action_response_contract(request, response)
 
     def step(self, request):
         return self.submit_action_request(request)
+
+    def _build_action_response_contract(self, request, response):
+        state = self._require_state()
+        diagnostics = self.get_diagnostics()
+        normalized_request = dict(request or {})
+        action = response.get("action") or {}
+        events = list(response.get("events") or [])
+        action_type = action.get("action_type") or normalized_request.get("action_type")
+        new_event_count = int(response.get("event_count") or 0)
+        accepted = bool(response.get("accepted"))
+        state_version_before = response.get("state_version_before")
+        if state_version_before is None:
+            state_version_before = state.state_version
+        state_version_after = response.get("state_version_after")
+        if state_version_after is None:
+            state_version_after = state.state_version
+        return {
+            "schema_version": "minimal-action-response-v0",
+            "contract_type": "action_response",
+            "response_type": "minimal_action_response",
+            "match_id": state.match_id,
+            "request_id": response.get("request_id"),
+            "player_id": normalized_request.get("player_id"),
+            "action_id": normalized_request.get("action_id"),
+            "action_type": action_type,
+            "accepted": accepted,
+            "success": accepted and len(diagnostics) == 0,
+            "reason": response.get("reason"),
+            "state_version_before": state_version_before,
+            "state_version_after": state_version_after,
+            "new_event_count": new_event_count,
+            "event_count": new_event_count,
+            "new_event_sequences": list(response.get("new_event_sequences") or []),
+            "events": events,
+            "diagnostics": diagnostics,
+            "diagnostics_summary": {
+                "count": len(diagnostics),
+                "blocking_errors": len(diagnostics),
+                "warnings": 0,
+            },
+            "invariants_ok": len(diagnostics) == 0,
+            "metadata": {
+                "source": "python.engine.minimal_engine_session",
+                "rules_scope": "minimal_end_turn_smoke",
+                "runtime_decision": "reference_smoke_backend_candidate",
+            },
+        }
 
     def get_event_log(self, since=None):
         events = minimal_engine.event_log(self._require_state())

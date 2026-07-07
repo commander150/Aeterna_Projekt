@@ -43,6 +43,8 @@ def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE
     request = session.build_action_request(initial_legal_actions[0])
     validation = session.validate_action_request(request)
     response = session.submit_action_request(request)
+    action_response = dict(response)
+    action_response["request_valid"] = bool(validation.get("valid"))
 
     post_invariants = session.get_diagnostics()
     post_snapshot = session.get_debug_snapshot()
@@ -67,16 +69,7 @@ def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE
         "initial_snapshot_summary": _snapshot_summary(initial_snapshot),
         "post_action_snapshot_summary": _snapshot_summary(post_snapshot),
         "action_request": request,
-        "action_response": {
-            "request_valid": bool(validation.get("valid")),
-            "accepted": bool(response.get("accepted")),
-            "reason": response.get("reason"),
-            "event_count": int(response.get("event_count", 0)),
-            "action_type": str(response.get("action_type", "")),
-            "state_version_before": response.get("state_version_before"),
-            "state_version_after": response.get("state_version_after"),
-            "new_event_sequences": list(response.get("new_event_sequences") or []),
-        },
+        "action_response": action_response,
         "events": {
             "event_log": session.get_event_log(),
             "initial_event_count": int(initial_snapshot["event_log_summary"]["event_count"]),
