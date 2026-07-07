@@ -44,7 +44,7 @@ class TestEngineMinimalSmokeFacade(unittest.TestCase):
         self.assertEqual(self.engine.validate_invariants(state, self.runtime_package), [])
 
         legal_actions = self.engine.get_legal_actions(state)
-        self.assertEqual(len(legal_actions), 1)
+        self.assertEqual([action["action_type"] for action in legal_actions], ["end_turn", "draw_card"])
         self.assertEqual(legal_actions[0]["action_type"], "end_turn")
         self.assertTrue(legal_actions[0]["enabled"])
         initial_snapshot = self.engine.create_debug_snapshot(
@@ -58,9 +58,9 @@ class TestEngineMinimalSmokeFacade(unittest.TestCase):
         self.assertEqual(initial_snapshot["turn"], 1)
         self.assertEqual(initial_snapshot["active_player_id"], "P1")
         self.assertEqual(initial_snapshot["priority_player_id"], "P1")
-        self.assertEqual(initial_snapshot["legal_action_summary"]["action_count"], 1)
-        self.assertEqual(initial_snapshot["legal_action_summary"]["enabled_count"], 1)
-        self.assertEqual(initial_snapshot["legal_action_summary"]["action_types"], ["end_turn"])
+        self.assertEqual(initial_snapshot["legal_action_summary"]["action_count"], 2)
+        self.assertEqual(initial_snapshot["legal_action_summary"]["enabled_count"], 2)
+        self.assertEqual(initial_snapshot["legal_action_summary"]["action_types"], ["draw_card", "end_turn"])
         self.assertEqual(initial_snapshot["event_log_summary"]["event_count"], 0)
         self.assertEqual(initial_snapshot["diagnostics_summary"]["invariant_errors"], 0)
         self.assertEqual(initial_snapshot["metadata"]["rules_scope"], "minimal_end_turn_smoke")
@@ -84,7 +84,7 @@ class TestEngineMinimalSmokeFacade(unittest.TestCase):
         self.assertEqual(next_snapshot["active_player_id"], "P2")
         self.assertEqual(next_snapshot["event_log_summary"]["event_count"], 1)
         self.assertEqual(next_snapshot["event_log_summary"]["last_event_type"], "action_resolved")
-        self.assertEqual(next_snapshot["legal_action_summary"]["action_types"], ["end_turn"])
+        self.assertEqual(next_snapshot["legal_action_summary"]["action_types"], ["draw_card", "end_turn"])
 
 
 def _pick_two_decks(runtime_package):

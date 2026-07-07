@@ -75,8 +75,7 @@ class TestMinimalHandDeckInvariants(unittest.TestCase):
 
         action_space = session.get_action_space()
         action_types = [action["action_type"] for action in action_space["actions"]]
-        self.assertEqual(action_types, ["end_turn"])
-        self.assertNotIn("draw", action_types)
+        self.assertEqual(action_types, ["end_turn", "draw_card"])
 
         request = session.build_action_request(action_space["actions"][0])
         response = session.step(request)
@@ -86,8 +85,7 @@ class TestMinimalHandDeckInvariants(unittest.TestCase):
         post_snapshot = session.get_debug_snapshot()
         self.assertTrue(post_snapshot["diagnostics_summary"]["hand_deck_invariants_ok"])
         post_action_types = [action["action_type"] for action in session.get_action_space()["actions"]]
-        self.assertEqual(post_action_types, ["end_turn"])
-        self.assertNotIn("draw", post_action_types)
+        self.assertEqual(post_action_types, ["end_turn", "draw_card"])
 
 
 if __name__ == "__main__":

@@ -60,7 +60,7 @@ class TestMinimalEngineSession(unittest.TestCase):
         self.assertNotIn("deck_id", player_snapshot["players"][0])
 
         legal_actions = session.list_legal_actions()
-        self.assertEqual(len(legal_actions), 1)
+        self.assertEqual([action["action_type"] for action in legal_actions], ["end_turn", "draw_card"])
         self.assertEqual(legal_actions[0]["action_type"], "end_turn")
         self.assertTrue(legal_actions[0]["enabled"])
 

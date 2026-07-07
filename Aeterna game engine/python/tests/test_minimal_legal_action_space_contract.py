@@ -56,12 +56,12 @@ class TestMinimalLegalActionSpaceContract(unittest.TestCase):
         self.assertEqual(action_space["phase"], "main")
         self.assertEqual(action_space["active_player_id"], "P1")
         self.assertEqual(action_space["priority_player_id"], "P1")
-        self.assertGreaterEqual(action_space["enabled_action_count"], 1)
+        self.assertEqual(action_space["enabled_action_count"], 2)
         self.assertEqual(action_space["disabled_action_count"], 0)
         self.assertEqual(action_space["metadata"]["rules_scope"], "minimal_end_turn_smoke")
 
         actions = action_space["actions"]
-        self.assertGreaterEqual(len(actions), 1)
+        self.assertEqual([action["action_type"] for action in actions], ["end_turn", "draw_card"])
         end_turn = actions[0]
         self.assertEqual(end_turn["action_type"], "end_turn")
         self.assertTrue(end_turn["enabled"])
@@ -82,9 +82,10 @@ class TestMinimalLegalActionSpaceContract(unittest.TestCase):
         json.dumps(action_space, ensure_ascii=False)
         self.assertEqual(action_space["player_id"], "P2")
         self.assertEqual(action_space["enabled_action_count"], 0)
-        self.assertEqual(action_space["disabled_action_count"], 1)
-        self.assertFalse(action_space["actions"][0]["enabled"])
-        self.assertEqual(action_space["actions"][0]["disabled_reason"], "not_active_player")
+        self.assertEqual(action_space["disabled_action_count"], 2)
+        self.assertEqual([action["action_type"] for action in action_space["actions"]], ["end_turn", "draw_card"])
+        self.assertTrue(all(action["enabled"] is False for action in action_space["actions"]))
+        self.assertTrue(all(action["disabled_reason"] == "not_active_player" for action in action_space["actions"]))
 
     def test_fake_ui_uses_action_space_then_step_response_contract(self):
         session = self.session_module.MinimalEngineSession(self.runtime_package)
@@ -100,7 +101,7 @@ class TestMinimalLegalActionSpaceContract(unittest.TestCase):
         self.assertEqual(response["response_type"], "minimal_action_response")
         self.assertTrue(response["accepted"])
         self.assertTrue(response["success"])
-        self.assertEqual(response["action_type"], "end_turn")
+        self.assertIn(response["action_type"], {"draw_card", "end_turn"})
         self.assertEqual(response["new_event_sequences"], [1])
 
     def test_fake_bot_uses_action_space_then_step_response_contract(self):
@@ -117,7 +118,7 @@ class TestMinimalLegalActionSpaceContract(unittest.TestCase):
         self.assertEqual(response["response_type"], "minimal_action_response")
         self.assertTrue(response["accepted"])
         self.assertTrue(response["success"])
-        self.assertEqual(response["action_type"], "end_turn")
+        self.assertIn(response["action_type"], {"draw_card", "end_turn"})
         self.assertEqual(response["new_event_sequences"], [1])
 
 

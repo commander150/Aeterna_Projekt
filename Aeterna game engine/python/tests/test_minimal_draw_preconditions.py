@@ -71,8 +71,7 @@ class TestMinimalDrawPreconditions(unittest.TestCase):
         session.get_draw_precondition("P1")
         action_types = [action["action_type"] for action in session.get_action_space()["actions"]]
 
-        self.assertEqual(action_types, ["end_turn"])
-        self.assertNotIn("draw", action_types)
+        self.assertEqual(action_types, ["end_turn", "draw_card"])
 
     def test_draw_precondition_remains_available_after_end_turn(self):
         session = self.session_module.MinimalEngineSession(self.runtime_package)
@@ -88,8 +87,7 @@ class TestMinimalDrawPreconditions(unittest.TestCase):
             self.assertEqual(precondition["reason"], "ok")
 
         action_types = [action["action_type"] for action in session.get_action_space()["actions"]]
-        self.assertEqual(action_types, ["end_turn"])
-        self.assertNotIn("draw", action_types)
+        self.assertEqual(action_types, ["end_turn", "draw_card"])
 
     def test_empty_deck_precondition_reports_deck_empty_without_state_mutation(self):
         session = self.session_module.MinimalEngineSession(self.runtime_package)

@@ -39,20 +39,33 @@ def create_initial_match_state(runtime_package, deck_id_a, deck_id_b, match_id="
 def list_legal_actions(state, player_id=None):
     player_id = player_id or state.active_player_id
     enabled = player_id == state.active_player_id
-    action = {
+    end_turn_action = {
         "action_id": "end_turn:%s:%s" % (state.turn_number, player_id),
         "action_type": "end_turn",
         "player_id": player_id,
         "enabled": enabled,
     }
     if not enabled:
-        action["reason"] = "not_active_player"
-    return [action]
+        end_turn_action["reason"] = "not_active_player"
+
+    draw_enabled = enabled and _can_player_draw(state, player_id)
+    draw_action = {
+        "action_id": "draw_card:%s:%s:%s" % (state.turn_number, state.state_version, player_id),
+        "action_type": "draw_card",
+        "player_id": player_id,
+        "enabled": draw_enabled,
+    }
+    if not enabled:
+        draw_action["reason"] = "not_active_player"
+    elif not draw_enabled:
+        draw_action["reason"] = "deck_empty"
+
+    return [end_turn_action, draw_action]
 
 
 def apply_action(state, action):
     action_type = action.get("action_type")
-    if action_type != "end_turn":
+    if action_type not in {"end_turn", "draw_card"}:
         raise RulesKernelError("Unsupported action_type: %s" % action_type)
     if not action.get("enabled", False):
         raise RulesKernelError("Action is not enabled: %s" % action.get("action_id"))
@@ -61,6 +74,12 @@ def apply_action(state, action):
     if player_id != state.active_player_id:
         raise RulesKernelError("Action player is not active: %s" % player_id)
 
+    if action_type == "draw_card":
+        return _apply_draw_card(state, action)
+    return _apply_end_turn(state, action)
+
+
+def _apply_end_turn(state, action):
     previous_player_id = state.active_player_id
     next_player_id = state.get_inactive_player_id()
     state.active_player_id = next_player_id
@@ -74,6 +93,38 @@ def apply_action(state, action):
         "event_type": "action_resolved",
         "player_id": previous_player_id,
         "action_type": "end_turn",
+        "turn_number": state.turn_number,
+        "state_version": state.state_version,
+    }
+    state.event_log.append(event)
+    return {
+        "ok": True,
+        "action": dict(action),
+        "event": event,
+        "state": state,
+    }
+
+
+def _apply_draw_card(state, action):
+    player_id = action.get("player_id")
+    player = state.get_player(player_id)
+    if not player.deck_card_ids:
+        raise RulesKernelError("Cannot draw from empty deck: %s" % player_id)
+
+    card_id = _select_draw_card_id(player.deck_card_ids)
+    player.deck_card_ids.remove(card_id)
+    player.hand.append(card_id)
+    state.state_version += 1
+
+    event = {
+        "event_index": len(state.event_log),
+        "event_sequence": len(state.event_log) + 1,
+        "event_type": "card_drawn",
+        "player_id": player_id,
+        "action_type": "draw_card",
+        "card_id": card_id,
+        "from_zone": "deck",
+        "to_zone": "hand",
         "turn_number": state.turn_number,
         "state_version": state.state_version,
     }
@@ -109,3 +160,17 @@ def _expand_deck_card_ids(deck):
         count = int(entry.get("count") or 0)
         card_ids.extend([entry.get("card_id")] * count)
     return card_ids
+
+
+def _can_player_draw(state, player_id):
+    try:
+        return len(state.get_player(player_id).deck_card_ids) > 0
+    except Exception:
+        return False
+
+
+def _select_draw_card_id(deck_card_ids):
+    for card_id in deck_card_ids:
+        if deck_card_ids.count(card_id) == 1:
+            return card_id
+    return deck_card_ids[0]

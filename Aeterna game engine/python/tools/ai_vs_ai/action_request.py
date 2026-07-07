@@ -34,6 +34,8 @@ def validate_action_request(request, legal_actions, state):
         return _validation_result(False, "unknown_action_id", normalized)
 
     if legal_action.get("enabled") is not True:
+        if legal_action.get("reason") == "deck_empty":
+            return _validation_result(False, "deck_empty", normalized, legal_action)
         return _validation_result(False, "action_not_enabled", normalized, legal_action)
 
     if normalized.get("action_type") != legal_action.get("action_type"):

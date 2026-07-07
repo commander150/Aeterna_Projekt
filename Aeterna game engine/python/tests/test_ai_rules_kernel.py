@@ -48,22 +48,20 @@ class TestAIRulesKernel(unittest.TestCase):
         self.assertGreater(len(state.players[1].deck_card_ids), 0)
         self.assertEqual(state.event_log, [])
 
-    def test_list_legal_actions_enables_only_active_player_end_turn(self):
+    def test_list_legal_actions_enables_only_active_player_minimal_actions(self):
         state = self.kernel.create_initial_match_state(self.runtime_package, self.deck_id_a, self.deck_id_b)
 
         active_actions = self.kernel.list_legal_actions(state, "P1")
         inactive_actions = self.kernel.list_legal_actions(state, "P2")
 
-        self.assertEqual(len(active_actions), 1)
-        self.assertEqual(active_actions[0]["action_type"], "end_turn")
-        self.assertEqual(active_actions[0]["player_id"], "P1")
-        self.assertTrue(active_actions[0]["enabled"])
+        self.assertEqual([action["action_type"] for action in active_actions], ["end_turn", "draw_card"])
+        self.assertTrue(all(action["player_id"] == "P1" for action in active_actions))
+        self.assertTrue(all(action["enabled"] for action in active_actions))
 
-        self.assertEqual(len(inactive_actions), 1)
-        self.assertEqual(inactive_actions[0]["action_type"], "end_turn")
-        self.assertEqual(inactive_actions[0]["player_id"], "P2")
-        self.assertFalse(inactive_actions[0]["enabled"])
-        self.assertEqual(inactive_actions[0]["reason"], "not_active_player")
+        self.assertEqual([action["action_type"] for action in inactive_actions], ["end_turn", "draw_card"])
+        self.assertTrue(all(action["player_id"] == "P2" for action in inactive_actions))
+        self.assertTrue(all(action["enabled"] is False for action in inactive_actions))
+        self.assertTrue(all(action["reason"] == "not_active_player" for action in inactive_actions))
 
     def test_apply_end_turn_switches_active_player_and_logs_event(self):
         state = self.kernel.create_initial_match_state(self.runtime_package, self.deck_id_a, self.deck_id_b)
@@ -90,6 +88,27 @@ class TestAIRulesKernel(unittest.TestCase):
         self.assertEqual(state.event_log[1]["event_index"], 1)
         self.assertEqual(state.event_log[1]["player_id"], "P2")
         self.assertEqual(state.event_log[1]["turn_number"], 2)
+
+    def test_apply_draw_card_moves_one_card_and_logs_event(self):
+        state = self.kernel.create_initial_match_state(self.runtime_package, self.deck_id_a, self.deck_id_b)
+        player = state.get_player("P1")
+        draw_action = [action for action in self.kernel.list_legal_actions(state, "P1") if action["action_type"] == "draw_card"][0]
+        original_deck_count = len(player.deck_card_ids)
+        original_hand_count = len(player.hand)
+
+        response = self.kernel.apply_action(state, draw_action)
+
+        self.assertTrue(response["ok"])
+        self.assertEqual(len(player.deck_card_ids), original_deck_count - 1)
+        self.assertEqual(len(player.hand), original_hand_count + 1)
+        self.assertNotIn(player.hand[-1], player.deck_card_ids)
+        self.assertEqual(state.state_version, 1)
+        self.assertEqual(state.active_player_id, "P1")
+        self.assertEqual(state.event_log[0]["event_type"], "card_drawn")
+        self.assertEqual(state.event_log[0]["action_type"], "draw_card")
+        self.assertEqual(state.event_log[0]["card_id"], player.hand[-1])
+        self.assertEqual(state.event_log[0]["from_zone"], "deck")
+        self.assertEqual(state.event_log[0]["to_zone"], "hand")
 
     def test_invalid_actions_raise_clear_errors(self):
         state = self.kernel.create_initial_match_state(self.runtime_package, self.deck_id_a, self.deck_id_b)
