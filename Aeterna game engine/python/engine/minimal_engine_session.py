@@ -18,7 +18,11 @@ except ModuleNotFoundError:
 
 
 class MinimalEngineSession:
-    """Small session wrapper over the existing minimal end_turn smoke facade."""
+    """Small session wrapper over the existing minimal end_turn smoke facade.
+
+    step() is only a convenience wrapper over submit_action_request(); it is not
+    a separate rules path.
+    """
 
     def __init__(self, runtime_package):
         self.runtime_package = runtime_package
