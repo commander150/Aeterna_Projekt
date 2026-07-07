@@ -104,6 +104,38 @@ class MinimalEngineSession:
     def get_action_response_history(self):
         return deepcopy(self._action_response_history)
 
+    def get_transition_summary(self):
+        state = self._require_state()
+        events = self.get_event_log()
+        responses = self._action_response_history
+        accepted_count = sum(1 for response in responses if response.get("accepted") is True)
+        rejected_count = sum(1 for response in responses if response.get("accepted") is not True)
+        last_response = responses[-1] if responses else None
+        return {
+            "schema_version": "minimal-transition-summary-v0",
+            "contract_type": "transition_summary",
+            "match_id": state.match_id,
+            "state_version": state.state_version,
+            "turn": state.turn_number,
+            "phase": state.phase,
+            "active_player_id": state.active_player_id,
+            "priority_player_id": state.active_player_id,
+            "event_count": len(events),
+            "last_event_sequence": events[-1].get("event_sequence") if events else None,
+            "response_count": len(responses),
+            "accepted_response_count": accepted_count,
+            "rejected_response_count": rejected_count,
+            "last_response_type": last_response.get("response_type") if last_response else None,
+            "last_response_accepted": last_response.get("accepted") if last_response else None,
+            "last_response_success": last_response.get("success") if last_response else None,
+            "last_response_reason": last_response.get("reason") if last_response else None,
+            "metadata": {
+                "source": "python.engine.minimal_engine_session",
+                "rules_scope": "minimal_end_turn_smoke",
+                "runtime_decision": "reference_smoke_backend_candidate",
+            },
+        }
+
     def _build_action_response_contract(self, request, response):
         state = self._require_state()
         diagnostics = self.get_diagnostics()
@@ -219,6 +251,7 @@ class MinimalEngineSession:
                 "errors": diagnostics,
             },
             "response_history_count": len(self._action_response_history),
+            "transition_summary": self.get_transition_summary(),
         }
 
     def build_action_request(self, action, player_id=None):

@@ -49,6 +49,7 @@ def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE
 
     post_invariants = session.get_diagnostics()
     post_snapshot = session.get_debug_snapshot()
+    transition_summary = session.get_transition_summary()
 
     return {
         "schema_version": "minimal-engine-smoke-report-v0",
@@ -90,6 +91,7 @@ def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE
             "warnings": 0,
         },
         "response_history_count": len(session.get_action_response_history()),
+        "transition_summary": transition_summary,
         "metadata": {
             "source": "tools.engine.run_minimal_engine_smoke",
             "runtime_package_dir": str(package_dir),
@@ -107,6 +109,7 @@ def format_report(report):
     events = report["events"]
     invariants = report["invariants"]
     diagnostics = report["diagnostics"]
+    transition_summary = report["transition_summary"]
     lines = [
         "MINIMAL ENGINE SMOKE REPORT",
         "match_id: %s" % match["match_id"],
@@ -126,6 +129,9 @@ def format_report(report):
         "post_event_count: %d" % int(events["post_event_count"]),
         "last_event_sequence: %s" % str(events["last_event_sequence"]),
         "last_event_type: %s" % str(events["last_event_type"]),
+        "response_history_count: %d" % int(transition_summary["response_count"]),
+        "accepted_response_count: %d" % int(transition_summary["accepted_response_count"]),
+        "rejected_response_count: %d" % int(transition_summary["rejected_response_count"]),
         "invariants_ok: %s" % _format_bool(invariants["ok"]),
         "diagnostics_count: %d" % int(diagnostics["count"]),
         "runtime_note: %s" % report["runtime_decision_note"],

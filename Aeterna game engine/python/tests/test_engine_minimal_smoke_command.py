@@ -54,6 +54,9 @@ class TestEngineMinimalSmokeCommand(unittest.TestCase):
         self.assertIn("post_event_count: 1", output)
         self.assertIn("last_event_sequence: 1", output)
         self.assertIn("last_event_type: action_resolved", output)
+        self.assertIn("response_history_count: 1", output)
+        self.assertIn("accepted_response_count: 1", output)
+        self.assertIn("rejected_response_count: 0", output)
         self.assertIn("invariants_ok: true", output)
         self.assertIn("diagnostics_count: 0", output)
 
@@ -95,6 +98,10 @@ class TestEngineMinimalSmokeCommand(unittest.TestCase):
         self.assertTrue(report["invariants"]["ok"])
         self.assertEqual(report["diagnostics"]["count"], 0)
         self.assertEqual(report["response_history_count"], 1)
+        self.assertEqual(report["transition_summary"]["contract_type"], "transition_summary")
+        self.assertEqual(report["transition_summary"]["response_count"], 1)
+        self.assertEqual(report["transition_summary"]["accepted_response_count"], 1)
+        self.assertEqual(report["transition_summary"]["rejected_response_count"], 0)
 
     def test_legacy_run_function_returns_structured_report(self):
         result = self.run_command.run_minimal_engine_smoke(GODOT_RUNTIME_PACKAGE_DIR)

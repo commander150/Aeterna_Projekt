@@ -122,6 +122,10 @@ class TestMinimalEngineSession(unittest.TestCase):
         self.assertEqual(report["events"]["last_event_sequence"], 1)
         self.assertEqual(report["diagnostics"]["count"], 0)
         self.assertEqual(report["response_history_count"], 1)
+        self.assertEqual(report["transition_summary"]["contract_type"], "transition_summary")
+        self.assertEqual(report["transition_summary"]["response_count"], 1)
+        self.assertEqual(report["transition_summary"]["accepted_response_count"], 1)
+        self.assertEqual(report["transition_summary"]["rejected_response_count"], 0)
 
     def test_step_returns_same_action_response_contract(self):
         session = self.session_module.MinimalEngineSession(self.runtime_package)
