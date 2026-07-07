@@ -57,6 +57,30 @@ class MinimalEngineSession:
     def list_legal_actions(self, player_id=None):
         return minimal_engine.get_legal_actions(self._require_state(), player_id)
 
+    def get_action_space(self, player_id=None):
+        state = self._require_state()
+        legal_actions = self.list_legal_actions(player_id)
+        actions = [self._build_legal_action_contract(action) for action in legal_actions]
+        return {
+            "schema_version": "minimal-legal-action-space-v0",
+            "contract_type": "legal_action_space",
+            "match_id": state.match_id,
+            "player_id": player_id or state.active_player_id,
+            "state_version": state.state_version,
+            "turn": state.turn_number,
+            "phase": state.phase,
+            "active_player_id": state.active_player_id,
+            "priority_player_id": state.active_player_id,
+            "actions": actions,
+            "enabled_action_count": sum(1 for action in actions if action["enabled"] is True),
+            "disabled_action_count": sum(1 for action in actions if action["enabled"] is not True),
+            "metadata": {
+                "source": "python.engine.minimal_engine_session",
+                "rules_scope": "minimal_end_turn_smoke",
+                "runtime_decision": "reference_smoke_backend_candidate",
+            },
+        }
+
     def submit_action_request(self, request):
         state = self._require_state()
         legal_actions = self.list_legal_actions()
@@ -110,6 +134,29 @@ class MinimalEngineSession:
                 "source": "python.engine.minimal_engine_session",
                 "rules_scope": "minimal_end_turn_smoke",
                 "runtime_decision": "reference_smoke_backend_candidate",
+            },
+        }
+
+    def _build_legal_action_contract(self, action):
+        normalized = dict(action or {})
+        enabled = normalized.get("enabled") is True
+        player_id = normalized.get("player_id")
+        action_type = normalized.get("action_type")
+        return {
+            "action_id": normalized.get("action_id"),
+            "action_type": action_type,
+            "player_id": player_id,
+            "enabled": enabled,
+            "disabled_reason": None if enabled else normalized.get("reason"),
+            "request_template": {
+                "action_type": action_type,
+                "player_id": player_id,
+                "payload": {},
+                "required_fields": ["match_id", "player_id", "action_id", "action_type"],
+            },
+            "metadata": {
+                "source": "rules_kernel.list_legal_actions",
+                "rules_scope": "minimal_end_turn_smoke",
             },
         }
 

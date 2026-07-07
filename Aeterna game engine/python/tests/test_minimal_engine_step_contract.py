@@ -26,14 +26,14 @@ def _load_module(module_name, path):
 
 
 def _fake_ui_submit_first_action(session):
-    legal_actions = session.list_legal_actions()
-    request = session.build_action_request(legal_actions[0])
+    action_space = session.get_action_space()
+    request = session.build_action_request(action_space["actions"][0])
     return session.step(request)
 
 
 def _fake_bot_submit_first_action(session):
-    legal_actions = session.list_legal_actions()
-    enabled_actions = [action for action in legal_actions if action.get("enabled") is True]
+    action_space = session.get_action_space()
+    enabled_actions = [action for action in action_space["actions"] if action.get("enabled") is True]
     request = session.build_action_request(enabled_actions[0])
     return session.step(request)
 

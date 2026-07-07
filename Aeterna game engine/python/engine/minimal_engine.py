@@ -65,7 +65,7 @@ def create_debug_snapshot(state, legal_actions=None, diagnostics=None):
         "active_player_id": state.active_player_id,
         "priority_player_id": state.active_player_id,
         "players": [_player_debug_summary(player) for player in state.players],
-        "legal_action_summary": _legal_action_summary(actions),
+        "legal_action_summary": _legal_action_summary(actions, state.state_version),
         "event_log_summary": _event_log_summary(state.event_log),
         "diagnostics_summary": {
             "invariant_errors": len(invariant_errors),
@@ -97,7 +97,7 @@ def create_player_visible_snapshot(state, player_id, legal_actions=None, diagnos
         "active_player_id": state.active_player_id,
         "priority_player_id": state.active_player_id,
         "players": [_player_visible_summary(player, player_id) for player in state.players],
-        "legal_action_summary": _legal_action_summary(actions),
+        "legal_action_summary": _legal_action_summary(actions, state.state_version),
         "event_log_summary": _event_log_summary(state.event_log),
         "diagnostics_summary": {
             "invariant_errors": len(invariant_errors),
@@ -135,8 +135,9 @@ def _player_visible_summary(player, viewer_player_id):
     }
 
 
-def _legal_action_summary(legal_actions):
+def _legal_action_summary(legal_actions, state_version=None):
     return {
+        "state_version": state_version,
         "action_count": len(legal_actions),
         "enabled_count": sum(1 for action in legal_actions if action.get("enabled") is True),
         "disabled_count": sum(1 for action in legal_actions if action.get("enabled") is not True),

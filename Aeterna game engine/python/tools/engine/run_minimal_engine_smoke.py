@@ -37,7 +37,8 @@ def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE
     deck_id_a = session.deck_id_a
     deck_id_b = session.deck_id_b
     initial_invariants = session.get_diagnostics()
-    initial_legal_actions = session.list_legal_actions()
+    initial_action_space = session.get_action_space()
+    initial_legal_actions = list(initial_action_space["actions"])
     initial_snapshot = session.get_debug_snapshot()
 
     request = session.build_action_request(initial_legal_actions[0])
@@ -68,6 +69,7 @@ def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE
         },
         "initial_snapshot_summary": _snapshot_summary(initial_snapshot),
         "post_action_snapshot_summary": _snapshot_summary(post_snapshot),
+        "initial_action_space": initial_action_space,
         "action_request": request,
         "action_response": action_response,
         "events": {
