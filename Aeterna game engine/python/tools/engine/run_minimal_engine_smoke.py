@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -29,26 +30,25 @@ def run_minimal_engine_smoke(runtime_package_dir=None, match_id="ENGINE-SMOKE-CO
     return build_minimal_engine_smoke_report(runtime_package_dir, match_id=match_id)
 
 
+def build_minimal_engine_debug_export(runtime_package_dir=None, match_id="ENGINE-SMOKE-COMMAND-001"):
+    context = _run_smoke_session(runtime_package_dir, match_id)
+    session = context["session"]
+    return session.export_debug_session_state()
+
+
 def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE-SMOKE-COMMAND-001"):
+    context = _run_smoke_session(runtime_package_dir, match_id)
+    session = context["session"]
     package_dir = Path(runtime_package_dir) if runtime_package_dir is not None else default_runtime_package_dir()
-    runtime_package = load_runtime_package(package_dir)
-    session = MinimalEngineSession(runtime_package)
-    state = session.create_match(match_id=match_id)
+    state = session.state
     deck_id_a = session.deck_id_a
     deck_id_b = session.deck_id_b
-    initial_invariants = session.get_diagnostics()
-    initial_action_space = session.get_action_space()
-    initial_legal_actions = list(initial_action_space["actions"])
-    initial_snapshot = session.get_debug_snapshot()
-
-    request = session.build_action_request(initial_legal_actions[0])
-    validation = session.validate_action_request(request)
-    response = session.submit_action_request(request)
-    action_response = dict(response)
-    action_response["request_valid"] = bool(validation.get("valid"))
-
-    post_invariants = session.get_diagnostics()
+    initial_snapshot = context["initial_snapshot"]
     post_snapshot = session.get_debug_snapshot()
+    initial_invariants = context["initial_invariants"]
+    post_invariants = session.get_diagnostics()
+    action_response = dict(session.get_last_action_response())
+    action_response["request_valid"] = bool(context["validation"].get("valid"))
     transition_summary = session.get_transition_summary()
     debug_session_state = session.export_debug_session_state()
 
@@ -71,8 +71,8 @@ def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE
         },
         "initial_snapshot_summary": _snapshot_summary(initial_snapshot),
         "post_action_snapshot_summary": _snapshot_summary(post_snapshot),
-        "initial_action_space": initial_action_space,
-        "action_request": request,
+        "initial_action_space": context["initial_action_space"],
+        "action_request": context["request"],
         "action_response": action_response,
         "events": {
             "event_log": session.get_event_log(),
@@ -99,6 +99,29 @@ def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE
             "runtime_package_dir": str(package_dir),
             "rules_scope": "minimal_end_turn_smoke",
         },
+    }
+
+
+def _run_smoke_session(runtime_package_dir=None, match_id="ENGINE-SMOKE-COMMAND-001"):
+    package_dir = Path(runtime_package_dir) if runtime_package_dir is not None else default_runtime_package_dir()
+    runtime_package = load_runtime_package(package_dir)
+    session = MinimalEngineSession(runtime_package)
+    session.create_match(match_id=match_id)
+    initial_invariants = session.get_diagnostics()
+    initial_action_space = session.get_action_space()
+    initial_legal_actions = list(initial_action_space["actions"])
+    initial_snapshot = session.get_debug_snapshot()
+
+    request = session.build_action_request(initial_legal_actions[0])
+    validation = session.validate_action_request(request)
+    session.submit_action_request(request)
+    return {
+        "session": session,
+        "initial_invariants": initial_invariants,
+        "initial_action_space": initial_action_space,
+        "initial_snapshot": initial_snapshot,
+        "request": request,
+        "validation": validation,
     }
 
 
@@ -147,8 +170,12 @@ def main(argv=None, stdout=None, stderr=None):
     parser = _build_parser()
     args = parser.parse_args(argv)
     try:
-        result = run_minimal_engine_smoke(args.runtime_package_dir, match_id=args.match_id)
-        stdout.write(format_report(result))
+        if args.json_debug_export:
+            result = build_minimal_engine_debug_export(args.runtime_package_dir, match_id=args.match_id)
+            stdout.write(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            result = run_minimal_engine_smoke(args.runtime_package_dir, match_id=args.match_id)
+            stdout.write(format_report(result))
         stdout.write("\n")
         return 0
     except Exception as exc:
@@ -164,6 +191,11 @@ def _build_parser():
         help="Runtime package directory. Defaults to ../Godot/runtime_package relative to python/.",
     )
     parser.add_argument("--match-id", default="ENGINE-SMOKE-COMMAND-001")
+    parser.add_argument(
+        "--json-debug-export",
+        action="store_true",
+        help="Print only the JSON debug session state export to stdout.",
+    )
     return parser
 
 

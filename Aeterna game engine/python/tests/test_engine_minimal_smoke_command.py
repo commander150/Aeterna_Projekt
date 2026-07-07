@@ -106,6 +106,30 @@ class TestEngineMinimalSmokeCommand(unittest.TestCase):
         self.assertEqual(report["debug_session_state_summary"]["response_count"], 1)
         self.assertEqual(report["debug_session_state_summary"]["replay_support"], "not_implemented")
 
+    def test_json_debug_export_mode_prints_only_valid_json(self):
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        exit_code = self.run_command.main(
+            ["--runtime-package-dir", str(GODOT_RUNTIME_PACKAGE_DIR), "--json-debug-export"],
+            stdout=stdout,
+            stderr=stderr,
+        )
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(stderr.getvalue(), "")
+        output = stdout.getvalue()
+        self.assertNotIn("MINIMAL ENGINE SMOKE REPORT", output)
+        exported = json.loads(output)
+        self.assertEqual(exported["contract_type"], "debug_session_state")
+        self.assertIn("debug_snapshot", exported)
+        self.assertIn("action_space", exported)
+        self.assertIn("transition_summary", exported)
+        self.assertIn("last_action_response", exported)
+        self.assertIn("metadata", exported)
+        self.assertEqual(exported["metadata"]["replay_support"], "not_implemented")
+        self.assertTrue(exported["last_action_response"]["accepted"])
+
     def test_legacy_run_function_returns_structured_report(self):
         result = self.run_command.run_minimal_engine_smoke(GODOT_RUNTIME_PACKAGE_DIR)
 
