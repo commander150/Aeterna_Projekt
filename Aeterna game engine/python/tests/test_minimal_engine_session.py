@@ -88,6 +88,8 @@ class TestMinimalEngineSession(unittest.TestCase):
         self.assertEqual(response["diagnostics_summary"]["count"], 0)
         self.assertTrue(response["invariants_ok"])
         self.assertEqual(response["metadata"]["rules_scope"], "minimal_end_turn_smoke")
+        self.assertEqual(session.get_last_action_response(), response)
+        self.assertEqual(len(session.get_action_response_history()), 1)
         self.assertEqual(session.get_event_log()[0]["action_type"], "end_turn")
         self.assertEqual(session.get_event_log()[0]["event_sequence"], 1)
         self.assertEqual(session.get_event_log()[0]["state_version"], 1)
@@ -119,6 +121,7 @@ class TestMinimalEngineSession(unittest.TestCase):
         self.assertEqual(report["events"]["event_count"], 1)
         self.assertEqual(report["events"]["last_event_sequence"], 1)
         self.assertEqual(report["diagnostics"]["count"], 0)
+        self.assertEqual(report["response_history_count"], 1)
 
     def test_step_returns_same_action_response_contract(self):
         session = self.session_module.MinimalEngineSession(self.runtime_package)

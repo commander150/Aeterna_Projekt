@@ -94,6 +94,7 @@ class TestEngineMinimalSmokeCommand(unittest.TestCase):
         self.assertEqual(report["events"]["post_event_count"], 1)
         self.assertTrue(report["invariants"]["ok"])
         self.assertEqual(report["diagnostics"]["count"], 0)
+        self.assertEqual(report["response_history_count"], 1)
 
     def test_legacy_run_function_returns_structured_report(self):
         result = self.run_command.run_minimal_engine_smoke(GODOT_RUNTIME_PACKAGE_DIR)

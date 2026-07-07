@@ -89,6 +89,7 @@ def build_minimal_engine_smoke_report(runtime_package_dir=None, match_id="ENGINE
             "blocking_errors": len(initial_invariants) + len(post_invariants),
             "warnings": 0,
         },
+        "response_history_count": len(session.get_action_response_history()),
         "metadata": {
             "source": "tools.engine.run_minimal_engine_smoke",
             "runtime_package_dir": str(package_dir),

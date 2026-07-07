@@ -11,6 +11,8 @@ snapshot helper is debug-only and must not be treated as a player-facing view.
 
 from __future__ import annotations
 
+from copy import deepcopy
+
 try:
     import minimal_engine
 except ModuleNotFoundError:
@@ -29,6 +31,7 @@ class MinimalEngineSession:
         self.state = None
         self.deck_id_a = None
         self.deck_id_b = None
+        self._action_response_history = []
 
     def create_match(self, deck_id_a=None, deck_id_b=None, match_id=None):
         deck_id_a, deck_id_b = self._resolve_decks(deck_id_a, deck_id_b)
@@ -40,6 +43,7 @@ class MinimalEngineSession:
             deck_id_b,
             match_id=match_id or "ENGINE-SESSION-SMOKE-001",
         )
+        self._action_response_history = []
         return self.state
 
     def get_debug_snapshot(self):
@@ -85,10 +89,20 @@ class MinimalEngineSession:
         state = self._require_state()
         legal_actions = self.list_legal_actions()
         response = minimal_engine.resolve_request(state, request, legal_actions)
-        return self._build_action_response_contract(request, response)
+        contract = self._build_action_response_contract(request, response)
+        self._action_response_history.append(deepcopy(contract))
+        return deepcopy(contract)
 
     def step(self, request):
         return self.submit_action_request(request)
+
+    def get_last_action_response(self):
+        if not self._action_response_history:
+            return None
+        return deepcopy(self._action_response_history[-1])
+
+    def get_action_response_history(self):
+        return deepcopy(self._action_response_history)
 
     def _build_action_response_contract(self, request, response):
         state = self._require_state()
@@ -204,6 +218,7 @@ class MinimalEngineSession:
                 "blocking_errors": len(diagnostics),
                 "errors": diagnostics,
             },
+            "response_history_count": len(self._action_response_history),
         }
 
     def build_action_request(self, action, player_id=None):
