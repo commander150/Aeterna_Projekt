@@ -58,6 +58,9 @@ class MinimalEngineSession:
         legal_actions = self.list_legal_actions(player_id)
         return minimal_engine.create_player_visible_snapshot(state, player_id, legal_actions, diagnostics)
 
+    def get_draw_precondition(self, player_id):
+        return minimal_engine.can_player_draw(self._require_state(), player_id)
+
     def list_legal_actions(self, player_id=None):
         return minimal_engine.get_legal_actions(self._require_state(), player_id)
 

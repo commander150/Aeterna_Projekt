@@ -49,6 +49,37 @@ def event_log(state):
     return list(state.event_log)
 
 
+def can_player_draw(state, player_id):
+    try:
+        player = state.get_player(player_id)
+    except Exception:
+        return {
+            "player_id": player_id,
+            "can_draw": False,
+            "reason": "player_unknown",
+            "deck_count": 0,
+            "hand_count": 0,
+            "metadata": {
+                "source": "python.engine.minimal_engine",
+                "rules_scope": "minimal_end_turn_smoke",
+            },
+        }
+
+    deck_count = len(player.deck_card_ids)
+    hand_count = len(player.hand)
+    return {
+        "player_id": player_id,
+        "can_draw": deck_count > 0,
+        "reason": "ok" if deck_count > 0 else "deck_empty",
+        "deck_count": deck_count,
+        "hand_count": hand_count,
+        "metadata": {
+            "source": "python.engine.minimal_engine",
+            "rules_scope": "minimal_end_turn_smoke",
+        },
+    }
+
+
 def create_debug_snapshot(state, legal_actions=None, diagnostics=None):
     actions = list(legal_actions or [])
     invariant_errors = list(diagnostics or [])
@@ -72,6 +103,7 @@ def create_debug_snapshot(state, legal_actions=None, diagnostics=None):
             "blocking_errors": len(invariant_errors),
             "warnings": 0,
             "hand_deck_invariants_ok": _hand_deck_invariants_ok(invariant_errors),
+            "draw_preconditions_ok": _draw_preconditions_ok(state),
         },
         "metadata": {
             "source": "python.engine.minimal_engine",
@@ -105,6 +137,7 @@ def create_player_visible_snapshot(state, player_id, legal_actions=None, diagnos
             "blocking_errors": len(invariant_errors),
             "warnings": 0,
             "hand_deck_invariants_ok": _hand_deck_invariants_ok(invariant_errors),
+            "draw_preconditions_ok": _draw_preconditions_ok(state),
         },
         "metadata": {
             "source": "python.engine.minimal_engine",
@@ -144,6 +177,10 @@ def _player_zone_summary(player):
         "deck_count": len(player.deck_card_ids),
         "hand_count": len(player.hand),
         "discard_count": len(player.discard),
+        "draw_precondition": {
+            "can_draw": len(player.deck_card_ids) > 0,
+            "reason": "ok" if len(player.deck_card_ids) > 0 else "deck_empty",
+        },
     }
 
 
@@ -173,3 +210,7 @@ def _hand_deck_invariants_ok(errors):
         "PLAYER_DECK_CARD_UNKNOWN",
     }
     return not any(error.get("code") in zone_error_codes for error in errors)
+
+
+def _draw_preconditions_ok(state):
+    return all(can_player_draw(state, player.player_id)["can_draw"] for player in state.players)
