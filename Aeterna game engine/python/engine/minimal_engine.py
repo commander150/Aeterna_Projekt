@@ -71,6 +71,7 @@ def create_debug_snapshot(state, legal_actions=None, diagnostics=None):
             "invariant_errors": len(invariant_errors),
             "blocking_errors": len(invariant_errors),
             "warnings": 0,
+            "hand_deck_invariants_ok": _hand_deck_invariants_ok(invariant_errors),
         },
         "metadata": {
             "source": "python.engine.minimal_engine",
@@ -103,6 +104,7 @@ def create_player_visible_snapshot(state, player_id, legal_actions=None, diagnos
             "invariant_errors": len(invariant_errors),
             "blocking_errors": len(invariant_errors),
             "warnings": 0,
+            "hand_deck_invariants_ok": _hand_deck_invariants_ok(invariant_errors),
         },
         "metadata": {
             "source": "python.engine.minimal_engine",
@@ -121,6 +123,7 @@ def _player_debug_summary(player):
         "deck_count": len(player.deck_card_ids),
         "hand_count": len(player.hand),
         "discard_count": len(player.discard),
+        "zone_summary": _player_zone_summary(player),
     }
 
 
@@ -129,6 +132,15 @@ def _player_visible_summary(player, viewer_player_id):
     return {
         "player_id": player.player_id,
         "is_viewer": is_viewer,
+        "deck_count": len(player.deck_card_ids),
+        "hand_count": len(player.hand),
+        "discard_count": len(player.discard),
+        "zone_summary": _player_zone_summary(player),
+    }
+
+
+def _player_zone_summary(player):
+    return {
         "deck_count": len(player.deck_card_ids),
         "hand_count": len(player.hand),
         "discard_count": len(player.discard),
@@ -151,3 +163,13 @@ def _event_log_summary(events):
         "last_event_type": str(events[-1].get("event_type", "")) if events else None,
         "last_event_sequence": events[-1].get("event_sequence") if events else None,
     }
+
+
+def _hand_deck_invariants_ok(errors):
+    zone_error_codes = {
+        "PLAYER_ZONE_MISSING",
+        "PLAYER_ZONE_INVALID",
+        "PLAYER_DECK_HAND_OVERLAP",
+        "PLAYER_DECK_CARD_UNKNOWN",
+    }
+    return not any(error.get("code") in zone_error_codes for error in errors)

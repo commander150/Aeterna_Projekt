@@ -33,6 +33,7 @@ def validate_state_invariants(state, runtime_package=None):
             errors.append(_error("PLAYER_ID_MISSING", "player_id must not be empty.", player_index=index))
         if not deck_id:
             errors.append(_error("DECK_ID_MISSING", "deck_id must not be empty.", player_id=player_id))
+        errors.extend(_validate_player_zones(player))
         if runtime_package is not None and deck_id:
             errors.extend(_validate_player_deck_refs(player, runtime_package))
 
@@ -88,6 +89,48 @@ def _validate_player_deck_refs(player, runtime_package):
                     deck_id=deck_id,
                     card_id=card_id,
                     card_index=card_index,
+                )
+            )
+    return errors
+
+
+def _validate_player_zones(player):
+    errors = []
+    player_id = getattr(player, "player_id", None)
+    deck = getattr(player, "deck_card_ids", None)
+    hand = getattr(player, "hand", None)
+    discard = getattr(player, "discard", None)
+
+    for zone_name, zone in (("deck", deck), ("hand", hand), ("discard", discard)):
+        if zone is None:
+            errors.append(
+                _error(
+                    "PLAYER_ZONE_MISSING",
+                    "player zone list must not be None.",
+                    player_id=player_id,
+                    zone=zone_name,
+                )
+            )
+        elif not isinstance(zone, list):
+            errors.append(
+                _error(
+                    "PLAYER_ZONE_INVALID",
+                    "player zone must be a list.",
+                    player_id=player_id,
+                    zone=zone_name,
+                    actual_type=type(zone).__name__,
+                )
+            )
+
+    if isinstance(deck, list) and isinstance(hand, list):
+        overlap = sorted(set(deck).intersection(set(hand)))
+        if overlap:
+            errors.append(
+                _error(
+                    "PLAYER_DECK_HAND_OVERLAP",
+                    "same card id must not be in deck and hand for the same minimal player state.",
+                    player_id=player_id,
+                    card_ids=overlap,
                 )
             )
     return errors
