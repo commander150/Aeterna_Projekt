@@ -145,12 +145,53 @@ class MinimalEngineSession:
             },
         }
 
+    def get_engine_context_summary(self, player_id=None):
+        state = self._require_state()
+        events = self.get_event_log()
+        responses = self._action_response_history
+        action_space = self.get_action_space(player_id)
+        accepted_count = sum(1 for response in responses if response.get("accepted") is True)
+        rejected_count = sum(1 for response in responses if response.get("accepted") is not True)
+        last_response = responses[-1] if responses else None
+        return {
+            "schema_version": "minimal-engine-context-summary-v0",
+            "contract_type": "engine_context_summary",
+            "match_id": state.match_id,
+            "state_version": state.state_version,
+            "turn": state.turn_number,
+            "phase": state.phase,
+            "active_player_id": state.active_player_id,
+            "priority_player_id": state.active_player_id,
+            "event_count": len(events),
+            "last_event_sequence": events[-1].get("event_sequence") if events else None,
+            "response_count": len(responses),
+            "accepted_response_count": accepted_count,
+            "rejected_response_count": rejected_count,
+            "last_response_accepted": last_response.get("accepted") if last_response else None,
+            "last_response_success": last_response.get("success") if last_response else None,
+            "last_response_reason": last_response.get("reason") if last_response else None,
+            "enabled_action_count": action_space["enabled_action_count"],
+            "disabled_action_count": action_space["disabled_action_count"],
+            "expected_state_version": state.state_version,
+            "metadata": {
+                "source": "python.engine.minimal_engine_session",
+                "context_model": "minimal",
+                "phase_model": "minimal",
+                "priority_model": "minimal",
+                "rules_scope": "minimal_end_turn_smoke",
+                "expected_state_version_supported": True,
+                "player_visible_snapshot_model": "stub",
+                "runtime_decision": "reference_smoke_backend_candidate",
+            },
+        }
+
     def export_debug_session_state(self):
         state = self._require_state()
         diagnostics = self.get_diagnostics()
         debug_snapshot = self.get_debug_snapshot()
         action_space = self.get_action_space()
         transition_summary = self.get_transition_summary()
+        engine_context_summary = self.get_engine_context_summary()
         return deepcopy(
             {
                 "schema_version": "minimal-debug-session-state-v0",
@@ -159,6 +200,7 @@ class MinimalEngineSession:
                 "debug_snapshot": debug_snapshot,
                 "action_space": action_space,
                 "transition_summary": transition_summary,
+                "engine_context_summary": engine_context_summary,
                 "last_action_response": self.get_last_action_response(),
                 "diagnostics_summary": {
                     "count": len(diagnostics),

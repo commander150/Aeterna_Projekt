@@ -63,6 +63,7 @@ class MinimalEngineEnvironment:
                 "priority_player_id": state.active_player_id,
                 "action_space": self.get_action_space(player_id),
                 "transition_summary": self.session.get_transition_summary(),
+                "engine_context_summary": self.session.get_engine_context_summary(player_id),
                 "last_action_response": self.session.get_last_action_response(),
                 "diagnostics_summary": {
                     "count": len(diagnostics),
