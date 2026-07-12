@@ -67,10 +67,11 @@ def can_player_draw(state, player_id):
 
     deck_count = len(player.deck_card_ids)
     hand_count = len(player.hand)
+    reason = _draw_precondition_reason(player)
     return {
         "player_id": player_id,
-        "can_draw": deck_count > 0,
-        "reason": "ok" if deck_count > 0 else "deck_empty",
+        "can_draw": reason == "ok",
+        "reason": reason,
         "deck_count": deck_count,
         "hand_count": hand_count,
         "metadata": {
@@ -173,13 +174,14 @@ def _player_visible_summary(player, viewer_player_id):
 
 
 def _player_zone_summary(player):
+    reason = _draw_precondition_reason(player)
     return {
         "deck_count": len(player.deck_card_ids),
         "hand_count": len(player.hand),
         "discard_count": len(player.discard),
         "draw_precondition": {
-            "can_draw": len(player.deck_card_ids) > 0,
-            "reason": "ok" if len(player.deck_card_ids) > 0 else "deck_empty",
+            "can_draw": reason == "ok",
+            "reason": reason,
         },
     }
 
@@ -214,3 +216,13 @@ def _hand_deck_invariants_ok(errors):
 
 def _draw_preconditions_ok(state):
     return all(can_player_draw(state, player.player_id)["can_draw"] for player in state.players)
+
+
+def _draw_precondition_reason(player):
+    if not player.deck_card_ids:
+        return "deck_empty"
+    hand_card_ids = set(player.hand)
+    for card_id in player.deck_card_ids:
+        if card_id not in hand_card_ids and player.deck_card_ids.count(card_id) == 1:
+            return "ok"
+    return "minimal_card_id_overlap_risk"

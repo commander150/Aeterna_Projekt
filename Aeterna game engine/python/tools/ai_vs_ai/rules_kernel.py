@@ -58,7 +58,8 @@ def list_legal_actions(state, player_id=None):
     if not enabled:
         draw_action["reason"] = "not_active_player"
     elif not draw_enabled:
-        draw_action["reason"] = "deck_empty"
+        player = state.get_player(player_id)
+        draw_action["reason"] = "deck_empty" if not player.deck_card_ids else "minimal_card_id_overlap_risk"
 
     return [end_turn_action, draw_action]
 
@@ -111,7 +112,9 @@ def _apply_draw_card(state, action):
     if not player.deck_card_ids:
         raise RulesKernelError("Cannot draw from empty deck: %s" % player_id)
 
-    card_id = _select_draw_card_id(player.deck_card_ids)
+    card_id = _select_draw_card_id(player)
+    if card_id is None:
+        raise RulesKernelError("No minimal-safe card id can be drawn: %s" % player_id)
     player.deck_card_ids.remove(card_id)
     player.hand.append(card_id)
     state.state_version += 1
@@ -164,13 +167,14 @@ def _expand_deck_card_ids(deck):
 
 def _can_player_draw(state, player_id):
     try:
-        return len(state.get_player(player_id).deck_card_ids) > 0
+        return _select_draw_card_id(state.get_player(player_id)) is not None
     except Exception:
         return False
 
 
-def _select_draw_card_id(deck_card_ids):
-    for card_id in deck_card_ids:
-        if deck_card_ids.count(card_id) == 1:
+def _select_draw_card_id(player):
+    hand_card_ids = set(player.hand)
+    for card_id in player.deck_card_ids:
+        if card_id not in hand_card_ids and player.deck_card_ids.count(card_id) == 1:
             return card_id
-    return deck_card_ids[0]
+    return None
