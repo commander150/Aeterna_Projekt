@@ -62,6 +62,8 @@ def can_player_draw(state, player_id):
             "metadata": {
                 "source": "python.engine.minimal_engine",
                 "rules_scope": "minimal_end_turn_smoke",
+                "card_instance_model": "not_implemented",
+                "card_id_overlap_guard": True,
             },
         }
 
@@ -77,6 +79,8 @@ def can_player_draw(state, player_id):
         "metadata": {
             "source": "python.engine.minimal_engine",
             "rules_scope": "minimal_end_turn_smoke",
+            "card_instance_model": "not_implemented",
+            "card_id_overlap_guard": True,
         },
     }
 
@@ -110,6 +114,8 @@ def create_debug_snapshot(state, legal_actions=None, diagnostics=None):
             "source": "python.engine.minimal_engine",
             "rules_scope": "minimal_end_turn_smoke",
             "runtime_decision": "reference_smoke_backend_candidate",
+            "card_instance_model": "not_implemented",
+            "card_id_overlap_guard": True,
         },
     }
 
@@ -146,6 +152,8 @@ def create_player_visible_snapshot(state, player_id, legal_actions=None, diagnos
             "runtime_decision": "reference_smoke_backend_candidate",
             "hidden_information_model": "not_implemented",
             "debug_snapshot_source": False,
+            "card_instance_model": "not_implemented",
+            "card_id_overlap_guard": True,
         },
     }
 
