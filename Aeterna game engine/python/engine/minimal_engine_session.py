@@ -90,6 +90,12 @@ class MinimalEngineSession:
 
     def submit_action_request(self, request):
         state = self._require_state()
+        expected_state_version = (request or {}).get("expected_state_version")
+        if expected_state_version is not None and expected_state_version != state.state_version:
+            response = self._build_stale_state_version_response(request, state.state_version)
+            contract = self._build_action_response_contract(request, response)
+            self._action_response_history.append(deepcopy(contract))
+            return deepcopy(contract)
         legal_actions = self.list_legal_actions()
         response = minimal_engine.resolve_request(state, request, legal_actions)
         contract = self._build_action_response_contract(request, response)
@@ -230,6 +236,7 @@ class MinimalEngineSession:
             "request_template": {
                 "action_type": action_type,
                 "player_id": player_id,
+                "expected_state_version": self._require_state().state_version,
                 "payload": {},
                 "required_fields": ["match_id", "player_id", "action_id", "action_type"],
             },
@@ -290,10 +297,27 @@ class MinimalEngineSession:
 
     def build_action_request(self, action, player_id=None):
         state = self._require_state()
-        return minimal_engine.build_action_request(state, action, player_id=player_id)
+        return minimal_engine.build_action_request(
+            state,
+            action,
+            player_id=player_id,
+            expected_state_version=state.state_version,
+        )
 
     def validate_action_request(self, request):
         return minimal_engine.validate_request(self._require_state(), request, self.list_legal_actions())
+
+    def _build_stale_state_version_response(self, request, current_state_version):
+        return {
+            "request_id": (request or {}).get("request_id"),
+            "accepted": False,
+            "reason": "stale_state_version",
+            "events": [],
+            "event_count": 0,
+            "state_version_before": current_state_version,
+            "state_version_after": current_state_version,
+            "new_event_sequences": [],
+        }
 
     def _require_state(self):
         if self.state is None:

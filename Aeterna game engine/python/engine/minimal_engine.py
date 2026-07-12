@@ -29,8 +29,13 @@ def get_legal_actions(state, player_id=None):
     return list_legal_actions(state, player_id)
 
 
-def build_action_request(state, action, player_id=None):
-    return create_action_request(state.match_id, player_id or state.active_player_id, action)
+def build_action_request(state, action, player_id=None, expected_state_version=None):
+    return create_action_request(
+        state.match_id,
+        player_id or state.active_player_id,
+        action,
+        expected_state_version=expected_state_version,
+    )
 
 
 def validate_request(state, request, legal_actions):

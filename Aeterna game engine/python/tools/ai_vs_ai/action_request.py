@@ -13,15 +13,18 @@ except ModuleNotFoundError:
     from .rules_kernel import apply_action
 
 
-def create_action_request(match_id, player_id, action):
+def create_action_request(match_id, player_id, action, expected_state_version=None):
     action_id = action.get("action_id")
-    return {
+    request = {
         "request_id": "request:%s:%s" % (match_id, action_id),
         "match_id": match_id,
         "player_id": player_id,
         "action_id": action_id,
         "action_type": action.get("action_type"),
     }
+    if expected_state_version is not None:
+        request["expected_state_version"] = expected_state_version
+    return request
 
 
 def validate_action_request(request, legal_actions, state):
