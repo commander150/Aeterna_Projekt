@@ -18,6 +18,11 @@ try:
 except ModuleNotFoundError:
     from engine.card_instance import create_card_instance_id, create_card_instance_record
 
+try:
+    from zone_move import create_zone_move_record, validate_zone_move_record, zone_move_to_event
+except ModuleNotFoundError:
+    from engine.zone_move import create_zone_move_record, validate_zone_move_record, zone_move_to_event
+
 
 class RulesKernelError(Exception):
     """Raised when the minimal rules kernel rejects an operation."""
@@ -123,10 +128,13 @@ def _apply_draw_card(state, action):
 
     from_zone_index = 0
     to_zone_index = len(player.hand_card_instance_ids)
+    event_index = len(state.event_log)
+    event_sequence = event_index + 1
     card_instance_id = player.deck_card_instance_ids.pop(from_zone_index)
     player.hand_card_instance_ids.append(card_instance_id)
     card_instance = state.get_card_instance(card_instance_id)
     card_id = card_instance.get("card_id")
+    visibility_before = card_instance.get("visibility")
     card_instance["zone"] = "hand"
     card_instance["zone_index"] = to_zone_index
     card_instance["visibility"] = "owner_only"
@@ -134,21 +142,40 @@ def _apply_draw_card(state, action):
     _reindex_zone(state, player.deck_card_instance_ids, "deck")
     state.state_version += 1
 
-    event = {
-        "event_index": len(state.event_log),
-        "event_sequence": len(state.event_log) + 1,
-        "event_type": "card_drawn",
-        "player_id": player_id,
-        "action_type": "draw_card",
-        "card_instance_id": card_instance_id,
-        "card_id": card_id,
-        "from_zone": "deck",
-        "from_zone_index": from_zone_index,
-        "to_zone": "hand",
-        "to_zone_index": to_zone_index,
-        "turn_number": state.turn_number,
-        "state_version": state.state_version,
-    }
+    zone_move = create_zone_move_record(
+        card_instance_id=card_instance_id,
+        card_id=card_id,
+        owner_player_id=card_instance.get("owner_player_id"),
+        controller_player_id=card_instance.get("controller_player_id"),
+        from_zone="deck",
+        from_zone_index=from_zone_index,
+        to_zone="hand",
+        to_zone_index=to_zone_index,
+        source_action_id=action.get("action_id"),
+        source_action_type="draw_card",
+        state_version=state.state_version,
+        event_sequence=event_sequence,
+        visibility_before=visibility_before,
+        visibility_after=card_instance.get("visibility"),
+        metadata={
+            "zone_operation": "draw_card",
+            "semantic_event_type": "card_drawn",
+            "authority": "rules_kernel",
+            "applied": True,
+        },
+    )
+    validation = validate_zone_move_record(zone_move)
+    if not validation.get("valid"):
+        first_error = (validation.get("errors") or [{}])[0]
+        raise RulesKernelError("Invalid draw ZoneMove record: %s" % first_error.get("code", "unknown"))
+
+    event = zone_move_to_event(
+        zone_move,
+        event_index=event_index,
+        turn_number=state.turn_number,
+        player_id=player_id,
+        action_type="draw_card",
+    )
     state.event_log.append(event)
     return {
         "ok": True,

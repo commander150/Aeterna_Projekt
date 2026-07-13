@@ -1,10 +1,12 @@
-"""Minimal zone move contract helpers.
+"""Minimal zone move contract and engine-event helpers.
 
-This module describes zone movement without applying it. It does not mutate
-MatchState and is not wired into draw_card or the runtime event log.
+This module describes zone movement without applying it. The rules kernel may
+use the helpers to record an already-applied transition in the runtime log.
 """
 
 from __future__ import annotations
+
+from copy import deepcopy
 
 
 ZONE_MOVE_SCHEMA_VERSION = "minimal-zone-move-record-v0"
@@ -30,23 +32,6 @@ _REQUIRED_ZONE_MOVE_FIELDS = (
     "visibility_after",
     "metadata",
 )
-
-_EVENT_PAYLOAD_FIELDS = (
-    "card_instance_id",
-    "card_id",
-    "owner_player_id",
-    "controller_player_id",
-    "from_zone",
-    "from_zone_index",
-    "to_zone",
-    "to_zone_index",
-    "source_action_id",
-    "source_action_type",
-    "visibility_before",
-    "visibility_after",
-    "metadata",
-)
-
 
 def create_zone_move_record(
     card_instance_id,
@@ -173,19 +158,21 @@ def validate_zone_move_record(record):
     }
 
 
-def zone_move_to_event(record):
-    """Wrap a ZoneMove record in a minimal engine-event contract."""
+def zone_move_to_event(record, event_index=None, turn_number=None, player_id=None, action_type=None):
+    """Wrap a complete, copied ZoneMove record in an engine-event envelope."""
 
     normalized = record if isinstance(record, dict) else {}
-    payload = {field_name: normalized.get(field_name) for field_name in _EVENT_PAYLOAD_FIELDS}
-    if isinstance(payload.get("metadata"), dict):
-        payload["metadata"] = dict(payload["metadata"])
+    payload = deepcopy(normalized)
 
     return {
         "schema_version": ENGINE_EVENT_SCHEMA_VERSION,
         "contract_type": "engine_event",
+        "event_index": event_index,
         "event_type": "zone_move",
         "event_sequence": normalized.get("event_sequence"),
+        "player_id": player_id,
+        "action_type": action_type,
+        "turn_number": turn_number,
         "state_version": normalized.get("state_version"),
         "payload": payload,
     }

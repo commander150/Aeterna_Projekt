@@ -148,17 +148,29 @@ class TestMinimalZoneMoveRecord(unittest.TestCase):
     def test_zone_move_to_event_is_json_compatible(self):
         record = _zone_move_record(self.zone_move, self.card_instance)
 
-        event = self.zone_move.zone_move_to_event(record)
+        event = self.zone_move.zone_move_to_event(
+            record,
+            event_index=0,
+            turn_number=1,
+            player_id="P1",
+            action_type="draw_card",
+        )
         roundtrip = json.loads(json.dumps(event, ensure_ascii=False))
 
         self.assertEqual(roundtrip["schema_version"], "minimal-engine-event-v0")
         self.assertEqual(roundtrip["contract_type"], "engine_event")
+        self.assertEqual(roundtrip["event_index"], 0)
         self.assertEqual(roundtrip["event_type"], "zone_move")
         self.assertEqual(roundtrip["event_sequence"], 1)
+        self.assertEqual(roundtrip["player_id"], "P1")
+        self.assertEqual(roundtrip["action_type"], "draw_card")
+        self.assertEqual(roundtrip["turn_number"], 1)
         self.assertEqual(roundtrip["state_version"], 1)
-        self.assertEqual(roundtrip["payload"]["card_instance_id"], "ci_P1_0001")
-        self.assertEqual(roundtrip["payload"]["from_zone"], "deck")
-        self.assertEqual(roundtrip["payload"]["to_zone"], "hand")
+        self.assertEqual(roundtrip["payload"], record)
+        self.assertNotIn("card_instance_id", roundtrip)
+        self.assertNotIn("card_id", roundtrip)
+        self.assertNotIn("from_zone", roundtrip)
+        self.assertNotIn("to_zone", roundtrip)
 
     def test_zone_move_uses_card_instance_identity(self):
         instance = _card_instance_record(self.card_instance)
@@ -195,7 +207,13 @@ class TestMinimalZoneMoveRecord(unittest.TestCase):
 
         record = _zone_move_record(self.zone_move, self.card_instance)
         validation = self.zone_move.validate_zone_move_record(record)
-        event = self.zone_move.zone_move_to_event(record)
+        event = self.zone_move.zone_move_to_event(
+            record,
+            event_index=0,
+            turn_number=1,
+            player_id="P1",
+            action_type="draw_card",
+        )
 
         self.assertTrue(validation["valid"])
         self.assertEqual(event["payload"]["card_instance_id"], record["card_instance_id"])

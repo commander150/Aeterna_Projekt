@@ -50,9 +50,11 @@ class TestMinimalCardInstanceOverlapInvariants(unittest.TestCase):
         json.dumps(second_response, ensure_ascii=False)
         self.assertTrue(first_response["accepted"])
         self.assertTrue(second_response["accepted"])
-        self.assertEqual(first_response["events"][0]["card_instance_id"], first_instance_id)
-        self.assertEqual(second_response["events"][0]["card_instance_id"], second_instance_id)
-        self.assertEqual(first_response["events"][0]["card_id"], second_response["events"][0]["card_id"])
+        first_payload = first_response["events"][0]["payload"]
+        second_payload = second_response["events"][0]["payload"]
+        self.assertEqual(first_payload["card_instance_id"], first_instance_id)
+        self.assertEqual(second_payload["card_instance_id"], second_instance_id)
+        self.assertEqual(first_payload["card_id"], second_payload["card_id"])
         self.assertEqual(session.get_diagnostics(), [])
         self.assertEqual(session.get_debug_snapshot()["metadata"]["card_instance_model"], "minimal_registry_v0")
         self.assertFalse(session.get_debug_snapshot()["metadata"]["card_id_overlap_guard"])

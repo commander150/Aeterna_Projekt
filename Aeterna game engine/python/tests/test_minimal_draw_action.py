@@ -60,8 +60,8 @@ class TestMinimalDrawAction(unittest.TestCase):
         self.assertEqual(response["new_event_sequences"], [1])
         self.assertTrue(response["invariants_ok"])
 
-        drawn_card_instance_id = response["events"][0]["card_instance_id"]
-        drawn_card_id = response["events"][0]["card_id"]
+        drawn_card_instance_id = response["events"][0]["payload"]["card_instance_id"]
+        drawn_card_id = response["events"][0]["payload"]["card_id"]
         self.assertEqual(len(player.deck_card_instance_ids), initial_deck_count - 1)
         self.assertEqual(len(player.hand_card_instance_ids), initial_hand_count + 1)
         self.assertNotIn(drawn_card_instance_id, player.deck_card_instance_ids)
@@ -73,13 +73,16 @@ class TestMinimalDrawAction(unittest.TestCase):
         self.assertEqual(session.get_diagnostics(), [])
 
         event = response["events"][0]
-        self.assertEqual(event["event_type"], "card_drawn")
+        payload = event["payload"]
+        self.assertEqual(event["contract_type"], "engine_event")
+        self.assertEqual(event["event_type"], "zone_move")
         self.assertEqual(event["action_type"], "draw_card")
         self.assertEqual(event["player_id"], "P1")
-        self.assertEqual(event["from_zone"], "deck")
-        self.assertEqual(event["from_zone_index"], 0)
-        self.assertEqual(event["to_zone"], "hand")
-        self.assertEqual(event["to_zone_index"], 0)
+        self.assertEqual(payload["from_zone"], "deck")
+        self.assertEqual(payload["from_zone_index"], 0)
+        self.assertEqual(payload["to_zone"], "hand")
+        self.assertEqual(payload["to_zone_index"], 0)
+        self.assertEqual(payload["metadata"]["semantic_event_type"], "card_drawn")
         self.assertEqual(event["event_sequence"], 1)
         self.assertEqual(event["state_version"], 1)
 
@@ -96,6 +99,7 @@ class TestMinimalDrawAction(unittest.TestCase):
         self.assertEqual(exported["last_action_response"]["action_type"], "draw_card")
         self.assertEqual(exported["last_action_response"]["new_event_sequences"], [1])
         self.assertEqual(exported["transition_summary"]["event_count"], 1)
+        self.assertEqual(exported["debug_snapshot"]["event_log_summary"]["last_event_type"], "zone_move")
 
         end_turn_action = _find_action(session.get_action_space(), "end_turn")
         end_turn_response = session.step(session.build_action_request(end_turn_action))

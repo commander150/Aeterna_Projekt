@@ -109,12 +109,16 @@ class TestAIRulesKernel(unittest.TestCase):
         self.assertNotIn(drawn_card_instance_id, player.deck_card_instance_ids)
         self.assertEqual(state.state_version, 1)
         self.assertEqual(state.active_player_id, "P1")
-        self.assertEqual(state.event_log[0]["event_type"], "card_drawn")
-        self.assertEqual(state.event_log[0]["action_type"], "draw_card")
-        self.assertEqual(state.event_log[0]["card_instance_id"], drawn_card_instance_id)
-        self.assertEqual(state.event_log[0]["card_id"], drawn_card_id)
-        self.assertEqual(state.event_log[0]["from_zone"], "deck")
-        self.assertEqual(state.event_log[0]["to_zone"], "hand")
+        event = state.event_log[0]
+        payload = event["payload"]
+        self.assertEqual(event["contract_type"], "engine_event")
+        self.assertEqual(event["event_type"], "zone_move")
+        self.assertEqual(event["action_type"], "draw_card")
+        self.assertEqual(payload["card_instance_id"], drawn_card_instance_id)
+        self.assertEqual(payload["card_id"], drawn_card_id)
+        self.assertEqual(payload["from_zone"], "deck")
+        self.assertEqual(payload["to_zone"], "hand")
+        self.assertEqual(payload["metadata"]["semantic_event_type"], "card_drawn")
 
     def test_invalid_actions_raise_clear_errors(self):
         state = self.kernel.create_initial_match_state(self.runtime_package, self.deck_id_a, self.deck_id_b)

@@ -12,6 +12,34 @@ try:
 except ModuleNotFoundError:
     from engine.card_instance import validate_card_instance_record
 
+try:
+    from zone_move import validate_zone_move_record
+except ModuleNotFoundError:
+    from engine.zone_move import validate_zone_move_record
+
+
+_REQUIRED_ENGINE_EVENT_FIELDS = (
+    "schema_version",
+    "contract_type",
+    "event_index",
+    "event_sequence",
+    "event_type",
+    "player_id",
+    "action_type",
+    "turn_number",
+    "state_version",
+    "payload",
+)
+
+_LEGACY_DRAW_ENVELOPE_FIELDS = (
+    "card_instance_id",
+    "card_id",
+    "from_zone",
+    "from_zone_index",
+    "to_zone",
+    "to_zone_index",
+)
+
 
 class StateInvariantError(Exception):
     """Raised when MatchState invariant checks fail."""
@@ -70,7 +98,13 @@ def validate_state_invariants(state, runtime_package=None):
     if not getattr(state, "phase", None):
         errors.append(_error("PHASE_MISSING", "phase must not be empty."))
 
-    errors.extend(_validate_event_log(getattr(state, "event_log", []) or [], set(player_ids)))
+    errors.extend(
+        _validate_event_log(
+            getattr(state, "event_log", []) or [],
+            set(player_ids),
+            normalized_registry,
+        )
+    )
     return errors
 
 
@@ -289,17 +323,40 @@ def _validate_zone_occurrences(card_instances, zone_occurrences):
     return errors
 
 
-def _validate_event_log(event_log, player_ids):
+def _validate_event_log(event_log, player_ids, card_instances):
     errors = []
     for index, event in enumerate(list(event_log or [])):
-        event_index = _as_int(event.get("event_index"))
-        if event_index != index:
+        if not isinstance(event, dict):
+            errors.append(
+                _error(
+                    "ENGINE_EVENT_CONTRACT_INVALID",
+                    "event log entry must be a dict.",
+                    event_index=index,
+                    actual_type=type(event).__name__,
+                )
+            )
+            continue
+
+        event_index = event.get("event_index")
+        if not _is_integer(event_index) or event_index != index:
             errors.append(
                 _error(
                     "EVENT_INDEX_INVALID",
                     "event_index must match event_log position.",
                     expected_index=index,
                     actual_index=event.get("event_index"),
+                )
+            )
+
+        event_sequence = event.get("event_sequence")
+        if not _is_integer(event_sequence) or event_sequence != index + 1:
+            errors.append(
+                _error(
+                    "ENGINE_EVENT_SEQUENCE_INVALID",
+                    "event_sequence must match the one-based event log position.",
+                    event_index=index,
+                    expected_sequence=index + 1,
+                    actual_sequence=event_sequence,
                 )
             )
 
@@ -323,6 +380,139 @@ def _validate_event_log(event_log, player_ids):
                     player_id=event_player_id,
                 )
             )
+
+        if event.get("contract_type") == "engine_event" or event.get("event_type") == "zone_move":
+            errors.extend(_validate_zone_move_engine_event(event, index, card_instances))
+    return errors
+
+
+def _validate_zone_move_engine_event(event, event_index, card_instances):
+    errors = []
+    missing_fields = [field_name for field_name in _REQUIRED_ENGINE_EVENT_FIELDS if field_name not in event]
+    forbidden_fields = [field_name for field_name in _LEGACY_DRAW_ENVELOPE_FIELDS if field_name in event]
+    schema_version = event.get("schema_version")
+    contract_invalid = (
+        missing_fields
+        or forbidden_fields
+        or not isinstance(schema_version, str)
+        or not schema_version.strip()
+        or event.get("contract_type") != "engine_event"
+        or event.get("event_type") != "zone_move"
+        or event.get("action_type") != "draw_card"
+        or not _is_integer(event.get("state_version"))
+        or event.get("state_version") < 1
+    )
+    if contract_invalid:
+        errors.append(
+            _error(
+                "ENGINE_EVENT_CONTRACT_INVALID",
+                "ZoneMove runtime event must use the canonical engine-event envelope.",
+                event_index=event_index,
+                missing_fields=missing_fields,
+                forbidden_fields=forbidden_fields,
+                contract_type=event.get("contract_type"),
+                event_type=event.get("event_type"),
+                action_type=event.get("action_type"),
+                state_version=event.get("state_version"),
+            )
+        )
+
+    payload = event.get("payload")
+    if not isinstance(payload, dict):
+        errors.append(
+            _error(
+                "ZONE_MOVE_PAYLOAD_INVALID",
+                "ZoneMove engine event payload must be a ZoneMove record dict.",
+                event_index=event_index,
+                actual_type=type(payload).__name__,
+            )
+        )
+        return errors
+
+    payload_validation = validate_zone_move_record(payload)
+    if not payload_validation.get("valid"):
+        errors.append(
+            _error(
+                "ZONE_MOVE_PAYLOAD_INVALID",
+                "ZoneMove engine event payload failed contract validation.",
+                event_index=event_index,
+                payload_errors=payload_validation.get("errors", []),
+            )
+        )
+
+    for field_name in ("event_sequence", "state_version", "event_type"):
+        if event.get(field_name) != payload.get(field_name):
+            errors.append(
+                _error(
+                    "ZONE_MOVE_ENVELOPE_MISMATCH",
+                    "ZoneMove envelope field must match its payload.",
+                    event_index=event_index,
+                    field=field_name,
+                    envelope_value=event.get(field_name),
+                    payload_value=payload.get(field_name),
+                )
+            )
+
+    if event.get("action_type") != payload.get("source_action_type"):
+        errors.append(
+            _error(
+                "ZONE_MOVE_ENVELOPE_MISMATCH",
+                "engine action_type must match ZoneMove source_action_type.",
+                event_index=event_index,
+                field="action_type",
+                envelope_value=event.get("action_type"),
+                payload_value=payload.get("source_action_type"),
+            )
+        )
+
+    card_instance_id = payload.get("card_instance_id")
+    card_instance = card_instances.get(card_instance_id)
+    if not isinstance(card_instance, dict):
+        errors.append(
+            _error(
+                "ZONE_MOVE_INSTANCE_UNKNOWN",
+                "ZoneMove payload must refer to a registry card instance.",
+                event_index=event_index,
+                card_instance_id=card_instance_id,
+            )
+        )
+        return errors
+
+    if payload.get("card_id") != card_instance.get("card_id"):
+        errors.append(
+            _error(
+                "ZONE_MOVE_CARD_ID_MISMATCH",
+                "ZoneMove card_id must match the registry card instance.",
+                event_index=event_index,
+                card_instance_id=card_instance_id,
+                payload_card_id=payload.get("card_id"),
+                registry_card_id=card_instance.get("card_id"),
+            )
+        )
+
+    if payload.get("to_zone") != card_instance.get("zone"):
+        errors.append(
+            _error(
+                "ZONE_MOVE_RESULT_ZONE_MISMATCH",
+                "ZoneMove destination must match the current registry zone.",
+                event_index=event_index,
+                card_instance_id=card_instance_id,
+                payload_to_zone=payload.get("to_zone"),
+                registry_zone=card_instance.get("zone"),
+            )
+        )
+
+    if payload.get("to_zone_index") != card_instance.get("zone_index"):
+        errors.append(
+            _error(
+                "ZONE_MOVE_RESULT_INDEX_MISMATCH",
+                "ZoneMove destination index must match the current registry zone index.",
+                event_index=event_index,
+                card_instance_id=card_instance_id,
+                payload_to_zone_index=payload.get("to_zone_index"),
+                registry_zone_index=card_instance.get("zone_index"),
+            )
+        )
     return errors
 
 
@@ -331,6 +521,10 @@ def _as_int(value):
         return int(value)
     except (TypeError, ValueError):
         return 0
+
+
+def _is_integer(value):
+    return isinstance(value, int) and not isinstance(value, bool)
 
 
 def _error(code, message, **details):
