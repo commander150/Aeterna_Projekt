@@ -146,7 +146,7 @@ def format_report(report):
         "initial_legal_action_count: %d" % int(initial["legal_action_summary"]["action_count"]),
         "initial_event_count: %d" % int(events["initial_event_count"]),
         "request_valid: %s" % _format_bool(response["request_valid"]),
-        "action_resolved: %s" % _format_bool(response["accepted"]),
+        "action_success: %s" % _format_bool(response["success"]),
         "action_type: %s" % response["action_type"],
         "post_state_version: %s" % match["post_state_version"],
         "post_turn: %s" % match["post_turn"],

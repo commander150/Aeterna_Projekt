@@ -55,7 +55,7 @@ class TestAIActionRequest(unittest.TestCase):
         self.assertTrue(response["accepted"])
         self.assertIsNone(response["reason"])
         self.assertEqual(response["event_count"], 1)
-        self.assertEqual(response["events"][0]["event_type"], "action_resolved")
+        self.assertEqual(response["events"][0]["event_type"], "turn_transition")
         self.assertEqual(state.active_player_id, "P2")
         self.assertEqual(len(state.event_log), 1)
 

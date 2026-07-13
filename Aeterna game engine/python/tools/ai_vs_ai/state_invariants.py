@@ -22,6 +22,11 @@ try:
 except ModuleNotFoundError:
     from engine.engine_event import validate_engine_event_envelope
 
+try:
+    from turn_transition import validate_turn_transition_record
+except ModuleNotFoundError:
+    from engine.turn_transition import validate_turn_transition_record
+
 _LEGACY_DRAW_ENVELOPE_FIELDS = (
     "card_instance_id",
     "card_id",
@@ -94,6 +99,12 @@ def validate_state_invariants(state, runtime_package=None):
             getattr(state, "event_log", []) or [],
             set(player_ids),
             normalized_registry,
+            {
+                "active_player_id": getattr(state, "active_player_id", None),
+                "turn_number": getattr(state, "turn_number", None),
+                "phase": getattr(state, "phase", None),
+                "state_version": getattr(state, "state_version", None),
+            },
         )
     )
     return errors
@@ -314,9 +325,15 @@ def _validate_zone_occurrences(card_instances, zone_occurrences):
     return errors
 
 
-def _validate_event_log(event_log, player_ids, card_instances):
+def _validate_event_log(event_log, player_ids, card_instances, current_state):
     errors = []
-    for index, event in enumerate(list(event_log or [])):
+    events = list(event_log or [])
+    turn_transition_indexes = [
+        index for index, event in enumerate(events) if _event_has_type(event, "turn_transition")
+    ]
+    latest_turn_transition_index = turn_transition_indexes[-1] if turn_transition_indexes else None
+
+    for index, event in enumerate(events):
         if not isinstance(event, dict):
             errors.append(
                 _error(
@@ -373,14 +390,32 @@ def _validate_event_log(event_log, player_ids, card_instances):
             )
 
         payload = event.get("payload")
-        is_engine_event = event.get("contract_type") == "engine_event" or event.get("event_type") == "zone_move"
+        payload_event_type = payload.get("event_type") if isinstance(payload, dict) else None
+        is_engine_event = event.get("contract_type") == "engine_event" or event.get("event_type") in {
+            "zone_move",
+            "turn_transition",
+        } or payload_event_type in {"zone_move", "turn_transition"}
         is_zone_move = event.get("event_type") == "zone_move" or (
-            isinstance(payload, dict) and payload.get("event_type") == "zone_move"
+            payload_event_type == "zone_move"
+        )
+        is_turn_transition = event.get("event_type") == "turn_transition" or (
+            payload_event_type == "turn_transition"
         )
         if is_engine_event:
             errors.extend(_validate_engine_event_contract(event, index))
         if is_zone_move:
             errors.extend(_validate_zone_move_engine_event(event, index, card_instances))
+        if is_turn_transition:
+            errors.extend(
+                _validate_turn_transition_engine_event(
+                    event,
+                    index,
+                    player_ids,
+                    current_state,
+                    is_latest_transition=index == latest_turn_transition_index,
+                    is_latest_event=index == len(events) - 1,
+                )
+            )
     return errors
 
 
@@ -518,6 +553,190 @@ def _validate_zone_move_engine_event(event, event_index, card_instances):
             )
         )
     return errors
+
+
+def _validate_turn_transition_engine_event(
+    event,
+    event_index,
+    player_ids,
+    current_state,
+    is_latest_transition,
+    is_latest_event,
+):
+    errors = []
+    payload = event.get("payload")
+    if not isinstance(payload, dict):
+        errors.append(
+            _error(
+                "TURN_TRANSITION_PAYLOAD_INVALID",
+                "TurnTransition engine event payload must be a typed record dict.",
+                event_index=event_index,
+                actual_type=type(payload).__name__,
+            )
+        )
+        return errors
+
+    payload_validation = validate_turn_transition_record(payload)
+    if not payload_validation.get("valid"):
+        errors.append(
+            _error(
+                "TURN_TRANSITION_PAYLOAD_INVALID",
+                "TurnTransition engine event payload failed contract validation.",
+                event_index=event_index,
+                payload_errors=payload_validation.get("errors", []),
+            )
+        )
+
+    envelope_pairs = (
+        ("event_sequence", "event_sequence"),
+        ("state_version", "state_version"),
+        ("event_type", "event_type"),
+        ("action_type", "source_action_type"),
+        ("player_id", "previous_active_player_id"),
+        ("turn_number", "turn_number_after"),
+    )
+    for envelope_field, payload_field in envelope_pairs:
+        if event.get(envelope_field) != payload.get(payload_field):
+            errors.append(
+                _error(
+                    "TURN_TRANSITION_ENVELOPE_MISMATCH",
+                    "TurnTransition envelope field must match its payload.",
+                    event_index=event_index,
+                    envelope_field=envelope_field,
+                    payload_field=payload_field,
+                    envelope_value=event.get(envelope_field),
+                    payload_value=payload.get(payload_field),
+                )
+            )
+
+    for forbidden_field in ("previous_player_id", "next_player_id"):
+        if forbidden_field in event:
+            errors.append(
+                _error(
+                    "TURN_TRANSITION_ENVELOPE_MISMATCH",
+                    "TurnTransition details must remain inside the typed payload.",
+                    event_index=event_index,
+                    forbidden_field=forbidden_field,
+                )
+            )
+
+    transition_player_fields = (
+        "previous_active_player_id",
+        "next_active_player_id",
+        "previous_priority_player_id",
+        "next_priority_player_id",
+    )
+    for field_name in transition_player_fields:
+        player_id = payload.get(field_name)
+        if not isinstance(player_id, str) or player_id not in player_ids:
+            errors.append(
+                _error(
+                    "TURN_TRANSITION_PLAYER_UNKNOWN",
+                    "TurnTransition player must exist in MatchState.",
+                    event_index=event_index,
+                    field=field_name,
+                    player_id=player_id,
+                )
+            )
+
+    previous_player_id = payload.get("previous_active_player_id")
+    next_player_id = payload.get("next_active_player_id")
+    if previous_player_id == next_player_id or (previous_player_id, next_player_id) not in {
+        ("P1", "P2"),
+        ("P2", "P1"),
+    }:
+        errors.append(
+            _error(
+                "TURN_TRANSITION_ACTIVE_PLAYER_INVALID",
+                "minimal turn transition must alternate P1 and P2.",
+                event_index=event_index,
+                previous_active_player_id=previous_player_id,
+                next_active_player_id=next_player_id,
+            )
+        )
+
+    if (
+        payload.get("previous_priority_player_id") != previous_player_id
+        or payload.get("next_priority_player_id") != next_player_id
+    ):
+        errors.append(
+            _error(
+                "TURN_TRANSITION_PRIORITY_INVALID",
+                "minimal priority player must follow the active player transition.",
+                event_index=event_index,
+                previous_priority_player_id=payload.get("previous_priority_player_id"),
+                next_priority_player_id=payload.get("next_priority_player_id"),
+            )
+        )
+
+    turn_number_before = payload.get("turn_number_before")
+    turn_number_after = payload.get("turn_number_after")
+    expected_turn_number_after = None
+    if _is_integer(turn_number_before):
+        if (previous_player_id, next_player_id) == ("P1", "P2"):
+            expected_turn_number_after = turn_number_before
+        elif (previous_player_id, next_player_id) == ("P2", "P1"):
+            expected_turn_number_after = turn_number_before + 1
+    if expected_turn_number_after is None or turn_number_after != expected_turn_number_after:
+        errors.append(
+            _error(
+                "TURN_TRANSITION_TURN_NUMBER_INVALID",
+                "turn number must follow the minimal P1/P2 transition rule.",
+                event_index=event_index,
+                turn_number_before=turn_number_before,
+                turn_number_after=turn_number_after,
+                expected_turn_number_after=expected_turn_number_after,
+            )
+        )
+
+    if payload.get("phase_before") != "main" or payload.get("phase_after") != "main":
+        errors.append(
+            _error(
+                "TURN_TRANSITION_PHASE_INVALID",
+                "minimal turn transition phases must remain main.",
+                event_index=event_index,
+                phase_before=payload.get("phase_before"),
+                phase_after=payload.get("phase_after"),
+            )
+        )
+
+    if is_latest_transition:
+        mismatches = []
+        result_pairs = (
+            ("active_player_id", payload.get("next_active_player_id")),
+            ("turn_number", payload.get("turn_number_after")),
+            ("phase", payload.get("phase_after")),
+        )
+        if is_latest_event:
+            result_pairs += (("state_version", payload.get("state_version")),)
+        for state_field, payload_value in result_pairs:
+            if current_state.get(state_field) != payload_value:
+                mismatches.append(
+                    {
+                        "field": state_field,
+                        "state_value": current_state.get(state_field),
+                        "payload_value": payload_value,
+                    }
+                )
+        if mismatches:
+            errors.append(
+                _error(
+                    "TURN_TRANSITION_RESULT_STATE_MISMATCH",
+                    "latest TurnTransition result must match the current MatchState.",
+                    event_index=event_index,
+                    mismatches=mismatches,
+                )
+            )
+    return errors
+
+
+def _event_has_type(event, event_type):
+    if not isinstance(event, dict):
+        return False
+    if event.get("event_type") == event_type:
+        return True
+    payload = event.get("payload")
+    return isinstance(payload, dict) and payload.get("event_type") == event_type
 
 
 def _as_int(value):

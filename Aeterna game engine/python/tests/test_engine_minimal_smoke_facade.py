@@ -83,7 +83,7 @@ class TestEngineMinimalSmokeFacade(unittest.TestCase):
         )
         self.assertEqual(next_snapshot["active_player_id"], "P2")
         self.assertEqual(next_snapshot["event_log_summary"]["event_count"], 1)
-        self.assertEqual(next_snapshot["event_log_summary"]["last_event_type"], "action_resolved")
+        self.assertEqual(next_snapshot["event_log_summary"]["last_event_type"], "turn_transition")
         self.assertEqual(next_snapshot["legal_action_summary"]["action_types"], ["draw_card", "end_turn"])
 
 

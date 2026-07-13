@@ -101,7 +101,7 @@ class TestMinimalEngineSession(unittest.TestCase):
         self.assertEqual(post_snapshot["state_version"], 1)
         self.assertEqual(post_snapshot["legal_action_summary"]["state_version"], 1)
         self.assertEqual(post_snapshot["event_log_summary"]["event_count"], 1)
-        self.assertEqual(post_snapshot["event_log_summary"]["last_event_type"], "action_resolved")
+        self.assertEqual(post_snapshot["event_log_summary"]["last_event_type"], "turn_transition")
         self.assertEqual(post_snapshot["event_log_summary"]["last_event_sequence"], 1)
         post_player_snapshot = session.get_player_snapshot("P1")
         self.assertEqual(post_player_snapshot["snapshot_type"], "player_visible_snapshot")

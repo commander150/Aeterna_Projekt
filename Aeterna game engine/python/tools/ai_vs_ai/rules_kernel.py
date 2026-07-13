@@ -23,6 +23,19 @@ try:
 except ModuleNotFoundError:
     from engine.zone_move import create_zone_move_record, validate_zone_move_record, zone_move_to_event
 
+try:
+    from turn_transition import (
+        create_turn_transition_record,
+        turn_transition_to_event,
+        validate_turn_transition_record,
+    )
+except ModuleNotFoundError:
+    from engine.turn_transition import (
+        create_turn_transition_record,
+        turn_transition_to_event,
+        validate_turn_transition_record,
+    )
+
 
 class RulesKernelError(Exception):
     """Raised when the minimal rules kernel rejects an operation."""
@@ -96,21 +109,51 @@ def apply_action(state, action):
 
 def _apply_end_turn(state, action):
     previous_player_id = state.active_player_id
+    previous_priority_player_id = state.active_player_id
+    turn_number_before = state.turn_number
+    phase_before = state.phase
     next_player_id = state.get_inactive_player_id()
     state.active_player_id = next_player_id
     if previous_player_id == "P2" and next_player_id == "P1":
         state.turn_number += 1
     state.state_version += 1
 
-    event = {
-        "event_index": len(state.event_log),
-        "event_sequence": len(state.event_log) + 1,
-        "event_type": "action_resolved",
-        "player_id": previous_player_id,
-        "action_type": "end_turn",
-        "turn_number": state.turn_number,
-        "state_version": state.state_version,
-    }
+    event_index = len(state.event_log)
+    event_sequence = event_index + 1
+    turn_transition = create_turn_transition_record(
+        previous_active_player_id=previous_player_id,
+        next_active_player_id=state.active_player_id,
+        previous_priority_player_id=previous_priority_player_id,
+        next_priority_player_id=state.active_player_id,
+        turn_number_before=turn_number_before,
+        turn_number_after=state.turn_number,
+        phase_before=phase_before,
+        phase_after=state.phase,
+        source_action_id=action.get("action_id"),
+        source_action_type="end_turn",
+        state_version=state.state_version,
+        event_sequence=event_sequence,
+        metadata={
+            "semantic_event_type": "end_turn_resolved",
+            "authority": "rules_kernel",
+            "turn_model": "minimal_alternating_players",
+            "applied": True,
+        },
+    )
+    validation = validate_turn_transition_record(turn_transition)
+    if not validation.get("valid"):
+        first_error = (validation.get("errors") or [{}])[0]
+        raise RulesKernelError(
+            "Invalid end_turn TurnTransition record: %s" % first_error.get("code", "unknown")
+        )
+
+    event = turn_transition_to_event(
+        turn_transition,
+        event_index=event_index,
+        turn_number=state.turn_number,
+        player_id=previous_player_id,
+        action_type="end_turn",
+    )
     state.event_log.append(event)
     return {
         "ok": True,
