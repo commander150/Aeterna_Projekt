@@ -90,13 +90,14 @@ class TestAIStateInvariants(unittest.TestCase):
 
         self.assert_error_code(errors, "DECK_UNKNOWN")
 
-    def test_invalid_deck_card_ref_reports_error_when_runtime_package_is_given(self):
+    def test_invalid_instance_card_ref_reports_error_when_runtime_package_is_given(self):
         state = self._create_state()
-        state.players[0].deck_card_ids.append("MISSING-CARD")
+        card_instance_id = state.players[0].deck_card_instance_ids[0]
+        state.card_instances[card_instance_id]["card_id"] = "MISSING-CARD"
 
         errors = self.invariants.validate_state_invariants(state, self.runtime_package)
 
-        self.assert_error_code(errors, "PLAYER_DECK_CARD_UNKNOWN")
+        self.assert_error_code(errors, "CARD_INSTANCE_CARD_UNKNOWN")
 
     def test_invalid_event_index_reports_error(self):
         state = self._create_state()

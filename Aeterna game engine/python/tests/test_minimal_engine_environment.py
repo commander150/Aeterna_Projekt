@@ -54,8 +54,8 @@ class TestMinimalEngineEnvironment(unittest.TestCase):
         environment = self.environment_module.MinimalEngineEnvironment(self.runtime_package)
         observation = environment.reset(match_id="MINIMAL-ENV-STEP-TEST-001")
         player = environment.session.state.get_player("P1")
-        initial_deck_count = len(player.deck_card_ids)
-        initial_hand_count = len(player.hand)
+        initial_deck_count = len(player.deck_card_instance_ids)
+        initial_hand_count = len(player.hand_card_instance_ids)
         action = self.environment_module.DeterministicMinimalBotPolicy().choose_action(observation)
         request = environment.session.build_action_request(action)
 
@@ -65,8 +65,8 @@ class TestMinimalEngineEnvironment(unittest.TestCase):
         self.assertTrue(response["accepted"])
         self.assertTrue(response["success"])
         self.assertEqual(response["action_type"], "draw_card")
-        self.assertEqual(len(player.deck_card_ids), initial_deck_count - 1)
-        self.assertEqual(len(player.hand), initial_hand_count + 1)
+        self.assertEqual(len(player.deck_card_instance_ids), initial_deck_count - 1)
+        self.assertEqual(len(player.hand_card_instance_ids), initial_hand_count + 1)
         self.assertEqual(environment.session.get_transition_summary()["event_count"], 1)
 
     def test_run_episode_returns_json_compatible_trajectory_summary(self):

@@ -44,8 +44,10 @@ class TestAIRulesKernel(unittest.TestCase):
         self.assertEqual([player.player_id for player in state.players], ["P1", "P2"])
         self.assertEqual(state.players[0].deck_id, self.deck_id_a)
         self.assertEqual(state.players[1].deck_id, self.deck_id_b)
-        self.assertGreater(len(state.players[0].deck_card_ids), 0)
-        self.assertGreater(len(state.players[1].deck_card_ids), 0)
+        self.assertGreater(len(state.players[0].deck_card_instance_ids), 0)
+        self.assertGreater(len(state.players[1].deck_card_instance_ids), 0)
+        expected_instance_count = sum(len(player.deck_card_instance_ids) for player in state.players)
+        self.assertEqual(len(state.card_instances), expected_instance_count)
         self.assertEqual(state.event_log, [])
 
     def test_list_legal_actions_enables_only_active_player_minimal_actions(self):
@@ -93,20 +95,24 @@ class TestAIRulesKernel(unittest.TestCase):
         state = self.kernel.create_initial_match_state(self.runtime_package, self.deck_id_a, self.deck_id_b)
         player = state.get_player("P1")
         draw_action = [action for action in self.kernel.list_legal_actions(state, "P1") if action["action_type"] == "draw_card"][0]
-        original_deck_count = len(player.deck_card_ids)
-        original_hand_count = len(player.hand)
+        original_deck_count = len(player.deck_card_instance_ids)
+        original_hand_count = len(player.hand_card_instance_ids)
+        drawn_card_instance_id = player.deck_card_instance_ids[0]
+        drawn_card_id = state.get_card_id(drawn_card_instance_id)
 
         response = self.kernel.apply_action(state, draw_action)
 
         self.assertTrue(response["ok"])
-        self.assertEqual(len(player.deck_card_ids), original_deck_count - 1)
-        self.assertEqual(len(player.hand), original_hand_count + 1)
-        self.assertNotIn(player.hand[-1], player.deck_card_ids)
+        self.assertEqual(len(player.deck_card_instance_ids), original_deck_count - 1)
+        self.assertEqual(len(player.hand_card_instance_ids), original_hand_count + 1)
+        self.assertEqual(player.hand_card_instance_ids[-1], drawn_card_instance_id)
+        self.assertNotIn(drawn_card_instance_id, player.deck_card_instance_ids)
         self.assertEqual(state.state_version, 1)
         self.assertEqual(state.active_player_id, "P1")
         self.assertEqual(state.event_log[0]["event_type"], "card_drawn")
         self.assertEqual(state.event_log[0]["action_type"], "draw_card")
-        self.assertEqual(state.event_log[0]["card_id"], player.hand[-1])
+        self.assertEqual(state.event_log[0]["card_instance_id"], drawn_card_instance_id)
+        self.assertEqual(state.event_log[0]["card_id"], drawn_card_id)
         self.assertEqual(state.event_log[0]["from_zone"], "deck")
         self.assertEqual(state.event_log[0]["to_zone"], "hand")
 

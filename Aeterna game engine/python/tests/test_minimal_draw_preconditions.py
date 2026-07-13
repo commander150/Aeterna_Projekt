@@ -35,8 +35,8 @@ class TestMinimalDrawPreconditions(unittest.TestCase):
         session = self.session_module.MinimalEngineSession(self.runtime_package)
         state = session.create_match(match_id="ENGINE-DRAW-PRECONDITION-TEST-001")
         player = state.get_player("P1")
-        original_deck = list(player.deck_card_ids)
-        original_hand = list(player.hand)
+        original_deck = list(player.deck_card_instance_ids)
+        original_hand = list(player.hand_card_instance_ids)
         original_events = list(state.event_log)
         original_state_version = state.state_version
 
@@ -49,8 +49,8 @@ class TestMinimalDrawPreconditions(unittest.TestCase):
         self.assertEqual(precondition["deck_count"], len(original_deck))
         self.assertEqual(precondition["hand_count"], len(original_hand))
         self.assertEqual(precondition["metadata"]["rules_scope"], "minimal_end_turn_smoke")
-        self.assertEqual(player.deck_card_ids, original_deck)
-        self.assertEqual(player.hand, original_hand)
+        self.assertEqual(player.deck_card_instance_ids, original_deck)
+        self.assertEqual(player.hand_card_instance_ids, original_hand)
         self.assertEqual(state.event_log, original_events)
         self.assertEqual(state.state_version, original_state_version)
 
@@ -93,8 +93,8 @@ class TestMinimalDrawPreconditions(unittest.TestCase):
         session = self.session_module.MinimalEngineSession(self.runtime_package)
         state = session.create_match(match_id="ENGINE-DRAW-PRECONDITION-EMPTY-DECK-TEST-001")
         player = state.get_player("P1")
-        player.deck_card_ids = []
-        original_hand = list(player.hand)
+        _empty_deck(state, player)
+        original_hand = list(player.hand_card_instance_ids)
         original_events = list(state.event_log)
         original_state_version = state.state_version
 
@@ -104,7 +104,7 @@ class TestMinimalDrawPreconditions(unittest.TestCase):
         self.assertEqual(precondition["reason"], "deck_empty")
         self.assertEqual(precondition["deck_count"], 0)
         self.assertEqual(precondition["hand_count"], len(original_hand))
-        self.assertEqual(player.hand, original_hand)
+        self.assertEqual(player.hand_card_instance_ids, original_hand)
         self.assertEqual(state.event_log, original_events)
         self.assertEqual(state.state_version, original_state_version)
         self.assertFalse(session.get_debug_snapshot()["diagnostics_summary"]["draw_preconditions_ok"])
@@ -120,6 +120,12 @@ class TestMinimalDrawPreconditions(unittest.TestCase):
         self.assertEqual(precondition["reason"], "player_unknown")
         self.assertEqual(precondition["deck_count"], 0)
         self.assertEqual(precondition["hand_count"], 0)
+
+
+def _empty_deck(state, player):
+    for card_instance_id in player.deck_card_instance_ids:
+        state.card_instances.pop(card_instance_id)
+    player.deck_card_instance_ids = []
 
 
 if __name__ == "__main__":

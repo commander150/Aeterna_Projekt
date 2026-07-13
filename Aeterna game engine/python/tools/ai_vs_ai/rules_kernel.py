@@ -13,6 +13,11 @@ except ModuleNotFoundError:
     from .match_state import MatchState, PlayerState
     from .runtime_package_reader import RuntimePackageReadError
 
+try:
+    from card_instance import create_card_instance_id, create_card_instance_record
+except ModuleNotFoundError:
+    from engine.card_instance import create_card_instance_id, create_card_instance_record
+
 
 class RulesKernelError(Exception):
     """Raised when the minimal rules kernel rejects an operation."""
@@ -23,15 +28,19 @@ def create_initial_match_state(runtime_package, deck_id_a, deck_id_b, match_id="
     deck_a = _get_deck_or_raise(runtime_package, deck_id_a)
     deck_b = _get_deck_or_raise(runtime_package, deck_id_b)
 
+    card_instances = {}
+    players = [
+        _create_player_state("P1", deck_id_a, deck_a, card_instances),
+        _create_player_state("P2", deck_id_b, deck_b, card_instances),
+    ]
+
     return MatchState(
         match_id=match_id,
         turn_number=1,
         active_player_id="P1",
-        players=[
-            PlayerState(player_id="P1", deck_id=deck_id_a, deck_card_ids=_expand_deck_card_ids(deck_a)),
-            PlayerState(player_id="P2", deck_id=deck_id_b, deck_card_ids=_expand_deck_card_ids(deck_b)),
-        ],
+        players=players,
         phase="main",
+        card_instances=card_instances,
         event_log=[],
     )
 
@@ -59,7 +68,7 @@ def list_legal_actions(state, player_id=None):
         draw_action["reason"] = "not_active_player"
     elif not draw_enabled:
         player = state.get_player(player_id)
-        draw_action["reason"] = "deck_empty" if not player.deck_card_ids else "minimal_card_id_overlap_risk"
+        draw_action["reason"] = "deck_empty" if not player.deck_card_instance_ids else "action_not_enabled"
 
     return [end_turn_action, draw_action]
 
@@ -109,14 +118,20 @@ def _apply_end_turn(state, action):
 def _apply_draw_card(state, action):
     player_id = action.get("player_id")
     player = state.get_player(player_id)
-    if not player.deck_card_ids:
+    if not player.deck_card_instance_ids:
         raise RulesKernelError("Cannot draw from empty deck: %s" % player_id)
 
-    card_id = _select_draw_card_id(player)
-    if card_id is None:
-        raise RulesKernelError("No minimal-safe card id can be drawn: %s" % player_id)
-    player.deck_card_ids.remove(card_id)
-    player.hand.append(card_id)
+    from_zone_index = 0
+    to_zone_index = len(player.hand_card_instance_ids)
+    card_instance_id = player.deck_card_instance_ids.pop(from_zone_index)
+    player.hand_card_instance_ids.append(card_instance_id)
+    card_instance = state.get_card_instance(card_instance_id)
+    card_id = card_instance.get("card_id")
+    card_instance["zone"] = "hand"
+    card_instance["zone_index"] = to_zone_index
+    card_instance["visibility"] = "owner_only"
+    card_instance["zone_sequence"] = int(card_instance.get("zone_sequence") or 0) + 1
+    _reindex_zone(state, player.deck_card_instance_ids, "deck")
     state.state_version += 1
 
     event = {
@@ -125,9 +140,12 @@ def _apply_draw_card(state, action):
         "event_type": "card_drawn",
         "player_id": player_id,
         "action_type": "draw_card",
+        "card_instance_id": card_instance_id,
         "card_id": card_id,
         "from_zone": "deck",
+        "from_zone_index": from_zone_index,
         "to_zone": "hand",
+        "to_zone_index": to_zone_index,
         "turn_number": state.turn_number,
         "state_version": state.state_version,
     }
@@ -157,7 +175,7 @@ def _get_deck_or_raise(runtime_package, deck_id):
         raise RulesKernelError("Unknown deck_id: %s" % deck_id) from exc
 
 
-def _expand_deck_card_ids(deck):
+def _expand_deck_entries(deck):
     card_ids = []
     for entry in deck.get("card_entries", []) or []:
         count = int(entry.get("count") or 0)
@@ -167,14 +185,41 @@ def _expand_deck_card_ids(deck):
 
 def _can_player_draw(state, player_id):
     try:
-        return _select_draw_card_id(state.get_player(player_id)) is not None
+        return bool(state.get_player(player_id).deck_card_instance_ids)
     except Exception:
         return False
 
 
-def _select_draw_card_id(player):
-    hand_card_ids = set(player.hand)
-    for card_id in player.deck_card_ids:
-        if card_id not in hand_card_ids and player.deck_card_ids.count(card_id) == 1:
-            return card_id
-    return None
+def _create_player_state(player_id, deck_id, deck, card_instances):
+    deck_card_instance_ids = []
+    for zone_index, card_id in enumerate(_expand_deck_entries(deck)):
+        sequence = zone_index + 1
+        card_instance_id = create_card_instance_id(player_id, sequence)
+        card_instances[card_instance_id] = create_card_instance_record(
+            card_instance_id=card_instance_id,
+            card_id=card_id,
+            owner_player_id=player_id,
+            controller_player_id=player_id,
+            zone="deck",
+            zone_index=zone_index,
+            visibility="owner_only",
+            created_sequence=sequence,
+            zone_sequence=1,
+            metadata={
+                "source": "initial_deck_setup",
+                "authority": "rules_kernel",
+            },
+        )
+        deck_card_instance_ids.append(card_instance_id)
+    return PlayerState(
+        player_id=player_id,
+        deck_id=deck_id,
+        deck_card_instance_ids=deck_card_instance_ids,
+    )
+
+
+def _reindex_zone(state, card_instance_ids, zone):
+    for zone_index, card_instance_id in enumerate(card_instance_ids):
+        card_instance = state.get_card_instance(card_instance_id)
+        card_instance["zone"] = zone
+        card_instance["zone_index"] = zone_index

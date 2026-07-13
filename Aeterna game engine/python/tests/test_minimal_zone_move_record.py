@@ -189,8 +189,9 @@ class TestMinimalZoneMoveRecord(unittest.TestCase):
         original_state_version = state.state_version
         original_event_log = list(state.event_log)
         original_history = session.get_action_response_history()
-        original_deck = list(player.deck_card_ids)
-        original_hand = list(player.hand)
+        original_deck = list(player.deck_card_instance_ids)
+        original_hand = list(player.hand_card_instance_ids)
+        original_registry = json.loads(json.dumps(state.card_instances, ensure_ascii=False))
 
         record = _zone_move_record(self.zone_move, self.card_instance)
         validation = self.zone_move.validate_zone_move_record(record)
@@ -201,8 +202,9 @@ class TestMinimalZoneMoveRecord(unittest.TestCase):
         self.assertEqual(state.state_version, original_state_version)
         self.assertEqual(state.event_log, original_event_log)
         self.assertEqual(session.get_action_response_history(), original_history)
-        self.assertEqual(player.deck_card_ids, original_deck)
-        self.assertEqual(player.hand, original_hand)
+        self.assertEqual(player.deck_card_instance_ids, original_deck)
+        self.assertEqual(player.hand_card_instance_ids, original_hand)
+        self.assertEqual(state.card_instances, original_registry)
 
 
 if __name__ == "__main__":

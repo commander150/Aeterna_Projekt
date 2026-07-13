@@ -38,13 +38,15 @@ class TestMinimalHandDeckInvariants(unittest.TestCase):
         state = session.create_match(match_id="ENGINE-HAND-DECK-INVARIANTS-TEST-001")
 
         for player in state.players:
-            self.assertIsInstance(player.deck_card_ids, list)
-            self.assertIsInstance(player.hand, list)
-            self.assertIsInstance(player.discard, list)
-            self.assertGreater(len(player.deck_card_ids), 0)
-            self.assertEqual(len(player.hand), 0)
-            self.assertEqual(len(player.discard), 0)
-            self.assertEqual(set(player.deck_card_ids).intersection(set(player.hand)), set())
+            self.assertIsInstance(player.deck_card_instance_ids, list)
+            self.assertIsInstance(player.hand_card_instance_ids, list)
+            self.assertIsInstance(player.discard_card_instance_ids, list)
+            self.assertGreater(len(player.deck_card_instance_ids), 0)
+            self.assertEqual(len(player.hand_card_instance_ids), 0)
+            self.assertEqual(len(player.discard_card_instance_ids), 0)
+            self.assertTrue(
+                all(card_instance_id in state.card_instances for card_instance_id in player.deck_card_instance_ids)
+            )
 
         self.assertEqual(session.get_diagnostics(), [])
         self.assertEqual(self.invariants.validate_state_invariants(state, self.runtime_package), [])

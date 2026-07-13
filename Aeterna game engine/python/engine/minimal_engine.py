@@ -67,13 +67,13 @@ def can_player_draw(state, player_id):
             "metadata": {
                 "source": "python.engine.minimal_engine",
                 "rules_scope": "minimal_end_turn_smoke",
-                "card_instance_model": "not_implemented",
-                "card_id_overlap_guard": True,
+                "card_instance_model": "minimal_registry_v0",
+                "card_id_overlap_guard": False,
             },
         }
 
-    deck_count = len(player.deck_card_ids)
-    hand_count = len(player.hand)
+    deck_count = len(player.deck_card_instance_ids)
+    hand_count = len(player.hand_card_instance_ids)
     reason = _draw_precondition_reason(player)
     return {
         "player_id": player_id,
@@ -84,8 +84,8 @@ def can_player_draw(state, player_id):
         "metadata": {
             "source": "python.engine.minimal_engine",
             "rules_scope": "minimal_end_turn_smoke",
-            "card_instance_model": "not_implemented",
-            "card_id_overlap_guard": True,
+            "card_instance_model": "minimal_registry_v0",
+            "card_id_overlap_guard": False,
         },
     }
 
@@ -115,12 +115,13 @@ def create_debug_snapshot(state, legal_actions=None, diagnostics=None):
             "hand_deck_invariants_ok": _hand_deck_invariants_ok(invariant_errors),
             "draw_preconditions_ok": _draw_preconditions_ok(state),
         },
+        "card_instance_count": len(state.card_instances),
         "metadata": {
             "source": "python.engine.minimal_engine",
             "rules_scope": "minimal_end_turn_smoke",
             "runtime_decision": "reference_smoke_backend_candidate",
-            "card_instance_model": "not_implemented",
-            "card_id_overlap_guard": True,
+            "card_instance_model": "minimal_registry_v0",
+            "card_id_overlap_guard": False,
         },
     }
 
@@ -157,8 +158,8 @@ def create_player_visible_snapshot(state, player_id, legal_actions=None, diagnos
             "runtime_decision": "reference_smoke_backend_candidate",
             "hidden_information_model": "not_implemented",
             "debug_snapshot_source": False,
-            "card_instance_model": "not_implemented",
-            "card_id_overlap_guard": True,
+            "card_instance_model": "minimal_registry_v0",
+            "card_id_overlap_guard": False,
         },
     }
 
@@ -167,9 +168,9 @@ def _player_debug_summary(player):
     return {
         "player_id": player.player_id,
         "deck_id": player.deck_id,
-        "deck_count": len(player.deck_card_ids),
-        "hand_count": len(player.hand),
-        "discard_count": len(player.discard),
+        "deck_count": len(player.deck_card_instance_ids),
+        "hand_count": len(player.hand_card_instance_ids),
+        "discard_count": len(player.discard_card_instance_ids),
         "zone_summary": _player_zone_summary(player),
     }
 
@@ -179,9 +180,9 @@ def _player_visible_summary(player, viewer_player_id):
     return {
         "player_id": player.player_id,
         "is_viewer": is_viewer,
-        "deck_count": len(player.deck_card_ids),
-        "hand_count": len(player.hand),
-        "discard_count": len(player.discard),
+        "deck_count": len(player.deck_card_instance_ids),
+        "hand_count": len(player.hand_card_instance_ids),
+        "discard_count": len(player.discard_card_instance_ids),
         "zone_summary": _player_zone_summary(player),
     }
 
@@ -189,9 +190,9 @@ def _player_visible_summary(player, viewer_player_id):
 def _player_zone_summary(player):
     reason = _draw_precondition_reason(player)
     return {
-        "deck_count": len(player.deck_card_ids),
-        "hand_count": len(player.hand),
-        "discard_count": len(player.discard),
+        "deck_count": len(player.deck_card_instance_ids),
+        "hand_count": len(player.hand_card_instance_ids),
+        "discard_count": len(player.discard_card_instance_ids),
         "draw_precondition": {
             "can_draw": reason == "ok",
             "reason": reason,
@@ -221,8 +222,18 @@ def _hand_deck_invariants_ok(errors):
     zone_error_codes = {
         "PLAYER_ZONE_MISSING",
         "PLAYER_ZONE_INVALID",
-        "PLAYER_DECK_HAND_OVERLAP",
-        "PLAYER_DECK_CARD_UNKNOWN",
+        "CARD_INSTANCE_REGISTRY_INVALID",
+        "CARD_INSTANCE_REGISTRY_KEY_MISMATCH",
+        "CARD_INSTANCE_RECORD_INVALID",
+        "PLAYER_ZONE_INSTANCE_UNKNOWN",
+        "CARD_INSTANCE_MULTIPLE_ZONES",
+        "CARD_INSTANCE_ZONE_MISMATCH",
+        "CARD_INSTANCE_ZONE_INDEX_MISMATCH",
+        "CARD_INSTANCE_OWNER_MISMATCH",
+        "CARD_INSTANCE_CARD_UNKNOWN",
+        "CARD_INSTANCE_OWNER_UNKNOWN",
+        "CARD_INSTANCE_CONTROLLER_UNKNOWN",
+        "CARD_INSTANCE_ORPHANED",
     }
     return not any(error.get("code") in zone_error_codes for error in errors)
 
@@ -232,10 +243,6 @@ def _draw_preconditions_ok(state):
 
 
 def _draw_precondition_reason(player):
-    if not player.deck_card_ids:
+    if not player.deck_card_instance_ids:
         return "deck_empty"
-    hand_card_ids = set(player.hand)
-    for card_id in player.deck_card_ids:
-        if card_id not in hand_card_ids and player.deck_card_ids.count(card_id) == 1:
-            return "ok"
-    return "minimal_card_id_overlap_risk"
+    return "ok"

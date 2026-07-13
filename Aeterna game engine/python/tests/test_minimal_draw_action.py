@@ -35,8 +35,8 @@ class TestMinimalDrawAction(unittest.TestCase):
         session = self.session_module.MinimalEngineSession(self.runtime_package)
         state = session.create_match(match_id="ENGINE-DRAW-ACTION-TEST-001")
         player = state.get_player("P1")
-        initial_deck_count = len(player.deck_card_ids)
-        initial_hand_count = len(player.hand)
+        initial_deck_count = len(player.deck_card_instance_ids)
+        initial_hand_count = len(player.hand_card_instance_ids)
         initial_snapshot = session.get_debug_snapshot()
         draw_action = _find_action(session.get_action_space(), "draw_card")
 
@@ -60,12 +60,14 @@ class TestMinimalDrawAction(unittest.TestCase):
         self.assertEqual(response["new_event_sequences"], [1])
         self.assertTrue(response["invariants_ok"])
 
+        drawn_card_instance_id = response["events"][0]["card_instance_id"]
         drawn_card_id = response["events"][0]["card_id"]
-        self.assertEqual(len(player.deck_card_ids), initial_deck_count - 1)
-        self.assertEqual(len(player.hand), initial_hand_count + 1)
-        self.assertNotIn(drawn_card_id, player.deck_card_ids)
-        self.assertIn(drawn_card_id, player.hand)
-        self.assertEqual(player.hand[-1], drawn_card_id)
+        self.assertEqual(len(player.deck_card_instance_ids), initial_deck_count - 1)
+        self.assertEqual(len(player.hand_card_instance_ids), initial_hand_count + 1)
+        self.assertNotIn(drawn_card_instance_id, player.deck_card_instance_ids)
+        self.assertIn(drawn_card_instance_id, player.hand_card_instance_ids)
+        self.assertEqual(player.hand_card_instance_ids[-1], drawn_card_instance_id)
+        self.assertEqual(state.get_card_id(drawn_card_instance_id), drawn_card_id)
         self.assertEqual(state.state_version, 1)
         self.assertEqual(state.active_player_id, "P1")
         self.assertEqual(session.get_diagnostics(), [])
@@ -75,7 +77,9 @@ class TestMinimalDrawAction(unittest.TestCase):
         self.assertEqual(event["action_type"], "draw_card")
         self.assertEqual(event["player_id"], "P1")
         self.assertEqual(event["from_zone"], "deck")
+        self.assertEqual(event["from_zone_index"], 0)
         self.assertEqual(event["to_zone"], "hand")
+        self.assertEqual(event["to_zone_index"], 0)
         self.assertEqual(event["event_sequence"], 1)
         self.assertEqual(event["state_version"], 1)
 
@@ -103,8 +107,8 @@ class TestMinimalDrawAction(unittest.TestCase):
         session = self.session_module.MinimalEngineSession(self.runtime_package)
         state = session.create_match(match_id="ENGINE-DRAW-ACTION-EMPTY-DECK-TEST-001")
         player = state.get_player("P1")
-        player.deck_card_ids = []
-        original_hand = list(player.hand)
+        _empty_deck(state, player)
+        original_hand = list(player.hand_card_instance_ids)
         original_events = list(state.event_log)
         original_state_version = state.state_version
         action_space = session.get_action_space()
@@ -123,8 +127,8 @@ class TestMinimalDrawAction(unittest.TestCase):
         self.assertEqual(response["state_version_after"], original_state_version)
         self.assertEqual(response["new_event_count"], 0)
         self.assertEqual(response["new_event_sequences"], [])
-        self.assertEqual(player.deck_card_ids, [])
-        self.assertEqual(player.hand, original_hand)
+        self.assertEqual(player.deck_card_instance_ids, [])
+        self.assertEqual(player.hand_card_instance_ids, original_hand)
         self.assertEqual(state.event_log, original_events)
         self.assertEqual(state.state_version, original_state_version)
 
@@ -139,6 +143,12 @@ def _find_action(action_space, action_type):
     if not matches:
         raise AssertionError("Missing action_type in action space: %s" % action_type)
     return matches[0]
+
+
+def _empty_deck(state, player):
+    for card_instance_id in player.deck_card_instance_ids:
+        state.card_instances.pop(card_instance_id)
+    player.deck_card_instance_ids = []
 
 
 if __name__ == "__main__":
