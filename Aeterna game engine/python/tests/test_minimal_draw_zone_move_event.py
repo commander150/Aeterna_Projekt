@@ -12,6 +12,7 @@ GODOT_RUNTIME_PACKAGE_DIR = PROJECT_DIR / "Aeterna game engine" / "Godot" / "run
 ENGINE_DIR = ENGINE_PYTHON_DIR / "engine"
 AI_VS_AI_DIR = ENGINE_PYTHON_DIR / "tools" / "ai_vs_ai"
 CARD_INSTANCE_PATH = ENGINE_DIR / "card_instance.py"
+ENGINE_EVENT_PATH = ENGINE_DIR / "engine_event.py"
 ZONE_MOVE_PATH = ENGINE_DIR / "zone_move.py"
 SESSION_PATH = ENGINE_DIR / "minimal_engine_session.py"
 READER_PATH = AI_VS_AI_DIR / "runtime_package_reader.py"
@@ -32,6 +33,7 @@ def _load_module(module_name, path):
 class TestMinimalDrawZoneMoveEvent(unittest.TestCase):
     def setUp(self):
         self.card_instance = _load_module("card_instance", CARD_INSTANCE_PATH)
+        self.engine_event = _load_module("engine_event", ENGINE_EVENT_PATH)
         self.zone_move = _load_module("zone_move", ZONE_MOVE_PATH)
         self.session_module = _load_module("minimal_engine_session", SESSION_PATH)
         self.reader = _load_module("runtime_package_reader", READER_PATH)
@@ -145,6 +147,7 @@ class TestMinimalDrawZoneMoveEvent(unittest.TestCase):
         self.assertEqual(event["event_sequence"], payload["event_sequence"])
         self.assertEqual(event["state_version"], payload["state_version"])
         self.assertEqual(event["event_type"], payload["event_type"])
+        self.assertTrue(self.engine_event.validate_engine_event_envelope(event)["valid"])
         self.assertTrue(self.zone_move.validate_zone_move_record(payload)["valid"])
         self.assertEqual(session.get_diagnostics(), [])
 

@@ -6,11 +6,13 @@ use the helpers to record an already-applied transition in the runtime log.
 
 from __future__ import annotations
 
-from copy import deepcopy
+try:
+    from engine_event import ENGINE_EVENT_SCHEMA_VERSION, create_engine_event_envelope
+except ModuleNotFoundError:
+    from .engine_event import ENGINE_EVENT_SCHEMA_VERSION, create_engine_event_envelope
 
 
 ZONE_MOVE_SCHEMA_VERSION = "minimal-zone-move-record-v0"
-ENGINE_EVENT_SCHEMA_VERSION = "minimal-engine-event-v0"
 
 _REQUIRED_ZONE_MOVE_FIELDS = (
     "schema_version",
@@ -162,20 +164,16 @@ def zone_move_to_event(record, event_index=None, turn_number=None, player_id=Non
     """Wrap a complete, copied ZoneMove record in an engine-event envelope."""
 
     normalized = record if isinstance(record, dict) else {}
-    payload = deepcopy(normalized)
-
-    return {
-        "schema_version": ENGINE_EVENT_SCHEMA_VERSION,
-        "contract_type": "engine_event",
-        "event_index": event_index,
-        "event_type": "zone_move",
-        "event_sequence": normalized.get("event_sequence"),
-        "player_id": player_id,
-        "action_type": action_type,
-        "turn_number": turn_number,
-        "state_version": normalized.get("state_version"),
-        "payload": payload,
-    }
+    return create_engine_event_envelope(
+        event_type="zone_move",
+        event_index=event_index,
+        event_sequence=normalized.get("event_sequence"),
+        player_id=player_id,
+        action_type=action_type,
+        turn_number=turn_number,
+        state_version=normalized.get("state_version"),
+        payload=normalized,
+    )
 
 
 def _is_non_empty_string(value):

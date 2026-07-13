@@ -17,19 +17,10 @@ try:
 except ModuleNotFoundError:
     from engine.zone_move import validate_zone_move_record
 
-
-_REQUIRED_ENGINE_EVENT_FIELDS = (
-    "schema_version",
-    "contract_type",
-    "event_index",
-    "event_sequence",
-    "event_type",
-    "player_id",
-    "action_type",
-    "turn_number",
-    "state_version",
-    "payload",
-)
+try:
+    from engine_event import validate_engine_event_envelope
+except ModuleNotFoundError:
+    from engine.engine_event import validate_engine_event_envelope
 
 _LEGACY_DRAW_ENVELOPE_FIELDS = (
     "card_instance_id",
@@ -381,26 +372,40 @@ def _validate_event_log(event_log, player_ids, card_instances):
                 )
             )
 
-        if event.get("contract_type") == "engine_event" or event.get("event_type") == "zone_move":
+        payload = event.get("payload")
+        is_engine_event = event.get("contract_type") == "engine_event" or event.get("event_type") == "zone_move"
+        is_zone_move = event.get("event_type") == "zone_move" or (
+            isinstance(payload, dict) and payload.get("event_type") == "zone_move"
+        )
+        if is_engine_event:
+            errors.extend(_validate_engine_event_contract(event, index))
+        if is_zone_move:
             errors.extend(_validate_zone_move_engine_event(event, index, card_instances))
+    return errors
+
+
+def _validate_engine_event_contract(event, event_index):
+    errors = []
+    envelope_validation = validate_engine_event_envelope(event)
+    if not envelope_validation.get("valid"):
+        errors.append(
+            _error(
+                "ENGINE_EVENT_CONTRACT_INVALID",
+                "runtime engine event must use the canonical engine-event envelope.",
+                event_index=event_index,
+                envelope_errors=envelope_validation.get("errors", []),
+            )
+        )
     return errors
 
 
 def _validate_zone_move_engine_event(event, event_index, card_instances):
     errors = []
-    missing_fields = [field_name for field_name in _REQUIRED_ENGINE_EVENT_FIELDS if field_name not in event]
     forbidden_fields = [field_name for field_name in _LEGACY_DRAW_ENVELOPE_FIELDS if field_name in event]
-    schema_version = event.get("schema_version")
     contract_invalid = (
-        missing_fields
-        or forbidden_fields
-        or not isinstance(schema_version, str)
-        or not schema_version.strip()
-        or event.get("contract_type") != "engine_event"
+        forbidden_fields
         or event.get("event_type") != "zone_move"
         or event.get("action_type") != "draw_card"
-        or not _is_integer(event.get("state_version"))
-        or event.get("state_version") < 1
     )
     if contract_invalid:
         errors.append(
@@ -408,7 +413,6 @@ def _validate_zone_move_engine_event(event, event_index, card_instances):
                 "ENGINE_EVENT_CONTRACT_INVALID",
                 "ZoneMove runtime event must use the canonical engine-event envelope.",
                 event_index=event_index,
-                missing_fields=missing_fields,
                 forbidden_fields=forbidden_fields,
                 contract_type=event.get("contract_type"),
                 event_type=event.get("event_type"),

@@ -3,6 +3,7 @@ import importlib.util
 import json
 import sys
 import unittest
+from copy import deepcopy
 from pathlib import Path
 
 
@@ -12,6 +13,7 @@ GODOT_RUNTIME_PACKAGE_DIR = PROJECT_DIR / "Aeterna game engine" / "Godot" / "run
 ENGINE_DIR = ENGINE_PYTHON_DIR / "engine"
 AI_VS_AI_DIR = ENGINE_PYTHON_DIR / "tools" / "ai_vs_ai"
 CARD_INSTANCE_PATH = ENGINE_DIR / "card_instance.py"
+ENGINE_EVENT_PATH = ENGINE_DIR / "engine_event.py"
 ZONE_MOVE_PATH = ENGINE_DIR / "zone_move.py"
 SESSION_PATH = ENGINE_DIR / "minimal_engine_session.py"
 READER_PATH = AI_VS_AI_DIR / "runtime_package_reader.py"
@@ -71,6 +73,7 @@ def _zone_move_record(zone_move_module, card_instance_module):
 class TestMinimalZoneMoveRecord(unittest.TestCase):
     def setUp(self):
         self.card_instance = _load_module("card_instance", CARD_INSTANCE_PATH)
+        self.engine_event = _load_module("engine_event", ENGINE_EVENT_PATH)
         self.zone_move = _load_module("zone_move", ZONE_MOVE_PATH)
 
     def test_create_zone_move_record_contains_required_fields(self):
@@ -147,6 +150,7 @@ class TestMinimalZoneMoveRecord(unittest.TestCase):
 
     def test_zone_move_to_event_is_json_compatible(self):
         record = _zone_move_record(self.zone_move, self.card_instance)
+        original = deepcopy(record)
 
         event = self.zone_move.zone_move_to_event(
             record,
@@ -171,6 +175,11 @@ class TestMinimalZoneMoveRecord(unittest.TestCase):
         self.assertNotIn("card_id", roundtrip)
         self.assertNotIn("from_zone", roundtrip)
         self.assertNotIn("to_zone", roundtrip)
+        self.assertEqual(record, original)
+        self.assertIsNot(event["payload"], record)
+        self.assertIsNot(event["payload"]["metadata"], record["metadata"])
+        self.assertTrue(self.engine_event.validate_engine_event_envelope(event)["valid"])
+        self.assertTrue(self.zone_move.validate_zone_move_record(event["payload"])["valid"])
 
     def test_zone_move_uses_card_instance_identity(self):
         instance = _card_instance_record(self.card_instance)
