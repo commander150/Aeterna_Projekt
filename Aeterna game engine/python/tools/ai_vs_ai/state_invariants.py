@@ -32,6 +32,11 @@ try:
 except ModuleNotFoundError:
     from engine.domain_position import validate_player_domain_topology
 
+try:
+    from domain_occupancy import validate_player_domain_occupancy
+except ModuleNotFoundError:
+    from engine.domain_occupancy import validate_player_domain_occupancy
+
 _LEGACY_DRAW_ENVELOPE_FIELDS = (
     "card_instance_id",
     "card_id",
@@ -75,6 +80,14 @@ def validate_state_invariants(state, runtime_package=None):
             errors.extend(_validate_player_deck_id(player, runtime_package))
 
     errors.extend(_validate_domain_topologies(state, player_ids))
+    errors.extend(
+        _validate_domain_occupancies(
+            state,
+            player_ids,
+            normalized_registry,
+            zone_occurrences,
+        )
+    )
 
     if not isinstance(card_instances, dict):
         errors.append(
@@ -242,6 +255,260 @@ def _identifier_collisions(identifier_owners):
         for identifier, player_ids in sorted(identifier_owners.items(), key=lambda item: str(item[0]))
         if len(player_ids) > 1
     ]
+
+
+def _validate_domain_occupancies(state, player_ids, card_instances, zone_occurrences):
+    errors = []
+    if not hasattr(state, "domain_occupancies"):
+        return [
+            _error(
+                "DOMAIN_OCCUPANCIES_MISSING",
+                "MatchState must contain a domain_occupancies registry.",
+            )
+        ]
+
+    occupancies = getattr(state, "domain_occupancies", None)
+    if not isinstance(occupancies, dict):
+        return [
+            _error(
+                "DOMAIN_OCCUPANCIES_INVALID",
+                "domain_occupancies must be a dict keyed by player_id.",
+                actual_type=type(occupancies).__name__,
+            )
+        ]
+
+    expected_player_ids = {player_id for player_id in player_ids if player_id}
+    actual_player_ids = set(occupancies)
+    missing_player_ids = sorted(expected_player_ids - actual_player_ids, key=str)
+    unexpected_player_ids = sorted(actual_player_ids - expected_player_ids, key=str)
+    if missing_player_ids or unexpected_player_ids:
+        errors.append(
+            _error(
+                "DOMAIN_OCCUPANCY_PLAYER_SET_MISMATCH",
+                "domain_occupancies keys must exactly match MatchState player IDs.",
+                missing_player_ids=missing_player_ids,
+                unexpected_player_ids=unexpected_player_ids,
+            )
+        )
+    for player_id in missing_player_ids:
+        errors.append(
+            _error(
+                "DOMAIN_OCCUPANCY_MISSING",
+                "player is missing a Domain occupancy state.",
+                player_id=player_id,
+            )
+        )
+    for player_id in unexpected_player_ids:
+        errors.append(
+            _error(
+                "DOMAIN_OCCUPANCY_UNEXPECTED",
+                "Domain occupancy state does not belong to a MatchState player.",
+                player_id=player_id,
+            )
+        )
+
+    topologies = getattr(state, "domain_topologies", None)
+    normalized_topologies = topologies if isinstance(topologies, dict) else {}
+    domain_occurrences = {}
+    topology_relation_error_codes = {
+        "TOPOLOGY_INVALID",
+        "PLAYER_ID_MISMATCH",
+        "TOPOLOGY_SCHEMA_MISMATCH",
+        "TOPOLOGY_MODEL_INVALID",
+        "POSITION_SET_MISMATCH",
+        "SEAL_SLOT_UNEXPECTED",
+        "SLOT_PLAYER_MISMATCH",
+        "SLOT_CURRENT_MISMATCH",
+        "SLOT_POSITION_TYPE_MISMATCH",
+    }
+
+    for player_id, occupancy in occupancies.items():
+        topology = normalized_topologies.get(player_id)
+        validation = validate_player_domain_occupancy(occupancy, topology)
+        occupancy_errors = list(validation.get("errors") or [])
+        if not validation.get("valid"):
+            errors.append(
+                _error(
+                    "DOMAIN_OCCUPANCY_RECORD_INVALID",
+                    "player Domain occupancy failed contract validation.",
+                    player_id=player_id,
+                    occupancy_errors=occupancy_errors,
+                )
+            )
+        if any(
+            occupancy_error.get("code") in topology_relation_error_codes
+            for occupancy_error in occupancy_errors
+        ):
+            errors.append(
+                _error(
+                    "DOMAIN_OCCUPANCY_TOPOLOGY_MISMATCH",
+                    "Domain occupancy does not match its player topology.",
+                    player_id=player_id,
+                    occupancy_errors=occupancy_errors,
+                )
+            )
+
+        if not isinstance(occupancy, dict):
+            continue
+        if occupancy.get("player_id") != player_id:
+            errors.append(
+                _error(
+                    "DOMAIN_OCCUPANCY_PLAYER_MISMATCH",
+                    "occupancy player_id must match its registry key.",
+                    registry_player_id=player_id,
+                    occupancy_player_id=occupancy.get("player_id"),
+                )
+            )
+
+        topology_position_records = topology.get("positions") if isinstance(topology, dict) else []
+        if not isinstance(topology_position_records, list):
+            topology_position_records = []
+        topology_positions = {
+            position.get("position_id"): position
+            for position in topology_position_records
+            if isinstance(position, dict) and _is_non_empty_string(position.get("position_id"))
+        }
+        occupancy_slots = occupancy.get("slots")
+        if not isinstance(occupancy_slots, list):
+            occupancy_slots = []
+        for slot_index, slot in enumerate(occupancy_slots):
+            if not isinstance(slot, dict) or slot.get("occupancy_state") != "occupied":
+                continue
+
+            position_id = slot.get("position_id")
+            position = topology_positions.get(position_id)
+            is_seal_position = slot.get("position_type") == "seal" or (
+                isinstance(position, dict) and position.get("position_type") == "seal"
+            )
+            if is_seal_position:
+                errors.append(
+                    _error(
+                        "DOMAIN_OCCUPANT_SEAL_POSITION_INVALID",
+                        "seal positions cannot contain Domain card occupants.",
+                        player_id=player_id,
+                        slot_index=slot_index,
+                        position_id=position_id,
+                    )
+                )
+            elif not (
+                isinstance(position, dict)
+                and position.get("area") == "domain"
+                and position.get("position_type") in {"horizon", "zenith"}
+            ):
+                errors.append(
+                    _error(
+                        "DOMAIN_OCCUPANT_POSITION_INVALID",
+                        "occupied slot must identify a horizon or zenith topology position.",
+                        player_id=player_id,
+                        slot_index=slot_index,
+                        position_id=position_id,
+                    )
+                )
+
+            card_instance_id = slot.get("occupant_card_instance_id")
+            if not _is_non_empty_string(card_instance_id):
+                continue
+            occurrence = {
+                "player_id": player_id,
+                "zone": "domain",
+                "zone_index": None,
+                "position_id": position_id,
+            }
+            zone_occurrences.setdefault(card_instance_id, []).append(occurrence)
+            domain_occurrences.setdefault(card_instance_id, []).append(occurrence)
+
+            card_instance = card_instances.get(card_instance_id)
+            if not isinstance(card_instance, dict):
+                errors.append(
+                    _error(
+                        "DOMAIN_OCCUPANT_INSTANCE_UNKNOWN",
+                        "occupied Domain slot must refer to a registry card instance.",
+                        player_id=player_id,
+                        position_id=position_id,
+                        card_instance_id=card_instance_id,
+                    )
+                )
+                continue
+            if card_instance.get("zone") != "domain":
+                errors.append(
+                    _error(
+                        "DOMAIN_OCCUPANT_ZONE_MISMATCH",
+                        "occupied Domain instance must have registry zone=domain.",
+                        player_id=player_id,
+                        position_id=position_id,
+                        card_instance_id=card_instance_id,
+                        actual_zone=card_instance.get("zone"),
+                    )
+                )
+            if card_instance.get("zone_index") is not None:
+                errors.append(
+                    _error(
+                        "DOMAIN_OCCUPANT_ZONE_INDEX_INVALID",
+                        "Domain card instance zone_index must be null.",
+                        player_id=player_id,
+                        position_id=position_id,
+                        card_instance_id=card_instance_id,
+                        actual_zone_index=card_instance.get("zone_index"),
+                    )
+                )
+            if card_instance.get("visibility") != "public":
+                errors.append(
+                    _error(
+                        "DOMAIN_OCCUPANT_VISIBILITY_INVALID",
+                        "Domain card instance visibility must be public.",
+                        player_id=player_id,
+                        position_id=position_id,
+                        card_instance_id=card_instance_id,
+                        actual_visibility=card_instance.get("visibility"),
+                    )
+                )
+
+            controller_player_id = card_instance.get("controller_player_id")
+            if controller_player_id not in expected_player_ids:
+                errors.append(
+                    _error(
+                        "DOMAIN_OCCUPANT_CONTROLLER_UNKNOWN",
+                        "Domain card instance controller must be a MatchState player.",
+                        player_id=player_id,
+                        position_id=position_id,
+                        card_instance_id=card_instance_id,
+                        controller_player_id=controller_player_id,
+                    )
+                )
+            elif controller_player_id != player_id:
+                errors.append(
+                    _error(
+                        "DOMAIN_OCCUPANT_CONTROLLER_MISMATCH",
+                        "Domain card instance controller must match the occupancy player.",
+                        player_id=player_id,
+                        position_id=position_id,
+                        card_instance_id=card_instance_id,
+                        controller_player_id=controller_player_id,
+                    )
+                )
+
+    for card_instance_id, occurrences in domain_occurrences.items():
+        if len(occurrences) > 1:
+            errors.append(
+                _error(
+                    "DOMAIN_OCCUPANT_INSTANCE_DUPLICATE",
+                    "card instance can occupy only one Domain slot globally.",
+                    card_instance_id=card_instance_id,
+                    occurrences=occurrences,
+                )
+            )
+
+    for registry_key, card_instance in card_instances.items():
+        if isinstance(card_instance, dict) and card_instance.get("zone") == "domain":
+            if not domain_occurrences.get(registry_key):
+                errors.append(
+                    _error(
+                        "DOMAIN_CARD_INSTANCE_UNBOUND",
+                        "Domain-zoned registry card instance must occupy exactly one Domain slot.",
+                        card_instance_id=registry_key,
+                    )
+                )
+    return errors
 
 
 def assert_state_invariants(state, runtime_package=None):
@@ -441,7 +708,7 @@ def _validate_zone_occurrences(card_instances, zone_occurrences):
             errors.append(
                 _error(
                     "CARD_INSTANCE_MULTIPLE_ZONES",
-                    "card_instance_id must occur in exactly one player zone.",
+                    "card_instance_id must occur in exactly one authoritative zone.",
                     card_instance_id=card_instance_id,
                     occurrences=occurrences,
                 )
@@ -452,7 +719,7 @@ def _validate_zone_occurrences(card_instances, zone_occurrences):
             errors.append(
                 _error(
                     "CARD_INSTANCE_ORPHANED",
-                    "registry card instance must occur in exactly one player zone.",
+                    "registry card instance must occur in exactly one authoritative zone.",
                     card_instance_id=card_instance_id,
                 )
             )

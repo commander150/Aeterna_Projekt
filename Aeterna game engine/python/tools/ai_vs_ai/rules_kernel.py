@@ -41,6 +41,11 @@ try:
 except ModuleNotFoundError:
     from engine.domain_position import create_player_domain_topology
 
+try:
+    from domain_occupancy import create_empty_player_domain_occupancy
+except ModuleNotFoundError:
+    from engine.domain_occupancy import create_empty_player_domain_occupancy
+
 
 class RulesKernelError(Exception):
     """Raised when the minimal rules kernel rejects an operation."""
@@ -59,6 +64,12 @@ def create_initial_match_state(runtime_package, deck_id_a, deck_id_b, match_id="
     domain_topologies = {
         player.player_id: create_player_domain_topology(player.player_id) for player in players
     }
+    domain_occupancies = {
+        player.player_id: create_empty_player_domain_occupancy(
+            domain_topologies[player.player_id]
+        )
+        for player in players
+    }
 
     return MatchState(
         match_id=match_id,
@@ -68,6 +79,7 @@ def create_initial_match_state(runtime_package, deck_id_a, deck_id_b, match_id="
         phase="main",
         card_instances=card_instances,
         domain_topologies=domain_topologies,
+        domain_occupancies=domain_occupancies,
         event_log=[],
     )
 

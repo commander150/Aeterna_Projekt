@@ -24,6 +24,7 @@ class MatchState:
     phase: str
     card_instances: dict = field(default_factory=dict)
     domain_topologies: dict = field(default_factory=dict)
+    domain_occupancies: dict = field(default_factory=dict)
     # 0 means the initial state before any accepted transition.
     state_version: int = 0
     event_log: list = field(default_factory=list)
@@ -56,6 +57,16 @@ class MatchState:
         except (KeyError, TypeError) as exc:
             raise MatchStateError("Missing Domain topology for player_id: %s" % player_id) from exc
         return deepcopy(topology)
+
+    def get_domain_occupancy(self, player_id):
+        self.get_player(player_id)
+        try:
+            occupancy = self.domain_occupancies[player_id]
+        except (KeyError, TypeError) as exc:
+            raise MatchStateError("Missing Domain occupancy for player_id: %s" % player_id) from exc
+        if not isinstance(occupancy, dict):
+            raise MatchStateError("Missing Domain occupancy for player_id: %s" % player_id)
+        return deepcopy(occupancy)
 
 
 class MatchStateError(Exception):
