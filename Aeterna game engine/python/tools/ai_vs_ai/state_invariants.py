@@ -27,6 +27,11 @@ try:
 except ModuleNotFoundError:
     from engine.turn_transition import validate_turn_transition_record
 
+try:
+    from domain_position import validate_player_domain_topology
+except ModuleNotFoundError:
+    from engine.domain_position import validate_player_domain_topology
+
 _LEGACY_DRAW_ENVELOPE_FIELDS = (
     "card_instance_id",
     "card_id",
@@ -69,6 +74,8 @@ def validate_state_invariants(state, runtime_package=None):
         if runtime_package is not None and deck_id:
             errors.extend(_validate_player_deck_id(player, runtime_package))
 
+    errors.extend(_validate_domain_topologies(state, player_ids))
+
     if not isinstance(card_instances, dict):
         errors.append(
             _error(
@@ -108,6 +115,133 @@ def validate_state_invariants(state, runtime_package=None):
         )
     )
     return errors
+
+
+def _validate_domain_topologies(state, player_ids):
+    errors = []
+    if not hasattr(state, "domain_topologies"):
+        return [
+            _error(
+                "DOMAIN_TOPOLOGIES_MISSING",
+                "MatchState must contain a domain_topologies registry.",
+            )
+        ]
+
+    topologies = getattr(state, "domain_topologies", None)
+    if not isinstance(topologies, dict):
+        return [
+            _error(
+                "DOMAIN_TOPOLOGIES_INVALID",
+                "domain_topologies must be a dict keyed by player_id.",
+                actual_type=type(topologies).__name__,
+            )
+        ]
+
+    expected_player_ids = {player_id for player_id in player_ids if player_id}
+    actual_player_ids = set(topologies)
+    missing_player_ids = sorted(expected_player_ids - actual_player_ids, key=str)
+    unexpected_player_ids = sorted(actual_player_ids - expected_player_ids, key=str)
+    if missing_player_ids or unexpected_player_ids:
+        errors.append(
+            _error(
+                "DOMAIN_TOPOLOGY_PLAYER_SET_MISMATCH",
+                "domain_topologies keys must exactly match MatchState player IDs.",
+                missing_player_ids=missing_player_ids,
+                unexpected_player_ids=unexpected_player_ids,
+            )
+        )
+    for player_id in missing_player_ids:
+        errors.append(
+            _error(
+                "DOMAIN_TOPOLOGY_MISSING",
+                "player is missing a Domain topology.",
+                player_id=player_id,
+            )
+        )
+    for player_id in unexpected_player_ids:
+        errors.append(
+            _error(
+                "DOMAIN_TOPOLOGY_UNEXPECTED",
+                "Domain topology does not belong to a MatchState player.",
+                player_id=player_id,
+            )
+        )
+
+    position_id_owners = {}
+    current_id_owners = {}
+    for player_id, topology in topologies.items():
+        validation = validate_player_domain_topology(topology)
+        topology_errors = list(validation.get("errors") or [])
+        if not validation.get("valid"):
+            errors.append(
+                _error(
+                    "DOMAIN_TOPOLOGY_RECORD_INVALID",
+                    "player Domain topology failed contract validation.",
+                    player_id=player_id,
+                    topology_errors=topology_errors,
+                )
+            )
+        if not isinstance(topology, dict):
+            continue
+        if topology.get("player_id") != player_id:
+            errors.append(
+                _error(
+                    "DOMAIN_TOPOLOGY_PLAYER_MISMATCH",
+                    "topology player_id must match its registry key.",
+                    registry_player_id=player_id,
+                    topology_player_id=topology.get("player_id"),
+                )
+            )
+
+        runtime_leaks = [
+            topology_error
+            for topology_error in topology_errors
+            if topology_error.get("code") == "UNEXPECTED_RUNTIME_STATE_FIELD"
+        ]
+        if runtime_leaks:
+            errors.append(
+                _error(
+                    "DOMAIN_RUNTIME_STATE_LEAK",
+                    "static Domain topology cannot contain runtime card or occupancy state.",
+                    player_id=player_id,
+                    topology_errors=runtime_leaks,
+                )
+            )
+
+        for position in topology.get("positions", []) or []:
+            if isinstance(position, dict) and _is_non_empty_string(position.get("position_id")):
+                position_id_owners.setdefault(position["position_id"], []).append(player_id)
+        for current in topology.get("currents", []) or []:
+            if isinstance(current, dict) and _is_non_empty_string(current.get("current_id")):
+                current_id_owners.setdefault(current["current_id"], []).append(player_id)
+
+    position_collisions = _identifier_collisions(position_id_owners)
+    if position_collisions:
+        errors.append(
+            _error(
+                "DOMAIN_POSITION_ID_COLLISION",
+                "Domain position IDs must be globally unique within MatchState.",
+                collisions=position_collisions,
+            )
+        )
+    current_collisions = _identifier_collisions(current_id_owners)
+    if current_collisions:
+        errors.append(
+            _error(
+                "DOMAIN_CURRENT_ID_COLLISION",
+                "Domain current IDs must be globally unique within MatchState.",
+                collisions=current_collisions,
+            )
+        )
+    return errors
+
+
+def _identifier_collisions(identifier_owners):
+    return [
+        {"identifier": identifier, "player_ids": list(player_ids)}
+        for identifier, player_ids in sorted(identifier_owners.items(), key=lambda item: str(item[0]))
+        if len(player_ids) > 1
+    ]
 
 
 def assert_state_invariants(state, runtime_package=None):
@@ -748,6 +882,10 @@ def _as_int(value):
 
 def _is_integer(value):
     return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _is_non_empty_string(value):
+    return isinstance(value, str) and value.strip() != ""
 
 
 def _error(code, message, **details):

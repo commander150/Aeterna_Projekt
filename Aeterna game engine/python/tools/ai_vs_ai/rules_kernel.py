@@ -36,6 +36,11 @@ except ModuleNotFoundError:
         validate_turn_transition_record,
     )
 
+try:
+    from domain_position import create_player_domain_topology
+except ModuleNotFoundError:
+    from engine.domain_position import create_player_domain_topology
+
 
 class RulesKernelError(Exception):
     """Raised when the minimal rules kernel rejects an operation."""
@@ -51,6 +56,9 @@ def create_initial_match_state(runtime_package, deck_id_a, deck_id_b, match_id="
         _create_player_state("P1", deck_id_a, deck_a, card_instances),
         _create_player_state("P2", deck_id_b, deck_b, card_instances),
     ]
+    domain_topologies = {
+        player.player_id: create_player_domain_topology(player.player_id) for player in players
+    }
 
     return MatchState(
         match_id=match_id,
@@ -59,6 +67,7 @@ def create_initial_match_state(runtime_package, deck_id_a, deck_id_b, match_id="
         players=players,
         phase="main",
         card_instances=card_instances,
+        domain_topologies=domain_topologies,
         event_log=[],
     )
 

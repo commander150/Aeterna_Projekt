@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 
 
@@ -22,6 +23,7 @@ class MatchState:
     players: list
     phase: str
     card_instances: dict = field(default_factory=dict)
+    domain_topologies: dict = field(default_factory=dict)
     # 0 means the initial state before any accepted transition.
     state_version: int = 0
     event_log: list = field(default_factory=list)
@@ -46,6 +48,14 @@ class MatchState:
 
     def get_card_id(self, card_instance_id):
         return self.get_card_instance(card_instance_id).get("card_id")
+
+    def get_domain_topology(self, player_id):
+        self.get_player(player_id)
+        try:
+            topology = self.domain_topologies[player_id]
+        except (KeyError, TypeError) as exc:
+            raise MatchStateError("Missing Domain topology for player_id: %s" % player_id) from exc
+        return deepcopy(topology)
 
 
 class MatchStateError(Exception):
