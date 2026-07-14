@@ -11,6 +11,7 @@ RECORD_SCHEMA_VERSION = "minimal-card-instance-record-v1"
 OBJECT_REFERENCE_SCHEMA_VERSION = "minimal-object-reference-v0"
 SUPPORTED_ACTIVITY_STATES = ("active", "exhausted")
 ACTIVITY_NOT_APPLICABLE = None
+CANONICAL_HIDDEN_VISIBILITY = "owner_only"
 
 _REQUIRED_RECORD_FIELDS = (
     "schema_version",
@@ -103,8 +104,18 @@ def validate_card_instance_record(record):
         if not _is_non_empty_string(normalized.get(field_name)):
             errors.append(_error("FIELD_EMPTY", "field must be a non-empty string.", field=field_name))
 
+    zone = normalized.get("zone")
     zone_index = normalized.get("zone_index")
-    if zone_index is not None and not isinstance(zone_index, int):
+    if zone == "wellspring":
+        if not _is_non_negative_integer(zone_index):
+            errors.append(
+                _error(
+                    "ZONE_INDEX_INVALID",
+                    "Wellspring zone_index must be a non-negative integer.",
+                    actual=zone_index,
+                )
+            )
+    elif zone_index is not None and not isinstance(zone_index, int):
         errors.append(_error("ZONE_INDEX_INVALID", "zone_index must be an integer or null."))
 
     for field_name in ("created_sequence", "zone_sequence"):
@@ -124,7 +135,6 @@ def validate_card_instance_record(record):
             )
         )
 
-    zone = normalized.get("zone")
     if zone in {"deck", "hand", "discard"} and activity_state is not ACTIVITY_NOT_APPLICABLE:
         errors.append(
             _error(
@@ -134,13 +144,23 @@ def validate_card_instance_record(record):
                 activity_state=activity_state,
             )
         )
-    elif zone == "domain" and activity_state not in SUPPORTED_ACTIVITY_STATES:
+    elif zone in {"domain", "wellspring"} and activity_state not in SUPPORTED_ACTIVITY_STATES:
         errors.append(
             _error(
                 "ACTIVITY_STATE_ZONE_MISMATCH",
-                "Domain card instances must be active or exhausted.",
+                "Domain and Wellspring card instances must be active or exhausted.",
                 zone=zone,
                 activity_state=activity_state,
+            )
+        )
+
+    if zone == "wellspring" and normalized.get("visibility") != CANONICAL_HIDDEN_VISIBILITY:
+        errors.append(
+            _error(
+                "ZONE_VISIBILITY_MISMATCH",
+                "Wellspring card instances must use the canonical hidden visibility.",
+                expected=CANONICAL_HIDDEN_VISIBILITY,
+                actual=normalized.get("visibility"),
             )
         )
 
@@ -177,6 +197,10 @@ def _is_non_empty_string(value):
     return isinstance(value, str) and value.strip() != ""
 
 
+def _is_non_negative_integer(value):
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
 def _error(code, message, **details):
     error = {
         "code": code,
@@ -191,6 +215,7 @@ __all__ = [
     "OBJECT_REFERENCE_SCHEMA_VERSION",
     "SUPPORTED_ACTIVITY_STATES",
     "ACTIVITY_NOT_APPLICABLE",
+    "CANONICAL_HIDDEN_VISIBILITY",
     "create_card_instance_id",
     "create_card_instance_record",
     "validate_card_instance_record",
