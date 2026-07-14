@@ -56,7 +56,12 @@ class TestMinimalEngineSession(unittest.TestCase):
         self.assertEqual(player_snapshot["match_id"], state.match_id)
         self.assertEqual(player_snapshot["state_version"], 0)
         self.assertFalse(player_snapshot["metadata"]["debug_snapshot_source"])
-        self.assertEqual(player_snapshot["metadata"]["hidden_information_model"], "not_implemented")
+        self.assertEqual(player_snapshot["schema_version"], "engine-player-visible-snapshot-v1")
+        self.assertEqual(
+            player_snapshot["metadata"]["hidden_information_model"],
+            "minimal_visibility_projection_v0",
+        )
+        self.assertEqual(player_snapshot["metadata"]["player_visible_snapshot_model"], "stable_minimal_v1")
         self.assertNotIn("deck_id", player_snapshot["players"][0])
 
         legal_actions = session.list_legal_actions()
@@ -109,14 +114,20 @@ class TestMinimalEngineSession(unittest.TestCase):
         self.assertEqual(post_player_snapshot["state_version"], 1)
         self.assertEqual(post_player_snapshot["event_log_summary"]["event_count"], 1)
         self.assertEqual(post_player_snapshot["event_log_summary"]["last_event_sequence"], 1)
-        self.assertEqual(post_player_snapshot["metadata"]["hidden_information_model"], "not_implemented")
+        self.assertEqual(
+            post_player_snapshot["metadata"]["hidden_information_model"],
+            "minimal_visibility_projection_v0",
+        )
 
         report = session.export_smoke_report()
         json.dumps(report, ensure_ascii=False)
         self.assertEqual(report["report_type"], "minimal_engine_session")
         self.assertIn("not a final Python-runtime decision", report["runtime_decision_note"])
         self.assertEqual(report["player_snapshot_summary"]["snapshot_type"], "player_visible_snapshot")
-        self.assertEqual(report["player_snapshot_summary"]["hidden_information_model"], "not_implemented")
+        self.assertEqual(
+            report["player_snapshot_summary"]["hidden_information_model"],
+            "minimal_visibility_projection_v0",
+        )
         self.assertEqual(report["match"]["state_version"], 1)
         self.assertEqual(report["events"]["event_count"], 1)
         self.assertEqual(report["events"]["last_event_sequence"], 1)

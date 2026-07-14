@@ -66,9 +66,13 @@ class TestMinimalHandDeckInvariants(unittest.TestCase):
         self.assertTrue(player_snapshot["diagnostics_summary"]["hand_deck_invariants_ok"])
         self.assertGreater(debug_snapshot["players"][0]["zone_summary"]["deck_count"], 0)
         self.assertEqual(debug_snapshot["players"][0]["zone_summary"]["hand_count"], 0)
-        self.assertGreater(player_snapshot["players"][0]["zone_summary"]["deck_count"], 0)
-        self.assertEqual(player_snapshot["players"][0]["zone_summary"]["hand_count"], 0)
-        self.assertEqual(player_snapshot["metadata"]["hidden_information_model"], "not_implemented")
+        self.assertGreater(player_snapshot["players"][0]["zones"]["deck"]["count"], 0)
+        self.assertEqual(player_snapshot["players"][0]["zones"]["hand"]["count"], 0)
+        self.assertEqual(player_snapshot["players"][0]["zones"]["deck"]["objects"], [])
+        self.assertEqual(
+            player_snapshot["metadata"]["hidden_information_model"],
+            "minimal_visibility_projection_v0",
+        )
         self.assertTrue(debug_export["debug_snapshot"]["diagnostics_summary"]["hand_deck_invariants_ok"])
 
     def test_end_turn_keeps_hand_deck_invariants_and_action_space_minimal(self):

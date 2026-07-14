@@ -61,8 +61,11 @@ class TestMinimalDrawPreconditions(unittest.TestCase):
         self.assertTrue(player_snapshot["diagnostics_summary"]["draw_preconditions_ok"])
         self.assertTrue(debug_export["debug_snapshot"]["diagnostics_summary"]["draw_preconditions_ok"])
         self.assertEqual(debug_snapshot["players"][0]["zone_summary"]["draw_precondition"]["reason"], "ok")
-        self.assertEqual(player_snapshot["players"][0]["zone_summary"]["draw_precondition"]["reason"], "ok")
-        self.assertEqual(player_snapshot["metadata"]["hidden_information_model"], "not_implemented")
+        self.assertGreater(player_snapshot["players"][0]["zones"]["deck"]["count"], 0)
+        self.assertEqual(
+            player_snapshot["metadata"]["hidden_information_model"],
+            "minimal_visibility_projection_v0",
+        )
 
     def test_draw_precondition_does_not_create_draw_action(self):
         session = self.session_module.MinimalEngineSession(self.runtime_package)

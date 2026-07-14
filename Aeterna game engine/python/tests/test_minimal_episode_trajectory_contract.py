@@ -299,13 +299,21 @@ class TestMinimalEpisodeTrajectoryContract(unittest.TestCase):
                 self.assertIn("action_space", observation)
                 self.assertIn("enabled_action_count", observation["action_space"])
                 self.assertIn("disabled_action_count", observation["action_space"])
+                self.assertEqual(
+                    observation["player_snapshot"]["schema_version"],
+                    "engine-player-visible-snapshot-v1",
+                )
                 self.assertEqual(observation["player_snapshot"]["snapshot_type"], "player_visible_snapshot")
                 self.assertEqual(observation["player_snapshot"]["visibility_mode"], "player")
+                self.assertEqual(observation["player_snapshot"]["player_id"], observation["player_id"])
+                self.assertEqual(observation["player_snapshot"]["state_version"], observation["state_version"])
+                self.assertEqual(observation["action_space"]["player_id"], observation["player_id"])
                 self.assertEqual(len(observation["player_snapshot"]["players"]), 2)
                 for player in observation["player_snapshot"]["players"]:
                     self.assertIn("deck_count", player)
                     self.assertIn("hand_count", player)
                     self.assertIn("discard_count", player)
+                    self.assertEqual(player["zones"]["deck"]["objects"], [])
                 self.assertFalse(_contains_key(observation, "card_instances"))
                 self.assertFalse(_contains_key(observation, "deck_card_instance_ids"))
                 self.assertFalse(_contains_key(observation, "debug_snapshot"))

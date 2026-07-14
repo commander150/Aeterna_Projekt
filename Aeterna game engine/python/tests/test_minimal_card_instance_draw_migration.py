@@ -171,7 +171,7 @@ class TestMinimalCardInstanceDrawMigration(unittest.TestCase):
                 self.assertIn(expected_code, [error["code"] for error in errors])
                 self.assertFalse(session.get_debug_snapshot()["diagnostics_summary"]["hand_deck_invariants_ok"])
 
-    def test_snapshots_keep_instance_ids_private_and_counts_json_compatible(self):
+    def test_snapshots_expose_only_visible_instance_ids_and_counts(self):
         session = self._create_session("ENGINE-INSTANCE-SNAPSHOT-TEST-001")
         state = session.state
         p1 = state.get_player("P1")
@@ -193,6 +193,11 @@ class TestMinimalCardInstanceDrawMigration(unittest.TestCase):
         self.assertTrue(
             all(card_instance_id not in serialized_player_snapshot for card_instance_id in p2.deck_card_instance_ids)
         )
+        self.assertTrue(
+            all(card_instance_id not in serialized_player_snapshot for card_instance_id in p1.deck_card_instance_ids)
+        )
+        drawn_instance_id = p1.hand_card_instance_ids[0]
+        self.assertIn(drawn_instance_id, serialized_player_snapshot)
         self.assertEqual(player_snapshot["players"][0]["deck_count"], initial_p1_deck_count - 1)
         self.assertEqual(player_snapshot["players"][0]["hand_count"], 1)
         self.assertEqual(player_snapshot["players"][0]["discard_count"], 0)

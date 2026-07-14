@@ -3,10 +3,7 @@
 This is not the full rules engine and not a final Python-runtime decision. It
 wraps the existing minimal engine facade so callers have one small session
 object for match state, legal actions, action requests, diagnostics, event log,
-and debug snapshots.
-
-Player-visible snapshots are intentionally not implemented here. The current
-snapshot helper is debug-only and must not be treated as a player-facing view.
+debug snapshots, and player-visible projections.
 """
 
 from __future__ import annotations
@@ -17,6 +14,11 @@ try:
     import minimal_engine
 except ModuleNotFoundError:
     from . import minimal_engine
+
+try:
+    from player_visible_snapshot import validate_player_visible_snapshot
+except ModuleNotFoundError:
+    from .player_visible_snapshot import validate_player_visible_snapshot
 
 
 class MinimalEngineSession:
@@ -54,9 +56,18 @@ class MinimalEngineSession:
 
     def get_player_snapshot(self, player_id):
         state = self._require_state()
+        try:
+            state.get_player(player_id)
+        except Exception as exc:
+            raise MinimalEngineSessionError("Unknown player_id: %s" % player_id) from exc
         diagnostics = self.get_diagnostics()
         legal_actions = self.list_legal_actions(player_id)
-        return minimal_engine.create_player_visible_snapshot(state, player_id, legal_actions, diagnostics)
+        snapshot = minimal_engine.create_player_visible_snapshot(state, player_id, legal_actions, diagnostics)
+        validation = validate_player_visible_snapshot(snapshot)
+        if not validation.get("valid"):
+            codes = ", ".join(error.get("code", "unknown") for error in validation.get("errors", []))
+            raise MinimalEngineSessionError("Invalid player-visible snapshot: %s" % codes)
+        return deepcopy(snapshot)
 
     def get_draw_precondition(self, player_id):
         return minimal_engine.can_player_draw(self._require_state(), player_id)
@@ -180,7 +191,8 @@ class MinimalEngineSession:
                 "priority_model": "minimal",
                 "rules_scope": "minimal_end_turn_smoke",
                 "expected_state_version_supported": True,
-                "player_visible_snapshot_model": "stub",
+                "player_visible_snapshot_model": "stable_minimal_v1",
+                "hidden_information_model": "minimal_visibility_projection_v0",
                 "runtime_decision": "reference_smoke_backend_candidate",
             },
         }

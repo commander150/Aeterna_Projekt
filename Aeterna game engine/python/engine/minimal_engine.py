@@ -20,6 +20,11 @@ from action_request import create_action_request, resolve_action_request, valida
 from rules_kernel import create_initial_match_state, list_legal_actions  # noqa: E402
 from state_invariants import validate_state_invariants  # noqa: E402
 
+try:
+    from player_visible_snapshot import create_player_visible_snapshot as _create_player_visible_snapshot
+except ModuleNotFoundError:
+    from .player_visible_snapshot import create_player_visible_snapshot as _create_player_visible_snapshot
+
 
 def create_match(runtime_package, deck_id_a, deck_id_b, match_id="ENGINE-SMOKE-001"):
     return create_initial_match_state(runtime_package, deck_id_a, deck_id_b, match_id=match_id)
@@ -127,59 +132,13 @@ def create_debug_snapshot(state, legal_actions=None, diagnostics=None):
 
 
 def create_player_visible_snapshot(state, player_id, legal_actions=None, diagnostics=None):
-    actions = list(legal_actions or [])
-    invariant_errors = list(diagnostics or [])
-    return {
-        "schema_version": "engine-player-visible-snapshot-v0",
-        "contract_type": "engine_player_visible_snapshot",
-        "snapshot_type": "player_visible_snapshot",
-        "visibility_mode": "player",
-        "player_id": player_id,
-        "match_id": state.match_id,
-        "state_version": state.state_version,
-        "turn": state.turn_number,
-        "turn_number": state.turn_number,
-        "phase": state.phase,
-        "active_player_id": state.active_player_id,
-        "priority_player_id": state.active_player_id,
-        "players": [_player_visible_summary(player, player_id) for player in state.players],
-        "legal_action_summary": _legal_action_summary(actions, state.state_version),
-        "event_log_summary": _event_log_summary(state.event_log),
-        "diagnostics_summary": {
-            "invariant_errors": len(invariant_errors),
-            "blocking_errors": len(invariant_errors),
-            "warnings": 0,
-            "hand_deck_invariants_ok": _hand_deck_invariants_ok(invariant_errors),
-            "draw_preconditions_ok": _draw_preconditions_ok(state),
-        },
-        "metadata": {
-            "source": "python.engine.minimal_engine",
-            "rules_scope": "minimal_end_turn_smoke",
-            "runtime_decision": "reference_smoke_backend_candidate",
-            "hidden_information_model": "not_implemented",
-            "debug_snapshot_source": False,
-            "card_instance_model": "minimal_registry_v0",
-            "card_id_overlap_guard": False,
-        },
-    }
+    return _create_player_visible_snapshot(state, player_id, legal_actions, diagnostics)
 
 
 def _player_debug_summary(player):
     return {
         "player_id": player.player_id,
         "deck_id": player.deck_id,
-        "deck_count": len(player.deck_card_instance_ids),
-        "hand_count": len(player.hand_card_instance_ids),
-        "discard_count": len(player.discard_card_instance_ids),
-        "zone_summary": _player_zone_summary(player),
-    }
-
-
-def _player_visible_summary(player, viewer_player_id):
-    is_viewer = player.player_id == viewer_player_id
-    return {
-        "player_id": player.player_id,
-        "is_viewer": is_viewer,
         "deck_count": len(player.deck_card_instance_ids),
         "hand_count": len(player.hand_card_instance_ids),
         "discard_count": len(player.discard_card_instance_ids),

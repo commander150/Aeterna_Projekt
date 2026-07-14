@@ -56,6 +56,13 @@ class TestMinimalAIVsAIEpisodeCommand(unittest.TestCase):
         self.assertTrue(episode["trajectory_validation"]["valid"])
         self.assertTrue(all(step["contract_type"] == "minimal_episode_step" for step in episode["trajectory"]))
         self.assertIn("draw_card", [step["selected_action_type"] for step in episode["trajectory"]])
+        for observation in (episode["initial_observation"], episode["final_observation"]):
+            self.assertEqual(
+                observation["player_snapshot"]["schema_version"],
+                "engine-player-visible-snapshot-v1",
+            )
+            self.assertEqual(observation["player_snapshot"]["player_id"], observation["player_id"])
+            self.assertNotIn("debug_snapshot", observation)
 
     def test_text_mode_prints_short_summary(self):
         stdout = io.StringIO()

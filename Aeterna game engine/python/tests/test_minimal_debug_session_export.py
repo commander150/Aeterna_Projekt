@@ -44,6 +44,14 @@ class TestMinimalDebugSessionExport(unittest.TestCase):
         self.assertEqual(exported["debug_snapshot"]["snapshot_type"], "debug_snapshot")
         self.assertEqual(exported["action_space"]["contract_type"], "legal_action_space")
         self.assertEqual(exported["transition_summary"]["contract_type"], "transition_summary")
+        self.assertEqual(
+            exported["engine_context_summary"]["metadata"]["player_visible_snapshot_model"],
+            "stable_minimal_v1",
+        )
+        self.assertEqual(
+            exported["engine_context_summary"]["metadata"]["hidden_information_model"],
+            "minimal_visibility_projection_v0",
+        )
         self.assertIsNone(exported["last_action_response"])
         self.assertEqual(exported["transition_summary"]["response_count"], 0)
         self.assertEqual(exported["transition_summary"]["event_count"], 0)

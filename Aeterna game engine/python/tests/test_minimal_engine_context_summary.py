@@ -58,7 +58,11 @@ class TestMinimalEngineContextSummary(unittest.TestCase):
         self.assertEqual(roundtrip["disabled_action_count"], 0)
         self.assertTrue(roundtrip["metadata"]["expected_state_version_supported"])
         self.assertEqual(roundtrip["metadata"]["context_model"], "minimal")
-        self.assertEqual(roundtrip["metadata"]["player_visible_snapshot_model"], "stub")
+        self.assertEqual(roundtrip["metadata"]["player_visible_snapshot_model"], "stable_minimal_v1")
+        self.assertEqual(
+            roundtrip["metadata"]["hidden_information_model"],
+            "minimal_visibility_projection_v0",
+        )
 
     def test_context_summary_read_is_read_only(self):
         session = self.session_module.MinimalEngineSession(self.runtime_package)
