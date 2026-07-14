@@ -614,14 +614,22 @@ def _validate_player_zones(player, card_instances, zone_occurrences):
                         actual_zone_index=card_instance.get("zone_index"),
                     )
                 )
-            if card_instance.get("owner_player_id") != player_id:
+            authority_field = "controller_player_id" if zone_name == "hand" else "owner_player_id"
+            if card_instance.get(authority_field) != player_id:
+                code = (
+                    "CARD_INSTANCE_CONTROLLER_MISMATCH"
+                    if zone_name == "hand"
+                    else "CARD_INSTANCE_OWNER_MISMATCH"
+                )
                 errors.append(
                     _error(
-                        "CARD_INSTANCE_OWNER_MISMATCH",
-                        "minimal player zone must contain an instance owned by that player.",
+                        code,
+                        "minimal player zone authority must match the containing player.",
                         player_id=player_id,
+                        zone=zone_name,
                         card_instance_id=card_instance_id,
                         owner_player_id=card_instance.get("owner_player_id"),
+                        controller_player_id=card_instance.get("controller_player_id"),
                     )
                 )
     return errors
