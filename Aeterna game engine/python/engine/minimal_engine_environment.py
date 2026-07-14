@@ -14,6 +14,19 @@ try:
 except ModuleNotFoundError:
     from .minimal_engine_session import MinimalEngineSession
 
+try:
+    from episode_trajectory import (
+        create_episode_step_record,
+        validate_episode_step_record,
+        validate_episode_trajectory,
+    )
+except ModuleNotFoundError:
+    from .episode_trajectory import (
+        create_episode_step_record,
+        validate_episode_step_record,
+        validate_episode_trajectory,
+    )
+
 
 class DeterministicMinimalBotPolicy:
     """Choose from the legal action-space contract without mutating state."""
@@ -50,6 +63,7 @@ class MinimalEngineEnvironment:
         state = self.session._require_state()
         player_id = player_id or state.active_player_id
         diagnostics = self.session.get_diagnostics()
+        player_snapshot = self.session.get_player_snapshot(player_id)
         return deepcopy(
             {
                 "schema_version": "minimal-engine-observation-v0",
@@ -61,6 +75,7 @@ class MinimalEngineEnvironment:
                 "phase": state.phase,
                 "active_player_id": state.active_player_id,
                 "priority_player_id": state.active_player_id,
+                "player_snapshot": player_snapshot,
                 "action_space": self.get_action_space(player_id),
                 "transition_summary": self.session.get_transition_summary(),
                 "engine_context_summary": self.session.get_engine_context_summary(player_id),
@@ -95,16 +110,32 @@ class MinimalEngineEnvironment:
         for step_index in range(max_steps):
             state = self.session._require_state()
             player_id = state.active_player_id
-            observation = self.get_observation(player_id)
+            observation_before = self.get_observation(player_id)
             policy = agents.get(player_id) or DeterministicMinimalBotPolicy()
-            action = policy.choose_action(observation)
+            action = policy.choose_action(observation_before)
             if action is None:
                 stop_reason = "no_enabled_action"
                 break
 
             request = self.session.build_action_request(action, player_id=player_id)
             response = self.step(request)
-            trajectory.append(_trajectory_entry(step_index, player_id, action, response))
+            observation_after = self.get_observation()
+            step_record = create_episode_step_record(
+                step_index=step_index,
+                acting_player_id=player_id,
+                observation_before=observation_before,
+                selected_action=action,
+                action_request=request,
+                action_response=response,
+                observation_after=observation_after,
+            )
+            step_validation = validate_episode_step_record(step_record)
+            if not step_validation.get("valid"):
+                codes = [error.get("code", "unknown") for error in step_validation.get("errors", [])]
+                raise MinimalEngineEnvironmentError(
+                    "Invalid canonical episode step %s: %s" % (step_index, ", ".join(codes))
+                )
+            trajectory.append(step_record)
             if response.get("accepted") is not True:
                 stop_reason = response.get("reason") or "action_rejected"
                 break
@@ -113,9 +144,15 @@ class MinimalEngineEnvironment:
 
         final_observation = self.get_observation()
         diagnostics = self.session.get_diagnostics()
+        trajectory_validation = validate_episode_trajectory(trajectory)
+        if not trajectory_validation.get("valid"):
+            codes = [error.get("code", "unknown") for error in trajectory_validation.get("errors", [])]
+            raise MinimalEngineEnvironmentError(
+                "Invalid canonical episode trajectory: %s" % ", ".join(codes)
+            )
         return deepcopy(
             {
-                "schema_version": "minimal-ai-vs-ai-episode-v0",
+                "schema_version": "minimal-ai-vs-ai-episode-v1",
                 "contract_type": "minimal_ai_vs_ai_episode",
                 "match_id": final_observation["match_id"],
                 "max_steps": max_steps,
@@ -124,6 +161,7 @@ class MinimalEngineEnvironment:
                 "initial_observation": initial_observation,
                 "final_observation": final_observation,
                 "trajectory": trajectory,
+                "trajectory_validation": trajectory_validation,
                 "transition_summary": self.session.get_transition_summary(),
                 "diagnostics_summary": {
                     "count": len(diagnostics),
@@ -134,7 +172,9 @@ class MinimalEngineEnvironment:
                     "source": "python.engine.minimal_engine_environment",
                     "rules_scope": "minimal_draw_end_turn_smoke",
                     "runtime_decision": "not_final",
+                    "trajectory_model": "full_transition_v0",
                     "replay_support": "not_implemented",
+                    "replay_ready": False,
                 },
             }
         )
@@ -142,18 +182,3 @@ class MinimalEngineEnvironment:
 
 class MinimalEngineEnvironmentError(Exception):
     """Raised when the minimal environment cannot run an episode."""
-
-
-def _trajectory_entry(step_index, player_id, action, response):
-    return {
-        "step_index": step_index,
-        "player_id": player_id,
-        "selected_action_type": action.get("action_type"),
-        "selected_action_id": action.get("action_id"),
-        "response_accepted": response.get("accepted"),
-        "response_success": response.get("success"),
-        "response_reason": response.get("reason"),
-        "state_version_before": response.get("state_version_before"),
-        "state_version_after": response.get("state_version_after"),
-        "new_event_sequences": list(response.get("new_event_sequences") or []),
-    }

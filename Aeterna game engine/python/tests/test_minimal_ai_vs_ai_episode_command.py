@@ -48,10 +48,13 @@ class TestMinimalAIVsAIEpisodeCommand(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(stderr.getvalue(), "")
         episode = json.loads(stdout.getvalue())
+        self.assertEqual(episode["schema_version"], "minimal-ai-vs-ai-episode-v1")
         self.assertEqual(episode["contract_type"], "minimal_ai_vs_ai_episode")
         self.assertEqual(episode["max_steps"], 3)
         self.assertLessEqual(episode["steps_run"], 3)
         self.assertGreater(len(episode["trajectory"]), 0)
+        self.assertTrue(episode["trajectory_validation"]["valid"])
+        self.assertTrue(all(step["contract_type"] == "minimal_episode_step" for step in episode["trajectory"]))
         self.assertIn("draw_card", [step["selected_action_type"] for step in episode["trajectory"]])
 
     def test_text_mode_prints_short_summary(self):

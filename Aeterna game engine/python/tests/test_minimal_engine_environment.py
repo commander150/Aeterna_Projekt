@@ -41,6 +41,8 @@ class TestMinimalEngineEnvironment(unittest.TestCase):
         self.assertEqual(observation["match_id"], "MINIMAL-ENV-RESET-TEST-001")
         self.assertEqual(observation["player_id"], "P1")
         self.assertEqual(observation["state_version"], 0)
+        self.assertEqual(observation["player_snapshot"]["snapshot_type"], "player_visible_snapshot")
+        self.assertEqual(len(observation["player_snapshot"]["players"]), 2)
         self.assertEqual(observation["transition_summary"]["response_count"], 0)
         action_types = [action["action_type"] for action in observation["action_space"]["actions"]]
         self.assertEqual(action_types, ["end_turn", "draw_card"])
@@ -75,19 +77,28 @@ class TestMinimalEngineEnvironment(unittest.TestCase):
         episode = environment.run_episode(max_steps=4, match_id="MINIMAL-ENV-EPISODE-TEST-001")
 
         json.dumps(episode, ensure_ascii=False)
+        self.assertEqual(episode["schema_version"], "minimal-ai-vs-ai-episode-v1")
         self.assertEqual(episode["contract_type"], "minimal_ai_vs_ai_episode")
         self.assertEqual(episode["match_id"], "MINIMAL-ENV-EPISODE-TEST-001")
         self.assertEqual(episode["max_steps"], 4)
         self.assertLessEqual(episode["steps_run"], 4)
         self.assertGreater(len(episode["trajectory"]), 0)
         self.assertEqual(episode["steps_run"], len(episode["trajectory"]))
+        self.assertTrue(episode["trajectory_validation"]["valid"])
+        self.assertEqual(episode["trajectory_validation"]["errors"], [])
+        self.assertTrue(all(step["contract_type"] == "minimal_episode_step" for step in episode["trajectory"]))
+        self.assertTrue(all("observation_before" in step for step in episode["trajectory"]))
+        self.assertTrue(all("observation_after" in step for step in episode["trajectory"]))
+        self.assertTrue(all(step["new_events"] == step["action_response"]["events"] for step in episode["trajectory"]))
         self.assertIn("draw_card", [step["selected_action_type"] for step in episode["trajectory"]])
         self.assertTrue(
             set(step["selected_action_type"] for step in episode["trajectory"]).issubset({"draw_card", "end_turn"})
         )
         self.assertEqual(episode["transition_summary"]["response_count"], episode["steps_run"])
         self.assertEqual(episode["diagnostics_summary"]["count"], 0)
+        self.assertEqual(episode["metadata"]["trajectory_model"], "full_transition_v0")
         self.assertEqual(episode["metadata"]["replay_support"], "not_implemented")
+        self.assertFalse(episode["metadata"]["replay_ready"])
 
 
 if __name__ == "__main__":
