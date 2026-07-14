@@ -58,7 +58,8 @@ class TestMinimalEngineContextSummary(unittest.TestCase):
         self.assertEqual(roundtrip["disabled_action_count"], 0)
         self.assertTrue(roundtrip["metadata"]["expected_state_version_supported"])
         self.assertEqual(roundtrip["metadata"]["context_model"], "minimal")
-        self.assertEqual(roundtrip["metadata"]["player_visible_snapshot_model"], "stable_minimal_v1")
+        self.assertEqual(roundtrip["metadata"]["player_visible_snapshot_model"], "stable_minimal_v2")
+        self.assertEqual(roundtrip["metadata"]["board_model"], "minimal-public-domain-board-v0")
         self.assertEqual(
             roundtrip["metadata"]["hidden_information_model"],
             "minimal_visibility_projection_v0",

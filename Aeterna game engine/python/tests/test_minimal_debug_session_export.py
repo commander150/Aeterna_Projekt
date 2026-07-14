@@ -46,7 +46,11 @@ class TestMinimalDebugSessionExport(unittest.TestCase):
         self.assertEqual(exported["transition_summary"]["contract_type"], "transition_summary")
         self.assertEqual(
             exported["engine_context_summary"]["metadata"]["player_visible_snapshot_model"],
-            "stable_minimal_v1",
+            "stable_minimal_v2",
+        )
+        self.assertEqual(
+            exported["engine_context_summary"]["metadata"]["board_model"],
+            "minimal-public-domain-board-v0",
         )
         self.assertEqual(
             exported["engine_context_summary"]["metadata"]["hidden_information_model"],

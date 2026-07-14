@@ -59,7 +59,7 @@ class TestMinimalAIVsAIEpisodeCommand(unittest.TestCase):
         for observation in (episode["initial_observation"], episode["final_observation"]):
             self.assertEqual(
                 observation["player_snapshot"]["schema_version"],
-                "engine-player-visible-snapshot-v1",
+                "engine-player-visible-snapshot-v2",
             )
             self.assertEqual(observation["player_snapshot"]["player_id"], observation["player_id"])
             self.assertNotIn("debug_snapshot", observation)

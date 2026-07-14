@@ -41,7 +41,7 @@ class TestMinimalPlayerVisibleSnapshotContract(unittest.TestCase):
         self_projection = _player(snapshot, "P1")
         opponent_projection = _player(snapshot, "P2")
 
-        self.assertEqual(snapshot["schema_version"], "engine-player-visible-snapshot-v1")
+        self.assertEqual(snapshot["schema_version"], "engine-player-visible-snapshot-v2")
         self.assertEqual(snapshot["contract_type"], "engine_player_visible_snapshot")
         self.assertEqual(snapshot["snapshot_type"], "player_visible_snapshot")
         self.assertEqual(snapshot["visibility_mode"], "player")
@@ -53,9 +53,10 @@ class TestMinimalPlayerVisibleSnapshotContract(unittest.TestCase):
                 "own_hand": "owner_visible",
                 "opponent_hand": "count_only",
                 "discard": "public",
-                "board": "not_implemented",
+                "board": "public",
             },
         )
+        self.assertEqual(snapshot["board"]["board_model"], "minimal-public-domain-board-v0")
         self.assertEqual([player["relation"] for player in snapshot["players"]], ["self", "opponent"])
         self.assertEqual(sum(player["is_viewer"] for player in snapshot["players"]), 1)
 

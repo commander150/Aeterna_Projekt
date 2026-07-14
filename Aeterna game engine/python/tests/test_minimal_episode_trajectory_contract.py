@@ -301,7 +301,7 @@ class TestMinimalEpisodeTrajectoryContract(unittest.TestCase):
                 self.assertIn("disabled_action_count", observation["action_space"])
                 self.assertEqual(
                     observation["player_snapshot"]["schema_version"],
-                    "engine-player-visible-snapshot-v1",
+                    "engine-player-visible-snapshot-v2",
                 )
                 self.assertEqual(observation["player_snapshot"]["snapshot_type"], "player_visible_snapshot")
                 self.assertEqual(observation["player_snapshot"]["visibility_mode"], "player")

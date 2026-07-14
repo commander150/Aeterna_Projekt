@@ -13,8 +13,21 @@ try:
 except ModuleNotFoundError:
     from .card_instance import card_instance_to_object_reference
 
+try:
+    from domain_board_projection import (
+        DOMAIN_BOARD_MODEL,
+        create_player_visible_domain_board,
+        validate_player_visible_domain_board,
+    )
+except ModuleNotFoundError:
+    from .domain_board_projection import (
+        DOMAIN_BOARD_MODEL,
+        create_player_visible_domain_board,
+        validate_player_visible_domain_board,
+    )
 
-PLAYER_VISIBLE_SNAPSHOT_SCHEMA_VERSION = "engine-player-visible-snapshot-v1"
+
+PLAYER_VISIBLE_SNAPSHOT_SCHEMA_VERSION = "engine-player-visible-snapshot-v2"
 
 VISIBILITY_POLICY = {
     "model": "minimal_visibility_projection_v0",
@@ -22,7 +35,7 @@ VISIBILITY_POLICY = {
     "own_hand": "owner_visible",
     "opponent_hand": "count_only",
     "discard": "public",
-    "board": "not_implemented",
+    "board": "public",
 }
 
 _REQUIRED_METADATA_VALUES = {
@@ -30,10 +43,10 @@ _REQUIRED_METADATA_VALUES = {
     "rules_scope": "minimal_draw_end_turn_smoke",
     "runtime_decision": "reference_smoke_backend_candidate",
     "hidden_information_model": "minimal_visibility_projection_v0",
-    "player_visible_snapshot_model": "stable_minimal_v1",
+    "player_visible_snapshot_model": "stable_minimal_v2",
     "debug_snapshot_source": False,
     "card_instance_model": "minimal_registry_v0",
-    "board_model": "not_implemented",
+    "board_model": DOMAIN_BOARD_MODEL,
 }
 
 _REQUIRED_SNAPSHOT_FIELDS = (
@@ -50,6 +63,7 @@ _REQUIRED_SNAPSHOT_FIELDS = (
     "active_player_id",
     "priority_player_id",
     "players",
+    "board",
     "visibility_policy",
     "legal_action_summary",
     "event_log_summary",
@@ -89,6 +103,13 @@ def create_player_visible_snapshot(state, player_id, legal_actions=None, diagnos
 
     actions = list(legal_actions or [])
     invariant_errors = list(diagnostics or [])
+    board = create_player_visible_domain_board(state)
+    board_validation = validate_player_visible_domain_board(board)
+    if not board_validation.get("valid"):
+        codes = ", ".join(
+            error.get("code", "unknown") for error in board_validation.get("errors", [])
+        )
+        raise PlayerVisibleSnapshotError("Invalid player-visible Domain board: %s" % codes)
     snapshot = {
         "schema_version": PLAYER_VISIBLE_SNAPSHOT_SCHEMA_VERSION,
         "contract_type": "engine_player_visible_snapshot",
@@ -103,6 +124,7 @@ def create_player_visible_snapshot(state, player_id, legal_actions=None, diagnos
         "active_player_id": state.active_player_id,
         "priority_player_id": state.active_player_id,
         "players": [_project_player(state, player, player_id) for player in state.players],
+        "board": board,
         "visibility_policy": deepcopy(VISIBILITY_POLICY),
         "legal_action_summary": _legal_action_summary(actions, state.state_version),
         "event_log_summary": _event_log_summary(state.event_log),
@@ -118,13 +140,17 @@ def create_player_visible_snapshot(state, player_id, legal_actions=None, diagnos
             "rules_scope": "minimal_draw_end_turn_smoke",
             "runtime_decision": "reference_smoke_backend_candidate",
             "hidden_information_model": "minimal_visibility_projection_v0",
-            "player_visible_snapshot_model": "stable_minimal_v1",
+            "player_visible_snapshot_model": "stable_minimal_v2",
             "debug_snapshot_source": False,
             "card_instance_model": "minimal_registry_v0",
-            "board_model": "not_implemented",
+            "board_model": DOMAIN_BOARD_MODEL,
             "card_id_overlap_guard": False,
         },
     }
+    validation = validate_player_visible_snapshot(snapshot)
+    if not validation.get("valid"):
+        codes = ", ".join(error.get("code", "unknown") for error in validation.get("errors", []))
+        raise PlayerVisibleSnapshotError("Generated player-visible snapshot is invalid: %s" % codes)
     return deepcopy(snapshot)
 
 
@@ -269,6 +295,32 @@ def validate_player_visible_snapshot(snapshot):
         errors.append(_error("PLAYER_RELATION_INVALID", "exactly one self and one opponent are required."))
     if len(self_player_ids) != 1 or self_player_ids[0] != viewer_player_id:
         errors.append(_error("VIEWER_PLAYER_INVALID", "viewer player_id must match the self projection."))
+
+    board = normalized.get("board")
+    board_validation = validate_player_visible_domain_board(board)
+    if not board_validation.get("valid"):
+        errors.append(
+            _error(
+                "BOARD_PROJECTION_INVALID",
+                "board failed the player-visible Domain board contract.",
+                board_errors=deepcopy(board_validation.get("errors", [])),
+            )
+        )
+    board_players = board.get("players") if isinstance(board, dict) else None
+    board_player_ids = {
+        player.get("player_id")
+        for player in board_players or []
+        if isinstance(player, dict) and _is_non_empty_string(player.get("player_id"))
+    }
+    if set(player_ids) != board_player_ids:
+        errors.append(
+            _error(
+                "BOARD_PLAYER_SET_MISMATCH",
+                "board and snapshot player projections must use the same player IDs.",
+                snapshot_player_ids=sorted(set(player_ids)),
+                board_player_ids=sorted(board_player_ids),
+            )
+        )
 
     return {"valid": len(errors) == 0, "errors": errors}
 

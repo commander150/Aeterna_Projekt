@@ -376,7 +376,7 @@ class TestMinimalMatchStateDomainOccupancy(unittest.TestCase):
         self.assertNestedOccupancyCode(seal_slot, "SEAL_SLOT_UNEXPECTED")
         self.assertNestedOccupancyCode(missing_slot, "POSITION_SET_MISMATCH")
 
-    def test_j_current_snapshots_and_trajectory_do_not_export_occupancy(self):
+    def test_j_player_snapshots_project_public_board_without_internal_occupancy(self):
         session = self._create_session("DOMAIN-OCCUPANCY-PROJECTION-001")
         player_snapshot = session.get_player_snapshot("P1")
         debug_snapshot = session.get_debug_snapshot()
@@ -391,12 +391,13 @@ class TestMinimalMatchStateDomainOccupancy(unittest.TestCase):
         )
         episode = environment.run_episode(max_steps=2, match_id="DOMAIN-OCCUPANCY-TRAJECTORY-001")
 
-        # J76-J82: no occupancy state, occupant ID, or Domain position crosses current projections.
+        # J76-J82: only the public board projection crosses player-facing boundaries.
         self.assertFalse(_contains_key(player_snapshot, "domain_occupancies"))
         self.assertFalse(_contains_key(player_snapshot, "occupant_card_instance_id"))
         serialized_snapshot = json.dumps(player_snapshot, ensure_ascii=False)
         for slot in session.state.domain_occupancies["P1"]["slots"]:
-            self.assertNotIn(slot["position_id"], serialized_snapshot)
+            self.assertIn(slot["position_id"], serialized_snapshot)
+        self.assertTrue(_contains_contract_type(observation, "player_visible_domain_board"))
         self.assertFalse(_contains_contract_type(observation, "player_domain_occupancy"))
         self.assertFalse(_contains_contract_type(action_response, "player_domain_occupancy"))
         self.assertFalse(_contains_key(episode["trajectory"], "domain_occupancies"))

@@ -41,7 +41,7 @@ class TestMinimalEngineEnvironment(unittest.TestCase):
         self.assertEqual(observation["match_id"], "MINIMAL-ENV-RESET-TEST-001")
         self.assertEqual(observation["player_id"], "P1")
         self.assertEqual(observation["state_version"], 0)
-        self.assertEqual(observation["player_snapshot"]["schema_version"], "engine-player-visible-snapshot-v1")
+        self.assertEqual(observation["player_snapshot"]["schema_version"], "engine-player-visible-snapshot-v2")
         self.assertEqual(observation["player_snapshot"]["snapshot_type"], "player_visible_snapshot")
         self.assertEqual(len(observation["player_snapshot"]["players"]), 2)
         self.assertEqual(observation["player_snapshot"]["player_id"], observation["player_id"])

@@ -149,7 +149,7 @@ class TestMinimalMatchStateDomainTopology(unittest.TestCase):
         self.assertEqual([event["event_sequence"] for event in state.event_log], [1, 2, 3, 4, 5])
         self.assertEqual(session.get_diagnostics(), [])
 
-    def test_d_snapshots_observations_and_trajectory_do_not_export_topology(self):
+    def test_d_player_snapshots_project_positions_without_exporting_topology_contract(self):
         session = self.session_module.MinimalEngineSession(self.runtime_package)
         session.create_match(
             deck_id_a=self.deck_id_a,
@@ -166,9 +166,10 @@ class TestMinimalMatchStateDomainTopology(unittest.TestCase):
         )
         episode = environment.run_episode(max_steps=2, match_id="DOMAIN-TRAJECTORY-BOUNDARY-001")
 
-        # D28-D32: no full topology or position IDs cross current projection boundaries.
+        # D28-D32: public position IDs cross only through the dedicated board projection.
         self.assertFalse(_contains_key(player_snapshot, "domain_topologies"))
-        self.assertFalse(_contains_key(player_snapshot, "position_id"))
+        self.assertTrue(_contains_key(player_snapshot["board"], "position_id"))
+        self.assertTrue(_contains_contract_type(observation, "player_visible_domain_board"))
         self.assertFalse(_contains_contract_type(observation, "player_domain_topology"))
         self.assertFalse(_contains_key(episode["trajectory"], "domain_topologies"))
         self.assertFalse(_contains_contract_type(debug_snapshot, "player_domain_topology"))
