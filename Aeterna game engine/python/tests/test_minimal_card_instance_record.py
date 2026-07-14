@@ -59,7 +59,7 @@ class TestMinimalCardInstanceRecord(unittest.TestCase):
     def test_create_card_instance_record_contains_required_fields(self):
         record = _sample_record(self.card_instance)
 
-        self.assertEqual(record["schema_version"], "minimal-card-instance-record-v0")
+        self.assertEqual(record["schema_version"], "minimal-card-instance-record-v1")
         self.assertEqual(record["contract_type"], "card_instance_record")
         self.assertEqual(record["card_instance_id"], "ci_P1_0001")
         self.assertEqual(record["card_id"], "IGN-HAM-001")
@@ -70,6 +70,7 @@ class TestMinimalCardInstanceRecord(unittest.TestCase):
         self.assertEqual(record["visibility"], "owner_only")
         self.assertEqual(record["created_sequence"], 1)
         self.assertEqual(record["zone_sequence"], 1)
+        self.assertIsNone(record["activity_state"])
         self.assertEqual(record["metadata"]["source"], "unit_test")
 
     def test_record_is_json_compatible(self):
@@ -128,6 +129,7 @@ class TestMinimalCardInstanceRecord(unittest.TestCase):
         self.assertEqual(roundtrip["zone_sequence"], 1)
         self.assertEqual(roundtrip["controller_player_id"], "P1")
         self.assertEqual(roundtrip["visibility"], "owner_only")
+        self.assertNotIn("activity_state", roundtrip)
 
     def test_helper_import_does_not_touch_session_state(self):
         session_module = _load_module("minimal_engine_session", SESSION_PATH)

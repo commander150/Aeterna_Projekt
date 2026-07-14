@@ -555,6 +555,7 @@ class TestMinimalEntityDomainPlacementOptions(unittest.TestCase):
         record["zone_index"] = None
         record["visibility"] = "public"
         record["controller_player_id"] = player_id
+        record["activity_state"] = "active"
         record["zone_sequence"] += 1
         slot = state.domain_occupancies[player_id]["slots"][slot_index]
         slot["occupancy_state"] = "occupied"

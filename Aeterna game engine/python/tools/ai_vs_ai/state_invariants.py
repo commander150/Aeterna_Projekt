@@ -8,9 +8,9 @@ do not exist yet.
 from __future__ import annotations
 
 try:
-    from card_instance import validate_card_instance_record
+    from card_instance import SUPPORTED_ACTIVITY_STATES, validate_card_instance_record
 except ModuleNotFoundError:
-    from engine.card_instance import validate_card_instance_record
+    from engine.card_instance import SUPPORTED_ACTIVITY_STATES, validate_card_instance_record
 
 try:
     from zone_move import validate_zone_move_record
@@ -463,6 +463,19 @@ def _validate_domain_occupancies(state, player_ids, card_instances, zone_occurre
                     )
                 )
 
+            activity_state = card_instance.get("activity_state")
+            if activity_state not in SUPPORTED_ACTIVITY_STATES:
+                errors.append(
+                    _error(
+                        "DOMAIN_OCCUPANT_ACTIVITY_STATE_INVALID",
+                        "occupied Domain card instance must be active or exhausted.",
+                        player_id=player_id,
+                        position_id=position_id,
+                        card_instance_id=card_instance_id,
+                        activity_state=activity_state,
+                    )
+                )
+
             controller_player_id = card_instance.get("controller_player_id")
             if controller_player_id not in expected_player_ids:
                 errors.append(
@@ -614,6 +627,17 @@ def _validate_player_zones(player, card_instances, zone_occurrences):
                         actual_zone_index=card_instance.get("zone_index"),
                     )
                 )
+            if card_instance.get("activity_state") is not None:
+                errors.append(
+                    _error(
+                        "CARD_INSTANCE_ACTIVITY_ZONE_MISMATCH",
+                        "deck, hand, and discard membership requires null activity_state.",
+                        player_id=player_id,
+                        zone=zone_name,
+                        card_instance_id=card_instance_id,
+                        activity_state=card_instance.get("activity_state"),
+                    )
+                )
             authority_field = "controller_player_id" if zone_name == "hand" else "owner_player_id"
             if card_instance.get(authority_field) != player_id:
                 code = (
@@ -671,6 +695,38 @@ def _validate_card_instance_registry(card_instances, player_ids, runtime_package
                     "card instance record failed contract validation.",
                     card_instance_id=registry_key,
                     record_errors=record_validation.get("errors", []),
+                )
+            )
+
+        activity_state = card_instance.get("activity_state")
+        zone = card_instance.get("zone")
+        if activity_state is not None and activity_state not in SUPPORTED_ACTIVITY_STATES:
+            errors.append(
+                _error(
+                    "CARD_INSTANCE_ACTIVITY_STATE_INVALID",
+                    "card instance activity_state must be null, active, or exhausted.",
+                    card_instance_id=registry_key,
+                    activity_state=activity_state,
+                )
+            )
+        if zone == "domain" and activity_state not in SUPPORTED_ACTIVITY_STATES:
+            errors.append(
+                _error(
+                    "CARD_INSTANCE_ACTIVITY_ZONE_MISMATCH",
+                    "Domain card instance must be active or exhausted.",
+                    card_instance_id=registry_key,
+                    zone=zone,
+                    activity_state=activity_state,
+                )
+            )
+        elif zone in {"deck", "hand", "discard"} and activity_state is not None:
+            errors.append(
+                _error(
+                    "CARD_INSTANCE_ACTIVITY_ZONE_MISMATCH",
+                    "deck, hand, and discard card instances must have null activity_state.",
+                    card_instance_id=registry_key,
+                    zone=zone,
+                    activity_state=activity_state,
                 )
             )
 

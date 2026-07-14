@@ -513,6 +513,7 @@ class TestMinimalMatchStateDomainOccupancy(unittest.TestCase):
         record["zone_index"] = None
         record["visibility"] = "public"
         record["controller_player_id"] = controller_player_id or occupancy_player_id
+        record["activity_state"] = "active"
         record["zone_sequence"] += 1
         self._set_slot_occupied(state, occupancy_player_id, slot_index, card_instance_id)
         return card_instance_id
@@ -524,6 +525,7 @@ class TestMinimalMatchStateDomainOccupancy(unittest.TestCase):
         record["zone_index"] = None
         record["visibility"] = "public"
         record["controller_player_id"] = controller_player_id
+        record["activity_state"] = "active"
         record["zone_sequence"] += 1
 
     def _bind_without_list_removal(self, state, player_id, slot_index, card_instance_id):
@@ -532,6 +534,7 @@ class TestMinimalMatchStateDomainOccupancy(unittest.TestCase):
         record["zone_index"] = None
         record["visibility"] = "public"
         record["controller_player_id"] = player_id
+        record["activity_state"] = "active"
         record["zone_sequence"] += 1
         self._set_slot_occupied(state, player_id, slot_index, card_instance_id)
 

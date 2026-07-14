@@ -1,15 +1,16 @@
 """Minimal card instance record helpers.
 
-This module is a small contract helper for the future Card_ID /
-card_instance_id split. It does not mutate MatchState, does not touch zones,
-and is not wired into draw_card yet.
+This module owns the internal card instance record contract. It does not
+mutate MatchState or implement gameplay transitions.
 """
 
 from __future__ import annotations
 
 
-RECORD_SCHEMA_VERSION = "minimal-card-instance-record-v0"
+RECORD_SCHEMA_VERSION = "minimal-card-instance-record-v1"
 OBJECT_REFERENCE_SCHEMA_VERSION = "minimal-object-reference-v0"
+SUPPORTED_ACTIVITY_STATES = ("active", "exhausted")
+ACTIVITY_NOT_APPLICABLE = None
 
 _REQUIRED_RECORD_FIELDS = (
     "schema_version",
@@ -23,6 +24,7 @@ _REQUIRED_RECORD_FIELDS = (
     "visibility",
     "created_sequence",
     "zone_sequence",
+    "activity_state",
     "metadata",
 )
 
@@ -44,6 +46,7 @@ def create_card_instance_record(
     created_sequence,
     zone_sequence,
     metadata=None,
+    activity_state=None,
 ):
     """Create a JSON-compatible card instance record dict."""
 
@@ -59,6 +62,7 @@ def create_card_instance_record(
         "visibility": visibility,
         "created_sequence": created_sequence,
         "zone_sequence": zone_sequence,
+        "activity_state": activity_state,
         "metadata": dict(metadata or {}),
     }
 
@@ -75,6 +79,16 @@ def validate_card_instance_record(record):
     for field_name in _REQUIRED_RECORD_FIELDS:
         if field_name not in normalized:
             errors.append(_error("FIELD_MISSING", "required field is missing.", field=field_name))
+
+    if normalized.get("schema_version") != RECORD_SCHEMA_VERSION:
+        errors.append(
+            _error(
+                "SCHEMA_VERSION_INVALID",
+                "schema_version must match the canonical card instance schema.",
+                expected=RECORD_SCHEMA_VERSION,
+                actual=normalized.get("schema_version"),
+            )
+        )
 
     if normalized.get("contract_type") != "card_instance_record":
         errors.append(
@@ -99,6 +113,36 @@ def validate_card_instance_record(record):
 
     if not isinstance(normalized.get("metadata"), dict):
         errors.append(_error("METADATA_INVALID", "metadata must be a dict."))
+
+    activity_state = normalized.get("activity_state")
+    if activity_state is not ACTIVITY_NOT_APPLICABLE and activity_state not in SUPPORTED_ACTIVITY_STATES:
+        errors.append(
+            _error(
+                "ACTIVITY_STATE_INVALID",
+                "activity_state must be null, active, or exhausted.",
+                actual=activity_state,
+            )
+        )
+
+    zone = normalized.get("zone")
+    if zone in {"deck", "hand", "discard"} and activity_state is not ACTIVITY_NOT_APPLICABLE:
+        errors.append(
+            _error(
+                "ACTIVITY_STATE_ZONE_MISMATCH",
+                "deck, hand, and discard card instances must have null activity_state.",
+                zone=zone,
+                activity_state=activity_state,
+            )
+        )
+    elif zone == "domain" and activity_state not in SUPPORTED_ACTIVITY_STATES:
+        errors.append(
+            _error(
+                "ACTIVITY_STATE_ZONE_MISMATCH",
+                "Domain card instances must be active or exhausted.",
+                zone=zone,
+                activity_state=activity_state,
+            )
+        )
 
     return {
         "valid": len(errors) == 0,
@@ -143,6 +187,10 @@ def _error(code, message, **details):
 
 
 __all__ = [
+    "RECORD_SCHEMA_VERSION",
+    "OBJECT_REFERENCE_SCHEMA_VERSION",
+    "SUPPORTED_ACTIVITY_STATES",
+    "ACTIVITY_NOT_APPLICABLE",
     "create_card_instance_id",
     "create_card_instance_record",
     "validate_card_instance_record",

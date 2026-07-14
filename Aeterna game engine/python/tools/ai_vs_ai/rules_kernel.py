@@ -300,6 +300,7 @@ def _create_player_state(player_id, deck_id, deck, card_instances):
                 "source": "initial_deck_setup",
                 "authority": "rules_kernel",
             },
+            activity_state=None,
         )
         deck_card_instance_ids.append(card_instance_id)
     return PlayerState(
