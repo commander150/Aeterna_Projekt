@@ -1,353 +1,344 @@
 # Aeterna Projekt
 
-Az **AETERNA** egy saját fejlesztésű kártyajáték-projekt, amely jelenleg több egymástól elkülönített, de később összehangolható rétegből áll.
+## Projektstátusz
 
-A projekt jelenlegi állapota hibrid:
+Az **AETERNA** egy saját fejlesztésű fizikai és digitális kártyajáték-projekt.
 
-- fizikai TCG / kártyajáték szabály- és kártyatervezési projekt;
-- hivatalos főforrásokra épülő dokumentációs rendszer;
-- Google Sheets / XLSX alapú kártyaadatbázis-munkaforrás;
-- régi Python-alapú szimulációs motor, jelenleg review státuszban;
-- új `Aeterna game engine/` contract-first digitális programegység;
-- Godot alapú runtime package és sample contract fogyasztói prototípus.
+A repository több, egymástól elválasztott, de hosszú távon összehangolt réteget tartalmaz:
 
-A projektet nem nulláról újraépítendő rendszerként kezeljük.
+- hivatalos alapjátékos és kiegészítői szabályforrások;
+- Google Sheets / XLSX alapú kártyaadatbázis és LOOKUPS;
+- új determinisztikus Python rules engine;
+- runtime package és exportpipeline;
+- Godot loader, debug- és későbbi kliensréteg;
+- régi Python szimulációs motor referenciaágként;
+- dokumentációs, audit- és kártyatervezési rendszer.
 
-A jelenlegi stratégia:
+A projekt jelenlegi elsődleges programozási iránya:
 
-1. meglévő értékek feltérképezése;
-2. régi és új technikai irányok szétválasztása;
-3. hivatalos szabályforrások, kártyaadat-források és runtime package adatút elkülönítése;
-4. dokumentációs és mappaszintű döntések rögzítése;
-5. célzott, kis lépésű fejlesztések;
-6. nagyobb refaktor vagy integráció csak külön döntés után.
+> **az `Aeterna game engine/python/` alatt épülő contract-first, headless és determinisztikus AETERNA rules engine.**
+
+A Godot ág továbbra is megtartandó fogyasztói és későbbi kliensréteg, de jelenleg nem az authoritative szabálymotor.
 
 ---
 
-## Fő projektállapot
+## Hivatalos szabályi alap
 
-### Hivatalos szabályi alap
+Az AETERNA aktív szabályi alapját két hivatalos főforrás alkotja:
 
-Az AETERNA jelenlegi aktív szabályi alapját két hivatalos főforrás alkotja:
+- `Aeterna dokumentációk/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4v.docx`
+- `Aeterna dokumentációk/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`
 
-- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4v.docx`
-- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`
+Ezek az elsődleges referenciák:
 
-Ezek az elsődleges szabályi referenciák minden szabályértelmezési, kártyatervezési, kártyaauditálási és későbbi engine-kompatibilitási munkánál.
+- szabályértelmezésnél;
+- engine-fejlesztésnél;
+- kártyatervezésnél;
+- kártyaauditnál;
+- canonical értékek és mechanikák ellenőrzésénél.
 
-### Kártyaadatbázis
-
-A fő kártyaadatbázis-munkaforrás:
-
-- `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`
-
-A tényleges szerkesztési forrás Google Sheets / XLSX alapú.
-
-A lokális XLSX, JSONL, TSV vagy exportált állományokat mindig szerepük szerint kell kezelni:
-
-- canonical munkaforrás;
-- pipeline input copy;
-- generated output;
-- régi motoros referencia;
-- vagy audit / összevetési segédanyag.
-
-### Régi Python szimulációs motor
-
-A régi Python motor továbbra is értékes referencia.
-
-Jelenlegi státusza:
-
-- `OLD_ENGINE_REVIEW`
-- `OLD_ENGINE_REFERENCE`
-
-Ez azt jelenti, hogy nem törlendő és nem eldobandó, de nem is ez az elsődleges új fejlesztési irány.
-
-A régi motor hasznos lehet:
-
-- AI-vs-AI tesztelési tapasztalatokhoz;
-- balanszfigyelési mintákhoz;
-- effectlogikai előzményekhez;
-- diagnosztikai és logging megoldásokhoz;
-- régi runtime működés összevetéséhez;
-- későbbi migrációs döntések előkészítéséhez.
-
-A régi Python motor nagyobb refaktora vagy továbbfejlesztése csak külön döntés után induljon.
-
-### Új Aeterna game engine
-
-Az új digitális fejlesztési irány az `Aeterna game engine/` mappában található.
-
-Ez contract-first szemléletű programegység.
-
-Fő részei:
-
-- `Aeterna game engine/python/`
-- `Aeterna game engine/Godot/`
-
-A Python ág szerepe:
-
-- XLSX export tooling;
-- validáció;
-- runtime package build irány;
-- tesztek;
-- későbbi adat-előkészítés;
-- későbbi AI / batch jellegű feldolgozás.
-
-A Godot ág szerepe:
-
-- runtime package fogyasztás;
-- registry-k;
-- sample contractok betöltése;
-- debug nézetek;
-- smoke testek;
-- későbbi interaktív prototípus előkészítése.
-
-Fontos döntés:
-
-- Godot nem XLSX olvasó;
-- Godot nem canonical adatforrás;
-- Godot a runtime package-et és contractokat fogyasztja;
-- Python végzi az exportálási, validálási és package-előkészítési feladatokat.
+Régi dokumentum vagy legacy kód nem írhatja felül a két aktív főforrást.
 
 ---
 
-## Technikai adatpipeline aktuális döntései
+## Hosszú távú digitális cél
 
-Az XLSX exporter első migrációs fázisa lezárult.
+A digitális programegység első nagy termékmérföldköve:
 
-Aktív exporter helye:
+- `Aeterna game engine/docs/AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`
 
-- `Aeterna game engine/python/tools/xlsx_export/`
+A `0.0.1` nem a jelenlegi technikai schema- vagy prototípusverzió.
 
-Státuszok:
+Ez a későbbi első zárt, használható és játszható tesztkiadás célverziója, többek között:
 
-- `Aeterna game engine/python/tools/xlsx_export/`: `KEEP_ACTIVE_SOURCE`
-- `Aeterna game engine/python/tests/test_xlsx_export.py`: `KEEP_ACTIVE_TEST`
-- `Aeterna game engine/python/tests/test_xlsx_export_smoke.py`: `KEEP_ACTIVE_SMOKE_TEST`
-- `Aeterna game engine/python/publish_runtime_package_to_godot.bat`: `KEEP_ACTIVE_PRIMARY_PIPELINE_RUNNER`
-- `Aeterna game engine/python/run_xlsx_export.bat`: `KEEP_ACTIVE_RUNNER_MANUAL_RAW_EXPORT`
-- `Aeterna game engine/python/run_xlsx_export_smoke.bat`: `KEEP_ACTIVE_RUNNER_NONINTERACTIVE`
+- egyszerű Windows-indítással;
+- teljes ember–AI mérkőzéssel;
+- játékos- és tesztelői móddal;
+- több AI-nehézséggel;
+- pakliszerkesztővel és gyűjteménnyel;
+- tutorialokkal;
+- logokkal és hibajelentéssel;
+- reprodukálhatósági és replay-alappal;
+- használható Godot felülettel.
 
-A régi `XLSX export/` mappa státusza:
-
-- `OBSOLETE_AFTER_MIGRATION_CANDIDATE`
-
-Ez még nem törlendő és nem mozgatandó, de nem aktív pipeline input.
-
-Elsődleges fejlesztői runtime package út:
-
-- `Aeterna game engine/python/publish_runtime_package_to_godot.bat`
-
-Ez a jelenlegi source split alapján TEMP alatti candidate runtime package-et épít, validál, és csak sikeres validáció után publikál a Godot `runtime_package/` mappába.
-
-Aktuális bemeneti források:
-
-* kártyaadatok és decklisták: `Aeterna dokumentációk/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`
-* runtime lookupok: `Aeterna dokumentációk/LOOKUPS.xlsx`
-* legacy alias / normalizációs forrásjelölt: `Aeterna dokumentációk/LOOKUPS.xlsx / RUNTIME_LEGACY_ALIAS`
-
-A `RUNTIME_LEGACY_ALIAS` még nincs runtime package outputba vagy publish pipeline-ba bekötve.
-
-
-A `run_xlsx_export.bat` csak nyers/debug export runner. Nem ez a fő Godot pipeline.
-
-A `sample_runtime_package` két külön szerepet tölt be:
-
-- Python oldalon: `GENERATED_TEST_FIXTURE`
-- Godot oldalon: `GODOT_CONSUMPTION_COPY`
-
-A Godot oldali `sample_contracts/` státusza:
-
-- `HAND_AUTHORED_TEST_FIXTURE`
+A közvetlen jelenlegi cél továbbra is a stabil game engine.
 
 ---
 
-## Futtatás és tesztelés
+## Aktuális projektirányító dokumentumok
 
-A projektben több technikai réteg van, ezért nincs egyetlen univerzális futtatási parancs az egész projektre.
+Elsődleges projektterv:
 
-### Régi Python motor
+- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.0.md`
 
-A régi Python motor jelenleg legacy / review jellegű referencia.
+Aktuális engine-folytatási pont:
 
-Jelenleg még megtalálható működő belépési pontként az új engine Python mappájában is:
+- `Aeterna game engine/docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
 
-- `Aeterna game engine/python/main.py`
-
-Ez történeti okból maradt meg, mert a korábbi szimulációs program ezt használta belépési pontként.
-
-Archív / összevetési másolata:
-
-- `Archive/old python engine/`
-
-Fontos: ez a `main.py` nem az új contract-first engine végleges belépési pontja. Új engine belépési pontot később külön, egyértelmű névvel kell létrehozni, hogy ne keveredjen a legacy szimulátorral.
-
-### Új engine Python tooling
-
-Az új Python tooling az `Aeterna game engine/python/` mappában található.
-
-A konkrét futtatás és tesztelés az ottani runner BAT fájlokkal és unit tesztekkel történik.
-
-Fontosabb ismert elemek:
-
-- `publish_runtime_package_to_godot.bat`
-- `run_xlsx_export.bat`
-- `run_xlsx_export_smoke.bat`
-- `run_build_sample_package.bat`
-- `run_tests.bat`
-
-A `publish_runtime_package_to_godot.bat` az elsődleges fejlesztői XLSX → runtime package → Godot publikáló út.
-
-A `run_xlsx_export.bat` manuális nyers/debug export runner, nem a fő runtime package pipeline.
-
-Audit / CI jellegű futtatáshoz a non-interaktív smoke runner előnyösebb.
-
-### Godot ág
-
-A Godot ág az `Aeterna game engine/Godot/` mappában található.
-
-Jelenlegi szerepe:
-
-- runtime package betöltés;
-- sample contractok fogyasztása;
-- debug nézetek;
-- smoke tesztek.
-
-A Godot ág nem közvetlen XLSX feldolgozó és nem canonical adatforrás.
-
----
-
-## Projektirányító dokumentumok
-
-A projekt fejlesztésénél, dokumentációs döntéseinél, Codex-feladatoknál és refaktor előtt az aktuális projektirányító dokumentumokat kell figyelembe venni.
-
-Kiemelten fontos dokumentumok:
+További fontos dokumentumok:
 
 - `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.2.md`
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v5.1.md`
 - `Aeterna dokumentációk/AETERNA_MUNKAFOLYAMAT_ES_ADATKEZELES_1.2.md`
 - `Aeterna dokumentációk/AETERNA_EXCEL_STRUKTURA_ES_OSZLOPSZABVANY_1.2.md`
 - `Aeterna dokumentációk/AETERNA – KÁRTYAÁLLOMÁNY AUDITÁLÁSI MUNKAREND ÉS HIBAKATEGÓRIÁK 1.2v.md`
 - `Aeterna game engine/docs/ARCHITECTURE.md`
-- `Aeterna game engine/docs/RUNTIME_PACKAGE_SPECIFICATION.md`
 - `Aeterna game engine/docs/CONTRACT_SPECIFICATION.md`
-- `Aeterna game engine/docs/TECHNOLOGY_DECISIONS.md`
+- `Aeterna game engine/docs/RUNTIME_PACKAGE_SPECIFICATION.md`
+- `Aeterna game engine/docs/OPEN_QUESTIONS.md`
 - `Aeterna game engine/docs/checkpoints/CHECKPOINTS.md`
 
-Régi Python motorhoz kapcsolódó referencia:
+A korábbi `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v5.1.md` státusza:
 
-- `Aeterna dokumentációk/reference/ARCHITEKTURA_ES_HIVATALOS_FUTASI_UT.md`
-
-Ez jelenleg a régi Python szimulációs motor futási útjának referenciája, nem az új contract-first engine teljes célarchitektúrája.
+- `SUPERSEDED_REFERENCE`
 
 ---
 
-## Jelenlegi elsődleges fókusz
+## Repository fő rétegei
 
-A jelenlegi elsődleges fókusz nem egyetlen nagy fejlesztési lépés.
+### `Aeterna dokumentációk/`
 
-Aktuális munkairányok:
+Tartalma:
 
-1. dokumentációs és mappaszintű rendezés;
-2. aktív, elavult, átvezetett és review státuszú dokumentumok elkülönítése;
-3. technikai adatpipeline döntések rögzítése;
-4. új contract-first engine adatútjának tisztán tartása;
-5. kártyaadatbázis és hivatalos főforrások kapcsolatának tisztítása;
-6. következő programfejlesztési döntési kapu előkészítése.
+- hivatalos szabályforrások;
+- kártyaadatbázis;
+- LOOKUPS;
+- aktuális projektterv;
+- projekt-térkép;
+- munkafolyamat- és adatszabványok;
+- kártyaaudit-dokumentumok;
+- referencia- és archív review anyagok.
 
-A következő programfejlesztési jelölt:
+### `Aeterna game engine/`
 
-- exporter output contract mapping terv
+Az új digitális programegység.
 
-Ez még nem runtime package builder integráció.
+Fő részei:
 
----
+- `python/`
+- `Godot/`
+- `docs/`
 
-## Amit most nem csinálunk
+### Régi Python szimulációs motor
 
-Jelenlegi nem-célok:
+Státusza:
 
-- régi Python motor nagy refaktora;
-- régi `XLSX export/` mappa törlése vagy mozgatása;
-- Godot közvetlen XLSX olvasóvá alakítása;
-- teljes runtime package builder integráció előzetes mapping nélkül;
-- teljes Godot játék-UI fejlesztés;
-- tömeges kártyaátírás előzetes audit nélkül;
-- dokumentumok tömeges átírása fenntartási stratégia nélkül;
-- sok nagy irány egyidejű összekeverése.
+- `OLD_ENGINE_REVIEW`
+- `OLD_ENGINE_REFERENCE`
 
----
+Hasznos lehet:
 
-## Dokumentációs fenntartási megjegyzés
+- AI-vs-AI tapasztalatokhoz;
+- balanszfigyeléshez;
+- régi effectlogika összevetéséhez;
+- diagnosztikai és naplózási mintákhoz.
 
-A projektben sok dokumentum jött létre.
+Nem elsődleges új fejlesztési alap.
 
-Ez önmagában hasznos, mert megőrizte a döntéseket, auditokat, státuszokat és korábbi munkafázisokat, de hosszú távon fenntartási kockázatot is jelent.
+### `Archive/`
 
-Nem cél, hogy minden dokumentum folyamatosan, párhuzamosan frissüljön.
+Történeti, régi vagy összevetési anyagok helye.
 
-Későbbi dokumentációs rendezési cél:
-
-- kevés aktív irányító dokumentum kijelölése;
-- régi vagy átvezetett dokumentumok referencia státuszba tétele;
-- archiválási jelöltek kijelölése törlés nélkül;
-- dokumentumszerepek tisztázása;
-- duplikált tartalmak csökkentése;
-- csak a valóban aktív dokumentumok folyamatos karbantartása.
-
-Ez a dokumentációs fenntartási kérdés külön projektfeladatként kezelendő.
+Az archív tartalom nem automatikusan törlendő, de nem tekintendő aktív canonical forrásnak.
 
 ---
 
-## Codex és fejlesztési munkarend
+## Új Python rules engine
 
-Codex vagy más asszisztensi munka előtt mindig tisztázni kell:
+Az aktív engine jelenlegi technikai bázisa:
 
-- melyik mappát érinti;
-- melyik technikai réteget érinti;
-- régi Python motoros referencia-e;
-- új contract-first engine fejlesztés-e;
-- dokumentációs audit-e;
-- kártyaadatbázis-munka-e;
-- cleanup / refaktor / törlési javaslat-e;
-- generated output vagy canonical forrás érintett-e.
+- `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
+- `Add minimal Wellspring resource contracts`
 
-Általános szabályok:
+A minimal engine jelenleg már tartalmaz:
 
-- ne legyen túl nagy, általános „nézd át az egész projektet” feladat;
-- előbb read-only audit, utána döntés, utána célzott módosítás;
-- minden Git parancs legyen `git --no-pager`;
-- interaktív runner ne fusson audit/CI célra;
-- törlés, mozgatás, archiválás csak külön jóváhagyással;
-- régi motor és új engine ne keveredjen egy feladatban;
-- dokumentáció és programfejlesztés ne fusson össze kontroll nélkül.
+- MatchState-et és PlayerState-et;
+- state version guardot;
+- card instance registryt;
+- deck, hand és discard instance-listákat;
+- draw transitiont;
+- end-turn transitiont;
+- typed `zone_move` eseményt;
+- typed `turn_transition` eseményt;
+- generic event envelope-ot;
+- state invariant rendszert;
+- determinisztikus AI episode trajectoryt;
+- player-visible snapshot v2-t;
+- hidden-information alapot;
+- hat Áramlatos Domain topológiát;
+- Domain occupancyt;
+- player-visible public boardot;
+- strukturális Entitás-placement optionöket;
+- canonical `activity_state` mezőt;
+- izolált Wellspring state-et;
+- Magnitúdó- és elérhető Aura-summary contractot.
+
+Aktív minimal actionök:
+
+- `draw_card`
+- `end_turn`
+
+Még nincs runtime gameplayként:
+
+- Beáramlás;
+- Aura-payment;
+- `play_card`;
+- teljes phase és priority;
+- combat;
+- ability executor;
+- Pecsét-state;
+- győzelmi feltétel.
 
 ---
 
-## Rövid prompt-előtag Codex feladatokhoz
+## Következő engine-fejlesztési lánc
 
-Igazodj az aktuális AETERNA projektirányító dokumentumokhoz.
+A javasolt sorrend:
 
-A projekt jelenleg hibrid:
+1. Wellspring PlayerState- és MatchState-integráció;
+2. player-visible Wellspring summary;
+3. Beáramlás precondition;
+4. Beáramlás transition és typed event;
+5. Magnitúdó-preflight;
+6. Aura-source és payment contract;
+7. activity mutation transition;
+8. Entitás kijátszási precondition;
+9. `play_card` action;
+10. hand → Domain transition;
+11. entry-state;
+12. teljesebb phase és priority rendszer.
 
-- hivatalos TCG szabály- és kártyatervezési dokumentáció;
-- régi Python szimulációs motor review státuszban;
-- új `Aeterna game engine/` contract-first Python tooling + Godot fogyasztói ág;
-- runtime package alapú adatcontract.
+A lánc végét nem szabad a korábbi függőségek nélkül implementálni.
 
-A feladat előtt tisztázd, hogy a kérés:
+---
 
-- dokumentációs audit;
-- kártyaadatbázis-munka;
-- régi Python motor review;
-- új engine Python tooling;
-- Godot fogyasztói réteg;
-- runtime package / contract;
-- teszt;
-- generated output;
-- cleanup / refaktor;
-- vagy archiválási javaslat.
+## Runtime package és adatpipeline
 
-Ne módosíts, törölj, mozgass vagy commitolj külön engedély nélkül.
+Az adatút fő elve:
 
-Ha módosítás kell, előbb pontosítsd, mely fájlokra korlátozódik.
+1. Google Sheets / XLSX szerkesztési forrás;
+2. Python export és validáció;
+3. runtime package;
+4. Godot loader és registry;
+5. player-facing és debug contractok;
+6. későbbi interaktív kliens.
+
+Fontos szabályok:
+
+- Godot nem olvas közvetlenül XLSX-et;
+- Godot nem canonical adatforrás;
+- a validált runtime package a Python és Godot közötti adatcontract;
+- kártyák és decklisták az 1.9v kártyaadatbázisból származnak;
+- runtime lookupok a `LOOKUPS.xlsx` fájlból származnak.
+
+Elsődleges fejlesztői publish runner:
+
+- `Aeterna game engine/python/publish_runtime_package_to_godot.bat`
+
+Az exporter és runtime package pipeline aktív, de nem ez a jelenlegi rules-engine feladatsor közvetlen fő prioritása.
+
+---
+
+## Godot ág
+
+A Godot projekt helye:
+
+- `Aeterna game engine/Godot/`
+
+Jelenlegi szerepe:
+
+- runtime package betöltés;
+- registry-k;
+- sample és debug contractok;
+- snapshot, legal action és event log debug nézetek;
+- headless smoke tesztek;
+- későbbi játékos UI alapja.
+
+Jelenlegi elhatárolás:
+
+- a Python rules engine authoritative;
+- a Godot később player-visible állapotot jelenít meg;
+- a Godot action requestet küld;
+- a Godot nem duplikálhat szabálylegalitást.
+
+---
+
+## Kártyaadatbázis
+
+Aktív munkaforrás:
+
+- `Aeterna dokumentációk/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`
+
+Runtime lookupforrás:
+
+- `Aeterna dokumentációk/LOOKUPS.xlsx`
+
+A kártyaaudit külön munkasáv.
+
+Külön kell kezelni:
+
+- kártyaadat-hibát;
+- structured mezőhibát;
+- szabályértelmezési hibát;
+- engine-hiányt;
+- balanszgyanút.
+
+Kártyaadat-javítás és engine-contract módosítás ne keveredjen ugyanabba a commitba.
+
+---
+
+## Tesztelés
+
+A `84a7e8f4` technikai bázisnál:
+
+- 59 Python tesztmodul futott izoláltan;
+- 333 teszt volt zöld;
+- minimal engine smoke zöld;
+- AI-vs-AI text és JSON smoke zöld;
+- két azonos JSON-epizód byte-szinten azonos.
+
+A monolitikus unittest discoveryben két ismert sorrendfüggő XLSX mock-probléma marad:
+
+- `test_finds_xlsx_files_only_in_source_directory`
+- `test_lists_sheets_in_read_only_data_only_mode`
+
+Ezek külön tesztinfrastruktúra-feladatként kezelendők.
+
+---
+
+## GitHub-munkarend
+
+Alapelv:
+
+- egy commit egy jól körülírható célt szolgáljon.
+
+Ne keveredjen egy commitba:
+
+- runtime implementáció;
+- dokumentációs cleanup;
+- kártyaadat-javítás;
+- Godot UI-fejlesztés;
+- generált output;
+- általános tesztrendezés.
+
+Minden engine-lépéshez tartozzon:
+
+- célzott teszt;
+- regressziós kör;
+- izolált teljes tesztfutás;
+- smoke futás;
+- determinisztikus AI-ellenőrzés;
+- git status ellenőrzés.
+
+---
+
+## Jelenlegi rövid összefoglaló
+
+**Elsődleges programozási irány:** determinisztikus Python rules engine  
+**Hosszú távú cél:** AETERNA 0.0.1 zárt tesztkiadás  
+**Aktuális projektterv:** v6.0  
+**Aktuális engine-checkpoint:** `CURRENT_ENGINE_CHECKPOINT.md`  
+**Legutóbbi technikai bázis:** `84a7e8f4`  
+**Következő programozási feladat:** Wellspring runtime integráció  
+**Godot:** fogyasztói és későbbi kliensréteg  
+**Régi engine:** review és referencia  
+**Ismert tesztprobléma:** két sorrendfüggő XLSX mock-eltérés
