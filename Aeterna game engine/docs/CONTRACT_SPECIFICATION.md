@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.2  
+**Dokumentumverzió:** 1.3  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív, technológiafüggetlen contract-specifikáció  
 **Aktuális Python technikai bázis:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
@@ -37,6 +37,8 @@ Eltérés esetén az irányadó sorrend:
 3. `CURRENT_OPEN_QUESTIONS.md` és aktív döntési dokumentumok;
 4. ez a specifikáció;
 5. történeti tervek és sample dokumentumok.
+
+A canonical szabályok az aktuális rulesetben kötelezők. Szabályhű playtest alapján később felülvizsgálhatók, de csak explicit emberi döntés, döntésnapló és verziózott forrásátvezetés után módosíthatják az engine-contractot.
 
 ---
 
@@ -107,6 +109,7 @@ Az authoritative belső igaz állapot. Tartalmazhat:
 - activity state-et;
 - Domain topológiát és occupancy state-et;
 - turn, phase és priority alapot;
+- turn-scoped decision state-et;
 - state versiont;
 - event logot;
 - később pending decisiont, effect- és duration-state-et.
@@ -120,6 +123,7 @@ A MatchState-ből származtatott, viewer-specifikus output:
 - player-visible snapshot;
 - public Domain board;
 - Wellspring summary;
+- legal action projection;
 - debug snapshot;
 - később visible event ablak, spectator és replay projection.
 
@@ -130,7 +134,9 @@ Az authoritative engine által számított döntési lehetőség.
 - nem frontend-találgatás;
 - nem state mutation;
 - tartalmazhat source-, target-, choice- és payment-contextet;
-- fair AI számára csak player-visible információból épülhet.
+- fair AI számára csak player-visible információból épülhet;
+- stabil és determinisztikus sorrendű;
+- action neve a döntés szemantikáját tükrözi.
 
 ### 3.5 Action request és response
 
@@ -155,7 +161,8 @@ Az event:
 - determinisztikus sorrendű;
 - state versionhöz és matchhez kapcsolódik;
 - player-facing formában visibility-szűrt;
-- UI-animációhoz, replayhez, AI-elemzéshez és diagnosticshez használható.
+- UI-animációhoz, replayhez, AI-elemzéshez és diagnosticshez használható;
+- nem duplikálhat indokolatlanul más typed eventben már teljesen kifejezett transitiont.
 
 ### 3.7 Diagnostics
 
@@ -283,25 +290,9 @@ Aktív alapok:
 - owner projection biztonságos reference-en keresztül Card_ID-t és megjelenítési adatot adhat;
 - debug projection ettől elkülönítve tartalmazhat technikai azonosítót.
 
-Következmény:
-
-- a frontend nem számolja ki önállóan a Magnitúdót vagy activity countot rejtett rekordokból;
-- az engine viewer-specifikus Wellspring projectiont ad;
-- ugyanazon belső state-ből owner és opponent számára eltérő identity-tartalmú snapshot készül;
-- fair AI pontosan ugyanazt látja, amit az adott játékos láthat.
-
 ### 7.3 Debug snapshot
 
 A debug snapshot többletinformációt tartalmazhat, de nem használható fair AI observationként és nem kerülhet normál player-facing csatornába.
-
-### 7.4 Tervezett projectionök
-
-- Wellspring summary tényleges runtime-integrációja;
-- Pecsét állapot;
-- match finished, winner és victory reason;
-- pending decision;
-- recent visible event ablak;
-- spectator és replay projection.
 
 ---
 
@@ -331,7 +322,7 @@ Reject esetén:
 
 Később szükséges:
 
-- Inflow action;
+- `perform_inflow` és `skip_inflow`;
 - `play_card`;
 - target és choice;
 - payment;
@@ -356,7 +347,7 @@ Nincs szükség általános `action_resolved` eventre, ha a transition pontosabb
 
 Tervezett eventek:
 
-- Inflow/Wellspring transition;
+- `phase_transition`;
 - activity state change;
 - Aura payment;
 - card played;
@@ -365,6 +356,15 @@ Tervezett eventek:
 - Pecsét feltörés/visszaállítás;
 - victory és defeat;
 - ability trigger és resolution.
+
+Általános event-invariánsok:
+
+- egy accepted action pontosan egyszer növeli a state versiont;
+- egy action több eventet is létrehozhat ugyanahhoz a resulting state versionhöz;
+- az event sequence szigorúan növekvő és determinisztikus;
+- event csak ténylegesen végrehajtott transitionből jön létre;
+- reject nem hoz létre gameplay eventet;
+- player-visible event payload visibility-szűrt.
 
 ---
 
@@ -396,28 +396,138 @@ A normál Beáramlás:
 
 A szabályi döntés dokumentált; a transition contract még `planned`.
 
-### 10.3 Következő erőforrás-contractok
+### 10.3 Normál Beáramlás timing és priority
+
+**Engine-döntés – 2026-07-15:**
+
+- a normál Beáramlás az aktív játékos egyszeri fázisdöntése;
+- nem váltakozó priority-ablak;
+- nem nyit automatikusan reakciós ablakot;
+- csak explicit szabály, kártyaszöveg vagy trigger hozhat létre reakciót;
+- a kihagyás action neve `skip_inflow`, nem `pass_priority`;
+- a választható actionök: `perform_inflow` jogosult kézlapra, illetve `skip_inflow`;
+- ha nincs jogosult lap és nincs külön fázisdöntés, a phase controller automatikus kihagyást végezhet;
+- elfogadott döntés után újabb normál Beáramlás nem választható;
+- a fázis csak stabil állapotban zárható le;
+- kötelező trigger, pending decision vagy explicit reakciós ablak esetén előbb ezeket kell rendezni;
+- az első minimal implementációban, ability- és reaction-engine hiányában a fázis közvetlenül Manifesztációra léphet.
+
+A normál Beáramlás nem igényel alternating `priority_player_id` működést. A döntési jogosultságot az aktív játékosnak adott legal actionök fejezik ki.
+
+### 10.4 Turn-scoped Beáramlás-állapot
+
+Tervezett authoritative mező:
+
+- `normal_inflow_status: pending | performed | skipped`.
+
+Értelmezés:
+
+- Beáramlás fázis elején `pending`;
+- sikeres `perform_inflow` után `performed`;
+- sikeres vagy automatikus kihagyás után `skipped`;
+- a következő saját körben új döntési állapot jön létre.
+
+A háromállapotú modell:
+
+- megkülönbözteti a még nem eldöntött, végrehajtott és kihagyott helyzetet;
+- megakadályozza a második normál Beáramlást;
+- egyszerű UI-, AI-, diagnostics- és invariánsellenőrzést ad;
+- elkülöníti az effect-alapú Ősforrásba helyezéstől.
+
+### 10.5 `perform_inflow` precondition és transition
+
+Minimális precondition:
+
+- helyes match és expected state version;
+- a kérelmező az aktív játékos;
+- current phase `inflow`;
+- `normal_inflow_status == pending`;
+- a kiválasztott card instance a játékos saját kezében van;
+- nincs explicit tiltó szabály vagy effect.
+
+Atomikus transition:
+
+1. hand → wellspring;
+2. face-down, belső `owner_only` visibility;
+3. `activity_state: active`;
+4. `normal_inflow_status: performed`;
+5. resource summary újraszámítása;
+6. state version pontosan egyszeri növelése;
+7. ordered eventek létrehozása.
+
+Reject esetén sem zóna-, activity-, status-, phase- vagy eventváltozás nem történhet.
+
+### 10.6 `skip_inflow`
+
+Minimális precondition:
+
+- aktív játékos;
+- current phase `inflow`;
+- `normal_inflow_status == pending`;
+- helyes expected state version.
+
+Transition:
+
+- `normal_inflow_status: skipped`;
+- nincs card move;
+- state version egyszer nő;
+- `phase_transition` készül `normal_inflow_skipped` cause-zal.
+
+### 10.7 Beáramlás eventmodell
+
+Első implementációban nem készül külön, tartalmilag duplikált `inflow` typed event.
+
+Sikeres `perform_inflow`:
+
+1. `zone_move`
+   - `from_zone: hand`;
+   - `to_zone: wellspring`;
+   - `cause: normal_inflow`;
+   - `activity_state_after: active`;
+   - visibility-adatok;
+2. `phase_transition`
+   - `from_phase: inflow`;
+   - `to_phase: manifestation`;
+   - `cause: normal_inflow_performed`.
+
+Sikeres `skip_inflow`:
+
+- nincs `zone_move`;
+- `phase_transition` `cause: normal_inflow_skipped` értékkel.
+
+Event-sorrend:
+
+- zónamozgás előbb;
+- trigger/pending/reaction rendezés, ha van;
+- fázisváltás utána;
+- minden event ugyanahhoz az accepted action resulting state versionjéhez kapcsolódhat.
+
+Külön `inflow` event csak bizonyított UI-, replay-, trigger- vagy diagnostics-igény esetén vezethető be.
+
+### 10.8 Aura-identitás és AETHER
+
+Az Aura forrásidentitása alapesetben az Ősforrás-lap Birodalma.
+
+- azonos Birodalom lapját saját Birodalmi Auraként fizeti;
+- Entitás AETHER/Aether-Semleges támogató Aurából is fizethető;
+- AETHER forrás saját AETHER nem-Entitást saját Birodalmi Auraként fizet;
+- AETHER forrás más Birodalom nem-Entitását alapból nem fizeti;
+- ettől csak explicit szabály vagy kártyahatás térhet el;
+- Soft Penalty nem aktív Core-szabály.
+
+A korlátozott modell jelenleg canonical, de szabályhű playtest után verziózott emberi döntéssel felülvizsgálható.
+
+### 10.9 Következő erőforrás-contractok
 
 1. Wellspring PlayerState- és MatchState-integráció;
 2. player-visible Wellspring summary;
-3. Inflow precondition;
-4. Inflow transition és event;
-5. per-turn Inflow usage state;
-6. Magnitúdó-preflight;
-7. typed Aura és LOOKUPS mapping;
-8. Aura source selection;
-9. payment és atomikus activity mutation;
-10. `play_card` precondition és transition.
-
-Nem implementált:
-
-- typed Aura;
-- payment;
-- temporary Aura;
-- Rezonancia;
-- Aura-égés;
-- Magnitúdó modifier vagy override;
-- automatic/manual payment policy.
+3. Inflow legal actionök és turn-scoped status;
+4. Inflow transition és `phase_transition`;
+5. Magnitúdó-preflight;
+6. typed Aura és LOOKUPS mapping;
+7. Aura source selection;
+8. payment és atomikus activity mutation;
+9. `play_card` precondition és transition.
 
 ---
 
@@ -474,7 +584,9 @@ Ability executor csak a Wellspring, Beáramlás, erőforrás, `play_card`, timin
 - determinisztikus sorrend és azonosítók;
 - runtime state leak és tiltott mezők ellenőrzése;
 - canonical builder/validator újrahasználata;
-- hidden-information audit.
+- hidden-information audit;
+- accepted action atomikus;
+- reject mutation- és gameplay-event-mentes.
 
 ---
 
@@ -487,17 +599,12 @@ Nem használható:
 - sample fixture production schemaként;
 - structural placement teljes play legalityként;
 - replay foundation kész replayként;
+- `skip_inflow` helyett `pass_priority`, ha nincs priority-ablak;
+- normál Beáramlás automatikus reakciós ablakként;
+- külön `inflow` event pusztán a `zone_move` és `phase_transition` duplikálására;
 - Pecsét HP;
 - Aeternal HP, sebzés vagy gyógyítás;
 - `player_damage`, `aeternal_damage`, `heal_player`, `heal_aeternal`, `ward_hp`, `seal_hp`, `ward_damage`, `seal_damage` mint aktív canonical gameplay-fogalom.
-
-Modern irány:
-
-- Pecsét standing/broken/restored/removed állapot;
-- `ward_break`, `ward_restore`, `ward_break_prevent`;
-- `aeternal_unprotected`;
-- `direct_attack_victory`;
-- `player_defeated`.
 
 ---
 
@@ -507,15 +614,16 @@ A runtime-nyelvi döntési kapu után:
 
 1. Wellspring production integráció;
 2. viewer-specifikus Wellspring projection;
-3. Inflow precondition és transition;
-4. Magnitúdó-preflight;
-5. typed Aura és payment;
-6. activity mutation;
-7. Entity play precondition;
-8. `play_card` action és response;
-9. Entity entry event;
-10. phase/priority/reaction contractok;
-11. combat;
-12. ability execution.
-
-A contract-specifikáció csak új működő contract vagy elfogadott emberi döntés után frissítendő. Új javasolt mező nem válik canonical követelménnyé pusztán dokumentációs megjelenéstől.
+3. `normal_inflow_status`;
+4. `perform_inflow` és `skip_inflow` legal action;
+5. Inflow atomikus transition;
+6. `phase_transition` typed event;
+7. Magnitúdó-preflight;
+8. typed Aura és payment;
+9. activity mutation;
+10. Entity play precondition;
+11. `play_card` action és response;
+12. Entity entry event;
+13. teljes phase/priority/reaction contractok;
+14. combat;
+15. ability execution.
