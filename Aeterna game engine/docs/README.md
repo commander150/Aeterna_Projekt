@@ -2,11 +2,19 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.2  
+**Dokumentumverzió:** 1.3  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív engine-dokumentációs index
 
 Ez a fájl az `Aeterna game engine/docs/` dokumentumainak szerepét, elsőbbségét és jelenlegi státuszát rögzíti.
+
+Fontos pontosítás:
+
+- a Python minimal engine a jelenlegi működő authoritative fejlesztési bázis;
+- a Python backend + Godot frontend a legerősebb hosszú távú jelölt;
+- a végleges runtime/backend és packaging architektúra még nyitott technológiai kapu;
+- az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` együtt olvasandó;
+- a tanulóprogram-audit és a Python–GDScript comparison nem obsolete.
 
 ---
 
@@ -16,21 +24,9 @@ Ez a fájl az `Aeterna game engine/docs/` dokumentumainak szerepét, elsőbbség
 
 - `AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`
 
-Szerepe:
-
-- az első zárt, játszható tesztkiadás célállapota;
-- termékmérföldkő;
-- nem aktuális technikai schema-verzió.
-
 ### Aktuális technikai folytatási pont
 
 - `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
-
-Szerepe:
-
-- a jelenlegi Python rules engine tényleges állapota;
-- biztonságos programozási folytatási pont;
-- tesztállapot és következő feladat.
 
 ### Aktuális architektúra
 
@@ -38,10 +34,9 @@ Szerepe:
 
 Szerepe:
 
-- Python authoritative rules engine;
-- Godot kliens- és UI-réteg;
-- runtime package és adatút;
-- réteghatárok.
+- jelenlegi működő Python-engine architektúra;
+- stabil contract- és réteghatárok;
+- nyitott végleges Python–Godot/GDScript architektúra.
 
 ### Aktuális technológiai döntések
 
@@ -49,127 +44,46 @@ Szerepe:
 
 Szerepe:
 
-- Python/Godot felelősségek;
-- elfogadott technológiai modell;
-- nyitott integrációs és packaging kérdések.
+- jelenlegi munkamodell;
+- technológiai jelöltek;
+- tanulóprogram-audit;
+- Python–GDScript comparison;
+- bridge és packaging döntési kapuk.
 
 ### Aktuális rövid döntéstérkép
 
 - `DECISION_MAP.md`
 
-Szerepe:
-
-- elfogadott irányok;
-- közeli fejlesztési sorrend;
-- fő nyitott kapuk;
-- párhuzamos munkasávok.
-
 ### Aktuális contract-státusz
 
 - `CURRENT_CONTRACT_STATUS.md`
-
-Szerepe:
-
-- mi aktív runtime contract;
-- mi player-facing projection;
-- mi izolált helper;
-- mi csak tervezett;
-- mely régi sample contract felváltott.
 
 ### Contract-specifikáció migrációs térkép
 
 - `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`
 
-Szerepe:
-
-- a hosszú `CONTRACT_SPECIFICATION.md` és a működő minimal engine közötti eltérések szakaszonkénti feltérképezése;
-- active, planned, superseded és hiányzó contractrétegek elhatárolása;
-- a későbbi fokozatos tartalmi konszolidáció sorrendje.
-
 ### Aktuális runtime package-státusz
 
 - `CURRENT_RUNTIME_PACKAGE_STATUS.md`
-
-Szerepe:
-
-- mi készült el a runtime package–Godot alapozási munkasávból;
-- aktuális package-fájlok és mennyiségek;
-- publish pipeline és Godot consumption copy;
-- sample identity és production schema közötti technikai adósság;
-- nyitott package-, release- és transportfeladatok.
 
 ### Aktuális prototípus-státusz
 
 - `CURRENT_PROTOTYPE_STATUS.md`
 
-Szerepe:
-
-- elkészült prototípusok;
-- aktív rendszerré emelt alapok;
-- felváltott GDScript-rules irányok;
-- közvetlen következő prototípus- és implementációs lánc.
-
 ### Aktuális közeli kérdések
 
 - `CURRENT_OPEN_QUESTIONS.md`
 
-Szerepe:
+Ez már tartalmazza:
 
-- a következő engine-lépéseket blokkoló döntések;
-- rövid napi fejlesztési kérdéslista.
+- a tanulóprogram-forrásauditot;
+- a Python–GDScript comparison scope kérdését;
+- a Python–Godot integration prototype kaput;
+- a Wellspring és Beáramlás közeli engine-kérdéseit.
 
 ---
 
-## 2. Hosszú specifikációk és referencia-dokumentumok
-
-### `CONTRACT_SPECIFICATION.md`
-
-Státusz:
-
-- `LONG_FORM_DESIGN_REFERENCE`
-
-Szerepe:
-
-- snapshot, legal action, action request/response, event és diagnostics hosszú tervezési anyaga;
-- későbbi modellek és mezőjelöltek megőrzése.
-
-Fontos:
-
-- nem minden benne szereplő mező vagy schema aktív runtime contract;
-- az aktuális implementációs státusz elsődleges forrása a `CURRENT_CONTRACT_STATUS.md`;
-- a konszolidációs eltérések és sorrend forrása a `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`.
-
-### `RUNTIME_PACKAGE_SPECIFICATION.md`
-
-Státusz:
-
-- `LONG_FORM_DESIGN_AND_PIPELINE_REFERENCE`
-
-Szerepe:
-
-- runtime package adatút;
-- manifest és package-fájlok;
-- source split;
-- validation és publish pipeline;
-- jövőbeli package- és release-modellek.
-
-Fontos:
-
-- a dokumentum korai sample- és pipeline-terveket is megőriz;
-- nem minden „jelenlegi” vagy „következő” megjegyzése aktív prioritás;
-- az aktuális tényleges package-státusz forrása a `CURRENT_RUNTIME_PACKAGE_STATUS.md`.
-
-### `ABILITY_MODULE_SYSTEM.md`
-
-Státusz:
-
-- `PLANNED_SYSTEM_REFERENCE`
-
-Szerepe:
-
-- későbbi structured ability és effect engine tervezési anyaga.
-
-Az ability executor jelenleg nincs implementálva.
+## 2. Open Questions dokumentumpár
 
 ### `OPEN_QUESTIONS.md`
 
@@ -179,60 +93,75 @@ Státusz:
 
 Szerepe:
 
-- minden korábbi és hosszú távú kérdés megőrzése;
-- dokumentummigráció során elveszni nem hagyott döntési kapuk.
+- az eredeti OQ-azonosítók és kérdések megőrzése;
+- minden régi és hosszú távú döntési kapu nyilvántartása.
 
-A közeli feladatokhoz a `CURRENT_OPEN_QUESTIONS.md` használatos.
+### `OPEN_QUESTIONS_DECISIONS.md`
+
+Státusz:
+
+- `ANSWER_AND_DECISION_DIRECTION_REGISTRY`
+
+Szerepe:
+
+- az OQ-khoz adott részletes válaszok;
+- részben megválaszolt kérdések;
+- javasolt státuszfrissítések;
+- célfájlok és átvezetési irányok.
+
+Használati szabály:
+
+- egyik dokumentum sem olvasandó a másik nélkül;
+- az eredeti kérdés megmarad az `OPEN_QUESTIONS.md` fájlban;
+- a részletes válasz a decisions fájlban található;
+- a napi fejlesztési kivonat a `CURRENT_OPEN_QUESTIONS.md`.
+
+Az architektúra-kérdések jelenlegi helyes státusza:
+
+- részben megválaszolt;
+- Python a jelenlegi munkabázis;
+- a végleges technológiai modell további prototípust és összehasonlítást igényel.
+
+---
+
+## 3. Hosszú specifikációk és referencia-dokumentumok
+
+### `CONTRACT_SPECIFICATION.md`
+
+- `LONG_FORM_DESIGN_REFERENCE`
+- aktuális státusz: `CURRENT_CONTRACT_STATUS.md`
+- eltérések: `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`
+
+### `RUNTIME_PACKAGE_SPECIFICATION.md`
+
+- `LONG_FORM_DESIGN_AND_PIPELINE_REFERENCE`
+- aktuális státusz: `CURRENT_RUNTIME_PACKAGE_STATUS.md`
 
 ### `PROTOTYPE_PLANS.md`
 
-Státusz:
-
 - `HISTORICAL_AND_FUTURE_PROTOTYPE_REFERENCE`
+- aktuális státusz: `CURRENT_PROTOTYPE_STATUS.md`
 
-Szerepe:
+A benne szereplő GDScript rules-service és comparison tervek nem tekintendők sem közvetlen aktív implementációnak, sem végleg obsolete iránynak. Pontos státuszuk a current prototype dokumentumban található.
 
-- korai prototípusok részletes bizonyítási terve;
-- elkészült runtime package–Godot alapok történeti leírása;
-- lehetséges későbbi technikai ötletek megőrzése.
+### `ABILITY_MODULE_SYSTEM.md`
 
-Fontos:
-
-- nem aktuális szűk engine-task queue;
-- több benne szereplő „következő prototípus” már elkészült;
-- a GDScript authoritative rules-service irányt felváltotta a Python-authoritative architektúra;
-- az aktuális prototípus-státusz forrása a `CURRENT_PROTOTYPE_STATUS.md`.
+- `PLANNED_SYSTEM_REFERENCE`
+- ability executor jelenleg nincs implementálva.
 
 ---
 
-## 3. Checkpointok
+## 4. Checkpointok
 
-### Checkpoint-index
+- `checkpoints/README.md` – checkpoint-index és státusztérkép
+- `checkpoints/CURRENT_ENGINE_CHECKPOINT.md` – aktuális Python engine folytatási pont
+- `checkpoints/CHECKPOINTS.md` – történeti technikai napló
 
-- `checkpoints/README.md`
-
-Szerepe:
-
-- történeti és aktuális checkpointok elhatárolása;
-- runtime package–Godot alap és rules-engine szakasz összekapcsolása.
-
-### Aktuális checkpoint
-
-- `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
-
-### Történeti checkpointnapló
-
-- `checkpoints/CHECKPOINTS.md`
-
-Státusz:
-
-- `HISTORICAL_TECHNICAL_LOG`
-
-A régi checkpointok saját „következő lépés” szakaszai történeti állapotot rögzítenek, és nem írják felül az aktuális checkpointot.
+A checkpoint a jelenlegi engine-implementáció állapotát rögzíti, nem zárja le automatikusan a végleges product runtime-technológiát.
 
 ---
 
-## 4. Dokumentumelsőbbség
+## 5. Dokumentumelsőbbség
 
 Engine-fejlesztésnél:
 
@@ -243,42 +172,25 @@ Engine-fejlesztésnél:
 5. `TECHNOLOGY_DECISIONS.md`;
 6. `DECISION_MAP.md`;
 7. `CURRENT_CONTRACT_STATUS.md`;
-8. `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`;
-9. `CURRENT_RUNTIME_PACKAGE_STATUS.md`;
-10. `CURRENT_PROTOTYPE_STATUS.md`;
-11. `CURRENT_OPEN_QUESTIONS.md`;
+8. `CURRENT_RUNTIME_PACKAGE_STATUS.md`;
+9. `CURRENT_PROTOTYPE_STATUS.md`;
+10. `CURRENT_OPEN_QUESTIONS.md`;
+11. `OPEN_QUESTIONS.md` + `OPEN_QUESTIONS_DECISIONS.md` együtt;
 12. hosszú specifikációk;
 13. történeti checkpointok és régi dokumentumok.
 
-A 0.0.1 célállapot a hosszú távú termékirányt adja, de nem helyettesíti az aktuális technikai checkpointot.
+A 0.0.1 célállapot a hosszú távú termékirányt adja, de nem helyettesíti az aktuális technikai checkpointot és nem dönti el önmagában a runtime-technológiát.
 
 ---
 
-## 5. Jelenlegi dokumentációs állapot
+## 6. Következő dokumentációs feladatok
 
-2026-07-15-én frissítve:
-
-- projektterv v6.0;
-- projekt-térkép v1.3;
-- current engine checkpoint;
-- architecture v2.0;
-- technology decisions v2.0;
-- decision map v2.0;
-- current contract status;
-- contract specification migration map;
-- current runtime package status;
-- current prototype status;
-- current open questions;
-- checkpoint index;
-- root és engine README.
-
-Továbbra is későbbi feladat:
-
-- a hosszú `CONTRACT_SPECIFICATION.md` fokozatos tartalmi átvezetése a migrációs térkép alapján;
-- a `RUNTIME_PACKAGE_SPECIFICATION.md` későbbi teljes mező- és schema-auditja;
-- a `PROTOTYPE_PLANS.md` későbbi történeti formázási és státuszjelölési tisztítása;
-- az `ABILITY_MODULE_SYSTEM.md` felülvizsgálata az első valódi ability implementation előtt;
-- a teljes `OPEN_QUESTIONS.md` státuszainak fokozatos átvezetése;
+- az Open Questions és Decisions teljes OQ-azonosítós triázsa;
+- tanulóprogram-forrásleltár;
+- projektenkénti technológiai audit;
+- Python–Godot/GDScript comparison scope;
+- az `ABILITY_MODULE_SYSTEM.md` felülvizsgálata;
+- a hosszú contract-specifikáció fokozatos konszolidációja;
 - a történeti checkpointnapló formázási tisztítása.
 
-Ezek nem blokkolják a következő engine-programozási lépést.
+Ezek közül a tanulóprogram-audit a végleges technológiai döntést blokkolja, de a Wellspring és más belső Python engine-alapok fejlesztését nem.
