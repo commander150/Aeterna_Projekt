@@ -2,21 +2,21 @@
 
 ## Projektstátusz
 
-Az **AETERNA Game Engine** az AETERNA kártyajáték új, contract-first digitális programegysége.
+Az **AETERNA Game Engine** az AETERNA kártyajáték contract-first digitális programegysége.
 
-A jelenlegi elsődleges technikai cél:
+A jelenlegi működő authoritative referenciaimplementáció:
 
-> **egy determinisztikus, headless, tesztelhető és fokozatosan szabályhűvé bővíthető Python minimal rules engine fejlesztése.**
+> **a determinisztikus, headless és tesztelhető Python minimal rules engine.**
 
-Fontos elhatárolás:
+A végleges termékruntime nyelve és futási modellje még nincs kiválasztva.
 
-- a Python engine a jelenlegi működő és tesztelt authoritative fejlesztési bázis;
-- a Godot ág működő loader-, registry-, debug- és későbbi UI-alap;
-- a Python backend + Godot frontend a legerősebb hosszú távú jelölt;
-- a végleges runtime/backend, bridge és packaging architektúra még nyitott technológiai kapu;
-- a tanulóprogram-audit és a Python–GDScript comparison továbbra is szükséges vizsgálat.
+A következő elsődleges Codex-prioritás:
 
-A jelenlegi munkairány tehát nem azonos a végleges termékarchitektúra visszavonhatatlan lezárásával.
+> **Python sidecar + Godot és Godot .NET/C# authoritative runtime összehasonlító proof.**
+
+Szükség esetén egy szűk GDScript transition proof is készülhet. Embedded Python jelenleg kutatási, későbbi irány.
+
+A jelentős gameplay-engine bővítés a runtime-nyelvi döntési kapu után folytatódik.
 
 ---
 
@@ -24,7 +24,8 @@ A jelenlegi munkairány tehát nem azonos a végleges termékarchitektúra vissz
 
 **Báziscommit:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`  
 **Commitüzenet:** `Add minimal Wellspring resource contracts`  
-**Aktuális checkpoint:** `docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
+**Aktuális checkpoint:** `docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`  
+**Runtime-nyelvi döntési kapu:** `docs/RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
 
 A jelenlegi Python engine tartalmaz:
 
@@ -80,8 +81,9 @@ A jelenlegi rendszer továbbá még nem bizonyítja:
 - a Python engine és Godot kliens végleges összekapcsolását;
 - a Python runtime Windows-csomagolását;
 - a process lifecycle és crash recovery működését;
-- azt, hogy a végleges runtime biztosan kizárólag külön Python backend lesz;
-- a GDScript runtime-alkalmasság végleges elutasítását.
+- a Godot .NET/C# rules runtime karbantarthatóságát;
+- a C# portolási költséget;
+- azt, hogy a végleges runtime biztosan Python, C# vagy GDScript lesz.
 
 ---
 
@@ -91,7 +93,7 @@ A jelenlegi rendszer továbbá még nem bizonyítja:
 
 Jelenlegi aktív szerepei:
 
-- minimal rules engine;
+- minimal rules-engine referencia;
 - state és transition logika;
 - contract helperek;
 - invariánsok;
@@ -100,6 +102,14 @@ Jelenlegi aktív szerepei:
 - runtime package tooling;
 - XLSX export és validáció;
 - unit, integration és smoke tesztek.
+
+A Python réteg a végleges termékruntime döntéstől függetlenül megtarthatja:
+
+- adatpipeline;
+- AI/batch;
+- differential testing;
+- diagnostics;
+- balansz- és kutatási tooling szerepét.
 
 ### `Godot/`
 
@@ -117,32 +127,98 @@ Biztos korlát:
 
 - a Godot UI nem lehet rejtett szabályforrás;
 - a kliens nem módosíthat authoritative state-et;
-- Godot nem olvas közvetlenül XLSX-et.
-
-Nyitott technológiai kérdés:
-
-- a végleges rules runtime Pythonban, GDScriptben vagy pontosan meghatározott hibrid modellben működik-e.
+- Godot nem olvas közvetlenül XLSX-et;
+- C# runtime esetén is elkülönített rules library szükséges.
 
 ### `docs/`
 
 Fő aktuális dokumentumok:
 
-- `docs/ARCHITECTURE.md`
+- `docs/RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
 - `docs/TECHNOLOGY_DECISIONS.md`
 - `docs/DECISION_MAP.md`
+- `docs/CURRENT_PROTOTYPE_STATUS.md`
 - `docs/CURRENT_CONTRACT_STATUS.md`
 - `docs/CURRENT_RUNTIME_PACKAGE_STATUS.md`
-- `docs/CURRENT_PROTOTYPE_STATUS.md`
 - `docs/CURRENT_OPEN_QUESTIONS.md`
 - `docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
+- `docs/ARCHITECTURE.md`
 
 Az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` együtt olvasandó.
 
 ---
 
+## Runtime engine language decision gate
+
+### Python sidecar + Godot
+
+Vizsgálandó:
+
+- stdin/stdout JSONL;
+- localhost TCP + JSON;
+- handshake;
+- action request/response;
+- state/version guard;
+- process lifecycle;
+- kontrollált shutdown;
+- crash és version mismatch;
+- Windows packaging.
+
+### Godot .NET/C# authoritative runtime
+
+Vizsgálandó:
+
+- UI-tól független C# rules library;
+- ugyanazon comparison scenario;
+- kompatibilis JSON-contract;
+- unit tesztek;
+- Godot .NET integráció;
+- Windows export;
+- Python reference outputtal való differential comparison;
+- emberi karbantarthatóság és portolási költség.
+
+### Minimal GDScript proof
+
+Csak akkor készül, ha:
+
+- a tanulóprogram-audit indokolja;
+- az első két proof nem ad elég döntési információt;
+- egyetlen transitionre korlátozható.
+
+### Embedded Python
+
+Közösségi GDExtension/binding irányok léteznek, de jelenleg nem ez az első AETERNA proof.
+
+Részletes scope:
+
+- `docs/RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
+
+---
+
+## Tanulóprogramok
+
+A felhasználó által letöltött külső tanulóprogramok szándékosan nincsenek az AETERNA GitHub repositoryban licencbiztonsági okból.
+
+A következő Codex-audit helyileg vizsgálja:
+
+- forrást és verziót;
+- licencet;
+- Python/C#/GDScript szerepet;
+- Godot-verziót;
+- state authorityt;
+- bridge-et;
+- process lifecycle-t;
+- packaginget;
+- Windows támogatást;
+- teszteket;
+- clean-room módon használható mintákat;
+- attributionkövetelményt.
+
+---
+
 ## Authoritative állapotmodell
 
-A jelenlegi Python futásban a MatchState az authoritative belső állapot.
+A jelenlegi Python reference futásban a MatchState az authoritative belső állapot.
 
 Jelenleg kezeli többek között:
 
@@ -162,11 +238,11 @@ PlayerState listás zónák:
 - `hand_card_instance_ids`
 - `discard_card_instance_ids`
 
-Következő bővítés:
+Döntés utáni első bővítés:
 
 - `wellspring_card_instance_ids`
 
-Ez az authority a jelenlegi Python engine-futásra vonatkozó tényleges állapotmodell. A végleges termékprocessz helye és bridge-e még nyitott.
+A contract jelentése a későbbi C# vagy más runtime-ban is megőrzendő.
 
 ---
 
@@ -209,6 +285,8 @@ Aktív typed eventek:
 - `turn_transition`
 
 A rendszer determinisztikus sequence-et használ, és a player-facing projection nem kap teljes debug payloadot.
+
+Ezek a comparison scenario kötelező elemei.
 
 ---
 
@@ -258,6 +336,8 @@ Még nincs:
 - Rezonancia;
 - Beáramlás.
 
+A Wellspring production integráció a runtime-nyelvi döntési kapu utáni első gameplay-feladat.
+
 ---
 
 ## AI-vs-AI és tesztelés
@@ -279,9 +359,20 @@ Ismert monolitikus discovery-problémák:
 - `test_finds_xlsx_files_only_in_source_directory`
 - `test_lists_sheets_in_read_only_data_only_mode`
 
+A comparison proof követelményei:
+
+- közös scenario;
+- canonical JSON;
+- stale state rejection;
+- Python reference output;
+- C# unit tesztek;
+- bridge lifecycle tesztek;
+- structured differential report;
+- Windows launch proof.
+
 ---
 
-## Következő programozási lánc
+## Gameplay-engine queue a döntés után
 
 1. Wellspring MatchState-integráció.
 2. Player-visible Wellspring summary.
@@ -296,30 +387,27 @@ Ismert monolitikus discovery-problémák:
 11. Entry-state.
 12. Teljesebb phase és priority.
 
-Ez a belső engine-lánc a végleges bridge-döntés előtt is biztonságosan folytatható.
-
 ---
 
-## Párhuzamos technológiai vizsgálat
+## Codex nélküli aktív munkasáv
 
 1. `OPEN_QUESTIONS.md` és `OPEN_QUESTIONS_DECISIONS.md` közös triázsa.
-2. Tanulóprogram-forrásleltár.
-3. Python-engine/Godot minták auditja.
-4. Python–GDScript comparison scope.
-5. Minimal Python–Godot bridge prototype.
-6. Szükség esetén minimal GDScript rules proof.
-7. Windows packaging prototype.
-8. Végleges product runtime-döntés.
+2. Tanulóprogram-forrás- és licencleltár előkészítése.
+3. Comparison kritériumok pontosítása.
+4. `ABILITY_MODULE_SYSTEM.md` auditja.
+5. Contract-specifikáció konszolidációja.
+6. Hivatalos szabályforrásból megválaszolható kérdések ellenőrzése.
 
 ---
 
 ## Rövid összefoglaló
 
-**Jelenlegi működő engine:** Python minimal rules engine  
+**Működő referencia:** Python minimal rules engine  
+**Következő Codex-prioritás:** Python sidecar vs Godot .NET/C# comparison  
 **Godot:** loader-, registry-, debug- és későbbi kliensréteg  
-**Legerősebb hosszú távú jelölt:** Python backend + Godot frontend  
+**Opcionális proof:** minimal GDScript transition  
+**Embedded Python:** kutatási, későbbi irány  
 **Végleges runtime-technológia:** még nyitott  
-**Tanulóprogram-audit:** szükséges  
-**Python–GDScript comparison:** nyitott technológiai kapu  
 **Báziscommit:** `84a7e8f4`  
-**Következő engine-feladat:** Wellspring runtime integráció
+**Gameplay queue első eleme a döntés után:** Wellspring runtime integráció  
+**Codex nélküli aktív sáv:** dokumentáció, audit és döntés-előkészítés
