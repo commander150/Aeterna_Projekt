@@ -1,734 +1,504 @@
 # AETERNA Game Engine – Technology Decisions
 
-Ez a dokumentum az AETERNA Game Engine technológiai döntési terét rögzíti.
+## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-Nem végleges technológiai ítélet.
+**Dokumentumverzió:** 2.0  
+**Dátum:** 2026-07-15  
+**Státusz:** aktív technológiai döntési dokumentum  
+**Aktuális technikai bázis:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
 
-Nem implementációs terv.
+Ez a dokumentum az AETERNA Game Engine jelenleg elfogadott technológiai döntéseit, réteghatárait és még nyitott megvalósítási kérdéseit rögzíti.
 
-Nem contract-specifikáció.
+Nem hivatalos játékszabály, nem részletes contract-specifikáció és nem checkpoint-napló.
 
-Nem checkpoint-napló.
+Kapcsolódó elsődleges dokumentumok:
 
-Feladata, hogy tisztázza:
+- `ARCHITECTURE.md`
+- `CURRENT_CONTRACT_STATUS.md`
+- `CURRENT_OPEN_QUESTIONS.md`
+- `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
+- `RUNTIME_PACKAGE_SPECIFICATION.md`
+- `CONTRACT_SPECIFICATION.md`
+- `AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`
 
-* milyen szerepet kaphat Python;
-* milyen szerepet kaphat Godot/GDScript;
-* miért nem egyszerű „Python vagy GDScript” kérdésről van szó;
-* milyen hibrid modellek lehetségesek;
-* mi számít már bizonyítottnak;
-* milyen döntési kapuk vannak még nyitva;
-* milyen prototípusokra van szükség a végleges döntések előtt.
-
-Kapcsolódó fő dokumentumok:
-
-* `DECISION_MAP.md`
-* `ARCHITECTURE.md`
-* `CHECKPOINTS.md`
-* `OPEN_QUESTIONS.md`
-* `CONTRACT_SPECIFICATION.md`
-* `RUNTIME_PACKAGE_SPECIFICATION.md`
-* `PROTOTYPE_PLANS.md`
+Eltérés esetén a hivatalos 1.4v szabályforrások, a v6.0 projektterv és a `CURRENT_ENGINE_CHECKPOINT.md` a frissebb státuszforrás.
 
 ---
 
-## 1. Alapállítás
+## 1. A technológiai döntés jelenlegi állapota
 
-Az AETERNA Game Engine technológiai kérdése nem az, hogy:
+A korábbi kérdés így szólt:
 
-**Python vagy GDScript?**
+> Python, GDScript vagy hibrid modell legyen-e az AETERNA fő szabálymotorja?
 
-A helyesebb kérdés:
+A jelenlegi projektállapot alapján ez a fő döntés megszületett:
 
-**Melyik réteg melyik technológiában működik a legbiztonságosabban, legátláthatóbban és leghatékonyabban?**
+> **Az authoritative AETERNA rules engine jelenlegi és tervezett fő megvalósítási helye a Python engine.**
 
-A jelenlegi projektállapot alapján a legbiztonságosabb irány:
+A Godot/GDScript jelenlegi szerepe:
 
-**contract-first architektúra + runtime package mint közös határ + rétegenkénti technológiai döntés**
+- runtime package fogyasztás;
+- registry- és adapterréteg;
+- debug nézetek;
+- játékos input;
+- vizuális UI;
+- animáció;
+- későbbi lokális kliens;
+- action requestek elküldése;
+- player-visible válaszok megjelenítése.
 
-Ez a megközelítés akkor is hasznos marad, ha később:
+A Godot nem külön authoritative szabálymotor.
 
-* Python marad a fő backend;
-* GDScript/Godot veszi át a fő runtime szerepet;
-* hibrid modell alakul ki;
-* Python főként adatpipeline és tesztmotor lesz;
-* Godot főként kliens és debug UI lesz.
+A régi Python motor nem az új engine alapja, hanem:
 
----
-
-## 2. Jelenlegi bizonyított technikai állapot
-
-A checkpointok alapján jelenleg bizonyított:
-
-* Python képes kontrollált sample runtime package-et generálni.
-* Python oldali unit test működik.
-* A sample runtime package többfájlos szerkezete működik.
-* Godot képes a runtime package betöltésére.
-* Godot képes registry-kbe rendezni a betöltött adatokat.
-* Godot képes sample snapshot, legal actions és event log contractok betöltésére.
-* Godot képes Snapshot viewer debug nézetet futtatni.
-* Godot képes Legal action debug panelt futtatni.
-* Godot képes Event log debug view-t futtatni.
-* A kapcsolódó headless smoke testek működnek.
-* A runtime package loader és sample contracts réteg együtt tud létezni.
-
-Ez még nem bizonyítja:
-
-* a teljes szabálymotor működését Pythonban;
-* a teljes szabálymotor működését GDScriptben;
-* legal actionök szabályból történő kiszámítását;
-* action request feldolgozását;
-* action-végrehajtást;
-* kártyaképességek futtatását;
-* AI döntéshozatalt;
-* AI-vs-AI batch tesztet az új engine-ben;
-* végleges játék UI-t;
-* PvP működést.
+- `OLD_ENGINE_REVIEW`;
+- `OLD_ENGINE_REFERENCE`;
+- külön döntéssel felhasználható algoritmus-, AI-, diagnostics- vagy balanszforrás.
 
 ---
 
-## 3. Python lehetséges szerepei
+## 2. Elfogadott magas szintű modell
 
-Python erős jelölt az alábbi rétegekben:
+A jelenlegi technológiai modell:
 
-* adatfeldolgozás;
-* XLSX / JSONL / package build;
-* exportvalidáció;
-* LOOKUPS ellenőrzés;
-* legacy alias normalizálás;
-* diagnostics report generálás;
-* runtime package összeállítás;
-* engine support report;
-* AI-vs-AI batch tesztelés;
-* statisztika és balanszriport;
-* régi motor referenciaelemzése;
-* összehasonlító tesztek.
+```text
+Google Sheets / XLSX
+        ↓
+Python export, validáció és runtime package build
+        ↓
+runtime package
+        ↓
+Python authoritative rules engine
+        ↓
+player-visible snapshot / legal actions / action response / events
+        ↓
+Godot kliens, debug UI és későbbi játékos UI
+```
 
-Python előnyei:
+A rétegek nem egyenrangú szabálymotorok.
 
-* gyors fejlesztés;
-* erős adatfeldolgozási ökoszisztéma;
-* könnyű JSON/JSONL/XLSX kezelés;
-* jó automatizált teszteléshez;
-* jó batch futtatáshoz;
-* jó riportkészítéshez;
-* jól használható AI-vs-AI szimulációkra;
-* meglévő projektelőzmény kapcsolódik hozzá.
+### Python felelőssége
 
-Python kockázatai:
+- statikus adatok betöltése és ellenőrzése;
+- MatchState létrehozása;
+- authoritative állapot tárolása;
+- state invariantok;
+- legal actionök számítása;
+- action request validálása;
+- state mutation;
+- typed eventek;
+- player-visible és debug projection;
+- determinisztikus headless futtatás;
+- AI-vs-AI és batch tesztelés;
+- replay- és reprodukálhatósági alap;
+- export-, diagnostics- és build tooling.
 
-* nem természetes Godot runtime környezet;
-* Godot klienshez külön integrációs réteg kellene;
-* végleges játékterjesztésnél bonyolíthatja a csomagolást;
-* a régi Python motor architektúrája nem biztos, hogy hosszú távon tiszta alap;
-* könnyen megmaradhat túl sok régi, card-local vagy wrapper jellegű megoldás;
-* ha Python backend + Godot frontend modell lesz, később kommunikációs / szinkronizációs kérdések jelennek meg.
+### Godot felelőssége
 
----
+- runtime package betöltése;
+- player-visible contractok fogyasztása;
+- input és UI;
+- animation és presentation;
+- debug viewer;
+- későbbi menük, deckbuilder, collection és játékosfelület;
+- action request összeállítása a kapott legal action alapján;
+- engine-válaszok megjelenítése.
 
-## 4. Godot / GDScript lehetséges szerepei
+### Runtime package felelőssége
 
-Godot/GDScript erős jelölt az alábbi rétegekben:
+- kártyadefiníciók;
+- deckek;
+- lookupok;
+- alias- és normalizációs adatok;
+- ability registry;
+- engine-support és diagnostics adatok;
+- statikus, programbiztos adatátadás.
 
-* vizuális játékfelület;
-* debug UI;
-* Snapshot viewer;
-* Legal action debug panel;
-* Event log debug view;
-* játékos input kezelése;
-* animáció;
-* lokális játékélmény;
-* későbbi player-vs-AI mód;
-* későbbi player-vs-player kliens;
-* esetleges saját GDScript runtime.
-
-Godot/GDScript előnyei:
-
-* természetes játékmotoros környezet;
-* UI, input, scene, node és animációs rendszer adott;
-* a felhasználó főleg Godot felületről szeretné használni;
-* a már elkészült loader és debug nézetek működnek;
-* a headless smoke testek explicit logfájllal működnek;
-* a runtime package fogyasztása már bizonyított mintaszinten.
-
-Godot/GDScript kockázatai:
-
-* nem biztos, hogy kényelmes nagy, komplex szabálymotorhoz;
-* GDScript adatfeldolgozásban gyengébb, mint Python;
-* batch AI-vs-AI tesztelésben valószínűleg kevésbé kényelmes;
-* óvni kell attól, hogy a UI node-okba rejtett szabálylogika kerüljön;
-* GDScriptben a típuskezelésre és type inference hibákra figyelni kell;
-* hosszú távú rules service réteg alkalmasságát még bizonyítani kell.
+A runtime package nem tartalmazza az authoritative meccsállapotot, és nem hajt végre szabályt.
 
 ---
 
-## 5. Miért nem döntünk még véglegesen?
+## 3. Miért a Python rules engine lett az authoritative réteg?
 
-Nem döntünk még véglegesen a fő runtime technológiáról, mert jelenleg csak az adatbetöltési, contract-betöltési és debug nézeti rétegek bizonyítottak.
+A döntést nem önmagában a nyelv, hanem az elkészült bizonyítékok indokolják.
 
-Még nem bizonyított:
+A Python engine jelenleg már működően bizonyítja:
 
-* GDScript teljes szabálymotor-alkalmassága;
-* Python új tiszta backendként való hosszú távú fenntarthatósága;
-* régi Python motor átalakíthatósága;
-* hibrid rendszer fenntartható működése;
-* Python ↔ GDScript azonos szabályeredmény biztosítása;
-* AI-vs-AI tesztek helye;
-* action execution és ability execution technológiai költsége.
+- MatchState és PlayerState kezelést;
+- card instance registryt;
+- state version guardot;
+- state invariantokat;
+- legal action és action request alapot;
+- draw és end-turn transitiont;
+- typed eventeket;
+- player-visible snapshotot;
+- hidden-information elhatárolást;
+- Domain topológiát és occupancyt;
+- board projectiont;
+- strukturális Entitás-placementet;
+- activity state-et;
+- izolált Wellspring resource contractot;
+- determinisztikus AI trajectoryt;
+- nagy számú automatizált unit és contract tesztet.
 
-Ezért a jelenlegi döntési állapot:
+A Python technikai előnyei ebben a projektben:
 
-**nyitott, de irányított technológiai döntési tér**
+- gyors, kis lépésekben tesztelhető fejlesztés;
+- egyszerű headless futtatás;
+- jól elkülöníthető tiszta contract- és state-logika;
+- erős JSON/JSONL/XLSX feldolgozás;
+- determinisztikus batch és AI-vs-AI tesztelés;
+- egyszerű diagnostics és riportkészítés;
+- a Godot UI-tól független szabálytesztelés.
 
----
-
-## 6. Vizsgált technológiai modellek
-
-### Modell A – Régi Python motor mint hosszú távú backend
-
-Leírás:
-
-A meglévő Python motor továbbfejlesztése, refaktorálása és backendként való megtartása.
-
-Előnyök:
-
-* már van működő előzmény;
-* lehetnek átmenthető szabálylogikai részek;
-* AI-vs-AI és batch tesztelés Pythonban természetesebb;
-* adatfeldolgozás és riportkészítés erős.
-
-Kockázatok:
-
-* régi architektúra visszahúzhatja az új rendszert;
-* card-local vagy wrapper jellegű megoldások újra beépülhetnek;
-* Godot integráció bonyolultabb lehet;
-* végleges digitális kliensnél Python függőség maradhat.
-
-Jelenlegi státusz:
-
-**nem kizárt, de nem preferált automatikus folytatás**
-
-Döntési feltétel:
-
-Csak akkor maradhat hosszú távú backend, ha külön audit igazolja, hogy tisztítható, contract-first módon leválasztható és fenntartható.
+A döntés azt jelenti, hogy a Python az authoritative szabálymotor. Nem jelenti azt, hogy minden termékfunkció Pythonban készül.
 
 ---
 
-### Modell B – Új tiszta Python backend + Godot frontend
+## 4. Godot/GDScript elfogadott szerepe
 
-Leírás:
-
-Új, tisztább Python rules backend készül, Godot pedig frontendként / kliensként fogyasztja a contractokat.
-
-Előnyök:
-
-* Python erős marad adat- és AI-oldalon;
-* tisztább lehet, mint a régi motor refaktorálása;
-* contract-first backend építhető;
-* AI-vs-AI és balanszteszt Pythonban egyszerűbb lehet.
-
-Kockázatok:
-
-* Godot és Python közötti runtime kapcsolatot meg kell oldani;
-* deployment / csomagolás bonyolultabb lehet;
-* két technológiai stack fenntartása szükséges;
-* interaktív UI és backend szinkron kérdései megjelennek.
-
-Jelenlegi státusz:
-
-**lehetséges hosszú távú irány, de prototípus és integrációs vizsgálat kell**
-
----
-
-### Modell C – Teljes GDScript rules engine
-
-Leírás:
-
-A fő rules engine Godot/GDScriptben készül, Python főként adatpipeline és package builder marad.
-
-Előnyök:
-
-* a digitális játék teljes runtime-ja Godotban maradhat;
-* nincs külön Python backend dependency játék közben;
-* UI és engine egy környezetben működik;
-* lokális játékprogramként egyszerűbb lehet terjeszteni.
-
-Kockázatok:
-
-* GDScript komplex szabálymotorra való alkalmassága még nem bizonyított;
-* batch AI-vs-AI tesztelés kevésbé kényelmes lehet;
-* adatvalidáció és riportok Pythonban valószínűleg jobbak;
-* nagy veszély, hogy a UI és rules logic összefolyik, ha nincs tiszta service-réteg.
-
-Jelenlegi státusz:
-
-**erős vizsgálandó jelölt, de rules service prototípus kell**
-
----
-
-### Modell D – Python test motor + GDScript játékengine hibrid
-
-Leírás:
-
-Python megmarad package buildernek, validátornak, AI-vs-AI / teszt motornak, Godot/GDScript pedig a játszható kliens és esetleg saját runtime irány.
-
-Előnyök:
-
-* mindkét technológia erősségeit használja;
-* Python marad adat- és tesztoldalon;
-* Godot marad kliens- és UI-oldalon;
-* contract-first határ védőréteg lehet;
-* összehasonlító tesztekkel ellenőrizhető az eltérés.
-
-Kockázatok:
-
-* két rendszer közötti szabályeltérés veszélye;
-* duplikált szabálylogika alakulhat ki;
-* reference engine kérdését tisztázni kell;
-* comparison test nélkül hosszú távon veszélyes.
-
-Jelenlegi státusz:
-
-**jelenleg az egyik legerősebb átmeneti munkahipotézis**
-
----
-
-### Modell E – Python package builder + GDScript main runtime
-
-Leírás:
-
-Python csak a package builder, validáció, diagnostics és riport oldalon marad. A fő játék runtime Godot/GDScriptben készül.
-
-Előnyök:
-
-* tiszta elválasztás;
-* runtime package a közös határ;
-* Godot a teljes játék futási környezete;
-* Python nem szükséges játék közben;
-* adatpipeline és játékprogram rétege szétválik.
-
-Kockázatok:
-
-* GDScript rules runtime alkalmasságát bizonyítani kell;
-* AI-vs-AI batch tesztelés helye kérdéses;
-* Python oldali referencia nélkül nehezebb lehet balansztesztelni;
-* ability execution komplexitás GDScriptben még nyitott.
-
-Jelenlegi státusz:
-
-**erős hosszú távú jelölt, ha a GDScript rules prototípus sikeres**
-
----
-
-## 7. Jelenlegi munkahipotézis
-
-A jelenlegi legbiztonságosabb munkahipotézis:
-
-**Python marad adatpipeline, XLSX/JSONL export, validáció, runtime package build, diagnostics, riport és AI-vs-AI / batch tesztelési jelölt oldalon.**
-
-**Godot/GDScript marad runtime package fogyasztó, debug UI, játékos UI, kliens és későbbi runtime jelölt oldalon.**
-
-**A runtime package és a contract-réteg a közös határ.**
-
-**A Godot ne olvasson közvetlenül XLSX-et.**
-
-**Az XLSX exportáló funkció hosszabb távon ne különálló aktív programként éljen tovább, hanem az `Aeterna game engine/python/` tooling / build pipeline részeként.**
-
-**A végleges rules runtime döntés csak további prototípus után születhet meg.**
-
-Ez a munkahipotézis nem végleges döntés.
-
-A mostani technológiai irány nem az, hogy minden meglévő eszközt kidobjunk, hanem az, hogy a már bizonyított többfokozatú tesztpipeline fokozatosan kényelmesebb, egységesebb fejlesztői buildfolyamattá alakuljon.
-
-Belsőleg továbbra is megmaradhatnak a lépések:
-
-- XLSX beolvasás;
-- nyers export generálás;
-- validáció;
-- runtime package build;
-- Godot consumption copy frissítés;
-- smoke test / diagnostics.
-
-Fejlesztői használatban viszont hosszabb távon ez egyetlen vagy kevés lépéses buildfolyamatként jelenjen meg.
-
----
-
-## 8. Biztos döntések
-
-A következő technológiai döntések jelenleg biztonságosnak tekinthetők:
-
-* A rendszer contract-first irányban fejlődjön.
-* A runtime package legyen központi adatátadási forma.
-* A Python/Godot határ ne belső objektumokra, hanem fájlokra és contractokra épüljön.
-* A Python erős és biztonságos jelölt az adatpipeline, XLSX/JSONL export, validáció, runtime package build, diagnostics és riportkészítés rétegére.
-* A Godot/GDScript jelenleg bizonyított runtime package / sample contract fogyasztó, debug UI és későbbi játék/kliens/rules runtime jelölt.
-* A Godot ne olvasson közvetlenül XLSX-et.
-* A Godot UI ne találgasson szabályokat.
-* Az AI ne találgasson szabályokat.
-* A legal action listát később rules engine adja.
-* A snapshot player-visible módban ne szivárogtasson rejtett információt.
-* A diagnostics strukturált legyen.
-* A checkpointok smoke test eredményekre épüljenek.
-* A régi Python motort ne emeljük át automatikusan.
-* Az `XLSX export/` programfunkció hosszabb távon migrálható az új engine Python tooling alá.
-* Codex rövid, célzott technikai feladatokat kapjon.
-
-Ezek nem döntik el véglegesen, hogy a teljes rules engine Pythonban, GDScriptben vagy hibrid modellben készüljön el.
-
-A biztos döntés jelenleg a réteghatárok tisztítása.
-
----
-
-## 9. Nyitott döntések
-
-Nyitott technológiai döntések:
-
-* Python marad-e hosszú távú backend?
-* GDScript alkalmas-e teljes rules runtime-nak?
-* Hibrid modell marad-e hosszú távon?
-* Melyik rendszer legyen referencia, ha Python és GDScript eltér?
-* Kell-e Python ↔ GDScript comparison test?
-* AI-vs-AI Pythonban, GDScriptben vagy mindkettőben fusson?
-* A runtime package mikortól legyen kötelező input?
-* Action execution melyik rétegben készüljön először?
-* Ability execution melyik technológiában legyen prototipizálva?
-* Milyen mélységig kell Godot headless teszteket írni?
-
-A részletes kérdéslista helye:
-
-`OPEN_QUESTIONS.md`
-
----
-
-## 10. Godot headless tesztelési döntések
-
-Jelenlegi tanulság:
-
-Windows / Godot 4.7 környezetben a headless smoke test stabilabb explicit logfájllal.
-
-Javasolt irány:
-
-* minden headless smoke testhez legyen kényelmi `.bat` futtató;
-* a futtató lépjen be a Godot projektmappába;
-* a `--path "."` használható, ha a BAT a Godot mappából fut;
-* legyen explicit `--log-file`;
-* a smoke log fájlok ne kerüljenek verziókezelésbe;
-* a root certificate store warning nem blokkoló, ha az OK output után jelenik meg.
-
-Nem eldöntött:
-
-* később kell-e CI-ben futtatni a Godot headless teszteket;
-* milyen Godot warning számít AETERNA hibának;
-* milyen Godot warning számít környezeti, nem blokkoló warningnak.
-
----
-
-## 11. Codex technológiai szerepe
-
-Codex technológiai feladatokra használható, de csak célzottan.
-
-Codexnek adható:
-
-* loader javítás;
-* smoke test készítés;
-* registry bővítés;
-* package builder módosítás;
-* konkrét GDScript debug panel;
-* konkrét Python validátor;
-* konkrét exportáló-funkció;
-* fájllista alapján végzett mechanikus módosítás.
-
-Codexnek nem adható önállóan:
-
-* teljes projektirányítás;
-* szabályi döntés;
-* balanszdöntés;
-* nagy homályos refaktor;
-* automatikus törlés;
-* mappák tömeges mozgatása pontos lista nélkül;
-* végleges dokumentációs szerkezet meghatározása;
-* hivatalos szabályforrás átírása emberi döntés nélkül.
-
-Codex promptok formátuma:
-
-* legyen rövid;
-* legyen konkrét;
-* legyen ellenőrizhető;
-* tartalmazzon bemenetet;
-* tartalmazzon elvárt outputot;
-* tartalmazzon tiltásokat;
-* tartalmazzon tesztelési elvárást.
-
----
-
-## 12. Következő technológiai bizonyítási lépések
-
-A következő biztonságos technológiai bizonyítási irányok:
-
-### 12.1 Fejlesztői build pipeline rendezése
-
-Cél:
-
-* az XLSX exportáló funkció beépítése az `Aeterna game engine/python/` tooling rétegébe;
-* explicit source és output útvonalak támogatása;
-* újabb állandó XLSX input másolatok elkerülése;
-* Python oldali build output és Godot oldali consumption copy szerepének tisztázása;
-* a két `sample_runtime_package` mappa státuszának rögzítése;
-* a Godot továbbra is runtime package-et fogyasszon, ne XLSX-et;
-* a későbbi egylépéses fejlesztői build előkészítése.
-
-Ez nem szabálymotor.
-
-Ez nem action-végrehajtás.
-
-Ez nem publikus release pipeline.
-
-### 12.2 Runtime package + sample contracts integráció
-
-Cél:
-
-* `card_id` alapján kártyanév feloldása;
-* kártyatípus feloldása;
-* Birodalom / Klán megjelenítése;
-* legal action source és target olvashatóbbá tétele;
-* missing card reference diagnostics.
-
-Ez nem szabálymotor.
-
-Ez a pipeline rendezése után stabilabb alapon végezhető.
-
-### 12.3 Contract consistency smoke test erősítése
-
-Cél:
-
-* manifest ellenőrzés;
-* schema_version ellenőrzés;
-* match_id egyezés snapshot / legal actions / events között;
-* snapshot_ref ellenőrzés;
-* card reference-ek ellenőrzése;
-* diagnostics olvashatóság;
-* missing reference esetek kontrollált kezelése.
-
-Ez nem teljes validator.
-
-### 12.4 Unified debug dashboard
-
-Cél:
-
-* package summary;
-* snapshot összefoglaló;
-* legal action lista;
-* event log lista;
-* diagnostics összefoglaló;
-* card reference resolution egy nézetben.
-
-Ez nem interaktív játék UI.
-
-### 12.5 Action response smoke / action request extension
-
-Cél:
-
-* meglévő sample action request smoke folytatása;
-* action response minta;
-* success és rejected response minta;
-* diagnostics;
-* response eventek;
-* request / response consistency ellenőrzés.
-
-Ez még nem teljes action-végrehajtás.
-
-### 12.6 GDScript rules service minimál prototípus
-
-Cél:
-
-* UI-tól elkülönített rules service réteg;
-* egyetlen nagyon egyszerű action ellenőrzése;
-* legal action → action request → response kör;
-* event log stub;
-* diagnostics stub.
-
-Ez lehet az első valódi technológiai próba arra, hogy GDScript alkalmas-e szabályrétegre.
-
-### 12.7 Python ↔ GDScript comparison scenario
-
-Cél:
-
-* ugyanazon sample scenario lefuttatása Python és GDScript oldalon;
-* event log összevetése;
-* determinisztikus mezők ellenőrzése;
-* eltérések diagnostics reportja.
-
-Ez csak akkor aktuális, ha már mindkét oldalon van legalább minimális action execution.
-
----
-
-## 13. Döntési kapuk
-
-### Gate 0 – Fejlesztői build pipeline tisztasága
-
-Státusz: következő technikai rendezési kapu.
-
-Szükséges bizonyítás:
-
-* az XLSX exportáló funkció az új engine Python tooling alá migrálható;
-* explicit source és output útvonalak működnek;
-* nem kell újabb állandó XLSX input másolatot létrehozni az engine alatt;
-* a Python oldali `sample_runtime_package` és a Godot oldali `sample_runtime_package` szerepe elkülönül;
-* a Godot oldali consumption copy frissíthető a Python build outputból;
-* a korábbi Python és Godot smoke testek nem törnek el;
-* az `XLSX export/` mappa régi aktív programhely státusza megszüntethető vagy archiválható a migráció után.
-
-Ez a gate nem rules engine döntés.
-
-Ez a gate a további runtime package / contract integrációk technikai alapját tisztázza.
-
----
-
-### Gate 1 – Godot contract fogyasztás
-
-Státusz: részben teljesült.
+A Godot ág korábbi prototípusfeladata sikeres volt.
 
 Bizonyított:
 
-* runtime package betöltés;
-* sample contract betöltés;
-* debug nézetek;
-* smoke testek.
+- runtime package loader;
+- card/deck/lookup registry;
+- sample snapshot betöltés;
+- sample legal action betöltés;
+- sample event log betöltés;
+- snapshot viewer;
+- legal action debug panel;
+- event log debug view;
+- unified debug dashboard;
+- headless smoke futtatás;
+- explicit logfájlos Windows/Godot futtatási minta.
 
-Következő erősítés:
+Ez a réteg ezért nem eldobott prototípus.
 
-* card reference resolution;
-* unified dashboard;
-* action request smoke.
+A jelenlegi státusza:
 
----
+- `ACTIVE_CONSUMER_LAYER`;
+- `ACTIVE_DEBUG_LAYER`;
+- `FUTURE_PLAYER_CLIENT`.
 
-### Gate 2 – GDScript rules service alkalmasság
+A Godotban nem készülhet párhuzamosan:
 
-Státusz: nyitott.
+- saját legalitásszámítás;
+- saját authoritative MatchState;
+- külön card effect végrehajtás;
+- Python engine-től eltérő phase vagy combat szabály;
+- UI-node-okba rejtett rules logic.
 
-Szükséges bizonyítás:
-
-* UI-tól elkülönített rules service;
-* legal action számítás minimális mintán;
-* action request / response;
-* event log és diagnostics;
-* headless smoke test.
-
----
-
-### Gate 3 – Python hosszú távú backend alkalmasság
-
-Státusz: nyitott.
-
-Szükséges bizonyítás:
-
-* régi motor audit;
-* új tiszta Python backend lehetőségének vizsgálata;
-* contract-first adapter;
-* runtime package input;
-* event log output;
-* legal action output;
-* AI-vs-AI futási képesség.
+A Godot kliens a szabálymotor által előállított contractokat fogyasztja.
 
 ---
 
-### Gate 4 – Hibrid modell fenntarthatósága
+## 5. A korábban vizsgált technológiai modellek státusza
 
-Státusz: nyitott.
+### Modell A – Régi Python motor mint backend
 
-Szükséges bizonyítás:
+**Státusz:** `not_selected_as_primary`
 
-* közös runtime package;
-* közös contractok;
-* comparison scenario;
-* eltérésdiagnosztika;
-* duplikált szabálylogika kontrollja.
+A régi motor nem válik automatikusan az új backenddé.
 
----
+Használható:
 
-### Gate 5 – AI-vs-AI és balanszteszt technológiai helye
+- referencia;
+- összevetés;
+- AI-minta;
+- diagnostics-minta;
+- balanszriport-ötlet;
+- célzott algoritmusforrás.
 
-Státusz: későbbi.
+Bármilyen átvételhez külön audit és új teszt szükséges.
 
-Szükséges előfeltételek:
+### Modell B – Új tiszta Python backend + Godot frontend
 
-* stabil legal action;
-* action execution;
-* event log;
-* ability support;
-* fair snapshot;
-* diagnostics;
-* decklist támogatás;
-* batch futtatás.
+**Státusz:** `selected_current_architecture`
 
----
+Ez a jelenlegi aktív modell.
 
-## 14. Jelenlegi ajánlott technológiai sorrend
+A pontos Python–Godot runtime kapcsolat még külön implementációs döntés, de az authoritative felelősség már eldőlt.
 
-A jelenlegi ajánlott sorrend:
+### Modell C – Teljes GDScript rules engine
 
-1. Fejlesztői build pipeline rendezése.
-2. Runtime package + sample contracts kapcsolat erősítése.
-3. Contract consistency smoke test erősítése.
-4. Unified debug dashboard.
-5. Action response smoke / action request extension.
-6. Contract-specifikáció szigorítása.
-7. Runtime package specification szigorítása.
-8. Ability module system váz stabilizálása.
-9. Minimális GDScript rules service prototípus.
-10. Csak ezután döntés a GDScript runtime alkalmasságáról.
-11. Később Python ↔ GDScript comparison test.
-12. Még később AI-vs-AI és balanszteszt.
+**Státusz:** `not_selected`
 
-Indok:
+Nem építünk második authoritative szabálymotort GDScriptben.
 
-A következő technológiai lépés nem a teljes engine megírása.
+Egyes tiszta kliensoldali előnézeti vagy megjelenítési helper készülhet, de nem hozhat szabályi döntést.
 
-Előbb a meglévő adat- és build-láncot kell tisztítani.
+### Modell D – Python tesztmotor + külön GDScript játékengine
 
-A pipeline rendezése után stabilabb lesz:
+**Státusz:** `rejected_due_to_duplicate_rules_risk`
 
-* a runtime package build;
-* a Godot consumption copy kezelése;
-* a sample contract integráció;
-* a debug dashboard;
-* az action request / response smoke;
-* a későbbi rules service prototípus.
+Két külön szabálymotor hosszú távon eltérést, duplikált karbantartást és bizonytalan referenciaeredményt okozna.
+
+### Modell E – Python csak package builder, GDScript fő runtime
+
+**Státusz:** `superseded_by_python_authoritative_engine`
+
+A runtime package és Godot alapozás sikeres volt, de a szabálymotor fejlesztése időközben Pythonban érdemi, tesztelt állapotra jutott.
 
 ---
 
-## 15. Mit nem dönt el ez a dokumentum?
+## 6. Python–Godot integráció
 
-Ez a dokumentum nem dönti el véglegesen, hogy:
+A felelősségi döntés megszületett, de a konkrét futási integráció még nyitott.
 
-* Python lesz-e a végleges backend;
-* GDScript lesz-e a végleges rules runtime;
-* teljes hibrid modell marad-e;
-* Python motorból mit kell átmenteni;
-* AI-vs-AI hol fusson véglegesen;
-* ability execution melyik nyelven készüljön véglegesen.
+Lehetséges későbbi megoldások:
 
-Ezekhez további prototípusok, auditok és emberi döntések kellenek.
+1. Python child process és stdin/stdout JSON protokoll.
+2. Lokális socket vagy HTTP service.
+3. Csomagolt Python runtime a Godot alkalmazás mellett.
+4. Előre futtatott headless engine csak fejlesztői/tesztelői módban.
+5. Későbbi natív bridge vagy más beágyazási megoldás.
+
+A következő elvek kötelezők:
+
+- az integrációs transport nem válhat szabályforrássá;
+- minden kérés explicit action request;
+- stale state/version ellenőrzés megmarad;
+- a válasz player-visible contract;
+- debug adat csak explicit debug módban érhető el;
+- a kommunikáció determinisztikusan naplózható;
+- hibás vagy megszakadt kapcsolat nem hozhat részleges state mutationt.
+
+A konkrét transport döntése nem szükséges a minimal rules engine következő belső feladataihoz.
 
 ---
 
-## 16. Záró döntési állapot
+## 7. Adatpipeline és runtime package
 
-A jelenlegi technológiai döntési állapot:
+Elfogadott döntések:
 
-**A contract-first + runtime package alap biztonságos és megtartandó.**
+- a fő szerkesztés Google Sheetsben történik;
+- a lokális XLSX forrásmásolat;
+- a Godot nem olvas közvetlenül XLSX-et;
+- a Python végzi az exportot, validációt és runtime package buildet;
+- a kártyák és decklisták az aktív 1.9v kártyaadatbázisból jönnek;
+- a runtime lookupok a `LOOKUPS.xlsx` fájlból jönnek;
+- a Godot `runtime_package/` consumption copy;
+- a generált runtime package nem canonical szerkesztési forrás;
+- a publish előtt validáció szükséges.
 
-**Python jelenleg erős adatpipeline, XLSX/JSONL export, validáció, package build, diagnostics, riport és AI-vs-AI jelölt réteg.**
+Elsődleges publish runner:
 
-**Godot/GDScript jelenleg bizonyított package/contract fogyasztó, debug UI és későbbi játék/kliens/rules runtime jelölt.**
+- `python/publish_runtime_package_to_godot.bat`
 
-**A Godot továbbra se olvasson közvetlenül XLSX-et.**
+A TEMP candidate staging:
 
-**Az XLSX exportáló funkció hosszabb távon az új engine Python tooling / build pipeline részévé váljon.**
+- jelenleg elfogadott átmeneti megoldás;
+- nem végleges release-architektúra;
+- később külön build/output struktúrával váltható ki.
 
-**A végleges rules runtime technológia nyitott döntési kapu.**
+---
 
-**A következő helyes technológiai lépés nem a teljes engine megírása, hanem a fejlesztői build pipeline rendezése.**
+## 8. Jelenlegi futási és fejlesztési modell
 
-A pipeline rendezése után következhet a runtime package + sample contracts integráció erősítése, majd a contract consistency, dashboard és action response irány.
+### Headless fejlesztés
+
+A rules engine elsődleges fejlesztési módja:
+
+- Python unit és contract tesztek;
+- isolated test module futtatás;
+- minimal engine smoke;
+- AI-vs-AI text smoke;
+- AI-vs-AI JSON smoke;
+- determinisztikus ismétlés.
+
+### Godot fejlesztés
+
+A Godot fejlesztés elsődleges módja:
+
+- loader smoke;
+- debug scene;
+- headless Godot teszt;
+- explicit `--log-file` Windows/Godot 4.7 alatt;
+- player-facing contractok megjelenítésének fokozatos bekötése.
+
+### Adatpipeline-fejlesztés
+
+- explicit source/output útvonalak;
+- candidate build;
+- validation gate;
+- dry-run;
+- Godot consumption copy csak sikeres build után.
+
+---
+
+## 9. Tesztelési technológiai döntések
+
+Elfogadott:
+
+- minden új engine-contract kapjon célzott tesztet;
+- minden state mutation kapjon success és rejection tesztet;
+- rejected action ne mutáljon state-et;
+- a teljes Python tesztkészlet izolált modulonként is fusson;
+- minimal engine smoke kötelező;
+- AI-vs-AI determinisztikus JSON ellenőrzés kötelező;
+- player-visible hidden-information tesztek kötelezők;
+- deep-copy és inputváltozatlanság ellenőrzendő;
+- Git státusz minden technikai checkpointnál ellenőrzendő.
+
+Ismert tesztinfrastruktúra-adósság:
+
+- két sorrendfüggő XLSX mock-probléma a monolitikus discoveryben.
+
+Ezek külön izolációs feladatban javítandók, nem szabad véletlenül engine-refaktorral összekeverni.
+
+---
+
+## 10. Csomagolás és terjesztés
+
+A 0.0.1 egyik célja az egyszerű Windows-indítás.
+
+A Python-authoritative modell miatt később külön bizonyítani kell:
+
+- hogyan kerül a Python runtime a tesztbuildbe;
+- hogyan indul a Godot kliens és Python engine együtt;
+- hogyan találják meg a runtime package-et;
+- hogyan készül a mentés és log;
+- hogyan készül reprodukálható hibajelentési csomag;
+- hogyan kezelhető az engine process összeomlása;
+- hogyan történik a verzióegyeztetés.
+
+Ez fontos termékesítési kapu, de nem blokkolja a jelenlegi M1–M3 szabálymotor-fejlesztést.
+
+Javasolt későbbi bizonyítás:
+
+- minimális Windows package prototype;
+- Godot launcher;
+- Python engine child process;
+- egy action request/response kör;
+- tiszta leállítás;
+- hibás engine-verzió kontrollált jelzése.
+
+---
+
+## 11. AI és szimuláció technológiai helye
+
+Az AI-vs-AI elsődleges futási helye Python.
+
+Rövid távon:
+
+- deterministic bot policy;
+- smoke és scenario runner;
+- trajectory;
+- invariánsellenőrzés.
+
+Hosszú távon:
+
+- valódi játékosszerű AI;
+- több nehézség;
+- batch matchup tesztek;
+- balance report;
+- replay és reprodukálhatóság;
+- AI-vs-player.
+
+A fair AI ugyanazt a player-visible információt használja, mint az emberi játékos.
+
+Debug AI külön, explicit módban kaphat több információt.
+
+---
+
+## 12. Codex és közvetlen GitHub-munka szerepe
+
+Codex vagy más kódoló agent használható:
+
+- szűk engine-contract feladatra;
+- célzott validátorra;
+- konkrét transitionre;
+- tesztkészítésre;
+- loader- vagy registry-javításra;
+- exportpipeline-részfeladatra.
+
+Nem delegálható önállóan:
+
+- hivatalos szabályi döntés;
+- teljes projektirányítás;
+- nagy, homályos refaktor;
+- automatikus törlés vagy tömeges mozgatás;
+- kétértelmű gameplay feltételezés;
+- végleges dokumentációs elsőbbség meghatározása.
+
+Programozási prompt követelményei:
+
+- szűk cél;
+- előzetes vizsgálat;
+- explicit scope;
+- explicit nem-célok;
+- schema- és invariáns-elvárások;
+- célzott és regressziós tesztek;
+- smoke futtatások;
+- commitfeltételek;
+- részletes végső jelentés.
+
+A GitHub a repository elsődleges átadási és együttműködési felülete.
+
+---
+
+## 13. Nyitott technológiai döntések
+
+A fő rules-engine technológia már nem nyitott.
+
+Még nyitott:
+
+- Python–Godot transport;
+- Windows packaging;
+- Python runtime beágyazás vagy sidecar;
+- engine process lifecycle;
+- save/load tárolási forma;
+- replay végrehajtási forma;
+- CI-ben futó Python és Godot tesztek köre;
+- performance profiling küszöbök;
+- nagy AI batch futások infrastruktúrája;
+- runtime package release/version registry;
+- TEMP candidate staging későbbi kiváltása;
+- publikus build integritásvédelme.
+
+A közeli döntések részletes helye:
+
+- `CURRENT_OPEN_QUESTIONS.md`
+
+A teljes történeti kérdésregiszter:
+
+- `OPEN_QUESTIONS.md`
+
+---
+
+## 14. Következő technológiai bizonyítási lépések
+
+A jelenlegi sorrend:
+
+1. Wellspring production MatchState-integráció.
+2. Player-visible Wellspring summary.
+3. Beáramlás precondition és transition.
+4. Magnitúdó- és Aura-payment réteg.
+5. Első `play_card` action.
+6. Phase és priority rendszer bővítése.
+7. Első tényleges játszható Python vertical slice.
+8. Python–Godot action request/response integrációs prototípus.
+9. Godot player UI vertical slice.
+10. Windows packaging prototype.
+
+A Godot-integrációt nem kell a rules engine minden lépésével párhuzamosan fejleszteni, de az első stabil játszható vertical slice előtt újra aktív prioritássá válik.
+
+---
+
+## 15. Biztos döntések összefoglalója
+
+- A Python engine authoritative szabálymotor.
+- A Godot kliens-, loader-, registry-, debug- és UI-réteg.
+- Nem készül két külön authoritative rules engine.
+- A frontend és az AI nem találgat legalitást.
+- A kliens action requestet küld.
+- A state mutation a Python engine-ben történik.
+- A player-visible és debug projection külön marad.
+- A runtime package statikus adatcontract.
+- Godot nem olvas közvetlenül XLSX-et.
+- A Python végzi az exportot, validációt és runtime package buildet.
+- Az AI-vs-AI elsődleges futási helye Python.
+- A régi Python motor review és referencia.
+- A Windows packaging későbbi külön technológiai kapu.
+- A jelenlegi közvetlen cél a stabil rules engine, nem a végleges kliens.
