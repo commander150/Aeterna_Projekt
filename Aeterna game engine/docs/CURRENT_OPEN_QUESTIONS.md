@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.6  
+**Dokumentumverzió:** 1.7  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív közeli döntési kapu-, OQ-triázs- és prioritáslista  
 **Technikai referencia:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
@@ -39,15 +39,12 @@ A Python minimal engine a jelenlegi működő referenciaimplementáció. A végl
 | `needs_source_amendment` | A döntést a következő hivatalos szabályforrás-verzióba át kell vezetni. |
 | `needs_lookup_audit` | Canonical runtime értékeket LOOKUPS-ból kell ellenőrizni. |
 | `needs_engine_design` | Technikai contract-, state- vagy eventdöntés kell. |
-| `needs_visibility_decision` | Player-visible és hidden-information policy kell. |
 | `queued_after_language_gate` | Definiált feladat, de a runtime-nyelvi döntés után folytatandó. |
 | `deferred_non_blocking` | Nyitott, de a következő auditot vagy proofot nem blokkolja. |
 
 ---
 
 ## 2. Technológiai döntési kapu
-
-### 2.1 Történeti OQ-k aktuális státusza
 
 | Eredeti OQ | Aktuális státusz | Aktuális értelmezés |
 |---|---|---|
@@ -62,7 +59,7 @@ A Python minimal engine a jelenlegi működő referenciaimplementáció. A végl
 | `OQ-TECH-006` | `answered` munkarendi szinten | Codex szűk, tesztelhető feladatot kap; a következő munka read-only audittal indul. |
 | `OQ-AI-001` | `partly_answered` | Python AI/batch tooling megtartandó; a product runtime adaptere proof után dönthető el. |
 
-### 2.2 Kötelező elvek
+Kötelező elvek:
 
 - contract-first fejlesztés;
 - pontosan egy authoritative MatchState;
@@ -71,7 +68,7 @@ A Python minimal engine a jelenlegi működő referenciaimplementáció. A végl
 - a Python leváltása csak bizonyított termékakadály vagy lényegesen jobb alternatíva miatt indokolt;
 - a végleges döntéshez audit, azonos fixture, packaging proof és emberi jóváhagyás kell.
 
-### 2.3 Aktuális proof-feladatok
+Aktuális proof-sorrend:
 
 1. `fourth turn` read-only Batch 0 leltár és licencleltár;
 2. canonical comparison fixture-artifactok;
@@ -234,14 +231,8 @@ Nyitott:
 - a kártyák supportja `not_evaluated`;
 - `runtime_executes_abilities: false`;
 - nincs működő ability executor;
-- a 814 runtime-kártya jelenléte nem jelent engine-támogatást.
-
-Következmény:
-
-- ability executor nem előzheti meg a runtime-nyelvi döntést;
-- előbb Wellspring, Beáramlás, erőforrás, `play_card`, timing, phase és priority alap kell;
-- az `ABILITY_MODULE_SYSTEM.md` technológiafüggetlen hosszú távú tervként kezelendő;
-- új párhuzamos ability-current dokumentum nem készül.
+- a 814 runtime-kártya jelenléte nem jelent engine-támogatást;
+- ability executor előtt Wellspring, Beáramlás, erőforrás, `play_card`, timing, phase és priority alap kell.
 
 ---
 
@@ -255,7 +246,7 @@ Következmény:
 - registry zone `wellspring`;
 - activity `active` vagy `exhausted`;
 - stabil serialization-sorrend;
-- owner-only belső visibility;
+- belső card record visibility `owner_only`;
 - listás zóna és registry kétirányú invariáns.
 
 ### CQ-WS-002 – Resource summary
@@ -269,17 +260,27 @@ Következmény:
 - Aura fizetése Aktív forráslapok Kimerítésével történik;
 - ne legyen külön authoritative `magnitude`, `spent_aura` vagy `remaining_aura` mező.
 
-### CQ-WS-003 – Ősforrás visibility
+### CQ-WS-003 – Ősforrás player-visible policy
 
-**Státusz:** `needs_visibility_decision`
+**Státusz:** `answered`
 
-Eldöntendő:
+**Emberi döntés – 2026-07-15:**
 
-- mindkét játékos látja-e a teljes Magnitúdót;
-- mindkét játékos látja-e az Aktív/Kimerült forrásszámot;
-- a saját játékos látja-e a saját képpel lefelé lévő forrás Card_ID-ját;
-- az ellenfél csak countot lát-e;
-- instance ID soha ne szivárogjon player-facing outputba.
+- a teljes Magnitúdó mindkét játékos számára nyilvános;
+- az Aktív és Kimerült Ősforrás-lapok száma és activity state-je mindkét játékos számára nyilvános;
+- a saját játékos a saját Ősforrás-lapjainak kártyaazonosságát később is visszanézheti;
+- az ellenfél nem láthatja a képpel lefelé lévő Ősforrás-lapok kártyaazonosságát;
+- az ellenfél csak a nyilvános count- és activity-információt kapja;
+- technikai `card_instance_id` egyik játékos számára sem jelenhet meg player-facing outputban;
+- player-visible outputhoz biztonságos, viewer-specifikus object reference vagy redacted rekord szükséges;
+- debug output ettől elkülönítve tartalmazhat technikai azonosítókat.
+
+Engine-következmény:
+
+- owner snapshotban a saját forrás Card_ID-ja és megjelenítési adatai elérhetők;
+- opponent snapshotban a forrás identity redacted;
+- a nyilvános Magnitúdó és active/exhausted count nem származhat rejtett identity-adatból a frontendben, azt az engine projection adja;
+- fair AI ugyanazt a visibility-policyt kapja, mint az azonos oldalon játszó emberi játékos.
 
 ### CQ-INFLOW-001 – Normál Beáramlás
 
@@ -298,19 +299,11 @@ Eldöntendő:
 
 **Emberi Core-döntés – 2026-07-15:**
 
-- a normál Beáramlással az Ősforrásba kerülő lap **Aktív** állapotban érkezik;
-- a lap **már ugyanabban a körben használható Aura fizetésére**;
-- az Ősforrás lapszámának növekedése azonnal növeli a Magnitúdót;
-- az Aktív belépés miatt az elérhető Aura is azonnal 1-gyel nő;
-- ha a játékos még ugyanabban a körben fizetésre használja, a forrás Kimerül.
-
-Engine-következmény:
-
-- normal inflow transition: `hand → wellspring`, `activity_state: active`;
-- a transition után a resource summary azonnal újraszámolandó;
-- ugyanazon kör későbbi legal-action és payment számítása már figyelembe veszi az új forrást;
-- a döntést a hivatalos főforrás következő verziójában egyértelműen át kell vezetni;
-- a korábbi „későbbi körökben” megfogalmazás nem tekinthető ugyanazon körös Aura-használatot tiltó szabálynak.
+- a normál Beáramlással az Ősforrásba kerülő lap Aktív állapotban érkezik;
+- már ugyanabban a körben használható Aura fizetésére;
+- azonnal növeli a Magnitúdót és az elérhető Aurát;
+- fizetéskor Kimerül;
+- a döntést a hivatalos főforrás következő verziójában egyértelműen át kell vezetni.
 
 ### CQ-INFLOW-003 – Timing, priority és reakció
 
@@ -329,43 +322,24 @@ Nyitott:
 - a kihagyás külön pass action legyen-e;
 - a phase controller hogyan kínálja fel és zárja le a döntést.
 
-### CQ-INFLOW-004 – Körönkénti maximum
+### CQ-INFLOW-004 – Körönkénti maximum és event
 
 **Státusz:** `partly_answered`, `needs_engine_design`
 
 - normál Beáramlással legfeljebb 1 lap helyezhető körönként;
 - effect-alapú Ősforrás-bővítés elkülönül;
 - explicit per-turn flag vagy counter szükséges;
-- normál Beáramlás és effect-alapú mozgatás külön cause/reason értéket kapjon.
-
-### CQ-INFLOW-005 – Eventmodell
-
-**Státusz:** `needs_engine_design`
-
-Kötelező legalább:
-
-- hand → wellspring `zone_move`;
-- `activity_state: active`;
-- face-down/visibility és `cause: normal_inflow`;
-- state-version és event-sequence konzisztencia.
-
-Eldöntendő, hogy szükséges-e külön `inflow` typed event a generic `zone_move` mellett.
+- hand → wellspring `zone_move`, `activity_state: active`, face-down visibility és `cause: normal_inflow` szükséges;
+- eldöntendő, kell-e külön `inflow` typed event.
 
 ### CQ-RES-001 – Magnitúdó-preflight
 
 **Státusz:** `partly_answered`, `needs_engine_design`
 
-Lezárt:
-
 - Magnitúdó alapesetben a Wellspring lapszáma;
 - nem költődik el;
-- a lap Magnitúdó-küszöbének és Aura-fizethetőségének is teljesülnie kell.
-
-Nyitott:
-
-- strukturált success/failure result;
-- modifier és override támogatás;
-- canonical runtime mező és diagnostics reason code-ok.
+- a lap Magnitúdó-küszöbének és Aura-fizethetőségének is teljesülnie kell;
+- nyitott a strukturált result, modifier/override és diagnostics reason code.
 
 ### CQ-RES-002 – Aura-típusok és laptípus szerinti fizetés
 
@@ -421,16 +395,16 @@ Nyitott:
 3. `fourth turn` auditqueue.
 4. Nyelvfüggetlen fixture-specifikáció.
 5. Történeti OQ-triázs.
-6. Ability-rendszer current státuszának ellenőrzése.
-7. Beáramlás–Ősforrás–Magnitúdó–Aura szabályaudit.
-8. Aktív, ugyanazon körben Aurát adó Beáramlás Core-döntése.
+6. Ability-rendszer current konszolidációja.
+7. Contract-specifikáció első konszolidációs köre.
+8. Beáramlás Core-döntése.
+9. Ősforrás player-visible policy.
 
 ### Következő Codex nélküli munkasáv
 
-1. Az `ABILITY_MODULE_SYSTEM.md` current státusz- és technológiai konszolidációja ugyanabban a fájlban.
-2. A hosszú `CONTRACT_SPECIFICATION.md` további konszolidációja.
-3. Ősforrás visibility-policy döntési lehetőségeinek előkészítése.
-4. LOOKUPS Aura-type és fizetési értékek célzott auditja.
-5. A Beáramlás timing/priority/event kérdéseinek későbbi engine-tervezése.
+1. LOOKUPS Aura-type és fizetési értékek célzott auditja.
+2. A Beáramlás timing/priority/event kérdéseinek engine-tervezési előkészítése.
+3. A payment source selection döntési lehetőségeinek előkészítése.
+4. A current contract státusz frissítése csak akkor, amikor új implementáció készül.
 
 A Python engine megmarad működő referenciának. Jelentős új gameplay-réteg a nyelvi/runtime döntési kapu lezárása előtt ne induljon. Új dokumentum csak akkor készülhet, ha a tartalomnak nincs természetes helye meglévő aktív főfájlban.
