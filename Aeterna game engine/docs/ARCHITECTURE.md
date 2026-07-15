@@ -1,732 +1,564 @@
 # AETERNA Game Engine – Architecture
 
-Ez a dokumentum az AETERNA Game Engine célarchitektúrájának fő technikai vázát rögzíti.
+## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-Nem teljes contract-specifikáció.
+**Dokumentumverzió:** 2.0  
+**Dátum:** 2026-07-15  
+**Státusz:** aktív célarchitektúra és jelenlegi réteghatár-dokumentum  
+**Aktuális technikai bázis:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
 
-Nem runtime package részletes schema.
+Ez a dokumentum az AETERNA Game Engine jelenlegi célarchitektúráját és a már működő technikai rétegeket rögzíti.
 
-Nem ability module specifikáció.
+Nem helyettesíti:
 
-Nem checkpoint-napló.
+- a hivatalos játékszabályokat;
+- a runtime package részletes specifikációját;
+- a contractok mezőszintű specifikációját;
+- az ability module rendszer tervét;
+- az aktuális technikai checkpointot.
 
-Feladata, hogy összefogja az engine fő rétegeit, azok kapcsolatát, felelősségi határait és a jelenlegi contract-first fejlesztési irányt.
+Kapcsolódó elsődleges dokumentumok:
 
-Kapcsolódó fő dokumentumok:
+- `AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`
+- `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
+- `CURRENT_CONTRACT_STATUS.md`
+- `CURRENT_OPEN_QUESTIONS.md`
+- `CONTRACT_SPECIFICATION.md`
+- `RUNTIME_PACKAGE_SPECIFICATION.md`
+- `TECHNOLOGY_DECISIONS.md`
+- `ABILITY_MODULE_SYSTEM.md`
 
-DECISION_MAP.md
-CHECKPOINTS.md
-OPEN_QUESTIONS.md
-TECHNOLOGY_DECISIONS.md
-CONTRACT_SPECIFICATION.md
-RUNTIME_PACKAGE_SPECIFICATION.md
-ABILITY_MODULE_SYSTEM.md
-PROTOTYPE_PLANS.md
+Eltérés esetén a hivatalos 1.4v főforrások, a v6.0 projektterv és a `CURRENT_ENGINE_CHECKPOINT.md` a frissebb státuszforrás.
 
 ---
 
-## 1. Alapelv
+## 1. Architektúra-alapelv
 
-Az AETERNA Game Engine architektúrájának alapelve:
+Az AETERNA digitális rendszerének alapelve:
 
-előbb contract, utána implementáció
+> **Előbb contract, utána implementáció; a szabálymotor az authoritative állapot egyetlen végrehajtási helye.**
 
-A rendszer ne egy konkrét programnyelv, motor vagy frontend belső objektumaira épüljön.
+Ennek következményei:
 
-A fő komponensek közötti kapcsolatokat explicit adatcontractok írják le.
-
-Ez azért fontos, mert az AETERNA digitális rendszere több rétegből állhat:
-
-* Python adatpipeline;
-* Python validáció;
-* Python sample package builder;
-* Godot/GDScript loader;
-* Godot debug nézetek;
-* későbbi rules engine;
-* későbbi AI / simulation;
-* későbbi játszható digitális kliens.
-
-A contract-first határ biztosítja, hogy ezek a rétegek ne keveredjenek össze.
+- a kliens nem módosítja közvetlenül a MatchState-et;
+- a frontend és az AI nem találgat legalitást;
+- a Godot nem tartalmazhat rejtett, párhuzamos szabálylogikát;
+- a state mutation csak validált action request vagy belső engine transition útján történhet;
+- a player-visible és debug nézet külön contract;
+- a rejtett információt a projection-réteg védi;
+- az események determinisztikus és auditálható történeti réteget alkotnak;
+- a runtime package programbiztos adatforrás, nem szabálymotor.
 
 ---
 
 ## 2. Magas szintű rendszerkép
 
-A hosszú távú architektúra fő adat- és működési lánca:
+A jelenlegi célarchitektúra:
 
-Fizikai TCG szabály- és kártyaforrások
-        ↓
-Google Sheets / lokális XLSX szerkesztési források
-        ↓
-Python build pipeline
-        ↓
-nyers exportok / JSONL
-        ↓
-validáció / normalizálás / diagnostics
-        ↓
-runtime package
-        ↓
-Godot consumption copy / Python tesztek / későbbi AI és simulation
-        ↓
-Rules engine / simulation / Godot loader
-        ↓
-Snapshot / legal actions / action request / event log / diagnostics
-        ↓
-Godot debug UI / későbbi játék UI / AI tesztek
+    Hivatalos szabályforrások
+            ↓
+    Google Sheets / XLSX kártyaadat- és LOOKUPS-forrás
+            ↓
+    Python export, normalizálás és validáció
+            ↓
+    Validált runtime package
+            ↓
+    Python authoritative rules engine
+            ↓
+    MatchState + invariánsok
+            ↓
+    Legal actions / action request / transition
+            ↓
+    Typed events + új state version
+            ↓
+    Player-visible / debug / AI projection
+            ↓
+    Godot kliens, debug UI, AI és tesztrendszer
 
-A rendszer célja nem az, hogy egyetlen nagy, összefolyó program legyen.
-
-A cél egy rétegezett, ellenőrizhető rendszer, ahol minden rétegnek világos feladata van.
-
-Az XLSX emberi szerkesztési forma.
-
-A runtime package programfogyasztási forma.
-
-A Godot ne olvasson közvetlenül XLSX-et.
-
-A Godot a Python build pipeline által előállított, validált runtime package-et fogyassza.
-
-A Python build pipeline hosszabb távon egyetlen vagy kevés lépéses fejlesztői buildfolyamatként kezelje az XLSX beolvasást, exportot, validációt, runtime package buildet és Godot consumption copy frissítést.
+A lánc nem jelenti azt, hogy minden futtatásnál újra kell építeni a runtime package-et. A package a kártya- és lookup-adatot szolgáltatja, a meccs authoritative állapotát a rules engine kezeli.
 
 ---
 
-## 3. Fizikai TCG réteg
+## 3. Rétegek és felelősségek
 
-Az AETERNA elsődlegesen fizikai TCG.
+### 3.1 Hivatalos szabályréteg
 
-A digitális engine a fizikai játékot támogatja, modellezi és teszteli, de nem írja felül emberi döntés nélkül.
+Elsődleges források:
 
-A fizikai TCG réteghez tartozik:
+- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4v.docx`
+- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`
 
-* hivatalos szabályforrás;
-* kártyaadatbázis;
-* LOOKUPS;
-* kártyaszövegek;
-* paklik;
-* balansz- és auditdöntések;
-* játékosbarát szabálymagyarázatok.
+Felelőssége:
 
-A digitális engine-nek tiszteletben kell tartania a hivatalos szabálymodellt.
+- a Core szabályok meghatározása;
+- az alapjáték és kiegészítő réteg elhatárolása;
+- terminológia és mechanikai jelentés;
+- engine-megfelelés végső szabályi alapja.
 
----
+A kód, a structured mező és a régi dokumentáció nem írhatja felül ezt a réteget.
 
-## 4. Szerkesztési forrásréteg
+### 3.2 Szerkesztési adatforrásréteg
 
-A jelenlegi elfogadott adatkezelési irány:
+Elsődleges emberi szerkesztési forma:
 
-Google Sheets = elsődleges szerkesztési felület  
-lokális XLSX = Google Sheetsből letöltött helyi forrásmásolat  
-régi `XLSX export/source` = pipeline input másolat, nem canonical szerkesztési forrás
+- Google Sheets;
+- abból letöltött aktív XLSX munkaforrások.
 
-A szerkesztési forrásréteg nem azonos a runtime package-dzsel.
+Fő helyi források:
 
-A szerkesztési forrás célja:
+- kártyák és decklisták: `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
+- runtime lookupok: `LOOKUPS.xlsx`.
 
-* emberi szerkeszthetőség;
-* kártyaadatok karbantartása;
-* LOOKUPS kezelése;
-* audit- és workflow mezők kezelése;
-* későbbi export előkészítése.
+Ez a réteg emberi szerkesztésre szolgál, nem közvetlen meccsfuttatásra.
 
-A runtime engine közvetlenül hosszú távon ne a szerkesztési XLSX-ből dolgozzon.
+### 3.3 Python adatpipeline
 
-A Godot sem közvetlenül XLSX-et fogyaszt.
+Felelőssége:
 
-Az XLSX beolvasása, exportja és normalizálása a Python build pipeline feladata legyen.
+- XLSX beolvasás;
+- exportprofilok;
+- normalizálás;
+- canonical értékek ellenőrzése;
+- legacy alias és auditjelzések;
+- runtime package build;
+- diagnostics és build report;
+- Godot consumption copy publikálása.
 
-Az `XLSX export/` külön programhely hosszú távon megszüntethető vagy archiválható aktív eszközként, ha az exportáló funkció átkerült az `Aeterna game engine/python/` alatti tooling rétegbe.
+Fontos határ:
 
-Fontos elv:
+- az adatpipeline nem authoritative meccsállapot;
+- a builder nem hajt végre játékszabályt;
+- a runtime package generált programadat, nem szerkesztési forrás.
 
-ne jöjjön létre újabb állandó canonical XLSX input másolat az engine alatt.
+### 3.4 Runtime package
 
-A Python tooling explicit source útvonalból dolgozzon.
+A runtime package a program által fogyasztható validált adatcsomag.
 
----
+Jelenlegi fő fájlcsoport:
 
-## 5. Python build pipeline / export és validációs réteg
+- `manifest.json`
+- `cards.jsonl`
+- `decks.jsonl`
+- `lookups.json`
+- `aliases.json`
+- `ability_registry.json`
+- `engine_support.json`
+- `diagnostics.json`
+- `build_report.md`
 
-A Python build pipeline feladata:
+Felelőssége:
 
-* a szerkesztési források beolvasása;
-* exportprofilok futtatása;
-* nyers exportok előállítása;
-* LOOKUPS ellenőrzése;
-* canonical értékek kezelése;
-* legacy aliasok felismerése;
-* structured mezők ellenőrzése;
-* veszélyes vagy régi modellből származó értékek jelzése;
-* engine support státusz előkészítése;
-* diagnostics reportok készítése;
-* runtime package build;
-* szükség esetén a Godot consumption copy frissítése.
+- kártyadefiníciók és paklik átadása;
+- lookupok és támogatási információk átadása;
+- Python és Godot közös programadat-határa.
 
-Ez a réteg választja el az emberi szerkesztési formát a programbiztos futási adattól.
+Nem tartalmazza a futó meccs authoritative MatchState-jét.
 
-A pipeline belsőleg továbbra is több lépésből állhat:
+### 3.5 Authoritative Python rules engine
 
-1. XLSX beolvasás.
-2. Nyers export generálás.
-3. Validáció.
-4. Normalizálás.
-5. Runtime package build.
-6. Godot consumption copy frissítés.
-7. Smoke test / diagnostics.
+Jelenlegi elsődleges szabálymotor:
 
-Fejlesztői használatban hosszabb távon ez egyetlen vagy kevés lépéses buildfolyamatként jelenjen meg.
+- `Aeterna game engine/python/`
 
-Későbbi fejlesztési cél:
+Felelőssége:
 
-* változásérzékelés;
-* cache;
-* `source_fingerprint`;
-* build mode-ok;
-* fejlesztői / baráti teszt / publikus package-kezelés szétválasztása.
+- meccsállapot létrehozása és védelme;
+- state version kezelés;
+- legal actionök előállítása;
+- action request validálása;
+- atomikus transitionök;
+- typed eventek;
+- state-invariánsok;
+- player-visible és debug projection;
+- determinisztikus AI-vs-AI futás.
 
-Nem cél ebben a rétegben:
+A Python jelenlegi szerepe ezért már nem pusztán tooling vagy hipotetikus tesztréteg. Az új minimal rules engine ténylegesen működik, bár még nem teljes AETERNA motor.
 
-* teljes rules engine;
-* ability execution;
-* Godot közvetlen XLSX-betöltés;
-* publikus release-védelem;
-* runtime package titkosítás.
+### 3.6 MatchState és PlayerState
 
----
+A MatchState a játék belső igaz állapota.
 
-## 6. Runtime package réteg
+Jelenleg többek között kezeli:
 
-A runtime package az engine által fogyasztható programbiztos adatcsomag.
+- match identity;
+- state version;
+- aktív és priority player;
+- minimal phase;
+- event log;
+- player state-ek;
+- card instance registry;
+- Domain topológiák;
+- Domain occupancy state-ek.
 
-Nem azonos:
+A PlayerState jelenlegi instance-listás zónái:
 
-* az XLSX szerkesztési forrással;
-* a nyers exporttal;
-* a dokumentációval;
-* a szabálykönyvvel.
+- deck;
+- hand;
+- discard.
 
-A jelenlegi sample runtime package fájlcsoport:
+A következő bővítés:
 
-manifest.json
-cards.jsonl
-decks.jsonl
-lookups.json
-aliases.json
-ability_registry.json
-engine_support.json
-diagnostics.json
-build_report.md
+- Wellspring instance-lista.
 
-A runtime package célja:
+A MatchState soha nem exportálható közvetlenül normál játékosnak vagy UI-nak.
 
-* kártyaadatok egységes átadása;
-* paklik átadása;
-* lookup és alias adatok átadása;
-* ability registry átadása;
-* engine support információ átadása;
-* diagnostics átadása;
-* Python és Godot közös adatforrása.
+### 3.7 Card instance és object identity
 
-Hosszú távú cél:
+A kártyadefiníció és a meccsbeli kártyapéldány külön objektum.
 
-a runtime package legyen a Python és Godot közötti közös, stabil adatcontract
+A card instance registry authoritative az alábbi adatokhoz:
 
-### Sample runtime package mappák architekturális szerepe
+- instance identity;
+- Card_ID;
+- owner;
+- controller;
+- zone;
+- zone index;
+- visibility;
+- activity state;
+- sequence adatok.
 
-Jelenleg két `sample_runtime_package` mappa létezik:
+A konkrét Domain-pozíció nem a registry rekordban, hanem a Domain occupancy slotban található.
 
-* Python oldali `sample_runtime_package`
-* Godot oldali `sample_runtime_package`
+### 3.8 Zónák
 
-Ezek nem egyenrangú canonical források.
+Jelenlegi ismert zónák:
 
-A javasolt architekturális értelmezés:
+- deck;
+- hand;
+- discard;
+- domain;
+- wellspring.
 
-* Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
-* Godot oldali `sample_runtime_package`: `GODOT_CONSUMPTION_COPY`
+A Wellspring jelenleg izolált contractként készült el; a production PlayerState-integráció a következő engine-lépés.
 
-A Python oldali mappa a build output / tesztfixture szerepét tölti be.
+A zónatagság authoritative containere:
 
-A Godot oldali mappa a Godot loader fogyasztási példánya.
+- listás zónáknál a PlayerState megfelelő ID-listája;
+- Domainnál az occupancy slot;
+- minden registry instance pontosan egy authoritative helyen szerepelhet.
 
-A Godot oldali package ne legyen kézzel szerkesztett canonical adatforrás.
+### 3.9 Domain és board
 
-A Godot oldali package frissítése később a Python build pipeline feladata legyen.
+A canonical alapjátékos topológia játékosonként:
 
-A canonical kártyaadatok továbbra is a szerkesztési forrásokból, például Google Sheetsből letöltött XLSX fájlokból származnak.
+- 6 Áramlat;
+- Áramlatonként Horizont és Zenit;
+- 6 kapcsolt Pecsét-pozíció.
 
----
+A card occupancy:
 
-## 7. Contract-réteg
+- 12 slot játékosonként;
+- Horizont és Zenit;
+- egy slot legfeljebb egy card instance-et tartalmaz;
+- a Pecsét nem card occupancy slot.
 
-A contract-réteg írja le, hogyan kommunikálnak a fő rendszerrészek.
+A player-visible board public projection.
 
-Fő contractok:
+### 3.10 Activity state
 
-runtime package
-snapshot
-legal actions
-action request
-action response
-event log
-diagnostics
-ability registry
-engine support report
+Canonical értékek:
 
-A contract-réteg célja:
+- `active`
+- `exhausted`
+- `None`, ha az activity állapot az adott zónában nem alkalmazható.
 
-* a frontend ne találgasson szabályokat;
-* az AI ne találgasson szabályokat;
-* a rules engine adja meg a szabályos actionöket;
-* az action request validálható legyen;
-* az event logból érthető legyen, mi történt;
-* a diagnostics strukturáltan jelezze a problémákat;
-* a rejtett információ ne szivárogjon ki player-visible nézetben.
+A zone/activity kapcsolatot a card-instance validator és a state-invariáns védi.
 
-A contractok részletes leírása külön fájlba tartozik:
+Az activity state nem azonos:
 
-CONTRACT_SPECIFICATION.md
+- idézési betegséggel;
+- támadási jogosultsággal;
+- face-down állapottal;
+- legal-action státusszal.
 
----
+### 3.11 Resource réteg
 
-## 8. Core rules engine réteg
+A jelenlegi izolált Wellspring resource model:
 
-A core rules engine hosszú távú feladata:
+- Magnitúdó = Ősforrás-lapok száma;
+- elérhető Aura = Aktív Ősforrás-lapok száma;
+- Kimerült forrás továbbra is növeli a Magnitúdót;
+- typed Aura és payment még nincs implementálva.
 
-* fázisok kezelése;
-* körszerkezet kezelése;
-* prioritás / döntési ablak kezelése;
-* legal actionök kiszámítása;
-* action request validálása;
-* action végrehajtása;
-* alap harci szabályok kezelése;
-* Pecsét / Aeternal szabálymodell kezelése;
-* győzelmi és vereségi feltételek kezelése;
-* event log generálása;
-* diagnostics generálása.
+A resource summary származtatott contract, nem külön authoritative számláló.
 
-A core rules engine jelenleg még nem készült el.
+### 3.12 Legal action és structural option
 
-A jelenlegi prototípusok csak adatbetöltést, sample contract kezelést és debug nézeteket bizonyítanak.
+A legal action réteg mondja meg, milyen döntést küldhet a játékos vagy AI.
 
----
+Jelenleg működik a minimal legal-action alap és a külön structural Entity placement option contract.
 
-## 9. Ability / effect engine réteg
+A structural placement:
 
-Az ability / effect engine hosszú távú feladata:
+- nem teljes kijátszási legalitás;
+- nem ellenőrzi a timingot, Magnitúdót, paymentet és entry state-et;
+- nincs bekötve `play_card` actionként.
 
-* structured abilityk értelmezése;
-* trigger modulok kezelése;
-* condition modulok kezelése;
-* target selector modulok kezelése;
-* cost modulok kezelése;
-* effect modulok futtatása;
-* duration és limit kezelése;
-* replacement és prevention kezelése;
-* keywordök engine supportja;
-* card-local fallback kontrollált kezelése;
-* event log és diagnostics előállítása.
+### 3.13 Action request és transition
 
-Az ability / effect engine részletes terve külön fájlba tartozik:
+A kliens vagy AI action requestet küld.
 
-ABILITY_MODULE_SYSTEM.md
+A rules engine:
 
-Fontos alapelv:
+1. ellenőrzi a match és state versiont;
+2. ellenőrzi a játékost és actiont;
+3. reject esetén nem mutál state-et;
+4. siker esetén atomikus transitiont hajt végre;
+5. növeli a state versiont;
+6. typed eventet készít;
+7. új projectiont adhat vissza.
 
-A kártyaszöveg nem közvetlen runtime parser-forrás.
-A structured ability / ability registry a programlogikai köztes réteg.
+Jelenlegi aktív actionök:
 
----
+- `draw_card`
+- `end_turn`
 
-## 10. Match state réteg
+### 3.14 Eventrendszer
 
-A match state a játék belső igaz állapota.
+A snapshot az állapot, az event a történet.
 
-Ez nem azonos a snapshot contracttal.
+Jelenlegi generic envelope:
 
-A match state tartalmazhat teljes, belső, nem player-visible információt is.
+- `minimal-engine-event-v0`
 
-Hosszú távon a match state-ből származhatnak:
+Aktív typed eventek:
 
-* player-visible snapshotok;
-* debug snapshotok;
-* AI snapshotok;
-* spectator snapshotok;
-* replay snapshotok;
-* legal action listák;
-* event log frissítések.
+- `zone_move`
+- `turn_transition`
 
-A match state belső szerkezetét nem szabad közvetlenül a Godot UI-ra kötni.
+Az eventek szerepe:
 
-A Godot UI snapshotot és legal action contractot fogyasszon, ne belső engine állapotot.
+- auditálhatóság;
+- UI animáció;
+- log és magyarázat;
+- determinisztikus AI epizód;
+- későbbi replay.
 
----
+### 3.15 Projection és visibility
 
-## 11. Snapshot réteg
+A projection-réteg a MatchState-ből nézőpontfüggő contractot készít.
 
-A snapshot a match state nézőpontfüggő kivetítése.
+Jelenlegi player snapshot:
 
-Lehetséges snapshot típusok:
+- `engine-player-visible-snapshot-v2`
 
-debug_snapshot
-player_visible_snapshot
-spectator_snapshot
-ai_fair_snapshot
-ai_debug_snapshot
+Jelenlegi szabályok:
 
-A snapshot célja:
+- saját kéz látható;
+- ellenfél kéz redacted és count-only;
+- deck count-only;
+- discard public;
+- Domain board public;
+- nincs teljes registry vagy MatchState export.
 
-* UI megjelenítés;
-* AI döntés-előkészítés;
-* debug nézet;
-* tesztelés;
-* későbbi replay támogatás.
+A Wellspring player-visible projection még nincs implementálva.
 
-Fontos szabály:
+### 3.16 AI, trajectory és replay-alap
 
-player-visible snapshot nem szivárogtathat rejtett információt
+A minimal AI-vs-AI környezet ugyanazt az authoritative engine-utakat használja.
 
-A snapshot részletes kérdései az `OPEN_QUESTIONS.md` fájlban vannak.
+Aktív episode contract:
 
----
+- `minimal-ai-vs-ai-episode-v1`
 
-## 12. Legal action réteg
+Fő elvek:
 
-A legal action réteg mondja meg, hogy egy adott pillanatban milyen döntéseket hozhat a játékos vagy AI.
+- determinisztikus actionválasztás;
+- accepted és rejected step;
+- player-visible observation;
+- typed eventek;
+- deep-copyzott trajectory;
+- byte-szinten ismételhető JSON;
+- replay-előkészítés, de még nem replay-végrehajtás.
 
-Alapelv:
-
-A frontend és az AI nem találgat szabályos lépéseket.
-A legal action listát a rules engine adja vissza.
-
-A legal action tartalmazhat:
-
-* action azonosítót;
-* action típust;
-* forráskártyát;
-* target információkat;
-* cost summaryt;
-* enabled / disabled állapotot;
-* disabled reason mezőt;
-* UI/debug segédadatokat;
-* diagnostics blokkot;
-* AI számára később opcionális segédadatokat.
-
-A legal action részletes szerkezete a `CONTRACT_SPECIFICATION.md` fájlba tartozik.
-
----
-
-## 13. Action request / response réteg
-
-Az action request a frontend vagy AI által küldött döntési kérés.
-
-Alapelv:
-
-A kliens nem módosít állapotot.
-A kliens action requestet küld.
-A rules engine validál és válaszol.
-
-Az action request / response réteg feladata:
-
-* request azonosítás;
-* snapshot frissesség ellenőrzése;
-* action_id ellenőrzése;
-* targetek ellenőrzése;
-* payment ellenőrzése;
-* validáció;
-* végrehajtás vagy elutasítás;
-* eventek generálása;
-* új snapshot visszaadása;
-* diagnostics visszaadása.
-
-Ez a réteg különösen fontos későbbi interaktív UI, AI és PvP esetén.
-
----
-
-## 14. Event log réteg
-
-Az event log a játék történeti rétege.
-
-Alapelv:
-
-A snapshot az állapot.
-Az event log a történet.
-
-Az event log célja:
-
-* frontend animáció;
-* játékosbarát magyarázat;
-* debug;
-* AI elemzés;
-* replay előkészítés;
-* audit;
-* balanszvizsgálat;
-* diagnostics kapcsolat.
-
-Lehetséges event layer-ek:
-
-gameplay
-frontend
-explanation
-debug
-audit
-balance
-system
-
-Az event log nem szivárogtathat rejtett információt player-visible nézetben.
-
----
-
-## 15. Diagnostics réteg
-
-A diagnostics réteg strukturált problémanyilvántartás.
-
-Nem egyszerű hibalista.
-
-Lehetséges diagnostics kategóriák:
-
-export_validation
-lookup
-legacy_alias
-structured
-engine
-rules
-card_data
-decklist
-runtime
-frontend_contract
-ai
-event_log
-snapshot
-action_validation
-action_execution
-hidden_information
-audit
-balance
-test
-system
-
-Lehetséges severity értékek:
-
-critical
-error
-warning
-audit_note
-balance_suspicion
-info
-debug
-
-Fontos alapelv:
-
-severity és blocking külön mező legyen
-
-Egy warning általában nem blokkoló.
-
-Egy error lehet blokkoló vagy nem blokkoló, a `blocking` mezőtől függően.
-
-A diagnostics részletes szabályai a `CONTRACT_SPECIFICATION.md` és `RUNTIME_PACKAGE_SPECIFICATION.md` fájlokba tartoznak.
-
----
-
-## 16. Godot frontend / debug adapter réteg
+### 3.17 Godot kliens- és debugréteg
 
 A Godot jelenlegi bizonyított szerepe:
 
-* runtime package betöltése;
-* sample contractok betöltése;
-* snapshot viewer debug nézet;
-* legal action debug panel;
-* event log debug view;
-* headless smoke testek futtatása.
+- runtime package loader;
+- registry-k;
+- sample és debug contractok;
+- snapshot viewer;
+- legal action debug panel;
+- event log debug view;
+- headless smoke testek.
 
-Godot hosszú távú lehetséges szerepei:
+Hosszú távú szerepe:
 
-* debug UI;
-* fejlesztői viewer;
-* játékos UI;
-* digitális kliens;
-* esetleges GDScript runtime;
-* későbbi játékos-vs-AI és játékos-vs-játékos felület.
+- játékos UI;
+- tester/debug mód;
+- action request beküldése;
+- player-visible state és események megjelenítése.
 
-Fontos elhatárolás:
+A Godot nem authoritative szabálymotor és nem módosíthatja közvetlenül a MatchState-et.
 
-A debug nézet nem szabálymotor.
-A UI ne találgasson szabályokat.
-A Godot node-ok ne váljanak rejtett szabálylogikává.
+### 3.18 Ability és effect engine
 
----
+Az ability/effect engine még tervezett réteg.
 
-## 17. Python réteg
+Felelőssége később:
 
-A Python jelenlegi és lehetséges szerepei:
+- trigger;
+- condition;
+- target selector;
+- cost;
+- effect;
+- duration és limit;
+- replacement és prevention;
+- keyword support;
+- kontrollált card-local fallback.
 
-* sample runtime package generator;
-* exportvalidáció;
-* runtime package build;
-* diagnostics report;
-* adatfeldolgozás;
-* AI-vs-AI batch tesztelés;
-* statisztika;
-* régi motor referenciaelemzése;
-* összehasonlító tesztek.
-
-Nyitott kérdés:
-
-Python marad-e hosszú távon szabálymotor / backend, vagy inkább data pipeline és tesztréteg lesz?
-
-Ezt a `TECHNOLOGY_DECISIONS.md` dokumentumban kell részletesen kezelni.
+A természetes kártyaszöveg nem közvetlen runtime parser-forrás.
 
 ---
 
-## 18. AI / simulation / balance réteg
+## 4. Authoritative adat- és vezérlési határok
 
-Az AI / simulation / balance réteg későbbi fejlesztési fázis.
+### 4.1 Canonical szerkesztési adat
 
-Előfeltételek:
+- Google Sheets / aktív XLSX.
 
-* stabil runtime package;
-* legal action contract;
-* action request / response modell;
-* event log;
-* diagnostics;
-* ability support;
-* fair snapshot visibility modell.
+### 4.2 Canonical programadat
 
-Lehetséges jövőbeli funkciók:
+- validált runtime package.
 
-* AI-vs-AI futtatás;
-* AI-vs-játékos mód;
-* balance report;
-* winrate elemzés;
-* card usage statisztika;
-* matchup elemzés;
-* korábbi kártyajavítások visszaellenőrzése.
+### 4.3 Canonical meccsállapot
 
-Balanszfilozófiai munkahipotézis:
+- Python MatchState.
 
-A cél nem steril 50/50 balansz.
-A klánidentitás fontos.
-A 40–60 winrate-sáv csak figyelési elv, nem végleges matematikai szabály.
+### 4.4 Canonical kártyapéldány
 
----
+- card instance registry record és authoritative zónacontainer.
 
-## 19. Aeternal / Pecsét engine modell
+### 4.5 Canonical döntési felület
 
-Rögzített irány:
+- engine által készített legal action vagy explicit precondition contract.
 
-Az Aeternal maga a játékos.
-Az Aeternal nem rendelkezik HP-val.
-Az Aeternal nem kaphat sebzést.
-Az Aeternal nem gyógyítható.
-A Pecsét nem HP-alapú objektum.
-A Pecsét feltörési / visszaállítási eseményként kezelendő.
-Ha nincs Entitás és Pecsét, ami véd, egy célba érő támadás azonnali vereséget jelent.
+### 4.6 Canonical állapotváltozás
 
-Tiltandó vagy kerülendő régi engine-fogalmak:
+- rules engine transition.
 
-player_damage
-aeternal_damage
-heal_player
-heal_aeternal
-ward_hp
-seal_damage
+### 4.7 Canonical történet
 
-Támogatandó modern fogalmak:
+- typed event sequence.
 
-ward_break
-ward_restore
-ward_break_prevent
-aeternal_unprotected
-direct_attack_victory
+### 4.8 Canonical játékosnézet
 
-A részletes kérdések az `OPEN_QUESTIONS.md` fájlban szerepelnek.
+- player-visible snapshot és kapcsolódó public event projection.
 
 ---
 
-## 20. Jelenlegi bizonyított állapot
+## 5. Jelenlegi bizonyított állapot
 
-A CHECKPOINTS.md alapján jelenleg bizonyított:
+A `84a7e8f4` bázisnál bizonyított:
 
-Python sample runtime package generator működik.
-Python unit test zöld.
-sample_runtime_package generálás működik.
-Godot runtime package loader működik.
-Godot package loader smoke test zöld.
-Godot sample contracts loader működik.
-Godot sample contracts smoke test zöld.
-Snapshot viewer debug nézet működik.
-Legal action debug panel működik.
-Event log debug view működik.
-Kapcsolódó smoke testek zöldek.
+- card instance-alapú MatchState;
+- deck → hand draw transition;
+- end-turn transition;
+- typed event envelope;
+- state version guard;
+- Domain topológia és occupancy;
+- public player-visible board;
+- hidden-information snapshot;
+- structural Entity placement options;
+- activity state;
+- izolált Wellspring resource contract;
+- determinisztikus AI-vs-AI trajectory;
+- 59 izolált Python tesztmodul és 333 zöld teszt.
 
-Ez még nem bizonyítja:
+Nem bizonyított még:
 
-teljes szabálymotor
-valódi match state generálás
-legal action számítás szabályból
-action-végrehajtás
-kártyaképesség-futtatás
-AI döntéshozatal
-teljes játék UI
-PvP
-teljes AETERNA adatbázis futtatása
-
----
-
-## 21. Nyitott architektúra-kérdések
-
-A részletes nyitott kérdések központi helye:
-
-OPEN_QUESTIONS.md
-
-Kiemelt architektúra-kérdések:
-
-* régi Python motor sorsa;
-* GDScript runtime alkalmassága;
-* Python + GDScript hibrid modell;
-* runtime package kötelező szerepe;
-* match state és snapshot elválasztása;
-* reaction queue / stack modell;
-* fair AI és debug AI elválasztása;
-* diagnostics blocking szabályok;
-* ability execution plan helye;
-* card-local fallback kezelése;
-* Pecsét / Aeternal végleges engine modellje.
+- Wellspring production integráció;
+- Beáramlás;
+- full timing és priority;
+- Magnitúdó-preflight;
+- Aura-payment;
+- `play_card`;
+- combat;
+- ability execution;
+- Pecsét és Aeternal teljes runtime modell;
+- győzelmi feltétel;
+- teljes emberi játékmenet.
 
 ---
 
-## 22. Nem cél most
+## 6. Következő architekturális függőségi lánc
 
-Most nem cél:
+    Wellspring PlayerState-integráció
+            ↓
+    Player-visible Wellspring summary
+            ↓
+    Beáramlás precondition
+            ↓
+    Beáramlás transition + typed event
+            ↓
+    Magnitúdó-preflight
+            ↓
+    Aura-source selection + payment
+            ↓
+    Entity play precondition
+            ↓
+    play_card transition
+            ↓
+    Entity entry state
+            ↓
+    phase / priority / reaction rendszer
+            ↓
+    combat és győzelmi feltételek
 
-teljes szabálymotor implementálása
-teljes digitális kliens megírása
-AI-vs-AI balanszteszt
-új teljes kártyaaudit
-PvP
-booster / collection / economy rendszer
-régi Python motor automatikus beolvasztása
-nagy mappamozgatás
-DOCX fájlok törlése
-
-A jelenlegi fókusz:
-
-dokumentációs konszolidáció
-runtime package specifikáció tisztítása
-contract-specifikáció egységesítése
-Godot/Python prototípus fokozatos erősítése
-open questions megőrzése és státuszolása
+A lánc későbbi eleme nem implementálható a korábbi authoritative réteg megkerülésével.
 
 ---
 
-## 23. Következő kapcsolódó dokumentumok
+## 7. Technológiai döntés
 
-Az architektúra után a következő fő dokumentumok részletezik a rétegeket:
+A jelenlegi elfogadott irány:
 
-TECHNOLOGY_DECISIONS.md
-CONTRACT_SPECIFICATION.md
-RUNTIME_PACKAGE_SPECIFICATION.md
-ABILITY_MODULE_SYSTEM.md
-PROTOTYPE_PLANS.md
-README.md
+- Python az authoritative rules engine és adatpipeline elsődleges nyelve;
+- Godot/GDScript a kliens-, loader-, registry- és debugréteg;
+- a két réteg explicit JSON/JSONL és action/snapshot/event contractokon keresztül kapcsolódik;
+- nem tartunk fenn két külön authoritative szabálymotort.
 
-A README csak akkor frissüljön véglegesen, amikor a fő dokumentációs térkép stabil.
+A régi Python motor továbbra is reference/review forrás, nem a jelen engine automatikus backendje.
+
+---
+
+## 8. Nem cél a jelenlegi szakaszban
+
+- teljes Godot-first rules runtime;
+- két párhuzamos engine viselkedésének fenntartása;
+- közvetlen UI state mutation;
+- teljes `play_card` minden előfeltétel nélkül;
+- minden kártyaképesség egyszerre;
+- online PvP és szerverarchitektúra;
+- collection, booster és gazdaság a stabil match engine előtt;
+- nagy általános refaktor;
+- régi engine automatikus migrációja.
+
+---
+
+## 9. Dokumentációs szerepek
+
+- `CURRENT_ENGINE_CHECKPOINT.md`: mi működik most;
+- `CURRENT_CONTRACT_STATUS.md`: mely contractok ténylegesen aktívak;
+- `CURRENT_OPEN_QUESTIONS.md`: mely közeli döntési kapuk blokkolják a következő feladatokat;
+- `CONTRACT_SPECIFICATION.md`: hosszú formájú contract-tervezési és háttérspecifikáció;
+- `OPEN_QUESTIONS.md`: teljes történeti és hosszú távú kérdésregiszter;
+- `RUNTIME_PACKAGE_SPECIFICATION.md`: package-adatmodell;
+- `ABILITY_MODULE_SYSTEM.md`: későbbi effect engine;
+- `checkpoints/CHECKPOINTS.md`: korábbi időrendi checkpointnapló.
+
+---
+
+## 10. Rövid architektúra-összefoglaló
+
+**Authoritative rules engine:** Python  
+**Authoritative match state:** MatchState  
+**Programadat-forrás:** validált runtime package  
+**Frontend:** Godot, később player UI  
+**Döntési út:** legal action → action request → engine transition  
+**Történeti út:** typed event sequence  
+**Player output:** player-visible projection  
+**AI output:** ugyanazon fair projection és legal action út  
+**Következő architekturális feladat:** Wellspring production state-integráció
