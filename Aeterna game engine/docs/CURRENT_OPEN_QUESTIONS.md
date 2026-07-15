@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.8  
+**Dokumentumverzió:** 1.9  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív közeli döntési kapu-, OQ-triázs- és prioritáslista  
 **Technikai referencia:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
@@ -289,14 +289,7 @@ Nyitott:
 - player-visible outputhoz biztonságos, viewer-specifikus object reference vagy redacted rekord szükséges;
 - debug output ettől elkülönítve tartalmazhat technikai azonosítókat.
 
-Engine-következmény:
-
-- owner snapshotban a saját forrás Card_ID-ja és megjelenítési adatai elérhetők;
-- opponent snapshotban a forrás identity redacted;
-- a nyilvános Magnitúdó és active/exhausted count nem származhat rejtett identity-adatból a frontendben, azt az engine projection adja;
-- fair AI ugyanazt a visibility-policyt kapja, mint az azonos oldalon játszó emberi játékos.
-
-### CQ-INFLOW-001 – Normál Beáramlás
+### CQ-INFLOW-001 – Normál Beáramlás szabályi alap
 
 **Státusz:** `answered`
 
@@ -304,7 +297,6 @@ Engine-következmény:
 - opcionális;
 - legfeljebb 1 lap helyezhető a kézből az Ősforrásba;
 - a lap képpel lefelé kerül;
-- azonnal növeli a Magnitúdót;
 - effect-alapú további Ősforrásba helyezés nem fogyasztja el a normál Beáramlás keretét, hacsak a hatás másként nem rendelkezik.
 
 ### CQ-INFLOW-002 – Belépési activity és azonnali Aura
@@ -319,32 +311,111 @@ Engine-következmény:
 - fizetéskor Kimerül;
 - a döntést a hivatalos főforrás következő verziójában egyértelműen át kell vezetni.
 
-### CQ-INFLOW-003 – Timing, priority és reakció
+### CQ-INFLOW-003 – Timing, priority és phase controller
 
-**Státusz:** `partly_answered`, `needs_engine_design`
+**Státusz:** `answered` tervezési szinten, `queued_after_language_gate` implementációszinten
 
-Lezárt:
+**Engine-döntés – 2026-07-15:**
 
-- külön Beáramlás fázis;
-- opcionális fáziscselekvés;
-- nem Manifesztáció- vagy Eloszlás-cselekvés.
+- a normál Beáramlás az aktív játékos saját, egyszeri fázisdöntése;
+- nem váltakozó priority-ablak;
+- az ellenfél nem kap általános válaszjogot pusztán azért, mert normál Beáramlás történt;
+- a hivatalos reakciós szabály szerint nem minden játékesemény nyit automatikusan reakciós ablakot;
+- normál Beáramlás előtt vagy után csak explicit szabály, kártyaszöveg vagy trigger nyithat reakciós ablakot;
+- a kihagyás action neve `skip_inflow`, nem `pass_priority`, mert nem priority-pass történik;
+- a Beáramlás fázisban a normál legal actionök: egy `perform_inflow` minden jogosult saját kézlaphoz, valamint `skip_inflow`;
+- ha nincs jogosult kézlap és nincs külön fázisdöntés, a phase controller kontrollált rendszerlépéssel automatikusan kihagyhatja a normál Beáramlást;
+- `perform_inflow` vagy `skip_inflow` elfogadása után újabb normál Beáramlás nem választható;
+- a phase controller a kötelező triggerek, explicit pending decisionök és megnyitott reakciós ablakok lezárása után Manifesztációra lép;
+- az első minimal implementációban, ability- és reaction-engine hiányában a fázisváltás közvetlenül az elfogadott Beáramlás-döntés után történhet.
 
-Nyitott:
+Következmény:
 
-- kell-e formális priority;
-- nyílik-e reakcióablak;
-- a kihagyás külön pass action legyen-e;
-- a phase controller hogyan kínálja fel és zárja le a döntést.
+- a normál Beáramláshoz nem szükséges önálló alternating `priority_player_id` váltogatás;
+- az aktív játékos döntési joga legal actionből származik;
+- későbbi reakciós ablak külön pending/reaction contract, nem a Beáramlás action rejtett mellékhatása.
 
-### CQ-INFLOW-004 – Körönkénti maximum és event
+### CQ-INFLOW-004 – Körönkénti állapot és legalitás
 
-**Státusz:** `partly_answered`, `needs_engine_design`
+**Státusz:** `answered` tervezési szinten, `queued_after_language_gate` implementációszinten
 
-- normál Beáramlással legfeljebb 1 lap helyezhető körönként;
-- effect-alapú Ősforrás-bővítés elkülönül;
-- explicit per-turn flag vagy counter szükséges;
-- hand → wellspring `zone_move`, `activity_state: active`, face-down visibility és `cause: normal_inflow` szükséges;
-- eldöntendő, kell-e külön `inflow` typed event.
+Turn-scoped authoritative állapot:
+
+- `normal_inflow_status: pending | performed | skipped`;
+- a saját Beáramlás fázis elején `pending`;
+- sikeres `perform_inflow` után `performed`;
+- sikeres `skip_inflow` vagy automatikus kihagyás után `skipped`;
+- a következő saját kör Beáramlás fázisához új döntési állapot jön létre.
+
+A státusz előnye a puszta booleannel szemben:
+
+- megkülönbözteti a még nem eldöntött, végrehajtott és tudatosan kihagyott állapotot;
+- egyszerű UI-, AI-, diagnostics- és invariánsellenőrzést ad;
+- megakadályozza a második normál Beáramlást;
+- elkülöníti a normál Beáramlást az effect-alapú `move_to_wellspring` transitiontől.
+
+### CQ-INFLOW-005 – Action és atomikus transition
+
+**Státusz:** `answered` tervezési szinten, `queued_after_language_gate` implementációszinten
+
+`perform_inflow` minimális preconditionjei:
+
+- helyes match és expected state version;
+- a kérelmező az aktív játékos;
+- current phase `inflow`;
+- `normal_inflow_status == pending`;
+- a kiválasztott card instance a játékos saját kezében van;
+- nincs olyan explicit szabály vagy effect, amely tiltja a választást.
+
+Elfogadott transition egyetlen atomikus művelet:
+
+1. a lap hand → wellspring zónamozgása;
+2. face-down, belső `owner_only` visibility;
+3. `activity_state: active`;
+4. `normal_inflow_status: performed`;
+5. Wellspring resource summary újraszámítása;
+6. state version pontosan egyszeri növelése;
+7. események determinisztikus sorrendű létrehozása.
+
+Hiba vagy reject esetén:
+
+- nincs részleges zónamozgás;
+- nincs activity-változás;
+- nincs status-változás;
+- nincs phase-váltás;
+- nincs event-log növekedés.
+
+### CQ-INFLOW-006 – Eventmodell
+
+**Státusz:** `answered` első implementációs irányként
+
+Első körben nem készül külön, tartalmilag duplikált `inflow` typed event.
+
+Sikeres `perform_inflow` action eventjei:
+
+1. `zone_move`
+   - `from_zone: hand`;
+   - `to_zone: wellspring`;
+   - `cause: normal_inflow`;
+   - `activity_state_after: active`;
+   - megfelelő visibility-adatok;
+2. `phase_transition`
+   - `from_phase: inflow`;
+   - `to_phase: manifestation`;
+   - `cause: normal_inflow_performed`.
+
+Sikeres `skip_inflow` esetén:
+
+- nincs `zone_move`;
+- `phase_transition` készül `cause: normal_inflow_skipped` értékkel.
+
+Event-invariánsok:
+
+- egy action egyetlen state-version növelést okoz;
+- ugyanazon action több eventje ugyanahhoz a resulting state versionhöz kapcsolódhat;
+- event sequence sorrendben előbb a zónamozgás, utána a fázisváltás;
+- a phase transition csak stabil állapotban történhet, amikor nincs függő kötelező trigger, pending decision vagy megnyitott reakciós ablak;
+- külön `inflow` event csak akkor vezethető be később, ha UI-, replay-, trigger- vagy diagnostics-igény olyan önálló payloadot követel, amely a `zone_move` cause és a `phase_transition` alapján nem fejezhető ki tisztán.
 
 ### CQ-RES-001 – Magnitúdó-preflight
 
@@ -363,7 +434,7 @@ Nyitott:
 
 Az Aura forrásidentitása alapesetben az Ősforrás-lap Birodalma.
 
-- ha a forrás Birodalma megegyezik a kijátszandó lap Birodalmával, a forrás saját Birodalmi Auraként használható;
+- ha a forrás Birodalma megegyezik a kijátszandó lap Birodalmával, saját Birodalmi Auraként használható;
 - Entitás saját Birodalmi Aurából, AETHER/Aether-Semleges támogató Aurából vagy ezek kombinációjából fizethető;
 - Ige, Rituálé, Jel és Sík alapértelmezés szerint csak saját Birodalmi Aurából fizethető;
 - AETHER Birodalmi forrás AETHER Entitást és AETHER nem-Entitást saját Birodalmi Auraként fizethet;
@@ -372,23 +443,21 @@ Az Aura forrásidentitása alapesetben az Ősforrás-lap Birodalma.
 - ettől csak explicit szabály- vagy kártyahatás térhet el;
 - Soft Penalty nem aktív Core-szabály.
 
-Tervezési előzmény és playtest-státusz:
+Playtest-státusz:
 
-- az eredeti elképzelés szerint az AETHER Aura bármilyen laptípust fizethetett volna;
+- az eredeti modellben az AETHER Aura bármilyen laptípust fizetett volna;
 - ezt elméleti balansz alapján túl erősnek ítéltük és szűkítettük;
-- az AETHER Birodalomnak a fizetési rugalmasságon kívül más identitása is van, ezért a korlátozott modell a jelenlegi canonical szabály;
-- teljes, szabályhű valódi játékteszt hiányában ez különösen playtest-érzékeny döntés;
-- ha az AETHER a gyakorlatban túl erősnek, túl gyengének vagy identitásában problémásnak bizonyul, explicit emberi döntéssel felülvizsgálható;
-- felülvizsgálatig az engine és minden teszt a jelenlegi korlátozott modellt használja.
+- a korlátozott modell a jelenlegi canonical szabály;
+- teljes szabályhű playtest után explicit emberi döntéssel felülvizsgálható;
+- felülvizsgálatig az engine és minden teszt ezt használja.
 
 LOOKUPS- és engine-következmény:
 
-- az `Aura` mező jelenleg numerikus Aura-költségként értelmezendő;
-- első körben nem szükséges külön párhuzamos erőforráskészlet vagy önálló `Aura_Type` mező csak az AETHER kettős szerepe miatt;
+- az `Aura` mező jelenleg numerikus Aura-költség;
+- nem szükséges külön párhuzamos erőforráskészlet csak az AETHER kettős szerepe miatt;
 - központi payment validator alkalmazza a forrás Birodalma, a fizetendő lap Birodalma és laptípusa szerinti szabályt;
-- explicit kivételekhez később structured override szükséges;
-- ideiglenes vagy generált Aura esetén az Aura-identitást külön, canonical módon meg kell adni;
-- a LOOKUPS-ban ellenőrizendő a Birodalomértékek, költségmezők és explicit kivételek reprezentációja.
+- explicit kivételhez structured override szükséges;
+- ideiglenes vagy generált Aura esetén az Aura-identitást canonical módon meg kell adni.
 
 ### CQ-RES-003 – Payment source selection
 
@@ -433,12 +502,14 @@ Nyitott:
 8. Beáramlás Core-döntése.
 9. Ősforrás player-visible policy.
 10. AETHER Aura fizetési modell és általános playtest-felülvizsgálati elv.
+11. Normál Beáramlás timing-, priority-, phase-controller- és eventmodellje.
 
 ### Következő Codex nélküli munkasáv
 
-1. A Beáramlás timing/priority/event kérdéseinek engine-tervezési előkészítése.
-2. A payment source selection döntési lehetőségeinek előkészítése.
-3. A LOOKUPS Birodalom-, Aura-költség- és explicit kivételértékeinek célzott ellenőrzése.
-4. A current contract státusz frissítése csak akkor, amikor új implementáció készül.
+1. Payment source selection döntési modellje.
+2. LOOKUPS Birodalom-, Aura-költség- és explicit kivételértékeinek célzott ellenőrzése.
+3. Magnitúdó-preflight strukturált result és diagnostics iránya.
+4. Activity mutation event általános policyje.
+5. Current contract státusz frissítése csak akkor, amikor új implementáció készül.
 
 A Python engine megmarad működő referenciának. Jelentős új gameplay-réteg a nyelvi/runtime döntési kapu lezárása előtt ne induljon. Új dokumentum csak akkor készülhet, ha a tartalomnak nincs természetes helye meglévő aktív főfájlban.
