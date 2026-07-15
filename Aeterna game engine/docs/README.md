@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.0  
+**Dokumentumverzió:** 1.1  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív engine-dokumentációs index
 
@@ -76,6 +76,29 @@ Szerepe:
 - mi csak tervezett;
 - mely régi sample contract felváltott.
 
+### Aktuális runtime package-státusz
+
+- `CURRENT_RUNTIME_PACKAGE_STATUS.md`
+
+Szerepe:
+
+- mi készült el a runtime package–Godot alapozási munkasávból;
+- aktuális package-fájlok és mennyiségek;
+- publish pipeline és Godot consumption copy;
+- sample identity és production schema közötti technikai adósság;
+- nyitott package-, release- és transportfeladatok.
+
+### Aktuális prototípus-státusz
+
+- `CURRENT_PROTOTYPE_STATUS.md`
+
+Szerepe:
+
+- elkészült prototípusok;
+- aktív rendszerré emelt alapok;
+- felváltott GDScript-rules irányok;
+- közvetlen következő prototípus- és implementációs lánc.
+
 ### Aktuális közeli kérdések
 
 - `CURRENT_OPEN_QUESTIONS.md`
@@ -109,14 +132,21 @@ Fontos:
 
 Státusz:
 
-- `ACTIVE_LONG_FORM_SPECIFICATION`
+- `LONG_FORM_DESIGN_AND_PIPELINE_REFERENCE`
 
 Szerepe:
 
 - runtime package adatút;
 - manifest és package-fájlok;
 - source split;
-- validation és publish pipeline.
+- validation és publish pipeline;
+- jövőbeli package- és release-modellek.
+
+Fontos:
+
+- a dokumentum korai sample- és pipeline-terveket is megőriz;
+- nem minden „jelenlegi” vagy „következő” megjegyzése aktív prioritás;
+- az aktuális tényleges package-státusz forrása a `CURRENT_RUNTIME_PACKAGE_STATUS.md`.
 
 ### `ABILITY_MODULE_SYSTEM.md`
 
@@ -151,8 +181,16 @@ Státusz:
 
 Szerepe:
 
-- régi és lehetséges technikai prototípusok;
-- nem az aktuális szűk engine-task queue.
+- korai prototípusok részletes bizonyítási terve;
+- elkészült runtime package–Godot alapok történeti leírása;
+- lehetséges későbbi technikai ötletek megőrzése.
+
+Fontos:
+
+- nem aktuális szűk engine-task queue;
+- több benne szereplő „következő prototípus” már elkészült;
+- a GDScript authoritative rules-service irányt felváltotta a Python-authoritative architektúra;
+- az aktuális prototípus-státusz forrása a `CURRENT_PROTOTYPE_STATUS.md`.
 
 ---
 
@@ -194,9 +232,11 @@ Engine-fejlesztésnél:
 5. `TECHNOLOGY_DECISIONS.md`;
 6. `DECISION_MAP.md`;
 7. `CURRENT_CONTRACT_STATUS.md`;
-8. `CURRENT_OPEN_QUESTIONS.md`;
-9. hosszú specifikációk;
-10. történeti checkpointok és régi dokumentumok.
+8. `CURRENT_RUNTIME_PACKAGE_STATUS.md`;
+9. `CURRENT_PROTOTYPE_STATUS.md`;
+10. `CURRENT_OPEN_QUESTIONS.md`;
+11. hosszú specifikációk;
+12. történeti checkpointok és régi dokumentumok.
 
 A 0.0.1 célállapot a hosszú távú termékirányt adja, de nem helyettesíti az aktuális technikai checkpointot.
 
@@ -213,6 +253,8 @@ A 0.0.1 célállapot a hosszú távú termékirányt adja, de nem helyettesíti 
 - technology decisions v2.0;
 - decision map v2.0;
 - current contract status;
+- current runtime package status;
+- current prototype status;
 - current open questions;
 - checkpoint index;
 - root és engine README.
@@ -220,7 +262,8 @@ A 0.0.1 célállapot a hosszú távú termékirányt adja, de nem helyettesíti 
 Továbbra is későbbi feladat:
 
 - a hosszú `CONTRACT_SPECIFICATION.md` tartalmi konszolidációja;
-- a `RUNTIME_PACKAGE_SPECIFICATION.md` aktuális source/output státuszának ellenőrzése;
+- a `RUNTIME_PACKAGE_SPECIFICATION.md` későbbi teljes mező- és schema-auditja;
+- a `PROTOTYPE_PLANS.md` későbbi történeti formázási és státuszjelölési tisztítása;
 - az `ABILITY_MODULE_SYSTEM.md` felülvizsgálata az első valódi ability implementation előtt;
 - a teljes `OPEN_QUESTIONS.md` státuszainak fokozatos átvezetése;
 - a történeti checkpointnapló formázási tisztítása.
