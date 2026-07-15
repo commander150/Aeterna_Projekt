@@ -2,34 +2,37 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.0  
+**Dokumentumverzió:** 1.1  
 **Dátum:** 2026-07-15  
-**Státusz:** aktív runtime package- és publish-pipeline státuszdokumentum  
+**Státusz:** aktív runtime package-, lookup- és publish-pipeline státuszdokumentum  
 **Rules-engine technikai bázis:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
 
-Ez a dokumentum a runtime package és a Godot-fogyasztási út jelenlegi tényleges állapotát rögzíti.
+Ez a dokumentum a runtime package, a kártyaadatforrás, a külön LOOKUPS-forrás és a Godot-fogyasztási út tényleges current állapotát rögzíti.
 
-Nem helyettesíti:
+Nem szabályforrás, nem MatchState-specifikáció és nem ability executor dokumentáció.
 
-- a hosszú `RUNTIME_PACKAGE_SPECIFICATION.md` tervezési anyagát;
-- a történeti `checkpoints/CHECKPOINTS.md` részletes mérföldköveit;
-- a Python rules engine aktuális checkpointját.
+Kapcsolódó aktív dokumentumok:
 
-Feladata annak egyértelmű megválaszolása, hogy a korábbi runtime package–Godot munkasávból mi készült el, mi működik ma, és mi maradt későbbi feladat.
+- `CURRENT_CONTRACT_STATUS.md`;
+- `CONTRACT_SPECIFICATION.md`;
+- `CURRENT_OPEN_QUESTIONS.md`;
+- `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
+- `RUNTIME_PACKAGE_SPECIFICATION.md`;
+- `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`.
 
 ---
 
 ## 1. Rövid státusz
 
-A runtime package–Godot alapozási mérföldkő **sikeresen elkészült**.
+A runtime package–Godot alapozási mérföldkő elkészült és működik.
 
 Bizonyított adatút:
 
     Google Sheets / lokális XLSX
         ↓
-    Python XLSX export és adapterek
+    Python export és adapterek
         ↓
-    validáció és normalizációs reportok
+    validáció és normalizáció
         ↓
     runtime package candidate
         ↓
@@ -39,19 +42,18 @@ Bizonyított adatút:
         ↓
     Godot loader, registry, debug nézet és smoke teszt
 
-Ez az alapozás nem lett leváltva vagy eldobva.
-
-A jelenlegi authoritative Python rules engine erre a statikus adat- és kliensalapra épül rá.
-
-A runtime package–Godot munkasáv jelenlegi minősítése:
+Current minősítés:
 
 - alap adatpipeline: `completed_foundation`;
-- valós adatokból történő package build: `working`;
+- valós adatokból package build: `working`;
 - Godot consumption copy: `working`;
 - Godot loader és smoke: `working`;
-- végleges production package identity és schema: `not_final`;
+- package identity és production schema: `not_final`;
+- ability execution: `not_implemented`;
 - rules-engine state transport a Godot felé: `not_implemented`;
 - végleges kliensintegráció: `not_implemented`.
+
+A runtime package nem szabálymotor és nem authoritative mérkőzésállapot.
 
 ---
 
@@ -63,12 +65,19 @@ Aktív szerkesztési forrás:
 
 - `Aeterna dokumentációk/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`
 
-A runtime package ebből veszi többek között:
+Fő runtime card sheet:
 
-- kártyákat;
-- Card_ID-kat;
-- decklistákat;
-- termék- és deckkapcsolatokat.
+- `7. EXPORT_RUNTIME`
+
+A package ebből veszi többek között:
+
+- Card_ID;
+- kártyanév és típus;
+- Birodalom és Klán;
+- nyomtatott Magnitúdó- és Aura-érték;
+- természetes kártyaszöveg;
+- structured auditmezők;
+- set- és printing-adatok.
 
 ### 2.2 Runtime lookupok
 
@@ -78,39 +87,44 @@ Aktív lookupforrás:
 
 Aktív runtime sheetek:
 
-- `RUNTIME_CORE`
-- `RUNTIME_ABILITY`
+- `RUNTIME_CORE`;
+- `RUNTIME_ABILITY`.
 
 Legacy alias és normalizációs forrás:
 
-- `RUNTIME_LEGACY_ALIAS`
+- `RUNTIME_LEGACY_ALIAS`.
 
-### 2.3 Hivatalos szabályforrások
+Publikált runtime kimenet:
 
-A runtime package nem szabályforrás.
+- `Aeterna game engine/Godot/runtime_package/lookups.json`.
 
-A szabályi elsőbbség továbbra is:
+A kártyaadatbázis munkaforrás saját `5A. LOOKUPS_RUNTIME` lapja munkafájl-validációs és történeti segédforrás. Nem írhatja felül automatikusan a külön `LOOKUPS.xlsx` aktív canonical runtime értékeit.
 
-- hivatalos alapjáték főforrás 1.4v;
-- hivatalos kiegészítő főforrás 1.4v.
+### 2.3 Szabályforrások
+
+A szabályi elsőbbség:
+
+- hivatalos alapjáték-főforrás 1.4v;
+- hivatalos kiegészítő-főforrás 1.4v;
+- explicit current emberi döntések és verziózott átvezetések.
 
 ---
 
-## 3. Python tooling és publish út
+## 3. Jelenlegi package- és publish-út
 
-Az aktív Python tooling az `Aeterna game engine/python/` alatt található.
+Aktív Python tooling:
+
+- `Aeterna game engine/python/`
 
 Fő szerepek:
 
 - XLSX export;
 - JSONL előállítás;
-- runtime card adapter;
-- runtime deck adapter;
-- LOOKUPS reader;
-- legacy alias reader;
-- normalizációs preview és reportok;
-- package build;
-- candidate-validáció;
+- runtime card- és deckadapter;
+- LOOKUPS- és legacy alias reader;
+- normalizációs preview és report;
+- candidate package build;
+- blocking validation;
 - Godot consumption copy publikálása;
 - smoke és unit tesztek.
 
@@ -118,414 +132,349 @@ Elsődleges fejlesztői publish runner:
 
 - `Aeterna game engine/python/publish_runtime_package_to_godot.bat`
 
-Elvi publish folyamat:
+Publish-elv:
 
-1. ideiglenes candidate package készül;
-2. a candidate validációja lefut;
+1. ideiglenes candidate készül;
+2. blocking validation lefut;
 3. blocking hiba esetén nincs publish;
-4. sikeres validáció esetén frissül a Godot consumption copy;
-5. diagnostics és build report jelzi az eredményt.
+4. sikeres validáció után frissül a Godot consumption copy;
+5. diagnostics és build report készül.
 
-A TEMP candidate réteg jelenleg elfogadott átmeneti staging megoldás, de nem végleges release-package architektúra.
-
----
-
-## 4. Godot consumption package
-
-Aktív fogyasztási mappa:
+Aktív Godot fogyasztási mappa:
 
 - `Aeterna game engine/Godot/runtime_package/`
 
-Aktív Godot loader útvonal:
+Godot útvonal:
 
 - `res://runtime_package`
 
-A Godot package loader smoke teszt jelenleg explicit módon ezt ellenőrzi.
-
-A Godot consumption copy:
-
-- generált vagy publikált adatpéldány;
-- nem kézzel szerkesztett canonical forrás;
-- nem szabálymotor;
-- nem MatchState;
-- nem player save;
-- nem release package registry.
-
 ---
 
-## 5. Jelenlegi manifest-állapot
+## 4. Package identity és fájlok
 
-Az aktuális Godot consumption manifest fő identity mezői:
+A jelenlegi manifest még történeti sample identityt használ:
 
-- `package_id: "aeterna.sample_runtime_package"`
-- `package_version: "0.1.0"`
-- `schema_version: "sample-runtime-package-v1"`
-- `ruleset_version: "sample-ruleset-v0"`
-- `production_export: false`
+- `package_id: aeterna.sample_runtime_package`;
+- `package_version: 0.1.0`;
+- `schema_version: sample-runtime-package-v1`;
+- `ruleset_version: sample-ruleset-v0`;
+- `production_export: false`.
 
-Ez történeti sample identity, miközben a package már valós, teljes méretű adatokat tartalmaz.
+Ez technikailag működő fejlesztői package, de nem production-final identity.
 
-Ezért a jelenlegi állapot:
+Fő package-fájlok:
 
-- technikailag működő;
-- tesztelt;
-- fejlesztői használatra alkalmas;
-- elnevezésében és verziózásában még nem production-final.
+- `manifest.json`;
+- `cards.jsonl`;
+- `decks.jsonl`;
+- `lookups.json`;
+- `normalization_aliases.json`;
+- normalizációs audit-, preview- és apply reportok;
+- `ability_registry.json`;
+- `engine_support.json`;
+- `diagnostics.json`;
+- `build_report.md`.
 
-Külön későbbi migráció szükséges:
-
-- package ID;
-- package schema név;
-- package version policy;
-- ruleset version;
-- production/development package type;
-- manifest source path és reprodukálhatósági metadata.
-
-Ezt nem szabad az aktuális rules-engine feladattal összekeverni.
-
----
-
-## 6. Aktuális package-fájlok
-
-A jelenlegi manifest az alábbi fájlokat listázza:
-
-- `manifest.json`
-- `cards.jsonl`
-- `decks.jsonl`
-- `lookups.json`
-- `aliases.json`
-- `normalization_aliases.json`
-- `normalization_audit_report.json`
-- `normalization_preview_report.json`
-- `normalization_patch_plan.json`
-- `normalization_apply_report.json`
-- `ability_registry.json`
-- `engine_support.json`
-- `diagnostics.json`
-- `build_report.md`
-
-### 6.1 Fontos státuszok
-
-`cards.jsonl`
-
-- valós kártyaadatokat tartalmaz;
-- jelenlegi package-ben 814 rekord;
-- runtime card definition forrás.
-
-`decks.jsonl`
-
-- valós deckadatokat tartalmaz;
-- jelenlegi package-ben 28 deck;
-- source decklist feldolgozás során 754 sor olvasva.
-
-`lookups.json`
-
-- a külön `LOOKUPS.xlsx` runtime sheetjeiből származik;
-- runtime controlled vocabulary és megjelenítési alap.
-
-`aliases.json`
-
-- történeti sample/placeholder fájl;
-- nem a canonical normalizációs mapping elsődleges forrása.
-
-`normalization_aliases.json`
-
-- a `RUNTIME_LEGACY_ALIAS` feldolgozott runtime outputja;
-- jelenlegi package-ben 1011 alias;
-- 903 normalizálható;
-- 108 auditot igényel.
-
-`normalization_audit_report.json`
-
-- diagnostics- és auditcélú;
-- nem írja át automatikusan a canonical forrást.
-
-`normalization_preview_report.json`
-
-- változtatás előtti preview;
-- nem authoritative kártyaadat.
-
-`normalization_patch_plan.json`
-
-- tervezett normalizációs műveletek leírása;
-- nem önálló canonical source.
-
-`normalization_apply_report.json`
-
-- alkalmazási eredmény és auditnyom;
-- nem szabálymotor-adat.
-
-`ability_registry.json`
-
-- jelenleg deklaratív sample/foundation réteg;
-- nem bizonyít ability executiont.
-
-`engine_support.json`
-
-- support státusz és coverage-információ;
-- a jelenlegi package szerint minden kártya `not_evaluated`.
-
-`diagnostics.json`
-
-- strukturált build- és adatdiagnosztika.
-
-`build_report.md`
-
-- ember által olvasható buildösszefoglaló.
-
----
-
-## 7. Aktuális mennyiségi állapot
-
-A jelenlegi Godot consumption package manifestje alapján:
+Current mennyiségek:
 
 - kártyák: 814;
 - deckek: 28;
-- runtime lookup rekordok a build source summaryban: 2080;
+- source decklist sorok: 754;
+- runtime lookup rekordok: 2080;
+- Godot lookup groupok: 32;
 - normalization aliasok: 1011;
+- automatikusan normalizálható aliasok: 903;
 - auditot igénylő aliasok: 108;
-- automatikus normalizációra engedett aliasok: 903;
 - ability modulok: 2;
 - ability státusz: `declared_only`;
 - blocking diagnostics: 0;
 - warningok: 0;
 - hibák: 0.
 
-Godot loader smoke elvárás:
+---
 
-- cards: 814;
-- decks: 28;
-- lookup groups: 32;
-- ability modules: 2;
-- normalization aliases: 1011;
-- warnings: 0;
-- blocking errors: 0.
+## 5. Runtime LOOKUPS-audit – Birodalom, zóna és fázis
 
-A `runtime lookup records` és a Godot `lookup groups` két külön szám:
+### 5.1 Birodalom
 
-- az első rekordmennyiség;
-- a második a Godotban létrejött csoportok száma.
+Az aktív `lookups.json` hét canonical Birodalmat tartalmaz:
+
+- `ignis`;
+- `aqua`;
+- `terra`;
+- `lux`;
+- `umbra`;
+- `ventus`;
+- `aether`.
+
+Az uppercase és magyar/forrásszöveges változatok normalizálható bemeneti értékek lehetnek, de a canonical runtime érték lowercase ASCII.
+
+Payment-következmény:
+
+- egy normál Ősforrás-lap alap Aura-identitása a kártya canonical `realm` értéke;
+- nem szükséges külön párhuzamos `Aura_Type` mező csak az alap Wellspring-forrásokhoz;
+- az AETHER kettős fizetési szerepét a payment validator kezeli, nem új Birodalomérték.
+
+### 5.2 Ősforrás-zóna
+
+Az aktív canonical runtime zóna:
+
+- `wellspring` – Ősforrás.
+
+A kártyaadatbázis beágyazott `5A. LOOKUPS_RUNTIME` lapján előforduló `source` régebbi structured érték, nem az engine current canonical zónaneve.
+
+Következmény:
+
+- MatchState-, event-, snapshot- és action-contractban `wellspring` használandó;
+- `source` legfeljebb legacy alias vagy régi auditmező lehet;
+- a kártyaadatbázis structured mezőinek későbbi migrációja külön, naplózott adatjavítás;
+- a munkaforrás XLSX-et ez az audit nem módosította.
+
+A `source_card` külön `game_object` értékként továbbra is használható egy Ősforrásban lévő lap fogalmi megnevezésére. Ez nem zónanév.
+
+### 5.3 Beáramlás-fázis
+
+Az aktív canonical runtime phase érték:
+
+- `infusion` – Beáramlás.
+
+Ezért:
+
+- phase state-ben `infusion` használandó;
+- a korábbi current dokumentumokban szereplő `inflow` technikai megnevezések terminológiai migrációt igényelnek;
+- ez nem szabályváltozás, csak canonical runtime névegységesítés;
+- az action-, status- és eventneveket a következő szinkronizáló dokumentumfrissítésben kell egységesíteni.
+
+### 5.4 Activity state
+
+Az aktív canonical card state-ek többek között:
+
+- `active`;
+- `exhausted`;
+- `face_down`;
+- `face_up`;
+- `revealed`;
+- `hidden`.
+
+A Wellspring payment-contract `active → exhausted` állapotváltása összhangban van az aktív LOOKUPS-szal.
 
 ---
 
-## 8. Ability és engine-support állapot
+## 6. Aura- és payment-adat audit
+
+### 6.1 Nyomtatott alapköltség
+
+A kártyaadatbázis `Aura` mezője a lap nyomtatott vagy alap kijátszási Aura-költsége.
+
+A munkaforrás beágyazott validációs listája:
+
+- 1–10 Aura.
+
+A jelenlegi 814 soros `EXPORT_RUNTIME` tényleges Aura-értékei:
+
+- 1–9;
+- 0 nyomtatott alapköltségű runtime-kártya jelenleg nincs;
+- 10-es Aura-költségű runtime-kártya jelenleg nincs.
+
+Ez nem jelenti azt, hogy a normalizált fizetendő költség nem lehet 0.
+
+Több kártya:
+
+- költséget csökkent;
+- minimum 1 vagy minimum 0 korlátot használ;
+- Aura-költség fizetése nélkül játszik ki lapot.
+
+Ezért külön kell kezelni:
+
+- `printed_aura_cost` vagy base cost – a card definitionből;
+- `normalized_payable_aura_cost` – az engine preflight eredménye.
+
+A 0 értéket nem szükséges nyomtatott `Aura` LOOKUPS-értékként felvenni csak azért, mert modifier után a fizetendő költség 0 lehet.
+
+### 6.2 Meglévő structured jelölések
+
+A kártyaadatbázisban már vannak aktív, leíró jelölések:
+
+- `cost_mod` – 28 runtime-kártya;
+- `resource_gain` – 37;
+- `resource_spend` – 8;
+- `resource_drain` – 2;
+- `resource_acceleration` – 1;
+- `move_to_source` – 6;
+- `source_manipulation` – 5;
+- `exhaust` – 61;
+- `free_cast` – 6.
+
+Ezek alkalmasak:
+
+- auditálásra;
+- keresésre;
+- coverage-csoportosításra;
+- ability-modul jelöltek képzésére.
+
+Nem elegendők önmagukban az authoritative végrehajtáshoz.
+
+### 6.3 Mi hiányzik az executable paymenthez?
+
+A jelenlegi card row nem tartalmaz általános, végrehajtható sémát az alábbiakhoz:
+
+- költségmódosítás összege;
+- növelés, csökkentés, set-to-zero vagy free-cast mód;
+- minimum költség 0 vagy 1;
+- érintett Birodalom-, laptípus-, Faj-, Kaszt- vagy konkrét lapkör;
+- duration és stack/non-stack policy;
+- ideiglenes Aura mennyisége, identitása és lejárata;
+- aktivált képesség Aura-költsége;
+- közvetlen forráslap-Kimerítés mint költség;
+- AETHER vagy más explicit payment override;
+- replacement/prevention és alternatív költség.
+
+A `Hatáscímkék` és a `Feltétel_Felismerve` jelenleg runtime-előkészítő, leíró réteg. A `Feltétel_Felismerve` szabadabb snake_case leírása nem tekinthető stabil executor-payloadnak.
+
+### 6.4 Döntés: nem bővítjük találomra a LOOKUPS-ot
+
+Az audit alapján most nem szükséges új globális lookup-csoportokat vagy új CARDS_MASTER/EXPORT_RUNTIME oszlopokat létrehozni.
+
+Current irány:
+
+- a `Realm` marad a base Aura-identitás forrása;
+- az `Aura` marad a nyomtatott numerikus alapköltség;
+- a `Hatáscímkék` megmarad mechanikai osztályozásnak;
+- az executable költségmódosító, temporary Aura és payment override a későbbi ability/payment module normalizált payloadjába kerül;
+- új lookup csak akkor készül, ha az executable schema tényleges, ismétlődő enumértéket igényel;
+- az engine nem próbálhatja a teljes hatást pusztán a természetes szövegből vagy a `Feltétel_Felismerve` mezőből futás közben újraértelmezni.
+
+### 6.5 Első payment implementation határa
+
+Az első payment-réteg kezelheti:
+
+- printed base Aura cost;
+- Realm-alapú source identity;
+- AETHER Core payment policy;
+- explicit Wellspring source selection;
+- `none | forced | choice` selection mode;
+- exact payment;
+- atomikus `active → exhausted` mutation.
+
+Nem kell még kezelnie:
+
+- temporary Aura poolt;
+- card abilityből származó költségmódosítást;
+- free castot;
+- alternatív képességköltséget;
+- resource drain vagy replacement mechanikát.
+
+Ezek ability executor és effect-state nélkül nem nevezhetők támogatottnak.
+
+---
+
+## 7. Ability és engine-support állapot
 
 A jelenlegi package:
 
 - deklarál ability modulokat;
 - jelzi a support státuszt;
-- nem futtatja a kártyaképességeket.
+- nem futtatja a kártyaképességeket;
+- `runtime_executes_abilities: false`;
+- minden kártya supportja jelenleg `not_evaluated`.
 
-Aktuális manifestállítás:
+Ezért a 814 kártya package-ben való jelenléte nem jelent 814 működő kártyaképességet.
 
-- `runtime_executes_abilities: false`
-
-Ezért:
-
-- az ability registry nem executor;
-- az engine support report nem garancia a teljes szabályhűségre;
-- a 814 kártya package-ben való jelenléte nem jelenti, hogy mind a 814 kártya működik a rules engine-ben;
-- az ability implementation külön későbbi roadmap.
+A lookup- és structured audit nem változtatott ezen a státuszon.
 
 ---
 
-## 9. Godot-oldali bizonyított alapok
+## 8. Godot-oldali bizonyított alapok
 
-Elkészült és megőrzendő:
+Megőrzendő működő elemek:
 
 - runtime package loader;
-- card registry;
-- deck registry;
+- card és deck registry;
 - lookup registry;
 - ability registry betöltése;
-- diagnostics olvasás;
-- normalization alias count betöltés;
+- diagnostics reader;
+- normalization alias betöltése;
 - card reference resolver;
-- sample snapshot viewer;
-- sample legal action debug panel;
-- sample event log debug view;
+- sample snapshot, legal action és event debug nézetek;
 - unified debug dashboard;
-- package loader smoke;
-- sample contract smoke;
-- contract consistency smoke.
-
-Ezek a későbbi kliensintegráció alapjai.
+- package loader és contract smoke tesztek.
 
 Nem bizonyítják önmagukban:
 
-- valódi játékállapotot;
+- valódi MatchState-et;
 - teljes rules engine-t;
 - végleges player UI-t;
-- interaktív Python–Godot kommunikációt;
-- release buildet.
+- interaktív engine–Godot kommunikációt;
+- portable release buildet.
 
 ---
 
-## 10. Kapcsolat a Python rules engine-nel
+## 9. Nyitott package- és data-contract feladatok
 
-A runtime package feladata:
+### 9.1 Runtime-nyelvi döntéshez kapcsolódó
 
-- statikus card definition;
-- deck definition;
-- lookup;
-- normalizációs adat;
-- support- és diagnostics-információ.
+- Python sidecar vagy más process modell;
+- Godot .NET/C# runtime;
+- portable Windows build;
+- state transport és lifecycle.
 
-A Python rules engine feladata:
-
-- MatchState;
-- card instance;
-- legal action;
-- action request validálása;
-- state transition;
-- typed event;
-- player-visible projection;
-- rejtett információ védelme;
-- AI-vs-AI végrehajtás.
-
-A runtime package nem tartalmazhat authoritative mérkőzésállapotot.
-
-A MatchState nem írhatja át a runtime package statikus card definitionjeit.
-
----
-
-## 11. Mi készült el a korábbi munkasávból?
-
-Elkészült:
-
-- exporter migráció az új Python tooling alá;
-- explicit source és output útvonalak;
-- runtime card adapter;
-- runtime deck adapter;
-- LOOKUPS source split;
-- legacy alias reader;
-- candidate package build;
-- blocking validation;
-- Godot publish;
-- valós kártya- és deckadat package;
-- normalization alias output;
-- audit- és preview reportok;
-- Godot loader;
-- registryk;
-- debug nézetek;
-- headless smoke.
-
-Ez a korábbi alapozási feladat lényegi célját teljesíti.
-
----
-
-## 12. Mi maradt nyitva?
-
-### 12.1 Package identity és schema
+### 9.2 Package identity
 
 - sample package ID leváltása;
-- sample schema név leváltása;
-- development/test/release package-típus;
-- szabályos semantic vagy saját package-verziózás;
-- ruleset-version kapcsolat.
+- production/development package type;
+- schema- és ruleset-version policy;
+- source fingerprint és package hash.
 
-### 12.2 Reprodukálhatóság
+### 9.3 Lookup és card data
 
-- source fingerprint;
-- builder version;
-- normalizált source list;
-- determinisztikus generated timestamp policy;
-- package hash;
-- package comparison report.
+- `infusion` terminológia szinkronizálása a current contract-dokumentumokban;
+- régi `source` structured értékek későbbi `wellspring` migrációja vagy aliasolása;
+- printed és normalized cost egyértelmű elhatárolása;
+- ability/payment payload schema létrehozása a tényleges executor előtt;
+- unsupported-card és coverage policy.
 
-### 12.3 Output és staging
+### 9.4 Godot-integráció
 
-- TEMP candidate hosszú távú státusza;
-- központi build vagy generated mappa;
-- package registry;
-- archivált package-ek;
-- release candidate output.
-
-### 12.4 Ability support
-
-- ability registry canonical production schema;
-- engine-support automatikus coverage;
-- executable ability module layer;
-- unsupported card policy;
-- blocking vs warning policy.
-
-### 12.5 Godot-integráció
-
-- valódi player-visible snapshot fogadása;
-- legal action megjelenítés az aktuális Python engine-ből;
+- valódi player-visible snapshot;
+- legal action megjelenítés;
 - action request transport;
 - action response és event stream;
-- local process vagy más transport döntés;
 - save/replay/bug-report package.
 
-### 12.6 Release
+---
 
-- Windows packaging;
-- Python runtime csomagolása;
-- integritás-ellenőrzés;
-- nyers XLSX kizárása;
-- verziózott release package.
+## 10. Aktuális prioritás
+
+A runtime package alapozás nem a jelenlegi kritikus blokkoló.
+
+Kritikus sorrend:
+
+1. `fourth turn` learning-project audit;
+2. runtime language comparison fixture és proofok;
+3. emberi runtime-döntés;
+4. Wellspring production integráció;
+5. player-visible Wellspring projection;
+6. `infusion` action és phase transition;
+7. Magnitúdó-preflight;
+8. base payment source selection;
+9. `play_card`;
+10. későbbi ability/effect execution.
+
+A kártyaadatbázis és a külön LOOKUPS munkaforrás ebben az auditban nem módosult.
 
 ---
 
-## 13. Aktuális prioritás
+## 11. Rövid összefoglaló
 
-A runtime package pipeline jelenleg nem a kritikus blokkoló fejlesztési pont.
-
-A közvetlen kritikus út:
-
-1. Wellspring MatchState-integráció;
-2. player-visible Wellspring summary;
-3. Beáramlás;
-4. erőforrás-preflight és payment;
-5. Entitás kijátszása;
-6. teljesebb phase/priority;
-7. későbbi Python–Godot kliensintegráció.
-
-A package identity és release-rendezés később külön munkasávban végezhető.
-
----
-
-## 14. Dokumentumkapcsolatok
-
-Aktuális projektirány:
-
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.0.md`
-
-Aktuális engine-state:
-
-- `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
-
-Aktuális contract-state:
-
-- `CURRENT_CONTRACT_STATUS.md`
-
-Aktuális prototípus-state:
-
-- `CURRENT_PROTOTYPE_STATUS.md`
-
-Hosszú runtime package terv:
-
-- `RUNTIME_PACKAGE_SPECIFICATION.md`
-
-Történeti package és Godot mérföldkövek:
-
-- `checkpoints/CHECKPOINTS.md`
-- `checkpoints/README.md`
-
----
-
-## 15. Rövid összefoglaló
-
-**Korábbi runtime package–Godot alapozási cél:** teljesítve  
-**Valós adatokkal build:** működik  
+**Runtime package build:** működik  
 **Godot consumption copy:** működik  
-**Godot loader és smoke:** működik  
-**Aktuális card count:** 814  
-**Aktuális deck count:** 28  
-**Aktuális normalization alias count:** 1011  
-**Blocking diagnostics:** 0  
+**Kártyák:** 814  
+**Deckek:** 28  
+**Aktív canonical Wellspring-zóna:** `wellspring`  
+**Aktív canonical Beáramlás-fázis:** `infusion`  
+**Canonical Realm formátum:** lowercase ASCII  
+**Nyomtatott Aura-költségforrás:** card definition `Aura` mező  
+**Executable payment override schema:** még nincs  
 **Ability execution:** nincs  
-**Package identity:** még sample jellegű  
-**Végleges production schema:** nincs  
-**Következő kritikus programozási irány:** Python rules engine folytatása
+**LOOKUPS/workbook módosítás:** nem történt  
+**Következő adat-szinkron:** `inflow` → `infusion` current contract-terminológia.
