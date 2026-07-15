@@ -2,33 +2,24 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.2  
+**Dokumentumverzió:** 1.3  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív közeli döntési kapu- és kérdéslista  
 **Technikai bázis:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
 
-Ez a dokumentum a következő engine-, technológiai és dokumentációs feladatokat közvetlenül befolyásoló kérdéseket tartalmazza.
+Ez a dokumentum a következő engine-, technológiai, termékruntime- és dokumentációs feladatokat közvetlenül befolyásoló kérdéseket tartalmazza.
 
-A teljes történeti kérdésregiszter:
+Kapcsolódó források:
 
-- `OPEN_QUESTIONS.md`
+- teljes történeti kérdésregiszter: `OPEN_QUESTIONS.md`;
+- részletes válasz- és döntési irányok: `OPEN_QUESTIONS_DECISIONS.md`;
+- termékruntime-mérce: `PRODUCT_RUNTIME_AND_INSTALLATION_REQUIREMENTS.md`;
+- runtime-nyelvi kapu: `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
+- tanulóprogram-audit sablon: `LEARNING_PROJECT_AUDIT_AND_LICENSE_TEMPLATE.md`.
 
-A kérdésekhez tartozó részletes válasz- és döntési irányok:
+Az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` együtt olvasandó.
 
-- `OPEN_QUESTIONS_DECISIONS.md`
-
-A két dokumentum együtt olvasandó.
-
-A jelenlegi elsődleges technológiai kapu részletes dokumentuma:
-
-- `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
-
-A Python minimal engine a jelenlegi működő referenciaimplementáció. A végleges authoritative termékruntime nyelve és futási modellje azonban még nem eldöntött. A fő összehasonlítandó jelöltek most:
-
-- Python sidecar engine + Godot kliens;
-- Godot .NET/C# authoritative runtime;
-- szükség esetén szűk GDScript proof;
-- embedded Python csak kiegészítő kutatási irányként.
+A Python minimal engine a jelenlegi működő referenciaimplementáció. A végleges authoritative termékruntime nyelve és futási modellje még nincs kiválasztva. A nyelvváltás nem önálló cél.
 
 ---
 
@@ -46,12 +37,127 @@ A Python minimal engine a jelenlegi működő referenciaimplementáció. A végl
 | `needs_comparison_design` | Meg kell határozni az összehasonlító prototípus pontos célját. |
 | `needs_integration_prototype` | Működő bridge/runtime proof szükséges. |
 | `queued_after_language_gate` | Kész vagy jól definiált feladat, de a runtime-nyelvi döntés után folytatandó. |
-| `deferred` | Későbbi roadmap-szakaszra halasztva. |
+| `deferred_non_blocking` | Nyitott, de a következő auditot vagy proofot nem blokkolja. |
 | `answered` | Megválaszolva és aktív dokumentumba átvezetve. |
 
 ---
 
-## 2. Architektúra és technológia
+## 2. Termékruntime és telepítés
+
+### CQ-PROD-001 – Mely Windows-rendszerek az elsődleges célok?
+
+**Státusz:** `answered`
+
+Döntés:
+
+- 64 bites Windows 10 és minden ennél újabb támogatott Windows asztali rendszer;
+- 32 bites Windows nem cél;
+- a proofokat legalább Windows 10+ 64-bit környezetben kell ellenőrizni.
+
+### CQ-PROD-002 – Portable vagy telepítő?
+
+**Státusz:** `answered`
+
+Döntés:
+
+- a jelenlegi proof- és zárt tesztfázisban portable, kibontott mappa készül;
+- jelenleg nem kell telepítő;
+- a portable csomag egyértelmű fő executable-ből induljon;
+- telepítő csak későbbi véglegesebb vagy szélesebb kiadáshoz szükséges.
+
+### CQ-PROD-003 – Kellhet-e adminisztrátori jogosultság?
+
+**Státusz:** `answered`
+
+Döntés:
+
+- normál futtatáshoz nem kellhet adminjog;
+- a program saját portable mappájából induljon;
+- mentések, beállítások és logok felhasználói írható mappába kerüljenek;
+- a program ne írjon futás közben védett rendszerkönyvtárba.
+
+### CQ-PROD-004 – Milyen külső komponensek fogadhatók el?
+
+**Státusz:** `answered`
+
+Döntés:
+
+- a játékosnak ne kelljen külön Pythont, Godot Editort, .NET SDK-t vagy más fejlesztői környezetet telepítenie;
+- ne kelljen package-eket, modulokat vagy környezeti változókat kezelnie;
+- kevés számú, közismert és egyszerű prerequisite elfogadható;
+- például szükséges .NET runtime vagy hasonló redistributable nem kizáró ok;
+- self-contained csomagolás előny, de nem mindenáron kötelező.
+
+### CQ-PROD-005 – Linux-támogatás
+
+**Státusz:** `deferred_non_blocking`
+
+Döntési irány:
+
+- később vizsgálható;
+- jelenleg nem prioritás;
+- nem blokkolja a 0.0.1 Windows-runtime kiválasztását;
+- előny, ha a választott technológia későbbi Linux-portja reális.
+
+### CQ-PROD-006 – Maximális csomagméret
+
+**Státusz:** `deferred_non_blocking`
+
+Még mérendő:
+
+- portable package mérete;
+- beágyazott runtime mérete;
+- C# self-contained és Python sidecar különbsége;
+- a méret arányban áll-e a stabilitási és telepítési előnnyel.
+
+Jelenleg nincs mesterséges felső limit. A méret önmagában nem fontosabb a stabilitásnál és az egyszerű futtatásnál.
+
+### CQ-PROD-007 – Digitális kódaláírás
+
+**Státusz:** `deferred_non_blocking`
+
+Nyitott:
+
+- kell-e a zárt 0.0.1 tesztcsomaghoz;
+- mennyire okoz az aláíratlan executable antivírus vagy SmartScreen problémát;
+- mikor válik szükségessé szélesebb terjesztésnél.
+
+### CQ-PROD-008 – Mentések, logok és hibacsomagok pontos helye
+
+**Státusz:** `needs_engine_design`
+
+Lezárt elv:
+
+- felhasználói írható mappába kerüljenek;
+- ne igényeljenek adminjogot;
+- ne a program portable mappája legyen az egyetlen kötelező adattár.
+
+Később pontosítandó:
+
+- `%APPDATA%`, `%LOCALAPPDATA%`, `Documents` vagy más Windows-hely;
+- portable debug módban engedélyezett-e külön lokális log;
+- log retention és maximális méret;
+- hibacsomag összeállítása.
+
+### CQ-PROD-009 – Tanulóprogram-audit módszere
+
+**Státusz:** `answered`
+
+Döntés:
+
+- egységes read-only sablon készül;
+- a helyi projektek nem kerülnek automatikusan az AETERNA GitHub repositoryba;
+- minden projektnél verzió-, licenc-, dependency-, authority-, bridge-, packaging- és stabilitási leltár kell;
+- közvetlen kódmásolás alapértelmezetten tilos;
+- clean-room architektúraminta külön értékelhető.
+
+Aktív sablon:
+
+- `LEARNING_PROJECT_AUDIT_AND_LICENSE_TEMPLATE.md`
+
+---
+
+## 3. Architektúra és technológia
 
 ### CQ-ARCH-001 – Mi a jelenlegi authoritative engine?
 
@@ -70,7 +176,8 @@ Nyitott hosszú távú rész:
 - Godot .NET/C# lesz-e az authoritative termékruntime;
 - szükséges-e részleges vagy teljes GDScript rules runtime;
 - beágyazott Pythonnak van-e elfogadható szerepe;
-- milyen packaging és process modell lesz használható.
+- más nyelv vagy GDExtension-modell ad-e lényegesen jobb eredményt;
+- milyen packaging és process modell teljesíti a termékkövetelményeket.
 
 Kapcsolódó eredeti kérdések:
 
@@ -90,9 +197,9 @@ Feladat:
 - elkülöníteni a helyi forrásokat a külső referenciáktól;
 - projektenként ellenőrizni a licencet és a vizsgált verziót;
 - azonosítani, használ-e valamelyik Godot kliens Python engine-t;
-- azonosítani, mely projektek használnak C#/.NET runtime-ot;
+- azonosítani, mely projektek használnak C#/.NET, GDScript, C++, Rust vagy más runtime-ot;
 - dokumentálni a bridge-, state-authority-, teszt- és packaging mintát;
-- megállapítani, mely projekt releváns rules engine, UI vagy AI szempontból.
+- megállapítani, mely projekt releváns rules engine, UI, AI vagy kiadási csomagolás szempontjából.
 
 A tanulóprogramok szándékosan nincsenek az AETERNA GitHub repositoryban. A Codex később helyileg vizsgálja őket.
 
@@ -104,20 +211,22 @@ Jelenlegi online referenciák többek között:
 - GodoPy;
 - régi godot-python.
 
-### CQ-ARCH-003 – Python–C#–GDScript összehasonlítás scope
+### CQ-ARCH-003 – Python–C#–GDScript és más jelöltek összehasonlítási scope-ja
 
 **Státusz:** `highest_priority_decision_gate`
 
 A comparison kérdés nem lezárt és nem obsolete.
 
-Kötelező fő jelöltek:
+Kötelező első fő jelöltek:
 
 1. Python sidecar + Godot kliens;
 2. Godot .NET/C# authoritative runtime.
 
-Opcionális jelölt:
+Feltételes jelöltek:
 
-3. minimal GDScript transition proof, ha az audit vagy az első két proof eredménye indokolja.
+3. minimal GDScript transition proof;
+4. C++ GDExtension vagy más nyelv, ha az audit erős indokot talál;
+5. embedded Python, ha production-közeli packaging bizonyítható.
 
 Eldöntendő:
 
@@ -125,7 +234,8 @@ Eldöntendő:
 - azonos contractok vagy explicit mapping;
 - Python sidecar kommunikációs módja;
 - C# rules library és Godot UI elhatárolása;
-- Windows-indítás és packaging;
+- Windows 10+ 64-bit portable indítás;
+- prerequisite-ek száma és kezelése;
 - teljesítmény, latency és processhiba;
 - unit és integration tesztelhetőség;
 - Codex által előállított kód minősége;
@@ -164,7 +274,9 @@ Kötelező elvek:
 - debug információ elkülönítése;
 - kontrollált process- és kapcsolatkezelés;
 - stdout/protokoll és logcsatorna elhatárolása;
-- deterministic request/response napló.
+- deterministic request/response napló;
+- adminjog nélküli portable indítás;
+- ne kelljen külön Pythont telepíteni.
 
 ### CQ-ARCH-005 – Godot .NET/C# runtime proof
 
@@ -178,13 +290,15 @@ Vizsgálandó:
 - kompatibilis JSON-contract;
 - unit tesztek;
 - Godot .NET indítás;
-- Windows export;
+- Windows 10+ 64-bit portable export;
 - build- és dependencykezelés;
+- self-contained vagy egyszerű .NET runtime prerequisite;
+- adminjog nélküli futás;
 - a Python reference outputtal való összevetés.
 
 ### CQ-ARCH-006 – Embedded Python Godotban
 
-**Státusz:** `deferred`
+**Státusz:** `deferred_non_blocking`
 
 Jelenlegi kutatási állapot:
 
@@ -218,12 +332,13 @@ Ez minden nyelvi jelöltnél kötelező.
 
 Döntés:
 
-- tanulóprogramok read-only auditja;
+- tanulóprogramok read-only auditja és licencleltára;
 - közös comparison fixture;
 - minimal Python sidecar proof;
 - minimal Godot .NET/C# proof;
+- portable Windows- és stabilitási proof;
 - összehasonlító döntési jelentés;
-- csak szükség esetén minimal GDScript proof.
+- csak szükség esetén minimal GDScript vagy más proof.
 
 ### CQ-ARCH-009 – Mi a következő gameplay-engine feladat?
 
@@ -238,7 +353,7 @@ Ez a feladat nem törlődött. A runtime-nyelvi döntési kapu után azon az eng
 
 ---
 
-## 3. Wellspring runtime integráció
+## 4. Wellspring runtime integráció
 
 ### CQ-WS-001 – PlayerState mező és authoritative tagság
 
@@ -306,7 +421,7 @@ Kérdések:
 
 ---
 
-## 4. Beáramlás
+## 5. Beáramlás
 
 ### CQ-INFLOW-001 – Belépési activity state
 
@@ -354,7 +469,7 @@ Kérdés:
 
 ---
 
-## 5. Magnitúdó és Aura
+## 6. Magnitúdó és Aura
 
 ### CQ-RES-001 – Magnitúdó-preflight contract
 
@@ -401,7 +516,16 @@ Kérdés:
 
 ---
 
-## 6. Prioritási összefoglaló
+## 7. Prioritási összefoglaló
+
+### Lezárt Codex nélküli előkészítés
+
+1. Termékruntime- és telepítési követelményspecifikáció.
+2. Windows 10+ 64-bit cél.
+3. Portable-first tesztmodell.
+4. Adminjog nélküli futás.
+5. Kevés közismert prerequisite elfogadási elve.
+6. Tanulóprogram-audit és licencleltár-sablon.
 
 ### Következő Codex-prioritás
 
@@ -409,8 +533,8 @@ Kérdés:
 2. Közös minimal comparison scenario és fixture.
 3. Python sidecar + Godot proof.
 4. Godot .NET/C# rules-runtime proof.
-5. Contract-, teszt-, packaging- és karbantarthatósági összevetés.
-6. Szükség esetén minimal GDScript proof.
+5. Portable Windows-, contract-, teszt-, packaging- és karbantarthatósági összevetés.
+6. Szükség esetén minimal GDScript vagy más proof.
 7. A/B/C döntési jelentés és emberi jóváhagyás.
 
 ### Gameplay-engine queue a döntés után
@@ -423,9 +547,9 @@ Kérdés:
 
 ### Codex nélküli aktív munkasáv
 
-1. `OPEN_QUESTIONS.md` és `OPEN_QUESTIONS_DECISIONS.md` közös triázsa.
-2. Dokumentációs konszolidáció.
-3. Tanulóprogram-forrás- és licencleltár előkészítése.
+1. `OPEN_QUESTIONS.md` és `OPEN_QUESTIONS_DECISIONS.md` technológiai OQ-triázsa.
+2. Helyi tanulóprogram-leltár kitöltési sorrendje és auditbatch-ek.
+3. Nyelvfüggetlen comparison fixture specifikáció.
 4. Ability module dokumentációs audit.
 5. Contract-specifikáció konszolidációja.
 6. Hivatalos szabályforrásból megválaszolható nyitott kérdések ellenőrzése.
