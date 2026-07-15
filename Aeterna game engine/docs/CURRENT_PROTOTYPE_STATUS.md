@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.1  
+**Dokumentumverzió:** 1.2  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív prototípus- és fejlesztési bizonyíték státusztérkép  
 **Technikai bázis:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
@@ -15,7 +15,17 @@ Ez a dokumentum azt rögzíti, hogy:
 - mely technológiai prototípusok maradtak nyitott vizsgálati kapuk;
 - mit nem szabad bizonyítás nélkül lezártnak vagy elutasítottnak tekinteni.
 
-Az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` együtt olvasandó. Az utóbbi szerint a Python backend + Godot frontend erős hosszú távú jelölt, de a végleges runtime/backend döntéshez további prototípus és összehasonlító teszt szükséges.
+Az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` együtt olvasandó.
+
+A jelenlegi elsődleges technológiai proof terve:
+
+- `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
+
+A Python engine működő referencia. A végleges termékruntime fő összehasonlítandó jelöltjei:
+
+- Python sidecar + Godot;
+- Godot .NET/C#;
+- szükség esetén szűk GDScript proof.
 
 ---
 
@@ -25,11 +35,14 @@ Az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` együtt olvasandó. 
 |---|---|
 | `completed_foundation` | A prototípus a célját bizonyította, alapként megtartandó. |
 | `promoted_to_active_system` | A prototípusból aktív tooling-, runtime- vagy contract-réteg lett. |
+| `highest_priority_next_proof` | A következő Codex-hozzáférés elsődleges prototípusfeladata. |
 | `active_next_step` | Közvetlen vagy közeli programozási feladat. |
 | `current_working_basis` | Jelenleg használt és bizonyított fejlesztési alap, de nem feltétlenül végleges termékarchitektúra. |
+| `reference_oracle` | Összehasonlítási és regressziós referenciaimplementáció. |
 | `pending_architecture_validation` | A végső döntéshez további technológiai bizonyítás kell. |
 | `blocked_by_learning_project_audit` | Előbb a tanulóprogramok tényleges technológiai megoldásait kell átvizsgálni. |
 | `blocked_by_comparison_design` | Előbb meg kell határozni, mit és milyen mélységben hasonlítunk össze. |
+| `queued_after_language_gate` | A nyelvi/runtime döntési kapu után folytatandó. |
 | `deferred` | Későbbi roadmap-szakaszra halasztott. |
 | `historical_reference` | Történeti bizonyíték, de nem aktuális task queue. |
 | `not_started` | Még nincs implementálva. |
@@ -101,7 +114,7 @@ Ide tartozik:
 - card reference resolver;
 - consistency smoke.
 
-Ezek jelenleg debug- és kliensintegrációs alapok. A Python minimal engine aktuális contractjai később külön integrálandók.
+Ezek jelenleg debug- és kliensintegrációs alapok. A tényleges authoritative engine contractjai külön integrálandók a választott runtime-modell szerint.
 
 ---
 
@@ -110,6 +123,7 @@ Ezek jelenleg debug- és kliensintegrációs alapok. A Python minimal engine akt
 A Python rules engine jelenlegi státusza:
 
 - `current_working_basis`;
+- `reference_oracle`;
 - több rétege `promoted_to_active_system`.
 
 Elkészült:
@@ -132,15 +146,95 @@ Elkészült:
 - card instance activity state;
 - izolált Wellspring state és resource summary.
 
-A Python engine működése bizonyított. Ez indokolja, hogy a következő szabálymotoros feladatokat továbbra is ezen a bázison végezzük.
+A Python engine működése bizonyított. Ezért:
 
-Ez azonban önmagában még nem bizonyítja a végleges Godot–Python termékarchitektúrát és packaginget.
+- nem törlendő;
+- nem archiválandó;
+- nem tekintendő elveszett munkának akkor sem, ha a végső runtime C# lesz;
+- comparison fixture és expected output forrása;
+- későbbi AI/batch és szabályregressziós orákulum lehet.
+
+A jelenlegi Python engine azonban önmagában még nem bizonyítja a végleges Godot–Python termékarchitektúrát és packaginget.
 
 ---
 
-## 5. Technológiai prototípusok helyes státusza
+## 5. Elsődleges következő technológiai proof
 
-### 5.1 Minimal GDScript rules-service vizsgálat
+### 5.1 Runtime engine language comparison
+
+**Státusz:** `highest_priority_next_proof`
+
+Kötelező fő jelöltek:
+
+1. Python sidecar + Godot kliens;
+2. Godot .NET/C# authoritative runtime.
+
+Opcionális harmadik jelölt:
+
+3. minimal GDScript transition proof.
+
+Részletes terv:
+
+- `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
+
+Kötelező közös scenario:
+
+- initial MatchState;
+- `draw_card`;
+- `end_turn`;
+- második `draw_card`;
+- player-visible snapshotok;
+- typed event log;
+- stale state version rejection;
+- determinisztikus JSON ismétlés.
+
+Kötelező összehasonlítás:
+
+- contracthűség;
+- tesztelhetőség;
+- determinisztika;
+- Godot-integráció;
+- Windows packaging;
+- hibatűrés;
+- karbantarthatóság;
+- Codex által készített kód minősége;
+- portolási költség;
+- AI/batch alkalmasság.
+
+### 5.2 Python sidecar proof
+
+**Státusz:** `highest_priority_next_proof`
+
+Lehetséges első transport:
+
+- stdin/stdout JSONL;
+- vagy localhost TCP + JSON, ha a process pipe megoldás nem megfelelő.
+
+Bizonyítandó:
+
+- Godot és engine handshake;
+- action request/response;
+- snapshot és event átadás;
+- process lifecycle;
+- kontrollált shutdown;
+- hibás version és kapcsolat kezelése;
+- Windows csomagolás.
+
+### 5.3 Godot .NET/C# rules proof
+
+**Státusz:** `highest_priority_next_proof`
+
+Bizonyítandó:
+
+- UI-tól független C# rules library;
+- ugyanazon scenario és contract;
+- unit tesztek;
+- Godot .NET fogyasztás;
+- Windows build/export;
+- Python outputtal való összevetés;
+- state authority és hidden-information határ.
+
+### 5.4 Minimal GDScript rules-service vizsgálat
 
 **Státusz:**
 
@@ -148,45 +242,39 @@ Ez azonban önmagában még nem bizonyítja a végleges Godot–Python termékar
 - `blocked_by_learning_project_audit`;
 - `not_active_parallel_engine_build`.
 
-Nem közvetlen programozási prioritás, mert:
+Nem elsődleges proof. Csak akkor készül, ha:
 
-- a Python engine már jelentős működő állapotban van;
-- két teljes motor párhuzamos fejlesztése nagy duplikációs kockázat;
-- előbb meg kell vizsgálni, milyen technológiai bizonyítékra van ténylegesen szükség.
+- az első két jelölt nem ad elég döntési információt;
+- a tanulóprogram-audit konkrét GDScript előnyt talál;
+- egyetlen transitionre korlátozható.
 
 Nem tekintendő végleg obsolete vagy elutasított iránynak.
 
-A későbbi vizsgálat lehet kisebb, célzott GDScript proof-of-concept, nem szükségképpen teljes második engine.
+### 5.5 Embedded Python GDExtension
 
-### 5.2 Python–GDScript comparison scenario
+**Státusz:** `deferred`
 
-**Státusz:**
+Vizsgált közösségi irányok:
 
-- `blocked_by_learning_project_audit`;
-- `blocked_by_comparison_design`;
-- `pending_architecture_validation`.
+- py4godot;
+- godot-python-extension;
+- GodoPy;
+- régi godot-python.
 
-A comparison kérdés továbbra is aktív döntési kapu.
+Jelenlegi minősítés:
 
-A vizsgálat lehetséges formái:
+- tanulásra és architektúra-vizsgálatra hasznos;
+- több projekt experimental vagy WIP;
+- első 0.0.1 proofnak magasabb kockázatú;
+- később újraértékelhető.
 
-- Python engine output Godot parser round-trip;
-- azonos snapshot és action-response contract kezelése;
-- egy minimal transition GDScript proof-of-concept;
-- Python child process vagy service bridge;
-- teljesítmény- és hibakezelési mérés;
-- Windows packaging proof;
-- működő tanulóprogram Python–Godot mintájának reprodukálása.
-
-Nem szükséges előre kijelenteni, hogy két teljes authoritative engine készül.
-
-### 5.3 Statikus action-response fixture
+### 5.6 Statikus action-response fixture
 
 **Státusz:** `historical_reference`
 
-Kliensparser- és Godot-integrációs teszthez továbbra is hasznos lehet.
+Kliensparser- és comparison-fixture alapként továbbra is hasznos.
 
-### 5.4 Ability registry support viewer
+### 5.7 Ability registry support viewer
 
 **Státusz:** `deferred`
 
@@ -196,36 +284,43 @@ Hasznos későbbi debug-eszköz, de az ability execution előtt nem kritikus út
 
 ## 6. Tanulóprogram-audit
 
-**Státusz:** `active_documentation_and_research_gate`
+**Státusz:**
 
-A jelenlegi repositoryban biztosan megtalálható összefoglaló:
+- `active_documentation_and_research_gate`;
+- a következő Codex proof előfeltétele.
+
+A tanulóprogramok nincsenek az AETERNA GitHub repositoryban licencbiztonsági okból.
+
+A Codex később helyileg vizsgálja:
+
+- mely programok használják a Pythont engine-ként;
+- melyek kapcsolják össze a Pythont Godottal;
+- melyek használnak C#/.NET runtime-ot;
+- melyek csak UI- vagy contractminták;
+- ki indít melyik processt;
+- hol található az authoritative state;
+- milyen transportot és packaginget használnak;
+- milyen licenc- és attributionkötelezettségük van.
+
+A repositoryban biztosan megtalálható összefoglaló:
 
 - `AETERNA – tanulóprojektekből kinyert legfontosabb fejlesztési irányok.md`
 
-Ez a dokumentum többek között a következő referenciákat említi:
+Kiemelt online referenciák:
 
-- Mage / XMage;
-- Duelyst;
-- RLCard;
-- boardgame.io;
-- több Godot kártyajáték- és UI-projekt.
+- Godot RL Agents;
+- py4godot;
+- godot-python-extension;
+- GodoPy;
+- régi godot-python.
 
-A GitHub jelenlegi keresésében ezek teljes forrásfái nem azonosíthatók egyértelműen a repository részeként. Ezért külön leltár szükséges:
-
-- mely tanulóprojektek vannak ténylegesen feltöltve;
-- melyek külső referenciák;
-- melyek használnak Python engine-t;
-- melyek kapcsolják össze a Pythont Godottal;
-- melyek csak UI- vagy contractminták;
-- melyekből érdemes clean-room prototípust készíteni.
-
-Az audit nélkül a végleges Python–Godot/GDScript runtime-döntés nem zárható le.
+Másolt kód alapértelmezetten ne kerüljön az AETERNA repositoryba. Elsődleges cél az architektúra- és működésminta clean-room elemzése.
 
 ---
 
-## 7. Aktív következő engine-implementációs lánc
+## 7. Gameplay-engine implementációs queue
 
-A jelenlegi Python engine-alap fejlesztése továbbra is folytatható:
+A következő gameplay-lánc továbbra is érvényes, de a runtime-nyelvi döntési kapu mögé került:
 
 1. Wellspring PlayerState- és MatchState-integráció.
 2. Player-visible Wellspring summary.
@@ -240,20 +335,23 @@ A jelenlegi Python engine-alap fejlesztése továbbra is folytatható:
 11. Entry-state.
 12. Teljesebb phase és priority rendszer.
 
-Ez a lánc nem függ attól, hogy a végleges Godot–Python bridge pontosan milyen lesz.
+Státusz:
+
+- `queued_after_language_gate`
+
+A Wellspring feladat nem törlődött és nem vált hibássá. A választott runtime-ágon folytatandó.
 
 ---
 
-## 8. Párhuzamos technológiai bizonyítási lánc
+## 8. Codex nélküli aktív munkasáv
 
 1. `OPEN_QUESTIONS.md` és `OPEN_QUESTIONS_DECISIONS.md` közös triázsa.
-2. Tanulóprogram-forrásleltár.
-3. Python-engine/Godot minták azonosítása.
-4. Comparison scope kialakítása.
-5. Minimal Python–Godot bridge prototype.
-6. Szükség esetén célzott GDScript transition proof.
-7. Windows packaging prototype.
-8. Végleges termékarchitektúra döntési kapu.
+2. Tanulóprogram-forrás- és licencleltár előkészítése.
+3. A runtime language comparison kritériumainak pontosítása.
+4. `ABILITY_MODULE_SYSTEM.md` auditja.
+5. A hosszú contract-specifikáció konszolidációja.
+6. Hivatalos szabályforrásból megválaszolható engine-kérdések ellenőrzése.
+7. Dokumentációs státuszok és hivatkozások karbantartása.
 
 ---
 
@@ -261,14 +359,19 @@ Ez a lánc nem függ attól, hogy a végleges Godot–Python bridge pontosan mil
 
 Nem állítjuk, hogy:
 
-- a végleges AETERNA termékarchitektúra már visszavonhatatlanul lezárult;
-- GDScript biztosan alkalmatlan rules runtime-ra;
-- a Python–GDScript comparison felesleges;
-- két teljes rules engine-t most párhuzamosan fel kell építeni;
-- a Godot–Python együttműködés packaging és teljesítmény szempontjából már bizonyított.
+- a Python sidecar biztosan a végleges megoldás;
+- a C# biztosan jobb minden szempontból;
+- a GDScript biztosan alkalmatlan;
+- embedded Python biztosan használhatatlan;
+- a jelenlegi Python engine-t el kell dobni;
+- két teljes rules engine-t párhuzamosan fel kell építeni;
+- a Godot–Python együttműködés packaging és teljesítmény szempontjából már teljesen bizonyított.
 
 Jelenleg azt állítjuk, hogy:
 
-- a Python minimal engine működő és legerősebb fejlesztési bázis;
+- a Python minimal engine működő referencia;
 - a Godot kliens- és loaderalap működik;
-- a végleges összekapcsolás és runtime-technológia további bizonyítást igényel.
+- a C# hivatalosan támogatott és komolyan vizsgálandó jelölt;
+- a Python sidecar technikailag működőképes modell;
+- a végleges runtime-technológia összehasonlító proofot igényel;
+- ezt a döntést a teljes gameplay-engine előtt kell meghozni.
