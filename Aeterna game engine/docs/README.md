@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.5  
+**Dokumentumverzió:** 1.6  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív engine-dokumentációs index
 
@@ -17,6 +17,7 @@ Fontos pontosítás:
 - embedded Python és más nyelvek kutatható, későbbi jelöltek;
 - a nyelvváltás nem önálló cél;
 - a végleges runtime-nak a termékruntime- és telepítési követelményeket kell teljesítenie;
+- az első termékkövetelmény-csomag lezárta a Windows 10+ 64-bit, portable-first, adminjog nélküli és kevés prerequisite irányt;
 - a következő Codex-prioritás a runtime-nyelvi és integrációs comparison;
 - a jelentős gameplay-engine bővítés a döntési kapu után folytatódik;
 - az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` együtt olvasandó.
@@ -37,9 +38,20 @@ Szerepe:
 
 - meghatározza a játékosnak átadandó program futtatási élményét;
 - rögzíti a megengedett és tiltott külső függőségeket;
-- előírja a stabilitási, offline, lifecycle- és packaging próbákat;
+- előírja a stabilitási, offline, lifecycle- és portable packaging próbákat;
 - objektív mércét ad minden runtime- és nyelvi jelölt összehasonlításához;
-- kimondja, hogy a Python csak akkor váltandó le, ha bizonyítottan akadályozza a termékkövetelmények teljesítését, vagy más modell lényegesen jobb összeredményt ad.
+- kimondja, hogy a Python csak akkor váltandó le, ha bizonyítottan akadályozza a termékkövetelmények teljesítését, vagy más modell lényegesen jobb összeredményt ad;
+- v1.1-ben lezárta az első közvetlen proof-feltételeket.
+
+Lezárt első döntések:
+
+- 64 bites Windows 10 és újabb;
+- Linux későbbi, nem prioritásos lehetőség;
+- jelenleg portable csomag, telepítő nélkül;
+- normál futás adminjog nélkül;
+- felhasználói írható mentés-, beállítás- és loghely;
+- kevés közismert prerequisite elfogadható;
+- fejlesztői környezet kézi telepítése nem fogadható el.
 
 ### Aktuális runtime-nyelvi döntési kapu
 
@@ -58,6 +70,21 @@ Szerepe:
 - döntés utáni migrációs irányok.
 
 A döntési kapu a `PRODUCT_RUNTIME_AND_INSTALLATION_REQUIREMENTS.md` követelményei alapján értékelendő.
+
+### Tanulóprogram-audit és licencleltár
+
+- `LEARNING_PROJECT_AUDIT_AND_LICENSE_TEMPLATE.md`
+
+Szerepe:
+
+- egységes read-only auditstruktúra a helyileg tárolt külső projektekhez;
+- projekt-, verzió-, licenc-, dependency- és attributionleltár;
+- nyelv-, runtime-, authority-, bridge-, packaging- és stabilitási vizsgálat;
+- Windows 10+ 64-bit portable megfelelés;
+- clean-room architektúraminta és közvetlen kódátvétel elkülönítése;
+- projektenkénti AETERNA-pontozás és bizonyítékjegyzék.
+
+A külső tanulóprogramok nem kerülnek automatikusan az AETERNA repositoryba. A sablon az audit eredményének szerkezetét adja, nem engedélyezi a kódmásolást.
 
 ### Aktuális technikai referencia
 
@@ -109,7 +136,7 @@ Szerepe:
 
 - `CURRENT_OPEN_QUESTIONS.md`
 
-Ez már tartalmazza:
+Ez tartalmazza:
 
 - a runtime language comparison elsődleges prioritását;
 - a tanulóprogram-forrásauditot;
@@ -118,7 +145,10 @@ Ez már tartalmazza:
 - a Python–GDScript comparison lehetséges szűk scope-ját;
 - a Wellspring és Beáramlás döntés utáni queue-ját.
 
-A következő frissítésben a termékruntime- és telepítési nyitott kérdéseket is hozzá kell kapcsolni.
+Következő frissítése:
+
+- az első termékruntime- és telepítési döntések átvezetése;
+- a proofot blokkoló és nem blokkoló kérdések elválasztása.
 
 ---
 
@@ -210,31 +240,39 @@ Engine- és runtime-döntésnél:
 2. v6.1 projektterv;
 3. `PRODUCT_RUNTIME_AND_INSTALLATION_REQUIREMENTS.md`;
 4. `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
-5. `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`;
-6. `TECHNOLOGY_DECISIONS.md`;
-7. `DECISION_MAP.md`;
-8. `CURRENT_PROTOTYPE_STATUS.md`;
-9. `CURRENT_CONTRACT_STATUS.md`;
-10. `CURRENT_RUNTIME_PACKAGE_STATUS.md`;
-11. `CURRENT_OPEN_QUESTIONS.md`;
-12. `OPEN_QUESTIONS.md` + `OPEN_QUESTIONS_DECISIONS.md` együtt;
-13. hosszú specifikációk;
-14. történeti checkpointok és régi dokumentumok.
+5. `LEARNING_PROJECT_AUDIT_AND_LICENSE_TEMPLATE.md` az audit módszertanához;
+6. `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`;
+7. `TECHNOLOGY_DECISIONS.md`;
+8. `DECISION_MAP.md`;
+9. `CURRENT_PROTOTYPE_STATUS.md`;
+10. `CURRENT_CONTRACT_STATUS.md`;
+11. `CURRENT_RUNTIME_PACKAGE_STATUS.md`;
+12. `CURRENT_OPEN_QUESTIONS.md`;
+13. `OPEN_QUESTIONS.md` + `OPEN_QUESTIONS_DECISIONS.md` együtt;
+14. hosszú specifikációk;
+15. történeti checkpointok és régi dokumentumok.
 
-A 0.0.1 célállapot a hosszú távú termékirányt adja. A termékruntime- és telepítési követelményspecifikáció meghatározza az értékelési mércét. A nyelvi döntési kapu ennek alapján hasonlítja össze a jelölteket.
+A 0.0.1 célállapot a hosszú távú termékirányt adja. A termékruntime- és telepítési követelményspecifikáció meghatározza az értékelési mércét. A nyelvi döntési kapu ennek alapján hasonlítja össze a jelölteket. Az audit-sablon a külső bizonyítékgyűjtés egységes módszerét adja.
 
 ---
 
 ## 6. Következő dokumentációs feladatok fontossági sorrendben
 
-1. A termékruntime- és telepítési követelmények nyitott kérdéseinek első triázsa.
-2. Az `OPEN_QUESTIONS.md` és `OPEN_QUESTIONS_DECISIONS.md` technológiai OQ-azonosítóinak közös frissítése.
-3. Tanulóprogram-audit sablon és helyi leltárstruktúra.
-4. Licenc- és attributionjegyzék előkészítése.
-5. Nyelvfüggetlen comparison fixture és pontozási mátrix dokumentálása.
-6. Az `ABILITY_MODULE_SYSTEM.md` felülvizsgálata.
-7. A hosszú contract-specifikáció fokozatos konszolidációja.
-8. A történeti checkpointnapló formázási tisztítása.
+Elkészült:
+
+1. termékruntime- és telepítési követelményspecifikáció;
+2. első közvetlen proof-feltételek emberi lezárása;
+3. tanulóprogram-audit és licencleltár-sablon.
+
+Következik:
+
+1. a `CURRENT_OPEN_QUESTIONS.md` frissítése a lezárt termékdöntésekkel;
+2. az `OPEN_QUESTIONS.md` és `OPEN_QUESTIONS_DECISIONS.md` technológiai OQ-azonosítóinak közös frissítése;
+3. a helyi tanulóprogram-leltár konkrét kitöltési sorrendjének előkészítése;
+4. nyelvfüggetlen comparison fixture és pontozási mátrix dokumentálása;
+5. az `ABILITY_MODULE_SYSTEM.md` felülvizsgálata;
+6. a hosszú contract-specifikáció fokozatos konszolidációja;
+7. a történeti checkpointnapló formázási tisztítása.
 
 Ha közben a runtime-döntést vagy a 0.0.1 termékcélt közvetlenül veszélyeztető új kérdés merül fel, a sorrend megállítható és a fontosabb döntési kapu előre vehető.
 
