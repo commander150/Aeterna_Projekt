@@ -76,7 +76,7 @@ A runtime-nyelvi döntés azért került előre, mert közvetlenül befolyásolj
 ### Projektirány és repository-térkép
 
 - `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.1.md`
-- `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.3.md`
+- `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.4.md`
 - `Aeterna dokumentációk/README.md`
 
 ### Runtime-nyelvi döntési kapu
@@ -111,6 +111,7 @@ Felváltott referenciák:
 
 - `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.0.md`
 - `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v5.1.md`
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.3.md`
 - `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.2.md`
 
 Státuszuk:
@@ -357,11 +358,11 @@ Külső kód vagy tanulóprogram esetén:
 
 **Hosszú távú cél:** AETERNA 0.0.1 zárt tesztkiadás  
 **Aktuális projektterv:** v6.1  
+**Aktuális projekt-térkép:** v1.4  
 **Működő referencia:** Python minimal rules engine  
 **Következő Codex-prioritás:** Python sidecar vs Godot .NET/C# comparison  
 **Opcionális proof:** minimal GDScript transition  
 **Gameplay queue első eleme a döntés után:** Wellspring runtime integráció  
 **Codex nélküli aktív sáv:** dokumentáció, audit és döntés-előkészítés  
-**Aktuális projekt-térkép:** v1.3  
 **Legutóbbi technikai bázis:** `84a7e8f4`  
 **Ismert tesztprobléma:** két sorrendfüggő XLSX mock-eltérés
