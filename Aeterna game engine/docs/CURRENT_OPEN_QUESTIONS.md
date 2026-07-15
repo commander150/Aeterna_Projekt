@@ -2,18 +2,22 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.0  
+**Dokumentumverzió:** 1.1  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív közeli döntési kapu- és kérdéslista  
 **Technikai bázis:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
 
-Ez a dokumentum a következő engine-feladatokat közvetlenül blokkoló vagy befolyásoló kérdéseket tartalmazza.
+Ez a dokumentum a következő engine-, technológiai és dokumentációs feladatokat közvetlenül befolyásoló kérdéseket tartalmazza.
 
-A teljes történeti és hosszú távú kérdésregiszter továbbra is:
+A teljes történeti kérdésregiszter:
 
 - `OPEN_QUESTIONS.md`
 
-Ez a rövid lista nem töröl és nem helyettesít régi kérdést. Feladata, hogy a napi fejlesztésnél egyértelmű legyen, mely döntések szükségesek először.
+A kérdésekhez tartozó részletes válasz- és döntési irányok:
+
+- `OPEN_QUESTIONS_DECISIONS.md`
+
+A két dokumentum együtt olvasandó. A válaszdokumentum szerint a Python backend + Godot frontend erős hosszú távú jelölt, de a végleges runtime/backend döntéshez további prototípus és összehasonlító vizsgálat szükséges.
 
 ---
 
@@ -22,34 +26,103 @@ Ez a rövid lista nem töröl és nem helyettesít régi kérdést. Feladata, ho
 | Státusz | Jelentés |
 |---|---|
 | `ready_for_implementation` | A szükséges irány már eldöntött, implementálható. |
+| `partly_answered` | Van működő irány, de a végleges döntés még nyitott. |
 | `needs_source_check` | Hivatalos szabályforrásból pontosítani kell. |
 | `needs_engine_design` | Technikai contract- vagy state-döntés kell. |
 | `needs_visibility_decision` | Player-visible és hidden-information policy kell. |
+| `needs_learning_project_audit` | A tanulóprogramok tényleges technológiai megoldásait kell felmérni. |
+| `needs_comparison_design` | Meg kell határozni az összehasonlító prototípus pontos célját. |
+| `needs_integration_prototype` | Működő Python–Godot vagy más bridge proof szükséges. |
 | `deferred` | Későbbi roadmap-szakaszra halasztva. |
 | `answered` | Megválaszolva és aktív dokumentumba átvezetve. |
 
 ---
 
-## 2. Már megválaszolt fő architektúra-kérdések
+## 2. Architektúra és technológia
 
-### CQ-ARCH-001 – Melyik az authoritative rules engine?
+### CQ-ARCH-001 – Mi a jelenlegi authoritative engine?
 
-**Státusz:** `answered`
+**Státusz:** `partly_answered`
 
-Döntés:
+Biztos jelenlegi válasz:
 
-- a jelenlegi authoritative szabálymotor a Python engine;
-- a Godot kliens-, loader-, registry- és debugréteg;
-- nem tartunk fenn két külön authoritative szabálymotort;
-- a régi Python motor referencia/review státuszban marad.
+- az aktívan fejlesztett és tesztelt authoritative implementáció a Python minimal engine;
+- a Godot jelenleg loader-, registry-, debug- és későbbi UI-réteg;
+- a frontend nem módosíthat közvetlenül state-et;
+- a legalitást engine-contract adja.
 
-Átvezetve:
+Nyitott hosszú távú rész:
 
-- `ARCHITECTURE.md`
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.0.md`
-- `CURRENT_ENGINE_CHECKPOINT.md`
+- a végleges termékben külön Python backend fut-e a Godot kliens mellett;
+- beágyazott vagy sidecar Python runtime készül-e;
+- szükséges-e részleges vagy teljes GDScript rules runtime;
+- milyen packaging és process modell lesz használható.
 
-### CQ-ARCH-002 – Módosíthatja-e a frontend közvetlenül a state-et?
+Kapcsolódó eredeti kérdések:
+
+- `OQ-ARCH-001`
+- `OQ-ARCH-002`
+- `OQ-TECH-001`
+- `OQ-TECH-002`
+- `OQ-TECH-003`
+
+### CQ-ARCH-002 – Tanulóprogram-forrásaudit
+
+**Státusz:** `needs_learning_project_audit`
+
+Feladat:
+
+- leltározni a ténylegesen elérhető tanulóprogramokat;
+- elkülöníteni a repositoryban lévő forrásokat a külső referenciáktól;
+- azonosítani, használ-e valamelyik Godot kliens Python engine-t;
+- dokumentálni a bridge-, state-authority- és packaging mintát;
+- megállapítani, mely projekt releváns rules engine, UI vagy AI szempontból.
+
+Jelenlegi biztosan elérhető összefoglaló:
+
+- `AETERNA – tanulóprojektekből kinyert legfontosabb fejlesztési irányok.md`
+
+A jelenlegi GitHub-keresésben a hivatkozott tanulóprojektek teljes forrásfái nem azonosíthatók egyértelműen.
+
+### CQ-ARCH-003 – Python–GDScript összehasonlítás scope
+
+**Státusz:** `needs_comparison_design`
+
+A comparison kérdés nem lezárt és nem obsolete.
+
+Eldöntendő:
+
+- teljes rules-engine összehasonlítás kell-e;
+- elég-e egy minimal transition proof;
+- Python output ↔ Godot parser round-trip legyen-e az első teszt;
+- kell-e child process/service bridge prototype;
+- milyen teljesítmény-, hibakezelési és packaging adat szükséges;
+- mely tanulóprogram mintáját érdemes reprodukálni.
+
+Nem cél automatikusan két teljes engine párhuzamos felépítése.
+
+### CQ-ARCH-004 – Python–Godot integráció
+
+**Státusz:** `needs_integration_prototype`
+
+Vizsgálandó alternatívák:
+
+- child process + stdin/stdout JSON;
+- lokális socket vagy HTTP service;
+- Python sidecar;
+- natív vagy más bridge;
+- szükség esetén GDScript runtime proof.
+
+Kötelező elvek:
+
+- explicit action request;
+- state/version guard;
+- atomikus mutation;
+- player-visible response;
+- debug információ elkülönítése;
+- kontrollált process- és kapcsolatkezelés.
+
+### CQ-ARCH-005 – Módosíthatja-e a frontend közvetlenül a state-et?
 
 **Státusz:** `answered`
 
@@ -57,10 +130,10 @@ Döntés:
 
 - nem;
 - a frontend vagy AI action requestet küld;
-- a rules engine validál és transitiont hajt végre;
+- az authoritative engine validál és transitiont hajt végre;
 - player-facing output projectionből származik.
 
-### CQ-ARCH-003 – Mi az aktuális következő engine-lépés?
+### CQ-ARCH-006 – Mi a következő közvetlen engine-lépés?
 
 **Státusz:** `answered`
 
@@ -68,6 +141,8 @@ Döntés:
 
 - az izolált Wellspring contract production PlayerState- és MatchState-integrációja;
 - még nincs Inflow, payment vagy `play_card`.
+
+Ez a feladat a végleges Python–Godot bridge-döntés előtt is biztonságosan elvégezhető.
 
 ---
 
@@ -104,15 +179,15 @@ Jelenlegi technikai konvenció:
 - a zónához való tartozást a controller és a player listája jelöli;
 - owner eltérhet.
 
-Döntési kérdés:
-
-- maradjon-e ez általános engine-konvenció a kézhez és Domainhoz hasonlóan;
-- szükséges-e később külön szabály a kontrollált, de nem tulajdonolt lap Ősforrásba kerülésére.
-
 Közeli implementációban:
 
 - owner-egyezést ne követeljünk;
 - kontrollváltó gameplay ne készüljön.
+
+Később tisztázandó:
+
+- kerülhet-e kontrollált, de nem tulajdonolt kártya Ősforrásba;
+- milyen ownership helyreállítás kell zónaelhagyáskor.
 
 ### CQ-WS-003 – Resource summary tárolás vagy számítás
 
@@ -135,9 +210,7 @@ Kérdések:
 - a saját játékos látja-e a Wellspring Card_ID-kat;
 - az ellenfél csak countot lát-e;
 - instance ID soha ne szivárogjon-e player-facing outputba;
-- a face-down források saját játékos számára is rejtett Card_ID-júak-e, vagy csak az ellenfél számára.
-
-A player-visible Wellspring projection előtt ezt a hivatalos főforrásból és játékszabályi szándékból rögzíteni kell.
+- a face-down források saját játékos számára is rejtett Card_ID-júak-e.
 
 ---
 
@@ -150,13 +223,6 @@ A player-visible Wellspring projection előtt ezt a hivatalos főforrásból és
 Kérdés:
 
 - a normál Beáramlással Ősforrásba helyezett lap Aktív vagy Kimerült állapotban érkezik-e.
-
-Ez közvetlenül meghatározza:
-
-- az azonnal elérhető Aurát;
-- a transition outputot;
-- a ZoneMove/event payloadot;
-- a player-visible resource summaryt.
 
 Nem szabad hallgatólagos defaulttal implementálni.
 
@@ -180,17 +246,10 @@ Hivatalos alap:
 
 - normál Beáramlás körönként legfeljebb egyszer.
 
-Technikai kérdés:
-
-- PlayerState turn marker;
-- MatchState per-turn usage registry;
-- action historyből származtatott érték;
-- vagy külön turn-state contract legyen-e.
-
-Javasolt irány:
+Javasolt technikai irány:
 
 - explicit, könnyen validálható per-turn state;
-- ne event log visszakereséséből kelljen minden alkalommal számolni.
+- ne event log visszakereséséből kelljen számolni.
 
 ### CQ-INFLOW-004 – Eventmodell
 
@@ -201,11 +260,6 @@ Kérdés:
 - elegendő-e a generic `zone_move` event hand → wellspring adatokkal;
 - vagy készüljön külön `inflow` typed event is.
 
-Javasolt vizsgálat:
-
-- a ZoneMove maradjon az objektummozgás canonical eseménye;
-- külön Inflow event csak akkor szükséges, ha a szabályi jelentést, usage limitet vagy UI-magyarázatot a ZoneMove nem hordozza megfelelően.
-
 ---
 
 ## 5. Magnitúdó és Aura
@@ -214,18 +268,12 @@ Javasolt vizsgálat:
 
 **Státusz:** `needs_engine_design`
 
-Kérdések:
-
-- milyen inputból oldjuk fel a kártya Magnitúdó-követelményét;
-- exact runtime mező és canonical típus;
-- hogyan jelenjen meg success/failure result;
-- része legyen-e a legal action availabilitynek;
-- hogyan kezeljük a Magnitúdó-módosító hatásokat később.
-
 Első verzió:
 
-- csak base Wellspring count;
-- override és modifier nélkül.
+- base Wellspring count;
+- override és modifier nélkül;
+- exact runtime Magnitúdó-mezőből;
+- strukturált success/failure resulttal.
 
 ### CQ-RES-002 – Typed Aura canonical modell
 
@@ -234,9 +282,8 @@ Első verzió:
 Rögzítendő:
 
 - Aura canonical típusai;
-- Birodalmi Aura és Aether/Semleges forrás szerepe;
+- Birodalmi Aura és Aether/Semleges szerepe;
 - Entitás és nem-Entitás eltérő fizetési szabályai;
-- többértékű Aura-forrás reprezentációja;
 - pontos runtime lookupértékek.
 
 ### CQ-RES-003 – Payment source selection
@@ -248,8 +295,7 @@ Kérdések:
 - automatikus vagy kézi forrásválasztás;
 - több azonos eredményű payment közül kell-e választás;
 - payment request külön action vagy a play request része;
-- források determinisztikus rendezése;
-- insufficient Aura reject reason;
+- determinisztikus rendezés;
 - atomikus kimerítés és rollback.
 
 ### CQ-RES-004 – Activity mutation event
@@ -258,256 +304,27 @@ Kérdések:
 
 Kérdés:
 
-- a payment során több Wellspring instance kimerítése egyetlen payment event vagy több activity-change event legyen-e.
-
-Elvárás:
-
-- state mutation atomikus;
-- részleges payment nem maradhat state-ben;
-- player-facing event ne szivárogtasson rejtett Card_ID-t.
-
-### CQ-RES-005 – Rezonancia és ideiglenes Aura
-
-**Státusz:** `deferred`
-
-Csak a base payment stabilizálása után.
+- a Kimerítés/Visszaállítás önálló typed event legyen-e;
+- vagy a fizetési és fázistransition event payloadjába kerüljön.
 
 ---
 
-## 6. Entitás kijátszása
+## 6. Prioritási összefoglaló
 
-### CQ-PLAY-001 – Mikor válhat structural placement legal actionné?
+### Közvetlen programozási prioritás
 
-**Státusz:** `needs_engine_design`
+1. Wellspring runtime integráció.
+2. Player-visible Wellspring summary.
+3. Beáramlás.
+4. Magnitúdó és payment.
+5. Első `play_card`.
 
-Szükséges előfeltételek:
+### Párhuzamos technológiai/dokumentációs prioritás
 
-- source kéz- és típusellenőrzés;
-- timing és priority;
-- Magnitúdó;
-- Aura-payment;
-- üres target;
-- card-text restriction policy;
-- entry-state;
-- hand → Domain transition.
+1. `OPEN_QUESTIONS.md` és `OPEN_QUESTIONS_DECISIONS.md` közös triázsa.
+2. Tanulóprogram-forrásleltár.
+3. Python–Godot technológiai minták auditja.
+4. Comparison-prototípus scope.
+5. Minimal bridge- és packaging proof.
 
-A jelenlegi structural option önmagában nem elegendő.
-
-### CQ-PLAY-002 – Entity entry activity state
-
-**Státusz:** `needs_source_check`
-
-Kérdések:
-
-- az Entitás Aktív állapotban lép-e be;
-- milyen szabály korlátozza az azonnali támadást;
-- a Gyorsaság hogyan módosítja ezt;
-- külön `summoning_sickness` vagy turn-entry marker szükséges-e.
-
-Az activity state és a támadási korlátozás külön modell maradjon.
-
-### CQ-PLAY-003 – Card-text position restriction
-
-**Státusz:** `deferred`
-
-Első `play_card` vertical slice-ban:
-
-- csak olyan Entitás használható, amelynek nincs egyedi Horizont/Zenit korlátozása;
-- vagy külön explicit structured restriction kell.
-
-A természetes szöveg parserként nem használható.
-
-### CQ-PLAY-004 – Atomic hand → Domain transition
-
-**Státusz:** `needs_engine_design`
-
-Egy sikeres transitionben szükséges:
-
-- hand listából eltávolítás;
-- hand reindex;
-- registry zone/domain frissítés;
-- zone index null;
-- visibility public;
-- controller;
-- activity/entry state;
-- occupancy slot foglalása;
-- state version;
-- typed eventek;
-- invariant check.
-
-Bármely hiba esetén teljes rollback vagy előzetes precondition szükséges.
-
----
-
-## 7. Player-visible state
-
-### CQ-VIS-001 – Activity state board projection
-
-**Státusz:** `needs_visibility_decision`
-
-Kérdés:
-
-- a Domainban lévő Entitás Aktív/Kimerült állapota kerüljön-e az ObjectReference-be;
-- vagy külön slot/occupant state mező legyen.
-
-Javasolt irány:
-
-- ne bővítsük túl általánosan az ObjectReference-et, ha az activity csak board-contextben szükséges;
-- külön public occupant state vagy kibővített board occupant projection mérlegelendő.
-
-### CQ-VIS-002 – Event projection
-
-**Státusz:** `needs_engine_design`
-
-Kérdések:
-
-- ugyanaz a typed event kapjon debug és player projectiont;
-- vagy külön event contract készüljön;
-- hidden Wellspring mozgásnál mely mezők láthatók az ellenfélnek.
-
-### CQ-VIS-003 – Debug snapshot tartalma
-
-**Státusz:** `deferred`
-
-A jelenlegi debug schema maradjon stabil, amíg a player-facing layer épül.
-
----
-
-## 8. Turn, phase és priority
-
-### CQ-TURN-001 – Minimal turn modell kiváltása
-
-**Státusz:** `deferred`
-
-A teljes fázisrendszer csak az első gameplay vertical slice után bővüljön, de a Beáramlás és `play_card` timingjához minimális precondition layer szükséges.
-
-### CQ-TURN-002 – Ébredés és automatikus Visszaállítás
-
-**Státusz:** `needs_source_check`
-
-Rögzítendő:
-
-- mely objektumok állnak vissza;
-- pontos fázis;
-- eventmodell;
-- triggerablakok;
-- Wellspring és Domain activity mutation sorrendje.
-
-### CQ-TURN-003 – Reakcióablak / queue / stack
-
-**Státusz:** `deferred`
-
-Csak a normál `play_card` és egyszerű transition stabilizálása után.
-
----
-
-## 9. Tesztinfrastruktúra
-
-### CQ-TEST-001 – Két sorrendfüggő XLSX mock-hiba
-
-**Státusz:** `needs_engine_design`
-
-Érintett tesztek:
-
-- `test_finds_xlsx_files_only_in_source_directory`
-- `test_lists_sheets_in_read_only_data_only_mode`
-
-Jelenlegi policy:
-
-- minden modul izoláltan zöld;
-- monolitikus discoveryben 1 failure és 1 error;
-- ez nem blokkolja a rules-engine commitot, ha nincs más regresszió;
-- külön tesztizolációs feladatban javítandó.
-
-Vizsgálati cél:
-
-- mock/patch cleanup;
-- module-global state;
-- import order;
-- openpyxl mock reset;
-- tempfile és environment isolation.
-
-### CQ-TEST-002 – Tesztmappák rendezése
-
-**Státusz:** `deferred`
-
-Előbb read-only audit szükséges.
-
-Tervezett cél:
-
-- `tests/unit/contracts/`
-- `tests/unit/engine/`
-- `tests/unit/invariants/`
-- `tests/integration/ai/`
-- `tests/smoke/`
-- fixtures és helpers.
-
-Tesztet nem törlünk pusztán a darabszám miatt.
-
----
-
-## 10. Dokumentáció
-
-### CQ-DOC-001 – Hosszú CONTRACT_SPECIFICATION és aktuális státusz
-
-**Státusz:** `answered`
-
-Döntés:
-
-- a hosszú `CONTRACT_SPECIFICATION.md` megőrzi a tervezési hátteret;
-- `CURRENT_CONTRACT_STATUS.md` rögzíti a tényleges aktív implementációt;
-- később külön merge/refaktor során egységesíthetők.
-
-### CQ-DOC-002 – Teljes OPEN_QUESTIONS és napi döntési lista
-
-**Státusz:** `answered`
-
-Döntés:
-
-- `OPEN_QUESTIONS.md` teljes regiszter marad;
-- jelen dokumentum a közeli aktív döntési kapu;
-- kérdést csak akkor lehet `answered` státuszba tenni, ha a döntés aktív célfájlba átvezetésre került.
-
-### CQ-DOC-003 – CHECKPOINTS.md konszolidáció
-
-**Státusz:** `needs_engine_design`
-
-Kérdés:
-
-- a régi Godot/runtime package checkpointok és az új rules-engine commitlánc egyetlen időrendi fájlban maradjanak-e;
-- vagy a `CURRENT_ENGINE_CHECKPOINT.md` legyen a gördülő aktuális checkpoint, míg a `CHECKPOINTS.md` történeti napló.
-
-Javasolt irány:
-
-- `CURRENT_ENGINE_CHECKPOINT.md` gördülő aktív állapot;
-- `CHECKPOINTS.md` lezárt történeti mérföldkövek;
-- nagy commitonként ne készüljön külön új checkpointfájl.
-
----
-
-## 11. Következő döntési sorrend
-
-A következő implementációk előtt ebben a sorrendben szükséges döntés:
-
-1. Wellspring PlayerState-integráció technikai részletei;
-2. Wellspring player-visible policy;
-3. Inflow entry activity state;
-4. Inflow timing és per-turn usage state;
-5. Magnitúdó-preflight input contract;
-6. typed Aura canonical modell;
-7. payment source selection;
-8. Entity entry-state;
-9. atomic `play_card` transition;
-10. activity board/event projection.
-
----
-
-## 12. Rövid aktív lista
-
-**Implementálható most:** Wellspring production state-integráció  
-**Forrásellenőrzés kell hamarosan:** Inflow entry state és timing  
-**Visibility-döntés kell:** Wellspring player projection  
-**Payment előtt kell:** typed Aura és source-selection modell  
-**`play_card` előtt kell:** timing, Magnitúdó, payment, entry-state  
-**Külön technikai adósság:** két XLSX mock discovery-hiba  
-**Későbbre halasztva:** reaction stack, combat, ability execution, teljes phase rendszer
+A két munkasáv egymást támogatja. A belső engine-fejlesztés folytatható, miközben a végleges termékarchitektúra vizsgálata nyitva marad.
