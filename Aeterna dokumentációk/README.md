@@ -40,7 +40,7 @@ A fő `Aeterna dokumentációk/` szinten csak ezek a dokumentumtípusok maradjan
 ### Aktív projektirányító dokumentumok
 
 - `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.0.md`
-- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.2.md`
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.3.md`
 
 ### Aktív munkaszabványok
 
@@ -51,39 +51,67 @@ A fő `Aeterna dokumentációk/` szinten csak ezek a dokumentumtípusok maradjan
 
 ---
 
-## 3. Felváltott, de még főszinten található dokumentum
+## 3. Felváltott, de még főszinten található dokumentumok
 
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v5.1.md`
-  - státusz: `SUPERSEDED_REFERENCE`
-  - felváltotta: `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.0.md`
-  - nem aktív projektirányító forrás;
-  - később külön dokumentációs rendezési commitban helyezhető át `archive_review/` alá;
-  - addig sem szabad a v6.0 helyett döntési alapként használni.
+### `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v5.1.md`
 
-A felváltott dokumentumot ez a frissítés nem törli és nem mozgatja.
+- státusz: `SUPERSEDED_REFERENCE`
+- felváltotta: `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.0.md`
+- nem aktív projektirányító forrás
+
+### `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.2.md`
+
+- státusz: `SUPERSEDED_REFERENCE`
+- felváltotta: `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.3.md`
+- értékes történeti és részletes régi motoros fájlfelmérés
+- nem tekintendő a jelenlegi repository teljes és pontos aktív térképének
+
+A felváltott dokumentumokat ez a frissítés nem törli és nem mozgatja.
+
+Később külön dokumentációs rendezési commitban helyezhetők át `archive_review/` alá, minden hivatkozás ellenőrzése után.
 
 ---
 
 ## 4. Kapcsolódó aktív engine-dokumentumok
 
-Az új rules engine technikai dokumentumai nem ebben a mappában, hanem az `Aeterna game engine/docs/` alatt találhatók.
+Az új rules engine technikai dokumentumai az `Aeterna game engine/docs/` alatt találhatók.
 
-Kiemelten fontos:
+### Aktuális irány és állapot
 
 - `Aeterna game engine/docs/AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`
   - hosszú távú első játszható termékmérföldkő;
 - `Aeterna game engine/docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
   - aktuális rules-engine folytatási pont;
+- `Aeterna game engine/docs/ARCHITECTURE.md`
+  - aktív Python-authoritative célarchitektúra;
+- `Aeterna game engine/docs/CURRENT_CONTRACT_STATUS.md`
+  - a ténylegesen implementált contractok státusza;
+- `Aeterna game engine/docs/CURRENT_OPEN_QUESTIONS.md`
+  - közeli engine-döntési kapuk és blokkolók.
+
+### Hosszú formájú háttér- és történeti dokumentumok
+
 - `Aeterna game engine/docs/checkpoints/CHECKPOINTS.md`
   - korábbi időrendi technikai checkpointok;
-- `Aeterna game engine/docs/ARCHITECTURE.md`
-  - célarchitektúra;
 - `Aeterna game engine/docs/CONTRACT_SPECIFICATION.md`
-  - contract-specifikáció;
+  - hosszú formájú contract-tervezési háttér;
 - `Aeterna game engine/docs/OPEN_QUESTIONS.md`
-  - nyitott kérdések és döntési kapuk.
+  - teljes történeti és hosszú távú kérdésregiszter;
+- `Aeterna game engine/docs/RUNTIME_PACKAGE_SPECIFICATION.md`
+  - runtime package és adatpipeline;
+- `Aeterna game engine/docs/TECHNOLOGY_DECISIONS.md`
+  - technológiai döntési háttér;
+- `Aeterna game engine/docs/ABILITY_MODULE_SYSTEM.md`
+  - későbbi ability/effect engine terve.
 
-Dokumentumelsőbbség esetén az aktív v6.0 projektterv és a `CURRENT_ENGINE_CHECKPOINT.md` a korábbi engine-terveknél frissebb státuszforrás.
+Dokumentumelsőbbség esetén:
+
+1. hivatalos 1.4v főforrások;
+2. v6.0 projektterv;
+3. `CURRENT_ENGINE_CHECKPOINT.md`;
+4. `ARCHITECTURE.md` v2.0;
+5. `CURRENT_CONTRACT_STATUS.md` és `CURRENT_OPEN_QUESTIONS.md`;
+6. hosszú formájú korábbi tervezési dokumentumok.
 
 ---
 
@@ -111,6 +139,7 @@ Ide kerülnek azok az anyagok, amelyek korábbi auditok, felváltott tervek, ál
 Példák:
 
 - régi projekttervek;
+- régi projekt-térképek;
 - régi auditjelentések;
 - régi exportellenőrzések;
 - átmeneti README- és guidance-fájlok;
@@ -155,7 +184,9 @@ Ennek oka:
 4. generált export ne maradjon főszinten;
 5. felváltott projektirányító dokumentum kapjon explicit `SUPERSEDED_REFERENCE` státuszt;
 6. törlés vagy mozgatás előtt mindig legyen külön döntés és hivatkozásellenőrzés;
-7. dokumentációs rendezés ne keveredjen runtime kódmódosítással.
+7. dokumentációs rendezés ne keveredjen runtime kódmódosítással;
+8. teljes kérdésregisztert nem szabad rövidítéskor elveszíteni;
+9. a napi aktív állapot külön current dokumentumban tartható, a hosszú háttéranyag megőrzése mellett.
 
 ---
 
@@ -163,10 +194,15 @@ Ennek oka:
 
 Az `Aeterna dokumentációk/` első mappatisztítási köre lezárult.
 
-A 2026-07-15-i frissítés eredménye:
+A 2026-07-15-i dokumentációs frissítések eredménye:
 
 - a v6.0 az aktív projektterv;
-- a v5.1 felváltott referencia;
+- a v1.3 az aktív projekt-térkép;
+- a v5.1 és v1.2 felváltott referencia;
 - az aktuális rules-engine checkpoint külön engine-dokumentumban rögzített;
+- elkészült az aktív architecture v2.0;
+- elkészült a current contract-státusz;
+- elkészült a current döntési kapu-lista;
+- a teljes régi contract- és kérdésanyag megmaradt;
 - a hivatalos főforrások és adatforrások változatlanul védettek;
 - nem történt fájltörlés vagy fájlmozgatás.
