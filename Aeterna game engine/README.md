@@ -6,15 +6,17 @@ Az **AETERNA Game Engine** az AETERNA kártyajáték új, contract-first digitá
 
 A jelenlegi elsődleges technikai cél:
 
-> **egy determinisztikus, headless, tesztelhető és fokozatosan szabályhűvé bővíthető Python rules engine létrehozása.**
+> **egy determinisztikus, headless, tesztelhető és fokozatosan szabályhűvé bővíthető Python minimal rules engine fejlesztése.**
 
-A Godot ág aktív, de jelenleg elsősorban:
+Fontos elhatárolás:
 
-- runtime package fogyasztó;
-- registry- és debugréteg;
-- későbbi player UI és kliens alapja.
+- a Python engine a jelenlegi működő és tesztelt authoritative fejlesztési bázis;
+- a Godot ág működő loader-, registry-, debug- és későbbi UI-alap;
+- a Python backend + Godot frontend a legerősebb hosszú távú jelölt;
+- a végleges runtime/backend, bridge és packaging architektúra még nyitott technológiai kapu;
+- a tanulóprogram-audit és a Python–GDScript comparison továbbra is szükséges vizsgálat.
 
-Az authoritative szabálylogika jelenlegi helye a Python engine.
+A jelenlegi munkairány tehát nem azonos a végleges termékarchitektúra visszavonhatatlan lezárásával.
 
 ---
 
@@ -24,9 +26,9 @@ Az authoritative szabálylogika jelenlegi helye a Python engine.
 **Commitüzenet:** `Add minimal Wellspring resource contracts`  
 **Aktuális checkpoint:** `docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
 
-A jelenlegi engine már tartalmaz:
+A jelenlegi Python engine tartalmaz:
 
-- minimal MatchState-et és PlayerState-et;
+- MatchState-et és PlayerState-et;
 - state version guardot;
 - action request és response alapot;
 - legal action alapot;
@@ -34,7 +36,7 @@ A jelenlegi engine már tartalmaz:
 - deck, hand és discard instance-listákat;
 - draw és end-turn transitiont;
 - generic event envelope-ot;
-- typed ZoneMove és TurnTransition eventet;
+- typed `zone_move` és `turn_transition` eventet;
 - state invariant rendszert;
 - canonical AI episode trajectoryt;
 - player-visible snapshot v2-t;
@@ -65,18 +67,21 @@ Még nincs runtime gameplayként:
 - Entitás actionön keresztüli Domainba helyezése;
 - teljes phase és priority rendszer;
 - reakciós ablakok;
-- Burst-rendszer;
-- activity mutation action;
-- idézési betegség;
-- támadás és blokkolás;
-- sebzés és HP;
-- Pecsét- és Aeternal-state;
+- harc;
 - ability executor;
-- teljes target legality;
+- Pecsét- és Aeternal-state;
 - győzelmi és vereségi feltételek;
 - replay-végrehajtás;
 - emberi játékmenet;
 - végleges UI.
+
+A jelenlegi rendszer továbbá még nem bizonyítja:
+
+- a Python engine és Godot kliens végleges összekapcsolását;
+- a Python runtime Windows-csomagolását;
+- a process lifecycle és crash recovery működését;
+- azt, hogy a végleges runtime biztosan kizárólag külön Python backend lesz;
+- a GDScript runtime-alkalmasság végleges elutasítását.
 
 ---
 
@@ -84,9 +89,9 @@ Még nincs runtime gameplayként:
 
 ### `python/`
 
-Az aktív Python oldal fő feladatai:
+Jelenlegi aktív szerepei:
 
-- authoritative rules engine;
+- minimal rules engine;
 - state és transition logika;
 - contract helperek;
 - invariánsok;
@@ -96,53 +101,54 @@ Az aktív Python oldal fő feladatai:
 - XLSX export és validáció;
 - unit, integration és smoke tesztek.
 
-Fontosabb területek:
-
-- `python/engine/`
-- `python/tools/ai_vs_ai/`
-- `python/tools/engine/`
-- `python/tools/runtime_package/`
-- `python/tools/xlsx_export/`
-- `python/tests/`
-
 ### `Godot/`
 
-A Godot ág feladata:
+Bizonyított szerepei:
 
 - runtime package betöltés;
-- registry-k;
+- registryk;
 - sample és debug contractok fogyasztása;
 - snapshot, legal action és event log debug nézetek;
+- unified dashboard;
 - headless Godot smoke tesztek;
-- későbbi játékos UI.
+- későbbi játékos UI alapja.
 
-A Godot nem olvas közvetlenül XLSX-et és nem canonical szabályforrás.
+Biztos korlát:
+
+- a Godot UI nem lehet rejtett szabályforrás;
+- a kliens nem módosíthat authoritative state-et;
+- Godot nem olvas közvetlenül XLSX-et.
+
+Nyitott technológiai kérdés:
+
+- a végleges rules runtime Pythonban, GDScriptben vagy pontosan meghatározott hibrid modellben működik-e.
 
 ### `docs/`
 
-A dokumentációs ág feladata:
+Fő aktuális dokumentumok:
 
-- architektúra;
-- aktuális contract-státusz;
-- runtime package;
-- technológiai döntések;
-- nyitott kérdések;
-- mérföldkövek;
-- checkpointok;
-- folytatási pontok.
+- `docs/ARCHITECTURE.md`
+- `docs/TECHNOLOGY_DECISIONS.md`
+- `docs/DECISION_MAP.md`
+- `docs/CURRENT_CONTRACT_STATUS.md`
+- `docs/CURRENT_RUNTIME_PACKAGE_STATUS.md`
+- `docs/CURRENT_PROTOTYPE_STATUS.md`
+- `docs/CURRENT_OPEN_QUESTIONS.md`
+- `docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
+
+Az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` együtt olvasandó.
 
 ---
 
 ## Authoritative állapotmodell
 
-### MatchState
+A jelenlegi Python futásban a MatchState az authoritative belső állapot.
 
-A MatchState jelenleg kezeli többek között:
+Jelenleg kezeli többek között:
 
 - match ID;
 - state version;
-- aktív játékos;
-- priority player;
+- aktív és priority player;
 - minimal phase;
 - event log;
 - player state-ek;
@@ -150,11 +156,7 @@ A MatchState jelenleg kezeli többek között:
 - Domain topológiák;
 - Domain occupancy state-ek.
 
-A Wellspring még nem production MatchState-réteg.
-
-### PlayerState
-
-Jelenlegi instance-listás zónák:
+PlayerState listás zónák:
 
 - `deck_card_instance_ids`
 - `hand_card_instance_ids`
@@ -164,7 +166,11 @@ Következő bővítés:
 
 - `wellspring_card_instance_ids`
 
-### Card instance record
+Ez az authority a jelenlegi Python engine-futásra vonatkozó tényleges állapotmodell. A végleges termékprocessz helye és bridge-e még nyitott.
+
+---
+
+## Card instance és activity state
 
 Aktív schema:
 
@@ -202,135 +208,63 @@ Aktív typed eventek:
 - `zone_move`
 - `turn_transition`
 
-A jelenlegi eventrendszer determinisztikus sequence-et használ.
-
-Player-facing projection nem kap teljes debug payloadot.
+A rendszer determinisztikus sequence-et használ, és a player-facing projection nem kap teljes debug payloadot.
 
 ---
 
-## Domain board
+## Domain board és snapshot
 
 Játékosonként:
 
 - 6 Áramlat;
-- 6 Horizont-pozíció;
-- 6 Zenit-pozíció;
+- 6 Horizont;
+- 6 Zenit;
 - 6 Pecsét-pozíció;
 - 12 card occupancy slot.
 
-Az occupancy és a card instance registry kapcsolata kétirányú invariánssal védett.
-
-A player-visible board:
-
-- mindkét játékos Domainját public adatként mutatja;
-- üres és foglalt slotot jelenít meg;
-- occupied slotban canonical ObjectReference-et használ;
-- nem exportál teljes topológiát, occupancyt vagy registryt.
-
----
-
-## Player-visible snapshot
-
-Aktív schema:
+Aktív player snapshot:
 
 - `engine-player-visible-snapshot-v2`
 
-Jelenlegi visibility-policy:
+Visibility-policy:
 
 - saját kéz owner-visible;
-- ellenfél kéz count-only és redacted;
+- ellenfél kéz redacted és count-only;
 - deck count-only;
 - discard public;
-- Domain board public.
-
-A Wellspring még nincs a snapshotba integrálva.
-
----
-
-## Structural Entity placement
-
-Aktív model:
-
-- `structural-entity-domain-placement-v0`
-
-Eligible Entitás instance esetén:
-
-- saját kéz szükséges;
-- controller-egyezés szükséges;
-- canonical runtime card type `entity`;
-- 12 saját Horizont/Zenit target option készül;
-- foglalt target megmarad, de strukturálisan unavailable.
-
-A helper nem ellenőrzi:
-
-- timingot;
-- priorityt;
-- Magnitúdót;
-- Aura-paymentet;
-- card-text restrictiont;
-- entry state-et.
-
-Ez nem teljes play legality és nincs bekötve a legal action listába.
+- Domain board public;
+- Wellspring még nincs projektálva.
 
 ---
 
 ## Wellspring resource contract
 
-Aktív state schema:
+Aktív izolált sémák:
 
 - `minimal-player-wellspring-state-v0`
-
-Aktív summary schema:
-
 - `minimal-wellspring-resource-summary-v0`
-
-Resource model:
-
-- `base-wellspring-count-and-activity-v0`
 
 Canonical összefüggések:
 
 - `magnitude == wellspring_card_count`
 - `available_aura == active_source_count`
-- `active_source_count + exhausted_source_count == wellspring_card_count`
-
-A Kimerült Ősforrás-lap:
-
-- beleszámít a Magnitúdóba;
-- nem biztosít elérhető Aurát.
+- active + exhausted = total count
 
 Még nincs:
 
+- MatchState-integráció;
 - typed Aura;
 - payment;
 - Rezonancia;
-- temporary Aura;
-- Aura-égés;
-- MatchState-integráció;
 - Beáramlás.
 
 ---
 
-## AI-vs-AI és trajectory
+## AI-vs-AI és tesztelés
 
 Aktív episode contract:
 
 - `minimal-ai-vs-ai-episode-v1`
-
-A trajectory:
-
-- accepted és rejected stepeket kezel;
-- canonical player-visible observationre épül;
-- deep-copy biztonságos;
-- determinisztikus JSON-t ad;
-- replay-alapot készít elő;
-- jelenleg `replay_ready: false`.
-
-A jelenlegi bot még nem teljes AETERNA-játékos AI.
-
----
-
-## Tesztelés
 
 A `84a7e8f4` bázisnál:
 
@@ -345,132 +279,47 @@ Ismert monolitikus discovery-problémák:
 - `test_finds_xlsx_files_only_in_source_directory`
 - `test_lists_sheets_in_read_only_data_only_mode`
 
-Ezek sorrendfüggő XLSX mock-problémák, külön tesztinfrastruktúra-feladatként kezelendők.
+---
+
+## Következő programozási lánc
+
+1. Wellspring MatchState-integráció.
+2. Player-visible Wellspring summary.
+3. Beáramlás precondition.
+4. Beáramlás transition és typed event.
+5. Magnitúdó-preflight.
+6. Aura-source és payment contract.
+7. Activity mutation.
+8. Entity play precondition.
+9. `play_card`.
+10. Hand → Domain transition.
+11. Entry-state.
+12. Teljesebb phase és priority.
+
+Ez a belső engine-lánc a végleges bridge-döntés előtt is biztonságosan folytatható.
 
 ---
 
-## Futtatási példák
+## Párhuzamos technológiai vizsgálat
 
-A parancsokat az `Aeterna game engine/python/` mappából kell futtatni.
-
-Minimal engine smoke:
-
-    python tools/engine/run_minimal_engine_smoke.py --json-debug-export
-
-AI-vs-AI text smoke:
-
-    python tools/ai_vs_ai/run_minimal_ai_vs_ai_episode.py --max-steps 8
-
-AI-vs-AI JSON smoke:
-
-    python tools/ai_vs_ai/run_minimal_ai_vs_ai_episode.py --max-steps 8 --json
-
-Teljes unittest discovery:
-
-    python -m unittest discover
-
-Az összes tesztmodul külön folyamatban történő futtatása is kötelező, mert a monolitikus discoveryben jelenleg két ismert mock-sorrendhiba van.
-
----
-
-## Runtime package és publish pipeline
-
-Elsődleges publish runner:
-
-- `python/publish_runtime_package_to_godot.bat`
-
-Fontos elvek:
-
-- Godot nem olvas közvetlenül XLSX-et;
-- Godot csak validált runtime package-et fogyaszt;
-- kártyák és decklisták az aktív 1.9v kártyaadatbázisból jönnek;
-- runtime lookupok a `LOOKUPS.xlsx` fájlból jönnek;
-- generált package nem canonical szerkesztési forrás.
-
----
-
-## Következő programozási lépés
-
-Következő biztonságos feladat:
-
-> **az izolált Wellspring contract integrálása a PlayerState és MatchState production állapotába.**
-
-Várt bővítés:
-
-- `wellspring_card_instance_ids`;
-- üres initial Wellspring;
-- authoritative zónatagság;
-- registry cross-validation;
-- zone index;
-- `owner_only` visibility;
-- active/exhausted activity;
-- resource summary elérés.
-
-Ebben a következő lépésben még ne készüljön:
-
-- Beáramlás action;
-- hand → Wellspring transition;
-- Aura-payment;
-- player-visible Wellspring projection;
-- új event;
-- `play_card`.
-
----
-
-## Következő függőségi lánc
-
-1. Wellspring MatchState-integráció;
-2. player-visible Wellspring summary;
-3. Beáramlás precondition;
-4. Beáramlás transition és typed event;
-5. Magnitúdó-preflight;
-6. Aura-source és payment contract;
-7. activity mutation;
-8. Entity play precondition;
-9. `play_card`;
-10. hand → Domain transition;
-11. entry-state;
-12. teljesebb phase és priority.
-
----
-
-## Fő dokumentumok
-
-### Aktuális állapot és irány
-
-- `../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.0.md`
-- `../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.3.md`
-- `docs/AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`
-- `docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
-- `docs/ARCHITECTURE.md`
-- `docs/CURRENT_CONTRACT_STATUS.md`
-- `docs/CURRENT_OPEN_QUESTIONS.md`
-
-### Hosszú formájú háttérdokumentumok
-
-- `docs/checkpoints/CHECKPOINTS.md`
-- `docs/OPEN_QUESTIONS.md`
-- `docs/DECISION_MAP.md`
-- `docs/TECHNOLOGY_DECISIONS.md`
-- `docs/CONTRACT_SPECIFICATION.md`
-- `docs/RUNTIME_PACKAGE_SPECIFICATION.md`
-- `docs/ABILITY_MODULE_SYSTEM.md`
-- `docs/PROTOTYPE_PLANS.md`
-
-A hosszú formájú dokumentumok egy része történeti vagy tervezett elemeket is tartalmaz. Az aktuális megvalósításnál a current dokumentumok az elsődleges státuszforrások.
+1. `OPEN_QUESTIONS.md` és `OPEN_QUESTIONS_DECISIONS.md` közös triázsa.
+2. Tanulóprogram-forrásleltár.
+3. Python-engine/Godot minták auditja.
+4. Python–GDScript comparison scope.
+5. Minimal Python–Godot bridge prototype.
+6. Szükség esetén minimal GDScript rules proof.
+7. Windows packaging prototype.
+8. Végleges product runtime-döntés.
 
 ---
 
 ## Rövid összefoglaló
 
-**Elsődleges engine:** Python rules engine  
-**Godot:** fogyasztói és későbbi kliensréteg  
+**Jelenlegi működő engine:** Python minimal rules engine  
+**Godot:** loader-, registry-, debug- és későbbi kliensréteg  
+**Legerősebb hosszú távú jelölt:** Python backend + Godot frontend  
+**Végleges runtime-technológia:** még nyitott  
+**Tanulóprogram-audit:** szükséges  
+**Python–GDScript comparison:** nyitott technológiai kapu  
 **Báziscommit:** `84a7e8f4`  
-**Aktív actionök:** `draw_card`, `end_turn`  
-**Aktív eventek:** `zone_move`, `turn_transition`  
-**Player snapshot:** v2, public Domain boarddal  
-**Card instance schema:** v1, activity state-tel  
-**Wellspring:** izolált state és summary kész  
-**Következő feladat:** Wellspring runtime integráció  
-**Tesztállapot:** 59 modul, 333 izolált zöld teszt  
-**Ismert tesztprobléma:** két sorrendfüggő XLSX mock-eltérés
+**Következő engine-feladat:** Wellspring runtime integráció
