@@ -4,27 +4,27 @@
 
 Az **AETERNA** egy saját fejlesztésű fizikai és digitális kártyajáték-projekt.
 
-A repository több, egymástól elválasztott, de hosszú távon összehangolt réteget tartalmaz:
+A repository fő rétegei:
 
 - hivatalos alapjátékos és kiegészítői szabályforrások;
-- Google Sheets / XLSX alapú kártyaadatbázis és LOOKUPS;
+- Google Sheets / XLSX kártyaadatbázis és LOOKUPS;
 - új determinisztikus Python rules engine;
 - runtime package és exportpipeline;
 - Godot loader, debug- és későbbi kliensréteg;
 - régi Python szimulációs motor referenciaágként;
 - dokumentációs, audit- és kártyatervezési rendszer.
 
-A projekt jelenlegi elsődleges programozási iránya:
+A jelenlegi elsődleges programozási irány:
 
 > **az `Aeterna game engine/python/` alatt épülő contract-first, headless és determinisztikus AETERNA rules engine.**
 
-A Godot ág továbbra is megtartandó fogyasztói és későbbi kliensréteg, de jelenleg nem az authoritative szabálymotor.
+A Godot megtartandó fogyasztói és későbbi kliensréteg, de jelenleg nem az authoritative szabálymotor.
 
 ---
 
 ## Hivatalos szabályi alap
 
-Az AETERNA aktív szabályi alapját két hivatalos főforrás alkotja:
+Aktív főforrások:
 
 - `Aeterna dokumentációk/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4v.docx`
 - `Aeterna dokumentációk/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`
@@ -43,13 +43,11 @@ Régi dokumentum vagy legacy kód nem írhatja felül a két aktív főforrást.
 
 ## Hosszú távú digitális cél
 
-A digitális programegység első nagy termékmérföldköve:
+Első nagy termékmérföldkő:
 
 - `Aeterna game engine/docs/AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`
 
-A `0.0.1` nem a jelenlegi technikai schema- vagy prototípusverzió.
-
-Ez a későbbi első zárt, használható és játszható tesztkiadás célverziója, többek között:
+A `0.0.1` a későbbi első zárt, használható és játszható tesztkiadás célverziója, többek között:
 
 - egyszerű Windows-indítással;
 - teljes ember–AI mérkőzéssel;
@@ -67,33 +65,40 @@ A közvetlen jelenlegi cél továbbra is a stabil game engine.
 
 ## Aktuális projektirányító dokumentumok
 
-Elsődleges projektterv:
+### Projektirány és repository-térkép
 
 - `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.0.md`
+- `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.3.md`
+- `Aeterna dokumentációk/README.md`
 
-Aktuális engine-folytatási pont:
+### Aktuális engine-állapot
 
 - `Aeterna game engine/docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
-
-További fontos dokumentumok:
-
-- `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.2.md`
-- `Aeterna dokumentációk/AETERNA_MUNKAFOLYAMAT_ES_ADATKEZELES_1.2.md`
-- `Aeterna dokumentációk/AETERNA_EXCEL_STRUKTURA_ES_OSZLOPSZABVANY_1.2.md`
-- `Aeterna dokumentációk/AETERNA – KÁRTYAÁLLOMÁNY AUDITÁLÁSI MUNKAREND ÉS HIBAKATEGÓRIÁK 1.2v.md`
 - `Aeterna game engine/docs/ARCHITECTURE.md`
+- `Aeterna game engine/docs/CURRENT_CONTRACT_STATUS.md`
+- `Aeterna game engine/docs/CURRENT_OPEN_QUESTIONS.md`
+
+### Hosszú formájú háttérdokumentumok
+
 - `Aeterna game engine/docs/CONTRACT_SPECIFICATION.md`
-- `Aeterna game engine/docs/RUNTIME_PACKAGE_SPECIFICATION.md`
 - `Aeterna game engine/docs/OPEN_QUESTIONS.md`
+- `Aeterna game engine/docs/RUNTIME_PACKAGE_SPECIFICATION.md`
+- `Aeterna game engine/docs/TECHNOLOGY_DECISIONS.md`
+- `Aeterna game engine/docs/ABILITY_MODULE_SYSTEM.md`
 - `Aeterna game engine/docs/checkpoints/CHECKPOINTS.md`
 
-A korábbi `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v5.1.md` státusza:
+Felváltott referenciák:
+
+- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v5.1.md`
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.2.md`
+
+Státuszuk:
 
 - `SUPERSEDED_REFERENCE`
 
 ---
 
-## Repository fő rétegei
+## Repository fő területei
 
 ### `Aeterna dokumentációk/`
 
@@ -102,8 +107,7 @@ Tartalma:
 - hivatalos szabályforrások;
 - kártyaadatbázis;
 - LOOKUPS;
-- aktuális projektterv;
-- projekt-térkép;
+- aktuális projektterv és projekt-térkép;
 - munkafolyamat- és adatszabványok;
 - kártyaaudit-dokumentumok;
 - referencia- és archív review anyagok.
@@ -138,27 +142,25 @@ Nem elsődleges új fejlesztési alap.
 
 Történeti, régi vagy összevetési anyagok helye.
 
-Az archív tartalom nem automatikusan törlendő, de nem tekintendő aktív canonical forrásnak.
+Az archív tartalom nem automatikusan törlendő, de nem aktív canonical forrás.
 
 ---
 
 ## Új Python rules engine
 
-Az aktív engine jelenlegi technikai bázisa:
+Aktuális technikai bázis:
 
 - `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
 - `Add minimal Wellspring resource contracts`
 
-A minimal engine jelenleg már tartalmaz:
+A minimal engine jelenleg tartalmaz:
 
 - MatchState-et és PlayerState-et;
 - state version guardot;
 - card instance registryt;
 - deck, hand és discard instance-listákat;
-- draw transitiont;
-- end-turn transitiont;
-- typed `zone_move` eseményt;
-- typed `turn_transition` eseményt;
+- draw és end-turn transitiont;
+- typed `zone_move` és `turn_transition` eseményt;
 - generic event envelope-ot;
 - state invariant rendszert;
 - determinisztikus AI episode trajectoryt;
@@ -192,8 +194,6 @@ Még nincs runtime gameplayként:
 
 ## Következő engine-fejlesztési lánc
 
-A javasolt sorrend:
-
 1. Wellspring PlayerState- és MatchState-integráció;
 2. player-visible Wellspring summary;
 3. Beáramlás precondition;
@@ -213,12 +213,12 @@ A lánc végét nem szabad a korábbi függőségek nélkül implementálni.
 
 ## Runtime package és adatpipeline
 
-Az adatút fő elve:
+Adatút:
 
 1. Google Sheets / XLSX szerkesztési forrás;
 2. Python export és validáció;
 3. runtime package;
-4. Godot loader és registry;
+4. Python rules engine és Godot loader;
 5. player-facing és debug contractok;
 6. későbbi interaktív kliens.
 
@@ -226,21 +226,21 @@ Fontos szabályok:
 
 - Godot nem olvas közvetlenül XLSX-et;
 - Godot nem canonical adatforrás;
-- a validált runtime package a Python és Godot közötti adatcontract;
+- a validált runtime package a programadat-contract;
 - kártyák és decklisták az 1.9v kártyaadatbázisból származnak;
 - runtime lookupok a `LOOKUPS.xlsx` fájlból származnak.
 
-Elsődleges fejlesztői publish runner:
+Elsődleges publish runner:
 
 - `Aeterna game engine/python/publish_runtime_package_to_godot.bat`
 
-Az exporter és runtime package pipeline aktív, de nem ez a jelenlegi rules-engine feladatsor közvetlen fő prioritása.
+Az adatpipeline aktív, de nem ez a jelenlegi rules-engine feladatsor közvetlen fő prioritása.
 
 ---
 
 ## Godot ág
 
-A Godot projekt helye:
+Helye:
 
 - `Aeterna game engine/Godot/`
 
@@ -253,12 +253,12 @@ Jelenlegi szerepe:
 - headless smoke tesztek;
 - későbbi játékos UI alapja.
 
-Jelenlegi elhatárolás:
+Elhatárolás:
 
 - a Python rules engine authoritative;
-- a Godot később player-visible állapotot jelenít meg;
+- a Godot player-visible állapotot jelenít meg;
 - a Godot action requestet küld;
-- a Godot nem duplikálhat szabálylegalitást.
+- a Godot nem duplikál szabálylegalitást.
 
 ---
 
@@ -272,8 +272,6 @@ Runtime lookupforrás:
 
 - `Aeterna dokumentációk/LOOKUPS.xlsx`
 
-A kártyaaudit külön munkasáv.
-
 Külön kell kezelni:
 
 - kártyaadat-hibát;
@@ -282,13 +280,13 @@ Külön kell kezelni:
 - engine-hiányt;
 - balanszgyanút.
 
-Kártyaadat-javítás és engine-contract módosítás ne keveredjen ugyanabba a commitba.
+Kártyaadat-javítás és engine-contract módosítás ne keveredjen egy commitba.
 
 ---
 
 ## Tesztelés
 
-A `84a7e8f4` technikai bázisnál:
+A `84a7e8f4` bázisnál:
 
 - 59 Python tesztmodul futott izoláltan;
 - 333 teszt volt zöld;
@@ -336,7 +334,10 @@ Minden engine-lépéshez tartozzon:
 **Elsődleges programozási irány:** determinisztikus Python rules engine  
 **Hosszú távú cél:** AETERNA 0.0.1 zárt tesztkiadás  
 **Aktuális projektterv:** v6.0  
+**Aktuális projekt-térkép:** v1.3  
 **Aktuális engine-checkpoint:** `CURRENT_ENGINE_CHECKPOINT.md`  
+**Aktuális contract-státusz:** `CURRENT_CONTRACT_STATUS.md`  
+**Aktuális döntési kapuk:** `CURRENT_OPEN_QUESTIONS.md`  
 **Legutóbbi technikai bázis:** `84a7e8f4`  
 **Következő programozási feladat:** Wellspring runtime integráció  
 **Godot:** fogyasztói és későbbi kliensréteg  
