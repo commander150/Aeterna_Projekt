@@ -8,12 +8,10 @@ A jelenlegi elsődleges technikai cél:
 
 > **egy determinisztikus, headless, tesztelhető és fokozatosan szabályhűvé bővíthető Python rules engine létrehozása.**
 
-A game engine nem a régi Python szimulációs motor közvetlen folytatása, bár abból később külön döntéssel átvehetők hasznos minták.
-
-A Godot ág továbbra is aktív, de jelenleg elsősorban:
+A Godot ág aktív, de jelenleg elsősorban:
 
 - runtime package fogyasztó;
-- registry- és debug réteg;
+- registry- és debugréteg;
 - későbbi player UI és kliens alapja.
 
 Az authoritative szabálylogika jelenlegi helye a Python engine.
@@ -28,24 +26,20 @@ Az authoritative szabálylogika jelenlegi helye a Python engine.
 
 A jelenlegi engine már tartalmaz:
 
-- minimal MatchState-et;
-- PlayerState-et;
+- minimal MatchState-et és PlayerState-et;
 - state version guardot;
 - action request és response alapot;
 - legal action alapot;
 - card instance registryt;
 - deck, hand és discard instance-listákat;
-- draw transitiont;
-- end-turn transitiont;
+- draw és end-turn transitiont;
 - generic event envelope-ot;
-- typed ZoneMove eventet;
-- typed TurnTransition eventet;
+- typed ZoneMove és TurnTransition eventet;
 - state invariant rendszert;
 - canonical AI episode trajectoryt;
 - player-visible snapshot v2-t;
 - hidden-information projekciót;
-- Domain topológiát;
-- Domain occupancyt;
+- Domain topológiát és occupancyt;
 - public board projectiont;
 - structural Entity placement option contractot;
 - card instance Aktív/Kimerült állapotot;
@@ -59,8 +53,6 @@ Aktív minimal actionök:
 ---
 
 ## Mit nem bizonyít még a jelenlegi engine?
-
-A jelenlegi állapot még nem teljes AETERNA szabálymotor.
 
 Még nincs runtime gameplayként:
 
@@ -78,8 +70,7 @@ Még nincs runtime gameplayként:
 - idézési betegség;
 - támadás és blokkolás;
 - sebzés és HP;
-- Pecsét-state;
-- Aeternal-state;
+- Pecsét- és Aeternal-state;
 - ability executor;
 - teljes target legality;
 - győzelmi és vereségi feltételek;
@@ -95,7 +86,7 @@ Még nincs runtime gameplayként:
 
 Az aktív Python oldal fő feladatai:
 
-- rules engine;
+- authoritative rules engine;
 - state és transition logika;
 - contract helperek;
 - invariánsok;
@@ -132,7 +123,7 @@ A Godot nem olvas közvetlenül XLSX-et és nem canonical szabályforrás.
 A dokumentációs ág feladata:
 
 - architektúra;
-- contractok;
+- aktuális contract-státusz;
 - runtime package;
 - technológiai döntések;
 - nyitott kérdések;
@@ -179,39 +170,11 @@ Aktív schema:
 
 - `minimal-card-instance-record-v1`
 
-Fő mezők:
-
-- `card_instance_id`
-- `card_id`
-- `owner_player_id`
-- `controller_player_id`
-- `zone`
-- `zone_index`
-- `visibility`
-- `created_sequence`
-- `zone_sequence`
-- `activity_state`
-- `metadata`
-
 Támogatott activity értékek:
 
 - `None`
 - `active`
 - `exhausted`
-
----
-
-## Zónák
-
-A contract- és runtime-réteg jelenleg ismeri:
-
-- deck;
-- hand;
-- discard;
-- domain;
-- wellspring.
-
-A Wellspring jelenleg izolált helperként létezik.
 
 Canonical activity kapcsolat:
 
@@ -221,13 +184,10 @@ Canonical activity kapcsolat:
 - domain → `active` vagy `exhausted`
 - wellspring → `active` vagy `exhausted`
 
-Canonical Wellspring visibility:
+Canonical visibility:
 
-- `owner_only`
-
-Canonical Domain visibility:
-
-- `public`
+- Wellspring → `owner_only`
+- Domain → `public`
 
 ---
 
@@ -250,29 +210,17 @@ Player-facing projection nem kap teljes debug payloadot.
 
 ## Domain board
 
-### Topológia
-
 Játékosonként:
 
 - 6 Áramlat;
 - 6 Horizont-pozíció;
 - 6 Zenit-pozíció;
-- 6 Pecsét-pozíció.
-
-### Occupancy
-
-Játékosonként:
-
-- 12 card occupancy slot;
-- 6 Horizont;
-- 6 Zenit;
-- a Pecsét nem card occupancy slot.
+- 6 Pecsét-pozíció;
+- 12 card occupancy slot.
 
 Az occupancy és a card instance registry kapcsolata kétirányú invariánssal védett.
 
-### Player-visible board
-
-A player-visible snapshot:
+A player-visible board:
 
 - mindkét játékos Domainját public adatként mutatja;
 - üres és foglalt slotot jelenít meg;
@@ -389,8 +337,7 @@ A `84a7e8f4` bázisnál:
 - 59 Python tesztmodul izolált futása zöld;
 - 333 izolált teszt zöld;
 - minimal engine JSON smoke zöld;
-- AI-vs-AI text smoke zöld;
-- AI-vs-AI JSON smoke zöld;
+- AI-vs-AI text és JSON smoke zöld;
 - két azonos AI JSON-futás byte-szinten azonos.
 
 Ismert monolitikus discovery-problémák:
@@ -422,13 +369,11 @@ Teljes unittest discovery:
 
     python -m unittest discover
 
-Az engine-fejlesztési ellenőrzésnél az összes tesztmodul külön folyamatban történő futtatása is kötelező, mert a monolitikus discoveryben jelenleg két ismert mock-sorrendhiba van.
+Az összes tesztmodul külön folyamatban történő futtatása is kötelező, mert a monolitikus discoveryben jelenleg két ismert mock-sorrendhiba van.
 
 ---
 
 ## Runtime package és publish pipeline
-
-A runtime package továbbra is a Python és Godot közötti programbiztos adatcontract.
 
 Elsődleges publish runner:
 
@@ -491,34 +436,28 @@ Ebben a következő lépésben még ne készüljön:
 
 ## Fő dokumentumok
 
-Aktuális projektirány:
+### Aktuális állapot és irány
 
 - `../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.0.md`
-
-Hosszú távú termékcél:
-
+- `../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.3.md`
 - `docs/AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`
-
-Aktuális engine-checkpoint:
-
 - `docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
+- `docs/ARCHITECTURE.md`
+- `docs/CURRENT_CONTRACT_STATUS.md`
+- `docs/CURRENT_OPEN_QUESTIONS.md`
 
-Korábbi checkpointok:
+### Hosszú formájú háttérdokumentumok
 
 - `docs/checkpoints/CHECKPOINTS.md`
-
-További technikai dokumentumok:
-
 - `docs/OPEN_QUESTIONS.md`
 - `docs/DECISION_MAP.md`
-- `docs/ARCHITECTURE.md`
 - `docs/TECHNOLOGY_DECISIONS.md`
 - `docs/CONTRACT_SPECIFICATION.md`
 - `docs/RUNTIME_PACKAGE_SPECIFICATION.md`
 - `docs/ABILITY_MODULE_SYSTEM.md`
 - `docs/PROTOTYPE_PLANS.md`
 
-A régebbi technikai dokumentumok egy része még a runtime package / Godot prototípus korszakát tükrözi. Eltérés esetén a v6.0 projektterv és a `CURRENT_ENGINE_CHECKPOINT.md` a frissebb státuszforrás.
+A hosszú formájú dokumentumok egy része történeti vagy tervezett elemeket is tartalmaz. Az aktuális megvalósításnál a current dokumentumok az elsődleges státuszforrások.
 
 ---
 
