@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.9  
+**Dokumentumverzió:** 2.0  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív közeli döntési kapu-, OQ-triázs- és prioritáslista  
 **Technikai referencia:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
@@ -319,21 +319,13 @@ Nyitott:
 
 - a normál Beáramlás az aktív játékos saját, egyszeri fázisdöntése;
 - nem váltakozó priority-ablak;
-- az ellenfél nem kap általános válaszjogot pusztán azért, mert normál Beáramlás történt;
-- a hivatalos reakciós szabály szerint nem minden játékesemény nyit automatikusan reakciós ablakot;
-- normál Beáramlás előtt vagy után csak explicit szabály, kártyaszöveg vagy trigger nyithat reakciós ablakot;
-- a kihagyás action neve `skip_inflow`, nem `pass_priority`, mert nem priority-pass történik;
-- a Beáramlás fázisban a normál legal actionök: egy `perform_inflow` minden jogosult saját kézlaphoz, valamint `skip_inflow`;
-- ha nincs jogosult kézlap és nincs külön fázisdöntés, a phase controller kontrollált rendszerlépéssel automatikusan kihagyhatja a normál Beáramlást;
-- `perform_inflow` vagy `skip_inflow` elfogadása után újabb normál Beáramlás nem választható;
-- a phase controller a kötelező triggerek, explicit pending decisionök és megnyitott reakciós ablakok lezárása után Manifesztációra lép;
-- az első minimal implementációban, ability- és reaction-engine hiányában a fázisváltás közvetlenül az elfogadott Beáramlás-döntés után történhet.
-
-Következmény:
-
-- a normál Beáramláshoz nem szükséges önálló alternating `priority_player_id` váltogatás;
-- az aktív játékos döntési joga legal actionből származik;
-- későbbi reakciós ablak külön pending/reaction contract, nem a Beáramlás action rejtett mellékhatása.
+- nem nyit automatikusan reakciós ablakot;
+- csak explicit szabály, kártyaszöveg vagy trigger nyithat reakciós ablakot;
+- a kihagyás action neve `skip_inflow`, nem `pass_priority`;
+- a normál legal actionök: `perform_inflow` minden jogosult saját kézlaphoz, valamint `skip_inflow`;
+- ha nincs jogosult kézlap és nincs külön fázisdöntés, a phase controller automatikusan kihagyhatja;
+- elfogadott döntés után újabb normál Beáramlás nem választható;
+- a phase controller stabil állapotban, a kötelező trigger/pending/reaction rendezése után Manifesztációra lép.
 
 ### CQ-INFLOW-004 – Körönkénti állapot és legalitás
 
@@ -344,15 +336,8 @@ Turn-scoped authoritative állapot:
 - `normal_inflow_status: pending | performed | skipped`;
 - a saját Beáramlás fázis elején `pending`;
 - sikeres `perform_inflow` után `performed`;
-- sikeres `skip_inflow` vagy automatikus kihagyás után `skipped`;
+- sikeres vagy automatikus kihagyás után `skipped`;
 - a következő saját kör Beáramlás fázisához új döntési állapot jön létre.
-
-A státusz előnye a puszta booleannel szemben:
-
-- megkülönbözteti a még nem eldöntött, végrehajtott és tudatosan kihagyott állapotot;
-- egyszerű UI-, AI-, diagnostics- és invariánsellenőrzést ad;
-- megakadályozza a második normál Beáramlást;
-- elkülöníti a normál Beáramlást az effect-alapú `move_to_wellspring` transitiontől.
 
 ### CQ-INFLOW-005 – Action és atomikus transition
 
@@ -365,25 +350,19 @@ A státusz előnye a puszta booleannel szemben:
 - current phase `inflow`;
 - `normal_inflow_status == pending`;
 - a kiválasztott card instance a játékos saját kezében van;
-- nincs olyan explicit szabály vagy effect, amely tiltja a választást.
+- nincs explicit tiltó szabály vagy effect.
 
-Elfogadott transition egyetlen atomikus művelet:
+Elfogadott transition:
 
-1. a lap hand → wellspring zónamozgása;
+1. hand → wellspring;
 2. face-down, belső `owner_only` visibility;
 3. `activity_state: active`;
 4. `normal_inflow_status: performed`;
-5. Wellspring resource summary újraszámítása;
+5. resource summary újraszámítása;
 6. state version pontosan egyszeri növelése;
-7. események determinisztikus sorrendű létrehozása.
+7. determinisztikus eventek.
 
-Hiba vagy reject esetén:
-
-- nincs részleges zónamozgás;
-- nincs activity-változás;
-- nincs status-változás;
-- nincs phase-váltás;
-- nincs event-log növekedés.
+Reject esetén nincs részleges mutation vagy gameplay event.
 
 ### CQ-INFLOW-006 – Eventmodell
 
@@ -391,31 +370,16 @@ Hiba vagy reject esetén:
 
 Első körben nem készül külön, tartalmilag duplikált `inflow` typed event.
 
-Sikeres `perform_inflow` action eventjei:
+Sikeres `perform_inflow`:
 
-1. `zone_move`
-   - `from_zone: hand`;
-   - `to_zone: wellspring`;
-   - `cause: normal_inflow`;
-   - `activity_state_after: active`;
-   - megfelelő visibility-adatok;
-2. `phase_transition`
-   - `from_phase: inflow`;
-   - `to_phase: manifestation`;
-   - `cause: normal_inflow_performed`.
+1. `zone_move` `cause: normal_inflow`, `activity_state_after: active`;
+2. `phase_transition` `cause: normal_inflow_performed`.
 
-Sikeres `skip_inflow` esetén:
+Sikeres `skip_inflow`:
 
-- nincs `zone_move`;
-- `phase_transition` készül `cause: normal_inflow_skipped` értékkel.
+- csak `phase_transition`, `cause: normal_inflow_skipped`.
 
-Event-invariánsok:
-
-- egy action egyetlen state-version növelést okoz;
-- ugyanazon action több eventje ugyanahhoz a resulting state versionhöz kapcsolódhat;
-- event sequence sorrendben előbb a zónamozgás, utána a fázisváltás;
-- a phase transition csak stabil állapotban történhet, amikor nincs függő kötelező trigger, pending decision vagy megnyitott reakciós ablak;
-- külön `inflow` event csak akkor vezethető be később, ha UI-, replay-, trigger- vagy diagnostics-igény olyan önálló payloadot követel, amely a `zone_move` cause és a `phase_transition` alapján nem fejezhető ki tisztán.
+Egy accepted action egyszer növeli a state versiont; több ordered event tartozhat ugyanahhoz a resulting verzióhoz.
 
 ### CQ-RES-001 – Magnitúdó-preflight
 
@@ -437,54 +401,135 @@ Az Aura forrásidentitása alapesetben az Ősforrás-lap Birodalma.
 - ha a forrás Birodalma megegyezik a kijátszandó lap Birodalmával, saját Birodalmi Auraként használható;
 - Entitás saját Birodalmi Aurából, AETHER/Aether-Semleges támogató Aurából vagy ezek kombinációjából fizethető;
 - Ige, Rituálé, Jel és Sík alapértelmezés szerint csak saját Birodalmi Aurából fizethető;
-- AETHER Birodalmi forrás AETHER Entitást és AETHER nem-Entitást saját Birodalmi Auraként fizethet;
-- AETHER Birodalmi forrás más Birodalom Entitását Aether/Semleges támogató Auraként fizetheti;
-- AETHER Birodalmi forrás más Birodalom Igéjét, Rituáléját, Jelét vagy Síkját alapértelmezés szerint nem fizetheti;
+- AETHER forrás saját AETHER Entitást és AETHER nem-Entitást saját Birodalmi Auraként fizethet;
+- AETHER forrás más Birodalom Entitását Aether/Semleges támogató Auraként fizetheti;
+- AETHER forrás más Birodalom nem-Entitását alapértelmezés szerint nem fizetheti;
 - ettől csak explicit szabály- vagy kártyahatás térhet el;
 - Soft Penalty nem aktív Core-szabály.
 
-Playtest-státusz:
-
-- az eredeti modellben az AETHER Aura bármilyen laptípust fizetett volna;
-- ezt elméleti balansz alapján túl erősnek ítéltük és szűkítettük;
-- a korlátozott modell a jelenlegi canonical szabály;
-- teljes szabályhű playtest után explicit emberi döntéssel felülvizsgálható;
-- felülvizsgálatig az engine és minden teszt ezt használja.
-
-LOOKUPS- és engine-következmény:
-
-- az `Aura` mező jelenleg numerikus Aura-költség;
-- nem szükséges külön párhuzamos erőforráskészlet csak az AETHER kettős szerepe miatt;
-- központi payment validator alkalmazza a forrás Birodalma, a fizetendő lap Birodalma és laptípusa szerinti szabályt;
-- explicit kivételhez structured override szükséges;
-- ideiglenes vagy generált Aura esetén az Aura-identitást canonical módon meg kell adni.
+A korlátozott modell jelenlegi canonical szabály, de szabályhű playtest után explicit, verziózott emberi döntéssel felülvizsgálható.
 
 ### CQ-RES-003 – Payment source selection
 
-**Státusz:** `partly_answered`, `needs_engine_design`
+**Státusz:** `answered` tervezési szinten, `queued_after_language_gate` implementációszinten
 
-Lezárt:
+**Engine-döntés – 2026-07-15:**
 
-- csak Aktív Ősforrás-lap fizethet;
-- a kiválasztott forrás Kimerül;
-- Kimerült forrás nem fizethet újra Visszaállításig;
-- a frissen Beáramlott Aktív lap ugyanabban a körben választható payment source-ként;
-- a forrás fizetési jogosultságát a CQ-RES-002 szerinti Birodalom- és laptípus-policy határozza meg.
+#### Contract és UX elhatárolása
 
-Nyitott:
+- a fizetési contract mindig explicit, végleges forráslistát tartalmaz;
+- az első implementációban a payment a `play_card` request része, nem külön action;
+- a kliens nem küld authoritative költséget, csak az engine által kiadott legal action alapján kiválasztott forrásreferenciákat;
+- az engine minden requestnél újra ellenőrzi a tényleges költséget és a források jogosultságát.
 
-- automatikus vagy kézi forrásválasztás;
-- külön payment action vagy play request payload;
-- determinisztikus rendezés;
-- atomikus kimerítés és rollback.
+Tervezett request-mező:
 
-### CQ-RES-004 – Ébredés és activity event
+- `payment_source_refs: []` – state-versionhöz kötött, player-safe forrásreferenciák rendezett listája.
+
+Technikai `card_instance_id` player-facing requestben nem használható.
+
+#### Payment selection mode
+
+A legal action három mód egyikét adja:
+
+- `none` – a fizetendő Aura 0; a forráslista üres;
+- `forced` – pontosan egy jogszerű forráskészlet van; a frontend automatikusan kitöltheti és elküldi az explicit listát;
+- `choice` – több jogszerű forráskészlet van; a játékosnak ki kell választania a végleges forrásokat.
+
+A `choice` módban a felület adhat engine által számított javaslatot, de nem fizethet automatikusan játékosi megerősítés nélkül. Ennek oka, hogy a konkrétan Kimerített forrás identitása későbbi hatások, triggerek, visszaállítások vagy playtest során jelentős lehet.
+
+#### Legal action payment-context
+
+A `play_card` legal action legalább a következő származtatott adatot adja:
+
+- Aura-költség;
+- `payment_selection_mode`;
+- szükséges forrásszám;
+- determinisztikusan rendezett `eligible_payment_source_refs`;
+- `forced_payment_source_refs`, ha a mód `forced`;
+- strukturált disabled reason, ha nincs jogszerű fizetés.
+
+Nem kötelező minden lehetséges kombinációt előre felsorolni, mert ez kombinatorikus növekedést okozhat.
+
+#### Determinisztika
+
+- eligible források canonical sorrendje: Wellspring zone index, majd stabil player-safe reference;
+- a requestben kapott forráslistát az engine canonical sorrendre normalizálja;
+- duplikált reference invalid;
+- azonos state és választás azonos normalizált payment resultot ad;
+- a deterministic baseline AI `choice` esetén az első jogszerű kombinációt választja canonical sorrendben;
+- fejlettebb AI ettől eltérhet, de csak legal actionből és saját látható információból választhat.
+
+#### Minimális payment-validáció
+
+Az engine mutation előtt ellenőrzi:
+
+1. helyes match, player, action és expected state version;
+2. a kijátszandó lap current state-ben továbbra is kijátszható;
+3. a Magnitúdó-küszöb teljesül;
+4. minden payment reference feloldható és a fizető játékos saját Ősforrás-lapjára mutat;
+5. minden forrás `active`;
+6. minden forrás egyszer szerepel;
+7. minden forrás Aura-identitása jogosult a CQ-RES-002 szerint;
+8. a forrásszám és az összesített Aura pontosan megfelel a normalizált költségnek;
+9. 0 költségnél csak üres forráslista érvényes;
+10. az első implementációban túlfizetés nem engedélyezett.
+
+Kedvezmény, alternatív költség, ideiglenes Aura vagy explicit override esetén előbb az engine normalizálja a fizetendő költséget, és csak utána validálja a forráslistát.
+
+#### Atomikus transition
+
+A payment nem külön előzetes mutation.
+
+Sikeres `play_card` actionben egyetlen atomikus tranzakció része:
+
+1. teljes preflight és payment-validáció;
+2. kiválasztott Ősforrás-lapok `active → exhausted` állapotváltása;
+3. a kijátszandó lap megfelelő zónatransitionje;
+4. szükséges entry/placement state;
+5. state version pontosan egyszeri növelése;
+6. determinisztikus payment-, zone- és play eventek.
+
+Bármely hiba esetén:
+
+- nincs részleges Kimerítés;
+- nincs kártyamozgás;
+- nincs költségvesztés;
+- nincs state-version növekedés;
+- nincs gameplay event.
+
+#### Response és visibility
+
+A normalizált `payment_result` tartalmazhatja:
+
+- kifizetett Aura mennyiségét;
+- normalizált source reference listát;
+- forrásszámot;
+- felhasznált Aura-identitások összegzését;
+- `selection_mode` értéket.
+
+Owner-facing output láthatja a saját források Card_ID-ját. Opponent-facing output csak a nyilvános forráspozíciót vagy activity-változást láthatja, a face-down kártyaazonosságot nem.
+
+### CQ-RES-004 – Activity mutation event
 
 **Státusz:** `answered` szabályi szinten, `needs_engine_design` event szinten
 
 - Ébredéskor minden Kimerült lap visszaáll, így a Kimerült Ősforrás-lapok is;
 - Visszaállítás: `exhausted → active`;
-- eldöntendő az önálló `activity_state_changed` event vagy a cause-specifikus event payload használata.
+- eldöntendő az önálló `activity_state_changed` event és a cause-specifikus payment/attack/awakening eventek pontos viszonya.
+
+### CQ-RES-005 – LOOKUPS és explicit payment override
+
+**Státusz:** `needs_lookup_audit`
+
+Ellenőrizendő:
+
+- canonical Birodalomértékek;
+- az `Aura` mező mint numerikus költség;
+- AETHER és Aether/Semleges fizetési szerep reprezentációja;
+- ideiglenes vagy generált Aura identitása;
+- kedvezmény, alternatív költség és wildcard;
+- explicit nem-Entitás payment override structured értékei.
 
 ---
 
@@ -503,13 +548,14 @@ Nyitott:
 9. Ősforrás player-visible policy.
 10. AETHER Aura fizetési modell és általános playtest-felülvizsgálati elv.
 11. Normál Beáramlás timing-, priority-, phase-controller- és eventmodellje.
+12. Payment source selection contract-, UX-, determinisztikai és atomikus transition modellje.
 
 ### Következő Codex nélküli munkasáv
 
-1. Payment source selection döntési modellje.
-2. LOOKUPS Birodalom-, Aura-költség- és explicit kivételértékeinek célzott ellenőrzése.
-3. Magnitúdó-preflight strukturált result és diagnostics iránya.
-4. Activity mutation event általános policyje.
+1. LOOKUPS Birodalom-, Aura-költség- és explicit kivételértékeinek célzott ellenőrzése.
+2. Magnitúdó-preflight strukturált result és diagnostics iránya.
+3. Activity mutation event általános policyje.
+4. `play_card` precondition és transition előkészítése csak a runtime-nyelvi kapu sorrendjének megtartásával.
 5. Current contract státusz frissítése csak akkor, amikor új implementáció készül.
 
 A Python engine megmarad működő referenciának. Jelentős új gameplay-réteg a nyelvi/runtime döntési kapu lezárása előtt ne induljon. Új dokumentum csak akkor készülhet, ha a tartalomnak nincs természetes helye meglévő aktív főfájlban.
