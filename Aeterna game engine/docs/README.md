@@ -2,46 +2,47 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.6  
+**Dokumentumverzió:** 1.7  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív engine-dokumentációs index
 
 Ez a fájl az `Aeterna game engine/docs/` dokumentumainak szerepét, elsőbbségét és jelenlegi státuszát rögzíti.
 
-Fontos pontosítás:
+Fontos aktuális állítások:
 
-- a Python minimal engine a jelenlegi működő authoritative referenciaimplementáció;
+- a Python minimal engine a működő authoritative referenciaimplementáció;
 - a végleges termékruntime még nincs kiválasztva;
-- a fő összehasonlítandó jelöltek a Python sidecar és a Godot .NET/C#;
-- GDScript szükség esetén kap szűk proofot;
-- embedded Python és más nyelvek kutatható, későbbi jelöltek;
 - a nyelvváltás nem önálló cél;
-- a végleges runtime-nak a termékruntime- és telepítési követelményeket kell teljesítenie;
-- az első termékkövetelmény-csomag lezárta a Windows 10+ 64-bit, portable-first, adminjog nélküli és kevés prerequisite irányt;
-- a következő Codex-prioritás a runtime-nyelvi és integrációs comparison;
-- a jelentős gameplay-engine bővítés a döntési kapu után folytatódik;
-- az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` együtt olvasandó.
+- a fő első proof-jelöltek a Python sidecar és a Godot .NET/C#;
+- GDScript és más nyelv csak indokolt, szűk proofot kap;
+- a runtime-jelöltnek teljesítenie kell a portable Windows-termékkövetelményeket;
+- a jelentős gameplay-engine bővítés a runtime-nyelvi döntési kapu után folytatódik;
+- az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` történeti dokumentumpár;
+- a technológiai OQ-k aktuális státuszát a `CURRENT_OPEN_QUESTIONS.md` tartalmazza.
 
 ---
 
 ## 1. Elsődleges aktuális dokumentumok
 
-### Hosszú távú termékcél
+### 1.1 Hosszú távú termékcél
 
 - `AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`
 
-### Termékruntime- és telepítési követelmények
+Szerepe:
+
+- az első zárt, használható és játszható tesztkiadás célállapota;
+- nem választ önmagában runtime-nyelvet.
+
+### 1.2 Termékruntime- és telepítési követelmények
 
 - `PRODUCT_RUNTIME_AND_INSTALLATION_REQUIREMENTS.md`
 
 Szerepe:
 
-- meghatározza a játékosnak átadandó program futtatási élményét;
-- rögzíti a megengedett és tiltott külső függőségeket;
-- előírja a stabilitási, offline, lifecycle- és portable packaging próbákat;
-- objektív mércét ad minden runtime- és nyelvi jelölt összehasonlításához;
-- kimondja, hogy a Python csak akkor váltandó le, ha bizonyítottan akadályozza a termékkövetelmények teljesítését, vagy más modell lényegesen jobb összeredményt ad;
-- v1.1-ben lezárta az első közvetlen proof-feltételeket.
+- a játékosnak átadandó program futtatási élménye;
+- megengedett és tiltott külső függőségek;
+- stabilitási, offline, lifecycle- és portable packaging próbák;
+- objektív runtime-értékelési mérce.
 
 Lezárt első döntések:
 
@@ -53,40 +54,64 @@ Lezárt első döntések:
 - kevés közismert prerequisite elfogadható;
 - fejlesztői környezet kézi telepítése nem fogadható el.
 
-### Aktuális runtime-nyelvi döntési kapu
+### 1.3 Runtime engine language decision gate
 
 - `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
 
 Szerepe:
 
-- a következő Codex-prioritás részletes scope-ja;
+- a következő Codex-prioritás fő scope-ja;
 - tanulóprogram-audit;
 - Python sidecar proof;
 - Godot .NET/C# proof;
-- opcionális minimal GDScript proof;
-- szükség esetén más runtime-jelöltek vizsgálata;
-- comparison mátrix;
-- elfogadási feltételek;
+- feltételes GDScript vagy más proof;
+- comparison és packaging elfogadási feltételek;
 - döntés utáni migrációs irányok.
 
-A döntési kapu a `PRODUCT_RUNTIME_AND_INSTALLATION_REQUIREMENTS.md` követelményei alapján értékelendő.
-
-### Tanulóprogram-audit és licencleltár
+### 1.4 Tanulóprogram-audit módszertan
 
 - `LEARNING_PROJECT_AUDIT_AND_LICENSE_TEMPLATE.md`
 
 Szerepe:
 
-- egységes read-only auditstruktúra a helyileg tárolt külső projektekhez;
+- egységes read-only auditlap;
 - projekt-, verzió-, licenc-, dependency- és attributionleltár;
-- nyelv-, runtime-, authority-, bridge-, packaging- és stabilitási vizsgálat;
-- Windows 10+ 64-bit portable megfelelés;
-- clean-room architektúraminta és közvetlen kódátvétel elkülönítése;
-- projektenkénti AETERNA-pontozás és bizonyítékjegyzék.
+- runtime-, authority-, bridge-, packaging- és stabilitási vizsgálat;
+- clean-room architektúraminta és közvetlen kódátvétel elkülönítése.
 
-A külső tanulóprogramok nem kerülnek automatikusan az AETERNA repositoryba. A sablon az audit eredményének szerkezetét adja, nem engedélyezi a kódmásolást.
+### 1.5 Tanulóprogram-audit prioritási sor
 
-### Aktuális technikai referencia
+- `LEARNING_PROJECT_AUDIT_QUEUE.md`
+
+Szerepe:
+
+- Batch 0 helyi leltár;
+- közvetlen Python–Godot és C# runtime-bizonyítékok előresorolása;
+- C#, GDScript, embedded Python, AI/rules és packaging projektek auditbatchjei;
+- batchenkénti stop/continue/defer/expand döntési pontok.
+
+Első mély auditjelöltek:
+
+1. Godot RL Agents és plugin;
+2. hivatalos Godot C# / Mono minták;
+3. `ch200c/Durak.Godot` külön gameplay library és tesztstruktúra.
+
+### 1.6 Nyelvfüggetlen runtime comparison fixture
+
+- `RUNTIME_COMPARISON_FIXTURE_SPEC.md`
+
+Szerepe:
+
+- közös minimal initial state;
+- azonos action request sequence;
+- accepted és stale-version rejected action;
+- state version és typed event ellenőrzés;
+- player_1/player_2 snapshot és hidden-information negatív teszt;
+- canonical JSON és semantic comparison;
+- Python direct, Python sidecar/Godot, C# direct és Godot .NET wrapper összevetése;
+- későbbi GDScript vagy más proof közös mércéje.
+
+### 1.7 Aktuális technikai referencia
 
 - `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
 
@@ -96,63 +121,56 @@ Szerepe:
 - comparison reference és regression oracle;
 - nem zárja le a végleges runtime-nyelvet.
 
-### Aktuális architektúra
-
-- `ARCHITECTURE.md`
-
-### Aktuális technológiai döntések
-
-- `TECHNOLOGY_DECISIONS.md`
-
-Szerepe:
-
-- jelenlegi Python referencia;
-- Python sidecar és C# fő jelöltek;
-- GDScript, C++, embedded Python és más jelöltek státusza;
-- tanulóprogram-audit;
-- bridge és packaging kapuk.
-
-### Aktuális rövid döntéstérkép
-
-- `DECISION_MAP.md`
-
-### Aktuális contract-státusz
-
-- `CURRENT_CONTRACT_STATUS.md`
-
-### Contract-specifikáció migrációs térkép
-
-- `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`
-
-### Aktuális runtime package-státusz
-
-- `CURRENT_RUNTIME_PACKAGE_STATUS.md`
-
-### Aktuális prototípus-státusz
-
-- `CURRENT_PROTOTYPE_STATUS.md`
-
-### Aktuális közeli kérdések
+### 1.8 Aktuális közeli kérdések és OQ-triázs
 
 - `CURRENT_OPEN_QUESTIONS.md`
 
-Ez tartalmazza:
+Szerepe:
 
-- a runtime language comparison elsődleges prioritását;
-- a tanulóprogram-forrásauditot;
-- a Python sidecar proofot;
-- a Godot .NET/C# proofot;
-- a Python–GDScript comparison lehetséges szűk scope-ját;
-- a Wellspring és Beáramlás döntés utáni queue-ját.
-
-Következő frissítése:
-
-- az első termékruntime- és telepítési döntések átvezetése;
-- a proofot blokkoló és nem blokkoló kérdések elválasztása.
+- termékruntime-kérdések;
+- eredeti OQ-azonosítók aktuális technológiai státusza;
+- Python sidecar, C# és feltételes más proofok;
+- runtime package és AI döntési összefüggések;
+- Wellspring/Beáramlás döntés utáni gameplay queue;
+- Codex és Codex nélküli prioritási sorrend.
 
 ---
 
-## 2. Open Questions dokumentumpár
+## 2. Aktuális technikai státuszdokumentumok
+
+### Architektúra
+
+- `ARCHITECTURE.md`
+
+### Technológiai döntések
+
+- `TECHNOLOGY_DECISIONS.md`
+
+### Rövid döntéstérkép
+
+- `DECISION_MAP.md`
+
+### Contract-státusz
+
+- `CURRENT_CONTRACT_STATUS.md`
+
+### Contract migrációs térkép
+
+- `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`
+
+### Runtime package-státusz
+
+- `CURRENT_RUNTIME_PACKAGE_STATUS.md`
+
+### Prototípus-státusz
+
+- `CURRENT_PROTOTYPE_STATUS.md`
+
+Ezek a dokumentumok a jelenlegi működő rendszert és a nyitott runtime-döntési kaput együtt értelmezik.
+
+---
+
+## 3. Open Questions dokumentumpár
 
 ### `OPEN_QUESTIONS.md`
 
@@ -162,7 +180,7 @@ Státusz:
 
 Szerepe:
 
-- az eredeti OQ-azonosítók és kérdések megőrzése;
+- az eredeti OQ-azonosítók és kérdésmegfogalmazások megőrzése;
 - minden régi és hosszú távú döntési kapu nyilvántartása.
 
 ### `OPEN_QUESTIONS_DECISIONS.md`
@@ -180,23 +198,15 @@ Szerepe:
 
 Használati szabály:
 
-- egyik dokumentum sem olvasandó a másik nélkül;
+- egyik történeti dokumentum sem olvasandó a másik nélkül;
 - az eredeti kérdés megmarad az `OPEN_QUESTIONS.md` fájlban;
-- a részletes válasz a decisions fájlban található;
-- a napi fejlesztési kivonat a `CURRENT_OPEN_QUESTIONS.md`.
-
-A runtime-technológiai kérdések jelenlegi helyes státusza:
-
-- részben megválaszolt;
-- Python a működő referencia;
-- Python sidecar és C# a két első proof-jelölt;
-- GDScript és más megoldás nincs végleg kizárva;
-- a végleges technológiai modellnek teljesítenie kell a termékruntime- és telepítési követelményeket;
-- a döntés proofot és emberi jóváhagyást igényel.
+- a részletes történeti válasz a decisions fájlban található;
+- a napi és aktuális technológiai státusz a `CURRENT_OPEN_QUESTIONS.md` fájlban található;
+- eltérés esetén a current dokumentum az aktuális prioritás és státusz forrása.
 
 ---
 
-## 3. Hosszú specifikációk és referencia-dokumentumok
+## 4. Hosszú specifikációk és referencia-dokumentumok
 
 ### `CONTRACT_SPECIFICATION.md`
 
@@ -218,21 +228,21 @@ A runtime-technológiai kérdések jelenlegi helyes státusza:
 
 - `PLANNED_SYSTEM_REFERENCE`
 - ability executor jelenleg nincs implementálva;
-- a következő Codex nélküli dokumentációs audit egyik későbbi célja.
+- későbbi Codex nélküli dokumentációs audit célja.
 
 ---
 
-## 4. Checkpointok
+## 5. Checkpointok
 
-- `checkpoints/README.md` – checkpoint-index és státusztérkép
-- `checkpoints/CURRENT_ENGINE_CHECKPOINT.md` – aktuális Python referencia folytatási pont
-- `checkpoints/CHECKPOINTS.md` – történeti technikai napló
+- `checkpoints/README.md` – checkpoint-index és státusztérkép;
+- `checkpoints/CURRENT_ENGINE_CHECKPOINT.md` – működő Python referencia folytatási pont;
+- `checkpoints/CHECKPOINTS.md` – történeti technikai napló.
 
-A checkpoint a jelenlegi engine-implementáció állapotát rögzíti, nem zárja le automatikusan a végleges product runtime-technológiát.
+A checkpoint nem zárja le automatikusan a végleges product runtime-technológiát.
 
 ---
 
-## 5. Dokumentumelsőbbség
+## 6. Dokumentumelsőbbség
 
 Engine- és runtime-döntésnél:
 
@@ -240,39 +250,44 @@ Engine- és runtime-döntésnél:
 2. v6.1 projektterv;
 3. `PRODUCT_RUNTIME_AND_INSTALLATION_REQUIREMENTS.md`;
 4. `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
-5. `LEARNING_PROJECT_AUDIT_AND_LICENSE_TEMPLATE.md` az audit módszertanához;
-6. `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`;
-7. `TECHNOLOGY_DECISIONS.md`;
-8. `DECISION_MAP.md`;
-9. `CURRENT_PROTOTYPE_STATUS.md`;
-10. `CURRENT_CONTRACT_STATUS.md`;
-11. `CURRENT_RUNTIME_PACKAGE_STATUS.md`;
-12. `CURRENT_OPEN_QUESTIONS.md`;
-13. `OPEN_QUESTIONS.md` + `OPEN_QUESTIONS_DECISIONS.md` együtt;
-14. hosszú specifikációk;
-15. történeti checkpointok és régi dokumentumok.
+5. `LEARNING_PROJECT_AUDIT_AND_LICENSE_TEMPLATE.md`;
+6. `LEARNING_PROJECT_AUDIT_QUEUE.md`;
+7. `RUNTIME_COMPARISON_FIXTURE_SPEC.md`;
+8. `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`;
+9. `CURRENT_OPEN_QUESTIONS.md`;
+10. `TECHNOLOGY_DECISIONS.md`;
+11. `DECISION_MAP.md`;
+12. `CURRENT_PROTOTYPE_STATUS.md`;
+13. `CURRENT_CONTRACT_STATUS.md`;
+14. `CURRENT_RUNTIME_PACKAGE_STATUS.md`;
+15. `OPEN_QUESTIONS.md` + `OPEN_QUESTIONS_DECISIONS.md` együtt;
+16. hosszú specifikációk;
+17. történeti checkpointok és régi dokumentumok.
 
-A 0.0.1 célállapot a hosszú távú termékirányt adja. A termékruntime- és telepítési követelményspecifikáció meghatározza az értékelési mércét. A nyelvi döntési kapu ennek alapján hasonlítja össze a jelölteket. Az audit-sablon a külső bizonyítékgyűjtés egységes módszerét adja.
+A termékruntime-követelményspecifikáció adja az értékelési mércét. A runtime-nyelvi kapu adja a döntési folyamatot. Az auditqueue és a fixture-spec adja a végrehajtási sorrendet és a közös technikai bizonyítékot.
 
 ---
 
-## 6. Következő dokumentációs feladatok fontossági sorrendben
+## 7. Dokumentációs feladatok fontossági sorrendben
 
-Elkészült:
+### Elkészült
 
 1. termékruntime- és telepítési követelményspecifikáció;
-2. első közvetlen proof-feltételek emberi lezárása;
-3. tanulóprogram-audit és licencleltár-sablon.
+2. Windows 10+ 64-bit, portable-first, adminjog nélküli és kevés prerequisite döntés;
+3. tanulóprogram-audit és licencleltár-sablon;
+4. Open Questions és Decisions technológiai OQ-inak current triázsa;
+5. tanulóprogram-auditbatch és prioritási sor;
+6. nyelvfüggetlen runtime comparison fixture specifikáció.
 
-Következik:
+### Következik
 
-1. a `CURRENT_OPEN_QUESTIONS.md` frissítése a lezárt termékdöntésekkel;
-2. az `OPEN_QUESTIONS.md` és `OPEN_QUESTIONS_DECISIONS.md` technológiai OQ-azonosítóinak közös frissítése;
-3. a helyi tanulóprogram-leltár konkrét kitöltési sorrendjének előkészítése;
-4. nyelvfüggetlen comparison fixture és pontozási mátrix dokumentálása;
-5. az `ABILITY_MODULE_SYSTEM.md` felülvizsgálata;
-6. a hosszú contract-specifikáció fokozatos konszolidációja;
-7. a történeti checkpointnapló formázási tisztítása.
+1. comparison pontozási és döntési mátrix;
+2. licenc- és attributionjegyzék összesítő formája;
+3. Codex read-only Batch 0 és Batch 1 prompt előkészítése;
+4. `ABILITY_MODULE_SYSTEM.md` felülvizsgálata;
+5. hosszú contract-specifikáció fokozatos konszolidációja;
+6. hivatalos szabályforrásból megválaszolható gameplay-kérdések ellenőrzése;
+7. történeti checkpointnapló formázási tisztítása.
 
 Ha közben a runtime-döntést vagy a 0.0.1 termékcélt közvetlenül veszélyeztető új kérdés merül fel, a sorrend megállítható és a fontosabb döntési kapu előre vehető.
 
