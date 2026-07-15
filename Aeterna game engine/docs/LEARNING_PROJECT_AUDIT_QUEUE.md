@@ -2,99 +2,128 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.0  
+**Dokumentumverzió:** 1.1  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív auditqueue és Codex előtti vizsgálati sorrend  
+**Helyi auditgyökér:** `fourth turn`  
 **Kapcsolódó döntési kapu:** `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
 
 Ez a dokumentum nem választ runtime-nyelvet és nem minősít előre győztes technológiát.
 
 Feladata:
 
-- meghatározni, milyen sorrendben vizsgáljuk a helyileg letöltött és az online referencia-projekteket;
-- előre venni azokat a mintákat, amelyek közvetlenül befolyásolják az AETERNA portable Windows-runtime döntését;
-- elkerülni, hogy a Codex véletlenszerű vagy túl nagy projektmennyiséget próbáljon egyszerre feldolgozni;
-- elkülöníteni a futási, engine-, UI-, AI- és licencszempontból eltérő tanulóanyagokat;
+- meghatározni a helyileg letöltött és az online referencia-projektek vizsgálati sorrendjét;
+- előre venni a portable Windows-runtime döntést közvetlenül befolyásoló mintákat;
+- elkerülni a túl sok projekt egyidejű, felületes feldolgozását;
+- elkülöníteni a runtime-, engine-, UI-, AI-, packaging- és licencszempontokat;
 - minden batch után lehetővé tenni a prioritás újraértékelését.
 
-Aktív audit-sablon:
+Kapcsolódó aktív fájlok:
 
-- `LEARNING_PROJECT_AUDIT_AND_LICENSE_TEMPLATE.md`
-
-Termékkövetelmény-mérce:
-
-- `PRODUCT_RUNTIME_AND_INSTALLATION_REQUIREMENTS.md`
+- audit-sablon: `LEARNING_PROJECT_AUDIT_AND_LICENSE_TEMPLATE.md`;
+- termékkövetelmény: `PRODUCT_RUNTIME_AND_INSTALLATION_REQUIREMENTS.md`;
+- döntési és pontozási szabály: `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
+- közös scenario: `RUNTIME_COMPARISON_FIXTURE_SPEC.md`.
 
 ---
 
-## 1. Alapelvek
+## 1. Helyi auditgyökér állapota
+
+A felhasználó a korábban említett tanulóprogramokat a `fourth turn` nevű helyi mappába töltötte le.
+
+Jelenlegi státusz:
+
+- a mappa nem része automatikusan az AETERNA GitHub repositorynak;
+- a mappanév ismert, a pontos abszolút elérési út még helyileg azonosítandó;
+- a mappa tartalma még nem tekinthető leltározottnak vagy licencellenőrzöttnek;
+- nem feltételezhető, hogy minden alkönyvtár teljes repository vagy azonos verziójú forrás;
+- ZIP, kibontott repository, build-output, dokumentációmásolat és saját jegyzet külön kategória;
+- Codex először kizárólag read-only Batch 0 leltárt készít.
+
+A helyi mappa GitHubba másolása nem szükséges és licencbiztonsági okból alapértelmezetten tilos.
+
+---
+
+## 2. Általános auditelvek
 
 1. Minden audit read-only leltárral kezdődjön.
-2. A helyi tanulóprogramok ne kerüljenek automatikusan az AETERNA GitHub repositoryba.
+2. A külső projektek ne kerüljenek automatikusan az AETERNA repositoryba.
 3. A kód, asset, dokumentáció és dependency licence külön ellenőrzendő.
 4. A konkrét implementáció és a clean-room módon újraalkotható architektúraminta külön kategória.
 5. Egy batch egyszerre kevés, közvetlenül összehasonlítható projektet tartalmazzon.
-6. Alacsonyabb prioritású batch nem kezdődhet el automatikusan, ha a magasabb prioritású batch már elegendő döntési bizonyítékot adott.
-7. Minden batch végén külön `continue`, `defer`, `stop` vagy `expand` döntés készüljön.
+6. Alacsonyabb prioritású batch nem indul automatikusan, ha a magasabb prioritású már elegendő bizonyítékot adott.
+7. Minden batch végén `continue`, `defer`, `stop` vagy `expand` döntés készüljön.
 8. Az audit nem írhatja át automatikusan az AETERNA engine-kódját.
-9. A végleges runtime-döntés emberi jóváhagyást igényel.
+9. Közvetlen kódátvételhez külön emberi jóváhagyás kell.
+10. A végleges runtime-döntés emberi jóváhagyást igényel.
+11. Bizonyított tény, következtetés és javaslat külön mezőben szerepeljen.
+12. Bizonytalan vagy hiányzó licenc esetén semmilyen kód vagy asset nem vehető át.
 
 ---
 
-## 2. Batch 0 – Helyi programleltár
+## 3. Batch 0 – `fourth turn` helyi programleltár
 
-**Prioritás:** kötelező első lépés  
-**Mód:** csak read-only fájl- és projektazonosítás
+**Prioritás:** kötelező első Codex-lépés  
+**Mód:** read-only fájl- és projektazonosítás
 
-Cél:
+### 3.1 Cél
 
-- megállapítani, pontosan mely tanulóprogramok vannak helyileg letöltve;
-- elkülöníteni a teljes repositorykat, ZIP-kibontásokat, build-outputokat, dokumentációmásolatokat és saját jegyzeteket;
-- rögzíteni a helyi mappanevet anélkül, hogy a fájlok az AETERNA repositoryba kerülnének;
-- azonosítani a repository URL-t, commitot, taget vagy release-verziót;
+- a `fourth turn` pontos helyi elérési útjának azonosítása;
+- minden közvetlen alkönyvtár és önálló projekt felismerése;
+- teljes repository, ZIP-kibontás, build-output, dokumentációmásolat és jegyzet elkülönítése;
+- repository URL, commit, tag vagy release-verzió azonosítása;
+- fő technológia és várható auditbatch megjelölése;
 - minden projekthez ideiglenes `Audit_ID` rendelése.
 
-Kötelező kimenet:
+### 3.2 Kötelező kimenet
 
 | Audit_ID | Projekt | Helyi mappa | Forrás | Verzió | Fő technológia | Licenc elérhető | Következő batch |
 |---|---|---|---|---|---|---|---|
 | `LP-...` |  |  |  |  |  |  |  |
 
-Ebben a batchben még nem történik mély architektúra- vagy kódelemzés.
+### 3.3 Ebben a batchben tilos
 
-### Batch 0 stop feltétel
+- mély architektúra- vagy kódelemzés;
+- build vagy futtatás;
+- dependencytelepítés;
+- fájlmódosítás;
+- kódmásolás;
+- projekt GitHubba helyezése;
+- licencfeltételezés pusztán repositorynév alapján.
 
-Nem indulhat mély audit, amíg legalább a vizsgálandó projekt neve, forrása, verziója és licence nincs azonosítva.
+### 3.4 Stop feltétel
+
+Nem indulhat mély audit, amíg legalább a vizsgálandó projekt neve, forrása, verziója és licence nincs azonosítva vagy `unknown` státusszal explicit rögzítve.
 
 ---
 
-## 3. Batch 1 – Közvetlen runtime- és integrációs bizonyítékok
+## 4. Batch 1 – Közvetlen runtime- és integrációs bizonyítékok
 
 **Prioritás:** legmagasabb mély auditprioritás
 
 Ez a batch közvetlenül azt vizsgálja, hogy a Python sidecar vagy a Godot .NET/C# modell képes-e teljesíteni az AETERNA portable Windows-követelményeit.
 
-### 3.1 Godot RL Agents
+### 4.1 Godot RL Agents és plugin
 
 Jelöltek:
 
-- `edbeeching/godot_rl_agents`
-- `edbeeching/godot_rl_agents_plugin`
+- `edbeeching/godot_rl_agents`;
+- `edbeeching/godot_rl_agents_plugin`.
 
 Fő vizsgálati ok:
 
 - Godot és Python külön folyamatban működik;
-- Python indít vagy vezérel exportált Godot-programot;
-- localhost TCP és strukturált JSON-kommunikáció;
-- handshake, action, observation, reset és shutdown minta;
+- exportált Godot-program és Python közötti kommunikáció;
+- localhost TCP és strukturált JSON;
+- handshake, action, observation, reset és shutdown;
 - process lifecycle és hibaágak;
-- exportált programmal működő tanulási környezet.
+- csomagolt vagy exportált futás.
 
 AETERNA-kérdés:
 
-> Mely részek alkalmazhatók tiszta, saját Python sidecar + Godot action request/response bridge-ként?
+> Mely részek alkalmazhatók saját Python sidecar + Godot action request/response bridge-ként anélkül, hogy külső kódot másolnánk?
 
-### 3.2 Hivatalos Godot C# / Mono minták
+### 4.2 Hivatalos Godot C# / Mono minták
 
 Elsődleges forrás:
 
@@ -105,16 +134,16 @@ Fő vizsgálati ok:
 
 - hivatalosan támogatott Godot C# buildmodell;
 - project/solution szerkezet;
-- C# script és Godot scene kapcsolat;
-- Windows export alapja;
+- C# script és scene kapcsolata;
+- Windows export;
 - szükséges .NET- és Godot-verziók;
-- portable futás és prerequisite-ek.
+- portable futás, self-contained vagy prerequisite-modell.
 
 AETERNA-kérdés:
 
-> Mi a legkisebb hivatalosan támogatott Godot .NET build, amely tiszta Windows 10+ környezetben portable módon elindítható?
+> Mi a legkisebb hivatalosan támogatott Godot .NET build, amely tiszta Windows 10+ 64-bit környezetben portable módon elindítható?
 
-### 3.3 `ch200c/Durak.Godot`
+### 4.3 `ch200c/Durak.Godot`
 
 Fő vizsgálati ok:
 
@@ -122,51 +151,53 @@ Fő vizsgálati ok:
 - külön `Durak.Gameplay` C# library;
 - a Godot főprojekt project reference-szel fogyasztja a gameplay libraryt;
 - külön unit és functional test projektek;
-- card game domain;
-- UI és gameplay fizikai elválasztásának közvetlen példája.
+- kártyajáték-domain;
+- UI és gameplay fizikai elválasztásának példája.
 
 Kiemelt auditpontok:
 
 - a gameplay library Godot nélkül tesztelhető-e;
 - mennyi Godot-típus szivárog a rules librarybe;
-- state és action modell;
+- state, command/action és event modell;
 - serialization;
-- unit/functional testek felépítése;
-- export- és dependencykezelés;
-- licenc- és assetkülönbségek.
+- unit és functional testek;
+- export és dependencykezelés;
+- kód- és assetlicencek különbsége.
 
-Megjegyzés:
+Licencmegjegyzés:
 
-- a repository fő licence MIT-szöveg, de a copyright-helyőrző kitöltetlennek tűnik;
-- az assetekhez külön licencek is tartozhatnak;
-- emiatt közvetlen kódátvétel helyett elsődlegesen architektúramintaként vizsgálandó.
+- a repository MIT-szöveget tartalmaz, de a copyright-helyőrző kitöltetlennek tűnik;
+- az assetekhez külön licencek tartozhatnak;
+- ezért elsődlegesen clean-room architektúramintaként vizsgálandó.
 
-### Batch 1 elfogadási kimenet
+### 4.4 Batch 1 kötelező kimenet
 
 Minden projekthez:
 
 - authority diagram;
 - process diagram;
-- build és runtime dependency lista;
+- build- és runtime dependencylista;
 - portable Windows-relevancia;
 - tesztelhetőségi értékelés;
 - licenc- és attributionjegyzet;
-- AETERNA számára clean-room módon használható minta;
+- clean-room módon használható minta;
 - ismert kockázatok;
-- javaslat a Python sidecar és C# proof scope-jára.
+- javaslat a Python sidecar és C# proof scope-jára;
+- kapcsolódó kizáró kapuk és bizonyítékszintek.
 
-### Batch 1 döntési pont
+### 4.5 Batch 1 döntési pont
 
-A Batch 1 után felül kell vizsgálni:
+Felülvizsgálandó:
 
 - szükséges-e további C# kártyajáték-projekt;
-- a Python sidecar proof első transportja JSONL pipe vagy TCP legyen-e;
+- a Python sidecar első transportja JSONL pipe vagy TCP legyen-e;
 - a Godot .NET proofhoz elég-e tiszta library + minimal Godot wrapper;
-- indokolt-e már ekkor minimal GDScript proof.
+- indokolt-e minimal GDScript proof;
+- van-e a `fourth turn` mappában előre sorolandó másik projekt.
 
 ---
 
-## 4. Batch 2 – További Godot .NET/C# kártya- és frameworkminták
+## 5. Batch 2 – További Godot .NET/C# kártya- és frameworkminták
 
 **Prioritás:** magas, de csak Batch 1 után
 
@@ -174,57 +205,53 @@ Lehetséges jelöltek:
 
 - `Ggross98/Godot-CardPileFramework`;
 - `TheSchlote/Godot-4-Card-Game-CSharp`;
-- a helyi tanulóprogramok között talált további Godot 4 + C# kártyajátékok;
-- olyan projektek, amelyek külön rules/gameplay assemblyt, unit tesztet vagy adatvezérelt kártyamodellt használnak.
+- a `fourth turn` között talált további Godot 4 + C# kártyajátékok;
+- külön rules/gameplay assemblyt, unit tesztet vagy adatvezérelt modellt használó projektek.
 
-Megjegyzés:
-
-- az archivált repository önmagában nem kizáró ok tanulási célra;
-- aktív termékalapnak azonban az archiváltság és elavult Godot-verzió jelentős kockázat;
-- a batch célja nem a projekt átvétele, hanem a szerkezeti minták összevetése.
+Az archivált repository tanulási célra használható, de termékalapként az elavult Godot-verzió és karbantartási állapot jelentős kockázat.
 
 Kiemelt kérdések:
 
 - Godot node-független rules layer;
 - dependency injection vagy service boundary;
 - command/action modell;
-- save/serialization;
+- save és serialization;
 - headless tesztelés;
 - card definition és card instance szétválasztása;
-- package/export tapasztalat.
+- export és packaging.
 
 ---
 
-## 5. Batch 3 – GDScript rules- és kártyajáték-minták
+## 6. Batch 3 – GDScript rules- és kártyajáték-minták
 
 **Prioritás:** feltételes
 
-Csak akkor kapjon mély scope-ot, ha:
+Mély scope csak akkor indokolt, ha:
 
-- a helyi tanulóprogramok között erős, jól tesztelt GDScript rules engine található;
-- a Python sidecar és C# proof valamely fontos követelményben gyengén teljesít;
-- vagy egy minimal GDScript proof valódi döntési információt ad.
+- a `fourth turn` mappában erős, jól tesztelt GDScript rules engine található;
+- a Python sidecar vagy C# proof fontos követelményben gyengén teljesít;
+- minimal GDScript proof valódi döntési információt ad.
 
-Előnyben részesítendő projekt:
+Előnyben részesítendő:
 
 - Godot 4;
-- szabálylogika fizikailag elkülönül a scene/UI rétegtől;
-- headless vagy unit tesztelhető;
+- UI-tól fizikailag elkülönített rules layer;
+- headless vagy unit teszt;
 - adatvezérelt kártyamodell;
-- legal action / command / event szerkezet;
+- legal action, command és event szerkezet;
 - exportált Windows-build bizonyíték;
 - aktív vagy karbantartott repository.
 
 Nem elegendő önmagában:
 
-- látványos kártyahúzás vagy drag-and-drop UI;
+- drag-and-drop vagy látványos kártya-UI;
 - szabálylogika közvetlenül Control/Node callbackekben;
-- csak tutorialszintű demo;
+- tutorialszintű demo;
 - teszt és licenc nélküli repository.
 
 ---
 
-## 6. Batch 4 – Embedded Python és community bindingok
+## 7. Batch 4 – Embedded Python és community bindingok
 
 **Prioritás:** kutatási, nem első termékproof
 
@@ -239,21 +266,19 @@ Jelöltek:
 Vizsgálandó:
 
 - aktív fejlesztési állapot;
-- támogatott Godot-verzió;
-- támogatott Python-verzió;
+- támogatott Godot- és Python-verzió;
 - Windows build;
 - embedded vagy rendszer-Python;
 - export és dependencycsomagolás;
 - editor-integráció;
-- natív crash- és ABI-kockázat;
-- community karbantartási kockázat;
-- saját README szerinti experimental/production státusz.
+- natív crash-, ABI- és community-karbantartási kockázat;
+- saját dokumentáció szerinti experimental vagy production státusz.
 
-A batch csak akkor emelhet embedded Python modellt elsődleges proof-jelöltté, ha production-közeli Windows packaging és stabilitás bizonyítható.
+Csak production-közeli Windows packaging és stabilitási bizonyíték emelheti elsődleges jelöltté.
 
 ---
 
-## 7. Batch 5 – Nem Godot-specifikus rules engine és AI minták
+## 8. Batch 5 – Nem Godot-specifikus rules engine és AI minták
 
 **Prioritás:** runtime-döntéshez közvetett, engine-tervezéshez hosszú távon fontos
 
@@ -265,12 +290,12 @@ Lehetséges jelöltek:
 - Duelyst és kapcsolódó nyílt forrású maradványok;
 - más deterministic card/board game engine-ek.
 
-Elsődleges vizsgálati témák:
+Vizsgálandó:
 
 - authoritative state;
 - legal action generation;
 - command/action resolver;
-- event sourcing vagy replay;
+- event sourcing és replay;
 - hidden information;
 - deterministic simulation;
 - AI environment adapter;
@@ -278,34 +303,34 @@ Elsődleges vizsgálati témák:
 - differential és property testing;
 - kártyaképesség-modulok.
 
-Ez a batch nem dönt közvetlenül Godot–Python–C# kérdésben, de a végleges engine-contractokat javíthatja.
+Ez a batch nem dönt közvetlenül a Python–C#–GDScript kérdésben.
 
 ---
 
-## 8. Batch 6 – Packaging, kiadási és stabilitási minták
+## 9. Batch 6 – AETERNA packaging és stabilitási proof
 
-**Prioritás:** a minimal runtime proofok elkészülte után
+**Prioritás:** a minimal runtime proofok után
 
-Cél:
+Kötelező mérés:
 
 - Windows 10+ 64-bit portable csomag;
-- fő executable;
+- egyértelmű fő executable;
 - adminjog nélküli futás;
-- szükséges prerequisite-ek felismerése;
+- szükséges prerequisite-ek száma;
 - self-contained .NET és csomagolt Python összevetése;
-- elárvult processz ellenőrzése;
+- elárvult processzek;
 - log- és mentési könyvtár;
-- SmartScreen/antivírus tapasztalat;
-- 20 indítás/leállítás;
-- legalább 2 órás soak futás;
+- SmartScreen- és antivírus-tapasztalat;
+- 20 indítás és szabályos leállítás;
+- legalább 2 órás soak vagy gyorsított AI-vs-AI futás;
 - offline próba;
 - reprodukálható build.
 
-Ez a batch már nem pusztán forráskód-audit, hanem az AETERNA saját proofcsomagjainak mérési szakasza.
+Ez már az AETERNA saját proofcsomagjainak mérési szakasza.
 
 ---
 
-## 9. Auditbatch-kimenetek egységes formája
+## 10. Auditbatch-kimenetek egységes formája
 
 Minden lezárt batch adjon:
 
@@ -313,16 +338,19 @@ Minden lezárt batch adjon:
 2. összesített comparison táblát;
 3. licenc- és attributionlistát;
 4. bizonyított tények és következtetések különválasztását;
-5. AETERNA számára használható clean-room mintákat;
+5. használható clean-room mintákat;
 6. tiltott vagy kockázatos közvetlen átvételeket;
-7. következő batch-ajánlást;
-8. `continue`, `defer`, `stop` vagy `expand` döntést.
+7. kapcsolódó runtime-kapuk és bizonyítékszintek eredményét;
+8. következő batch-ajánlást;
+9. `continue`, `defer`, `stop` vagy `expand` döntést.
+
+Az audit eredménye alapértelmezetten meglévő aktív dokumentumba, táblázatba vagy checkpointba kerüljön. Új dokumentum csak önálló, tartós canonical téma esetén készülhet.
 
 ---
 
-## 10. Jelenlegi ajánlott végrehajtási sorrend
+## 11. Jelenlegi végrehajtási sorrend
 
-1. Batch 0 – helyi leltár.
+1. Batch 0 – `fourth turn` helyi leltár.
 2. Batch 1.1 – Godot RL Agents és plugin.
 3. Batch 1.2 – hivatalos Godot C# / Mono build- és exportminta.
 4. Batch 1.3 – Durak.Godot rules-library és tesztelési szerkezet.
@@ -333,4 +361,4 @@ Minden lezárt batch adjon:
 9. Batch 5 – rules engine és AI minták.
 10. Batch 6 – AETERNA saját packaging és stabilitási proofjai.
 
-A sorrend nem merev. Ha egy magasabb prioritású batch során súlyos licenc-, stabilitási vagy csomagolási kockázat merül fel, a következő feladatot ennek megfelelően előre kell venni.
+A sorrend nem merev. Súlyos licenc-, stabilitási vagy csomagolási kockázat esetén a fontosabb döntési pont előre vehető.
