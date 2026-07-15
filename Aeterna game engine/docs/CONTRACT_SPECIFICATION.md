@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.3  
+**Dokumentumverzió:** 1.4  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív, technológiafüggetlen contract-specifikáció  
 **Aktuális Python technikai bázis:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
@@ -267,8 +267,6 @@ A structural Entity placement:
 
 ### 7.1 Általános policy
 
-Aktív alapok:
-
 - saját kéz: owner-visible;
 - ellenfél kéz: redacted és count-only;
 - deck: count-only;
@@ -290,7 +288,19 @@ Aktív alapok:
 - owner projection biztonságos reference-en keresztül Card_ID-t és megjelenítési adatot adhat;
 - debug projection ettől elkülönítve tartalmazhat technikai azonosítót.
 
-### 7.3 Debug snapshot
+### 7.3 Safe player reference
+
+Player-facing legal action és action request nem használhat nyers technikai `card_instance_id` értéket.
+
+A player-safe reference:
+
+- viewer- és state-version-specifikus;
+- csak az engine tudja belső instance-re feloldani;
+- nem szivárogtat hidden identityt;
+- stale state version után érvényteleníthető;
+- stabilan rendezhető ugyanazon projectionön belül.
+
+### 7.4 Debug snapshot
 
 A debug snapshot többletinformációt tartalmazhat, de nem használható fair AI observationként és nem kerülhet normál player-facing csatornába.
 
@@ -325,7 +335,7 @@ Később szükséges:
 - `perform_inflow` és `skip_inflow`;
 - `play_card`;
 - target és choice;
-- payment;
+- payment context;
 - pending decision;
 - ability;
 - combat;
@@ -348,8 +358,8 @@ Nincs szükség általános `action_resolved` eventre, ha a transition pontosabb
 Tervezett eventek:
 
 - `phase_transition`;
+- `aura_payment`;
 - activity state change;
-- Aura payment;
 - card played;
 - Entity entered Domain;
 - attack, block és Entity-sebzés;
@@ -426,13 +436,6 @@ Tervezett authoritative mező:
 - sikeres `perform_inflow` után `performed`;
 - sikeres vagy automatikus kihagyás után `skipped`;
 - a következő saját körben új döntési állapot jön létre.
-
-A háromállapotú modell:
-
-- megkülönbözteti a még nem eldöntött, végrehajtott és kihagyott helyzetet;
-- megakadályozza a második normál Beáramlást;
-- egyszerű UI-, AI-, diagnostics- és invariánsellenőrzést ad;
-- elkülöníti az effect-alapú Ősforrásba helyezéstől.
 
 ### 10.5 `perform_inflow` precondition és transition
 
@@ -517,16 +520,129 @@ Az Aura forrásidentitása alapesetben az Ősforrás-lap Birodalma.
 
 A korlátozott modell jelenleg canonical, de szabályhű playtest után verziózott emberi döntéssel felülvizsgálható.
 
-### 10.9 Következő erőforrás-contractok
+### 10.9 Payment source selection
+
+**Engine-döntés – 2026-07-15:**
+
+#### Contract-elv
+
+- a payment az első implementációban a `play_card` request része;
+- nincs külön előzetes payment action;
+- a request explicit, végleges forráslistát tartalmaz;
+- a kliens nem küld authoritative költséget;
+- az engine a current state és a card definition alapján újraszámítja a költséget és újravalidálja a forrásokat.
+
+Tervezett request-mező:
+
+- `payment_source_refs: []`.
+
+A referenciák player-safe, state-versionhöz kötött object reference-ek. Nyers `card_instance_id` nem kerül player-facing requestbe.
+
+#### Selection mode
+
+A legal action payment-contextje:
+
+- `none` – Aura-költség 0, üres forráslista;
+- `forced` – pontosan egy jogszerű forráskészlet; a frontend automatikusan kitöltheti, de explicit listát küld;
+- `choice` – több jogszerű forráskészlet; a játékos választja ki és erősíti meg a végleges listát.
+
+`choice` esetén az engine vagy a frontend adhat javaslatot, de a játékos helyett nem hajthat végre automatikus választást. A konkrétan Kimerített forrás későbbi hatások, triggerek és visszaállítások miatt játékjelentéssel bírhat.
+
+#### Legal action payment-context
+
+A `play_card` legal action származtatott mezői legalább:
+
+- `aura_cost`;
+- `payment_selection_mode`;
+- `required_source_count`;
+- determinisztikusan rendezett `eligible_payment_source_refs`;
+- `forced_payment_source_refs`, ha a mód `forced`;
+- strukturált disabled reason, ha nincs jogszerű fizetés.
+
+Nem kell minden lehetséges kombinációt előre felsorolni.
+
+#### Determinisztika
+
+- eligible források sorrendje: Wellspring zone index, majd stabil safe reference;
+- a request source-listáját az engine canonical sorrendre normalizálja;
+- duplikált reference invalid;
+- azonos state és választás azonos payment resultot ad;
+- deterministic baseline AI `choice` esetén az első jogszerű kombinációt választja canonical sorrendben;
+- fejlettebb AI csak legal actionből és saját látható információból választhat más kombinációt.
+
+#### Validáció
+
+Mutation előtt ellenőrizendő:
+
+1. helyes match, player, action és expected state version;
+2. a kijátszandó lap továbbra is szabályosan kijátszható;
+3. a Magnitúdó-küszöb teljesül;
+4. minden reference feloldható és saját Wellspring-forrásra mutat;
+5. minden forrás `active`;
+6. nincs duplikáció;
+7. minden forrás Aura-identitása jogosult;
+8. a forrásszám és az Aura pontosan megfelel a normalizált költségnek;
+9. 0 költségnél csak üres lista érvényes;
+10. az első implementációban túlfizetés nem engedélyezett.
+
+Kedvezmény, alternatív költség, ideiglenes Aura vagy override esetén az engine előbb normalizálja a fizetendő költséget, és csak utána validálja a source-listát.
+
+#### Atomikus transition
+
+Sikeres `play_card` action egyetlen tranzakció:
+
+1. teljes preflight és payment-validáció;
+2. kiválasztott források `active → exhausted` mutationje;
+3. a kijátszandó lap zónatransitionje;
+4. szükséges placement/entry state;
+5. state version pontosan egyszeri növelése;
+6. ordered payment-, zone-, play- és entry eventek.
+
+Bármely hiba esetén:
+
+- nincs részleges Kimerítés;
+- nincs kártyamozgás;
+- nincs költségvesztés;
+- nincs state-version növekedés;
+- nincs gameplay event.
+
+#### Response és visibility
+
+A normalizált `payment_result` tartalmazhatja:
+
+- `paid_aura`;
+- normalizált source reference listát;
+- source countot;
+- Aura-identitások összegzését;
+- `selection_mode` értéket.
+
+Owner-facing output láthatja a saját források Card_ID-ját. Opponent-facing output csak a nyilvános forráspozíciót vagy activity-változást láthatja, a face-down kártyaazonosságot nem.
+
+### 10.10 Későbbi payment-bővítések
+
+Nem része az első payment implementációnak:
+
+- túlfizetés;
+- többféle alternatív költség egy actionben;
+- részleges vagy több lépcsős fizetés;
+- payment cancellation mutation után;
+- temporary Aura pool;
+- wildcard vagy konvertálható Aura;
+- payment replacement/prevention;
+- külön pending payment window.
+
+Ezek csak stabil alap `play_card` és pending-decision contract után vezethetők be.
+
+### 10.11 Következő erőforrás-contractok
 
 1. Wellspring PlayerState- és MatchState-integráció;
 2. player-visible Wellspring summary;
 3. Inflow legal actionök és turn-scoped status;
 4. Inflow transition és `phase_transition`;
 5. Magnitúdó-preflight;
-6. typed Aura és LOOKUPS mapping;
-7. Aura source selection;
-8. payment és atomikus activity mutation;
+6. LOOKUPS Aura- és override-mapping;
+7. payment source validation;
+8. atomikus payment és activity mutation;
 9. `play_card` precondition és transition.
 
 ---
@@ -586,7 +702,8 @@ Ability executor csak a Wellspring, Beáramlás, erőforrás, `play_card`, timin
 - canonical builder/validator újrahasználata;
 - hidden-information audit;
 - accepted action atomikus;
-- reject mutation- és gameplay-event-mentes.
+- reject mutation- és gameplay-event-mentes;
+- player-safe reference nem oldható fel más viewer vagy stale state contextben.
 
 ---
 
@@ -599,6 +716,10 @@ Nem használható:
 - sample fixture production schemaként;
 - structural placement teljes play legalityként;
 - replay foundation kész replayként;
+- nyers `card_instance_id` player-facing payment requestben;
+- több fizetési lehetőségnél engine által észrevétlenül választott forráskészlet;
+- részleges forrás-Kimerítés sikertelen `play_card` esetén;
+- túlfizetés az első payment implementációban;
 - `skip_inflow` helyett `pass_priority`, ha nincs priority-ablak;
 - normál Beáramlás automatikus reakciós ablakként;
 - külön `inflow` event pusztán a `zone_move` és `phase_transition` duplikálására;
@@ -619,11 +740,12 @@ A runtime-nyelvi döntési kapu után:
 5. Inflow atomikus transition;
 6. `phase_transition` typed event;
 7. Magnitúdó-preflight;
-8. typed Aura és payment;
-9. activity mutation;
-10. Entity play precondition;
-11. `play_card` action és response;
-12. Entity entry event;
-13. teljes phase/priority/reaction contractok;
-14. combat;
-15. ability execution.
+8. LOOKUPS payment mapping;
+9. explicit payment source selection;
+10. atomikus Aura payment és activity mutation;
+11. Entity play precondition;
+12. `play_card` action és response;
+13. Entity entry event;
+14. teljes phase/priority/reaction contractok;
+15. combat;
+16. ability execution.
