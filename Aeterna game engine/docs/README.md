@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.1  
+**Dokumentumverzió:** 1.2  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív engine-dokumentációs index
 
@@ -76,6 +76,16 @@ Szerepe:
 - mi csak tervezett;
 - mely régi sample contract felváltott.
 
+### Contract-specifikáció migrációs térkép
+
+- `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`
+
+Szerepe:
+
+- a hosszú `CONTRACT_SPECIFICATION.md` és a működő minimal engine közötti eltérések szakaszonkénti feltérképezése;
+- active, planned, superseded és hiányzó contractrétegek elhatárolása;
+- a későbbi fokozatos tartalmi konszolidáció sorrendje.
+
 ### Aktuális runtime package-státusz
 
 - `CURRENT_RUNTIME_PACKAGE_STATUS.md`
@@ -126,7 +136,8 @@ Szerepe:
 Fontos:
 
 - nem minden benne szereplő mező vagy schema aktív runtime contract;
-- az aktuális implementációs státusz elsődleges forrása a `CURRENT_CONTRACT_STATUS.md`.
+- az aktuális implementációs státusz elsődleges forrása a `CURRENT_CONTRACT_STATUS.md`;
+- a konszolidációs eltérések és sorrend forrása a `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`.
 
 ### `RUNTIME_PACKAGE_SPECIFICATION.md`
 
@@ -232,11 +243,12 @@ Engine-fejlesztésnél:
 5. `TECHNOLOGY_DECISIONS.md`;
 6. `DECISION_MAP.md`;
 7. `CURRENT_CONTRACT_STATUS.md`;
-8. `CURRENT_RUNTIME_PACKAGE_STATUS.md`;
-9. `CURRENT_PROTOTYPE_STATUS.md`;
-10. `CURRENT_OPEN_QUESTIONS.md`;
-11. hosszú specifikációk;
-12. történeti checkpointok és régi dokumentumok.
+8. `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`;
+9. `CURRENT_RUNTIME_PACKAGE_STATUS.md`;
+10. `CURRENT_PROTOTYPE_STATUS.md`;
+11. `CURRENT_OPEN_QUESTIONS.md`;
+12. hosszú specifikációk;
+13. történeti checkpointok és régi dokumentumok.
 
 A 0.0.1 célállapot a hosszú távú termékirányt adja, de nem helyettesíti az aktuális technikai checkpointot.
 
@@ -253,6 +265,7 @@ A 0.0.1 célállapot a hosszú távú termékirányt adja, de nem helyettesíti 
 - technology decisions v2.0;
 - decision map v2.0;
 - current contract status;
+- contract specification migration map;
 - current runtime package status;
 - current prototype status;
 - current open questions;
@@ -261,7 +274,7 @@ A 0.0.1 célállapot a hosszú távú termékirányt adja, de nem helyettesíti 
 
 Továbbra is későbbi feladat:
 
-- a hosszú `CONTRACT_SPECIFICATION.md` tartalmi konszolidációja;
+- a hosszú `CONTRACT_SPECIFICATION.md` fokozatos tartalmi átvezetése a migrációs térkép alapján;
 - a `RUNTIME_PACKAGE_SPECIFICATION.md` későbbi teljes mező- és schema-auditja;
 - a `PROTOTYPE_PLANS.md` későbbi történeti formázási és státuszjelölési tisztítása;
 - az `ABILITY_MODULE_SYSTEM.md` felülvizsgálata az első valódi ability implementation előtt;
