@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.7  
+**Dokumentumverzió:** 1.8  
 **Dátum:** 2026-07-15  
 **Státusz:** aktív közeli döntési kapu-, OQ-triázs- és prioritáslista  
 **Technikai referencia:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
@@ -22,6 +22,20 @@ Kapcsolódó aktív források:
 Az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` együtt olvasandó. Ha régi státuszuk vagy megfogalmazásuk eltér ettől a current dokumentumtól, a jelen fájl aktuális triázsa az irányadó.
 
 A Python minimal engine a jelenlegi működő referenciaimplementáció. A végleges authoritative termékruntime nyelve és futási modellje még nincs kiválasztva. A nyelvváltás nem önálló cél.
+
+### Általános playtest-felülvizsgálati elv
+
+Az AETERNA jelenlegi szabály- és balanszdöntései közül több elméleti tervezésre, szimulációra vagy részleges tesztre támaszkodik, mert még nem történt teljes, szabályhű valódi játékteszt.
+
+Ezért:
+
+- minden elfogadott döntés az aktuális rulesetben canonical és az engine számára kötelező;
+- egy döntés nem válik opcionálissá pusztán azért, mert később tesztelni kell;
+- szabályhű playtest alapján bármely szabály, balanszérték, Birodalom- vagy Klánidentitás felülvizsgálható;
+- a playtest eredménye önmagában nem írja át a szabályt;
+- módosításhoz explicit emberi döntés, döntésnapló és verziózott forrásátvezetés szükséges;
+- az implementáció és az AI-teszt mindig az éppen hatályos canonical szabályt követi;
+- a korábbi döntés és a változtatás oka visszakereshető marad.
 
 ---
 
@@ -341,22 +355,40 @@ Nyitott:
 - a lap Magnitúdó-küszöbének és Aura-fizethetőségének is teljesülnie kell;
 - nyitott a strukturált result, modifier/override és diagnostics reason code.
 
-### CQ-RES-002 – Aura-típusok és laptípus szerinti fizetés
+### CQ-RES-002 – Aura-identitás és AETHER fizetési modell
 
-**Státusz:** `partly_answered`, `needs_lookup_audit`
+**Státusz:** `answered`, `needs_source_amendment`, `needs_lookup_audit`
 
-Lezárt szabályi alap:
+**Emberi Core-döntés – 2026-07-15:**
 
-- Entitás saját Birodalmi, Aether/Semleges vagy kombinált Aurából fizethető;
-- Ige, Rituálé, Jel és Sík alapból saját Birodalmi Aurához kötött;
-- nem-Entitás Aether/Semleges Aurával csak explicit kivétel alapján fizethető;
+Az Aura forrásidentitása alapesetben az Ősforrás-lap Birodalma.
+
+- ha a forrás Birodalma megegyezik a kijátszandó lap Birodalmával, a forrás saját Birodalmi Auraként használható;
+- Entitás saját Birodalmi Aurából, AETHER/Aether-Semleges támogató Aurából vagy ezek kombinációjából fizethető;
+- Ige, Rituálé, Jel és Sík alapértelmezés szerint csak saját Birodalmi Aurából fizethető;
+- AETHER Birodalmi forrás AETHER Entitást és AETHER nem-Entitást saját Birodalmi Auraként fizethet;
+- AETHER Birodalmi forrás más Birodalom Entitását Aether/Semleges támogató Auraként fizetheti;
+- AETHER Birodalmi forrás más Birodalom Igéjét, Rituáléját, Jelét vagy Síkját alapértelmezés szerint nem fizetheti;
+- ettől csak explicit szabály- vagy kártyahatás térhet el;
 - Soft Penalty nem aktív Core-szabály.
 
-Még ellenőrizendő:
+Tervezési előzmény és playtest-státusz:
 
-- canonical Aura-type és Birodalomértékek a LOOKUPS-ban;
-- többértékű vagy wildcard költségek;
-- explicit kivételek structured reprezentációja.
+- az eredeti elképzelés szerint az AETHER Aura bármilyen laptípust fizethetett volna;
+- ezt elméleti balansz alapján túl erősnek ítéltük és szűkítettük;
+- az AETHER Birodalomnak a fizetési rugalmasságon kívül más identitása is van, ezért a korlátozott modell a jelenlegi canonical szabály;
+- teljes, szabályhű valódi játékteszt hiányában ez különösen playtest-érzékeny döntés;
+- ha az AETHER a gyakorlatban túl erősnek, túl gyengének vagy identitásában problémásnak bizonyul, explicit emberi döntéssel felülvizsgálható;
+- felülvizsgálatig az engine és minden teszt a jelenlegi korlátozott modellt használja.
+
+LOOKUPS- és engine-következmény:
+
+- az `Aura` mező jelenleg numerikus Aura-költségként értelmezendő;
+- első körben nem szükséges külön párhuzamos erőforráskészlet vagy önálló `Aura_Type` mező csak az AETHER kettős szerepe miatt;
+- központi payment validator alkalmazza a forrás Birodalma, a fizetendő lap Birodalma és laptípusa szerinti szabályt;
+- explicit kivételekhez később structured override szükséges;
+- ideiglenes vagy generált Aura esetén az Aura-identitást külön, canonical módon meg kell adni;
+- a LOOKUPS-ban ellenőrizendő a Birodalomértékek, költségmezők és explicit kivételek reprezentációja.
 
 ### CQ-RES-003 – Payment source selection
 
@@ -367,7 +399,8 @@ Lezárt:
 - csak Aktív Ősforrás-lap fizethet;
 - a kiválasztott forrás Kimerül;
 - Kimerült forrás nem fizethet újra Visszaállításig;
-- a frissen Beáramlott Aktív lap ugyanabban a körben választható payment source-ként.
+- a frissen Beáramlott Aktív lap ugyanabban a körben választható payment source-ként;
+- a forrás fizetési jogosultságát a CQ-RES-002 szerinti Birodalom- és laptípus-policy határozza meg.
 
 Nyitott:
 
@@ -399,12 +432,13 @@ Nyitott:
 7. Contract-specifikáció első konszolidációs köre.
 8. Beáramlás Core-döntése.
 9. Ősforrás player-visible policy.
+10. AETHER Aura fizetési modell és általános playtest-felülvizsgálati elv.
 
 ### Következő Codex nélküli munkasáv
 
-1. LOOKUPS Aura-type és fizetési értékek célzott auditja.
-2. A Beáramlás timing/priority/event kérdéseinek engine-tervezési előkészítése.
-3. A payment source selection döntési lehetőségeinek előkészítése.
+1. A Beáramlás timing/priority/event kérdéseinek engine-tervezési előkészítése.
+2. A payment source selection döntési lehetőségeinek előkészítése.
+3. A LOOKUPS Birodalom-, Aura-költség- és explicit kivételértékeinek célzott ellenőrzése.
 4. A current contract státusz frissítése csak akkor, amikor új implementáció készül.
 
 A Python engine megmarad működő referenciának. Jelentős új gameplay-réteg a nyelvi/runtime döntési kapu lezárása előtt ne induljon. Új dokumentum csak akkor készülhet, ha a tartalomnak nincs természetes helye meglévő aktív főfájlban.
