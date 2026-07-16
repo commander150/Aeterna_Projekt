@@ -20,6 +20,11 @@ try:
 except ModuleNotFoundError:
     from .player_visible_snapshot import validate_player_visible_snapshot
 
+try:
+    from canonical_match_state import serialize_match_state
+except ModuleNotFoundError:
+    from .canonical_match_state import serialize_match_state
+
 
 class MinimalEngineSession:
     """Small session wrapper over the existing minimal end_turn smoke facade.
@@ -78,6 +83,16 @@ class MinimalEngineSession:
             codes = ", ".join(error.get("code", "unknown") for error in validation.get("errors", []))
             raise MinimalEngineSessionError("Invalid player-visible snapshot: %s" % codes)
         return deepcopy(snapshot)
+
+    def export_canonical_match_state(self):
+        """Return a detached, lossless canonical projection of MatchState."""
+
+        return deepcopy(
+            serialize_match_state(
+                self._require_state(),
+                runtime_package=self.runtime_package,
+            )
+        )
 
     def get_draw_precondition(self, player_id):
         return minimal_engine.can_player_draw(self._require_state(), player_id)
