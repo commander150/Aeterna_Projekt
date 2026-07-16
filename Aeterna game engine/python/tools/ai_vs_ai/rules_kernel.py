@@ -51,15 +51,43 @@ class RulesKernelError(Exception):
     """Raised when the minimal rules kernel rejects an operation."""
 
 
-def create_initial_match_state(runtime_package, deck_id_a, deck_id_b, match_id="AI-SMOKE-001"):
+DEFAULT_PLAYER_IDS = ("P1", "P2")
+
+
+def create_initial_match_state(
+    runtime_package,
+    deck_id_a,
+    deck_id_b,
+    match_id="AI-SMOKE-001",
+    player_ids=DEFAULT_PLAYER_IDS,
+    starting_hand_size=0,
+):
+    player_ids = _validate_player_ids(player_ids)
+    starting_hand_size = _validate_starting_hand_size(starting_hand_size)
     _ensure_valid_runtime_package_deck_refs(runtime_package)
     deck_a = _get_deck_or_raise(runtime_package, deck_id_a)
     deck_b = _get_deck_or_raise(runtime_package, deck_id_b)
+    deck_card_ids_a = _expand_deck_entries(deck_a)
+    deck_card_ids_b = _expand_deck_entries(deck_b)
+    _validate_starting_hand_fits_deck(starting_hand_size, deck_id_a, deck_card_ids_a)
+    _validate_starting_hand_fits_deck(starting_hand_size, deck_id_b, deck_card_ids_b)
 
     card_instances = {}
     players = [
-        _create_player_state("P1", deck_id_a, deck_a, card_instances),
-        _create_player_state("P2", deck_id_b, deck_b, card_instances),
+        _create_player_state(
+            player_ids[0],
+            deck_id_a,
+            deck_card_ids_a,
+            card_instances,
+            starting_hand_size,
+        ),
+        _create_player_state(
+            player_ids[1],
+            deck_id_b,
+            deck_card_ids_b,
+            card_instances,
+            starting_hand_size,
+        ),
     ]
     domain_topologies = {
         player.player_id: create_player_domain_topology(player.player_id) for player in players
@@ -74,7 +102,7 @@ def create_initial_match_state(runtime_package, deck_id_a, deck_id_b, match_id="
     return MatchState(
         match_id=match_id,
         turn_number=1,
-        active_player_id="P1",
+        active_player_id=player_ids[0],
         players=players,
         phase="main",
         card_instances=card_instances,
@@ -135,7 +163,8 @@ def _apply_end_turn(state, action):
     phase_before = state.phase
     next_player_id = state.get_inactive_player_id()
     state.active_player_id = next_player_id
-    if previous_player_id == "P2" and next_player_id == "P1":
+    ordered_player_ids = [player.player_id for player in state.players]
+    if ordered_player_ids.index(previous_player_id) == len(ordered_player_ids) - 1:
         state.turn_number += 1
     state.state_version += 1
 
@@ -274,6 +303,41 @@ def _expand_deck_entries(deck):
     return card_ids
 
 
+def _validate_player_ids(player_ids):
+    if player_ids is None or isinstance(player_ids, (str, bytes)):
+        raise RulesKernelError("player_ids must contain exactly two player IDs.")
+    try:
+        normalized = tuple(player_ids)
+    except TypeError as exc:
+        raise RulesKernelError("player_ids must contain exactly two player IDs.") from exc
+    if len(normalized) != 2:
+        raise RulesKernelError("player_ids must contain exactly two player IDs.")
+    for index, player_id in enumerate(normalized):
+        if not isinstance(player_id, str) or not player_id.strip():
+            raise RulesKernelError("player_ids[%s] must be a non-empty string." % index)
+    if normalized[0] == normalized[1]:
+        raise RulesKernelError("player_ids must contain two distinct values.")
+    return normalized
+
+
+def _validate_starting_hand_size(starting_hand_size):
+    if (
+        not isinstance(starting_hand_size, int)
+        or isinstance(starting_hand_size, bool)
+        or starting_hand_size < 0
+    ):
+        raise RulesKernelError("starting_hand_size must be a non-negative integer.")
+    return starting_hand_size
+
+
+def _validate_starting_hand_fits_deck(starting_hand_size, deck_id, card_ids):
+    if starting_hand_size > len(card_ids):
+        raise RulesKernelError(
+            "starting_hand_size %s exceeds deck size %s for deck_id: %s"
+            % (starting_hand_size, len(card_ids), deck_id)
+        )
+
+
 def _can_player_draw(state, player_id):
     try:
         return bool(state.get_player(player_id).deck_card_instance_ids)
@@ -281,32 +345,43 @@ def _can_player_draw(state, player_id):
         return False
 
 
-def _create_player_state(player_id, deck_id, deck, card_instances):
+def _create_player_state(
+    player_id,
+    deck_id,
+    ordered_card_ids,
+    card_instances,
+    starting_hand_size,
+):
     deck_card_instance_ids = []
-    for zone_index, card_id in enumerate(_expand_deck_entries(deck)):
-        sequence = zone_index + 1
+    hand_card_instance_ids = []
+    for original_deck_index, card_id in enumerate(ordered_card_ids):
+        sequence = original_deck_index + 1
+        initial_zone = "hand" if original_deck_index < starting_hand_size else "deck"
+        target_zone = hand_card_instance_ids if initial_zone == "hand" else deck_card_instance_ids
+        zone_index = len(target_zone)
         card_instance_id = create_card_instance_id(player_id, sequence)
         card_instances[card_instance_id] = create_card_instance_record(
             card_instance_id=card_instance_id,
             card_id=card_id,
             owner_player_id=player_id,
             controller_player_id=player_id,
-            zone="deck",
+            zone=initial_zone,
             zone_index=zone_index,
             visibility="owner_only",
             created_sequence=sequence,
             zone_sequence=1,
             metadata={
-                "source": "initial_deck_setup",
-                "authority": "rules_kernel",
+                "creation_reason": "initial_match_setup",
+                "initial_zone": initial_zone,
             },
             activity_state=None,
         )
-        deck_card_instance_ids.append(card_instance_id)
+        target_zone.append(card_instance_id)
     return PlayerState(
         player_id=player_id,
         deck_id=deck_id,
         deck_card_instance_ids=deck_card_instance_ids,
+        hand_card_instance_ids=hand_card_instance_ids,
     )
 
 

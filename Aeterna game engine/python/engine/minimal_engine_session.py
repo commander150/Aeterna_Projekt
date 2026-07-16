@@ -35,16 +35,26 @@ class MinimalEngineSession:
         self.deck_id_b = None
         self._action_response_history = []
 
-    def create_match(self, deck_id_a=None, deck_id_b=None, match_id=None):
+    def create_match(
+        self,
+        deck_id_a=None,
+        deck_id_b=None,
+        match_id=None,
+        player_ids=("P1", "P2"),
+        starting_hand_size=0,
+    ):
         deck_id_a, deck_id_b = self._resolve_decks(deck_id_a, deck_id_b)
-        self.deck_id_a = deck_id_a
-        self.deck_id_b = deck_id_b
-        self.state = minimal_engine.create_match(
+        state = minimal_engine.create_match(
             self.runtime_package,
             deck_id_a,
             deck_id_b,
             match_id=match_id or "ENGINE-SESSION-SMOKE-001",
+            player_ids=player_ids,
+            starting_hand_size=starting_hand_size,
         )
+        self.deck_id_a = deck_id_a
+        self.deck_id_b = deck_id_b
+        self.state = state
         self._action_response_history = []
         return self.state
 

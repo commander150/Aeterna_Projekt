@@ -1,0 +1,35 @@
+{
+  "schema_version": "aeterna-runtime-comparison-fixture-v1",
+  "fixture_id": "minimal_draw_end_turn_v1",
+  "description": "Minimal deterministic two-player draw and end-turn runtime comparison setup.",
+  "runtime_package_ref": "runtime_package",
+  "seed": 1,
+  "match_id": "RUNTIME-COMPARISON-MINIMAL-DRAW-END-TURN-V1",
+  "player_ids": [
+    "player_1",
+    "player_2"
+  ],
+  "deck_ids": [
+    "FIXTURE-DECK-PLAYER-1",
+    "FIXTURE-DECK-PLAYER-2"
+  ],
+  "player_setup": [
+    {
+      "player_id": "player_1",
+      "deck_id": "FIXTURE-DECK-PLAYER-1"
+    },
+    {
+      "player_id": "player_2",
+      "deck_id": "FIXTURE-DECK-PLAYER-2"
+    }
+  ],
+  "starting_hand_size": 1,
+  "step_plan": {
+    "step_plan_id": "minimal_draw_end_turn_v1",
+    "status": "declared_for_later_stage"
+  },
+  "metadata": {
+    "purpose": "cross_runtime_comparison",
+    "deterministic": true
+  }
+}

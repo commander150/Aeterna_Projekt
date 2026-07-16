@@ -26,8 +26,22 @@ except ModuleNotFoundError:
     from .player_visible_snapshot import create_player_visible_snapshot as _create_player_visible_snapshot
 
 
-def create_match(runtime_package, deck_id_a, deck_id_b, match_id="ENGINE-SMOKE-001"):
-    return create_initial_match_state(runtime_package, deck_id_a, deck_id_b, match_id=match_id)
+def create_match(
+    runtime_package,
+    deck_id_a,
+    deck_id_b,
+    match_id="ENGINE-SMOKE-001",
+    player_ids=("P1", "P2"),
+    starting_hand_size=0,
+):
+    return create_initial_match_state(
+        runtime_package,
+        deck_id_a,
+        deck_id_b,
+        match_id=match_id,
+        player_ids=player_ids,
+        starting_hand_size=starting_hand_size,
+    )
 
 
 def get_legal_actions(state, player_id=None):

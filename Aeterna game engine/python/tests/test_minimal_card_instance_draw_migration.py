@@ -62,8 +62,13 @@ class TestMinimalCardInstanceDrawMigration(unittest.TestCase):
                 self.assertEqual(record["visibility"], "owner_only")
                 self.assertEqual(record["created_sequence"], zone_index + 1)
                 self.assertEqual(record["zone_sequence"], 1)
-                self.assertEqual(record["metadata"]["source"], "initial_deck_setup")
-                self.assertEqual(record["metadata"]["authority"], "rules_kernel")
+                self.assertEqual(
+                    record["metadata"],
+                    {
+                        "creation_reason": "initial_match_setup",
+                        "initial_zone": "deck",
+                    },
+                )
             self.assertEqual(actual_card_ids, expected_card_ids)
 
         second_session = self.session_module.MinimalEngineSession(self.runtime_package)

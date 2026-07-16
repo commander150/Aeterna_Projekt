@@ -1,0 +1,51 @@
+{
+  "package_id": "aeterna.runtime_comparison.minimal_draw_end_turn_v1",
+  "package_version": "1.0.0",
+  "schema_version": "sample-runtime-package-v1",
+  "ruleset_version": "minimal-runtime-comparison-v1",
+  "source_files": [
+    {
+      "path": "../fixture.json",
+      "type": "runtime_comparison_fixture"
+    }
+  ],
+  "files": [
+    {
+      "path": "manifest.json",
+      "format": "json"
+    },
+    {
+      "path": "cards.jsonl",
+      "format": "jsonl"
+    },
+    {
+      "path": "decks.jsonl",
+      "format": "jsonl"
+    },
+    {
+      "path": "lookups.json",
+      "format": "json"
+    }
+  ],
+  "validation_summary": {
+    "blocking": false,
+    "card_count": 6,
+    "deck_count": 2,
+    "diagnostic_count": 0,
+    "warning_count": 0,
+    "error_count": 0
+  },
+  "engine_support_summary": {
+    "card_statuses": {
+      "not_checked": 6
+    },
+    "ability_module_statuses": {},
+    "runtime_executes_abilities": false
+  },
+  "metadata": {
+    "generator": "static_fixture_definition",
+    "purpose": "cross_runtime_comparison",
+    "production_export": false,
+    "deterministic": true
+  }
+}

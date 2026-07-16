@@ -117,7 +117,7 @@ def validate_state_invariants(state, runtime_package=None):
     errors.extend(
         _validate_event_log(
             getattr(state, "event_log", []) or [],
-            set(player_ids),
+            player_ids,
             normalized_registry,
             {
                 "active_player_id": getattr(state, "active_player_id", None),
@@ -1106,17 +1106,19 @@ def _validate_turn_transition_engine_event(
 
     previous_player_id = payload.get("previous_active_player_id")
     next_player_id = payload.get("next_active_player_id")
-    if previous_player_id == next_player_id or (previous_player_id, next_player_id) not in {
-        ("P1", "P2"),
-        ("P2", "P1"),
-    }:
+    expected_next_player_id = None
+    if len(player_ids) == 2 and previous_player_id in player_ids:
+        previous_player_index = player_ids.index(previous_player_id)
+        expected_next_player_id = player_ids[(previous_player_index + 1) % len(player_ids)]
+    if next_player_id != expected_next_player_id:
         errors.append(
             _error(
                 "TURN_TRANSITION_ACTIVE_PLAYER_INVALID",
-                "minimal turn transition must alternate P1 and P2.",
+                "minimal turn transition must follow MatchState player order.",
                 event_index=event_index,
                 previous_active_player_id=previous_player_id,
                 next_active_player_id=next_player_id,
+                expected_next_active_player_id=expected_next_player_id,
             )
         )
 
@@ -1137,16 +1139,19 @@ def _validate_turn_transition_engine_event(
     turn_number_before = payload.get("turn_number_before")
     turn_number_after = payload.get("turn_number_after")
     expected_turn_number_after = None
-    if _is_integer(turn_number_before):
-        if (previous_player_id, next_player_id) == ("P1", "P2"):
-            expected_turn_number_after = turn_number_before
-        elif (previous_player_id, next_player_id) == ("P2", "P1"):
-            expected_turn_number_after = turn_number_before + 1
+    transition_order_valid = (
+        expected_next_player_id is not None and next_player_id == expected_next_player_id
+    )
+    if _is_integer(turn_number_before) and transition_order_valid:
+        wraps_to_first_player = (
+            previous_player_id == player_ids[-1] and next_player_id == player_ids[0]
+        )
+        expected_turn_number_after = turn_number_before + int(wraps_to_first_player)
     if expected_turn_number_after is None or turn_number_after != expected_turn_number_after:
         errors.append(
             _error(
                 "TURN_TRANSITION_TURN_NUMBER_INVALID",
-                "turn number must follow the minimal P1/P2 transition rule.",
+                "turn number must follow the ordered two-player transition rule.",
                 event_index=event_index,
                 turn_number_before=turn_number_before,
                 turn_number_after=turn_number_after,
