@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Runtime comparison oracle bytes must survive checkout unchanged.
+"Aeterna game engine/runtime_comparison/fixtures/**/expected/**/*.json" text eol=lf
+"Aeterna game engine/runtime_comparison/fixtures/**/expected/**/*.jsonl" text eol=lf

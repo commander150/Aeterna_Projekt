@@ -1,0 +1,65 @@
+{
+  "contract_type": "runtime_comparison_diagnostics",
+  "determinism_validation": {
+    "comparison": "two_clean_in_memory_canonical_results",
+    "passed": true
+  },
+  "fixture_validation": {
+    "fixture_id": "minimal_draw_end_turn_v1",
+    "passed": true
+  },
+  "hidden_information_validation": {
+    "passed": true,
+    "players": {
+      "player_1": {
+        "forbidden_key_count": 0,
+        "hidden_value_leak_count": 0,
+        "passed": true,
+        "python_metadata_count": 0,
+        "snapshot_non_mutating": true
+      },
+      "player_2": {
+        "forbidden_key_count": 0,
+        "hidden_value_leak_count": 0,
+        "passed": true,
+        "python_metadata_count": 0,
+        "snapshot_non_mutating": true
+      }
+    }
+  },
+  "invariant_validation": {
+    "error_count": 0,
+    "passed": true
+  },
+  "result": "passed",
+  "runner_diagnostics": {
+    "blocking_error_count": 0,
+    "expected_rejection_diagnostic_count": 1,
+    "items": [
+      {
+        "category": "request_validation",
+        "code": "STALE_STATE_VERSION",
+        "current_state_version": 1,
+        "expected_state_version": 0,
+        "retry_policy": "refresh_projection",
+        "severity": "error"
+      }
+    ]
+  },
+  "schema_version": "aeterna-runtime-comparison-diagnostics-v1",
+  "stale_immutability_validation": {
+    "canonical_state_sha256_after": "d62b5309e29e212fbcf4aadcdea43f1259cb5c7be9bdd97a1ac79b271b14d2aa",
+    "canonical_state_sha256_before": "d62b5309e29e212fbcf4aadcdea43f1259cb5c7be9bdd97a1ac79b271b14d2aa",
+    "components": {
+      "active_player": true,
+      "event_log": true,
+      "occupancy": true,
+      "player_zone_lists": true,
+      "priority_player": true,
+      "registry": true,
+      "state_version": true,
+      "topology": true
+    },
+    "passed": true
+  }
+}

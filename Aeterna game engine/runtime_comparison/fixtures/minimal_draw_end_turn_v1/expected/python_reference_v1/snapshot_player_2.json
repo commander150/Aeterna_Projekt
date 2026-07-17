@@ -1,0 +1,761 @@
+{
+  "active_player_id": "player_2",
+  "board": {
+    "board_model": "minimal-public-domain-board-v0",
+    "contract_type": "player_visible_domain_board",
+    "current_count": 6,
+    "metadata": {
+      "gameplay_mutation_model": "not_implemented",
+      "object_reference_model": "minimal-object-reference-v0",
+      "occupancy_model": "single_card_instance_per_domain_position_v0",
+      "public_information_only": true,
+      "seal_state_model": "not_implemented",
+      "topology_model": "base_game_six_current_v0"
+    },
+    "players": [
+      {
+        "current_count": 6,
+        "currents": [
+          {
+            "current_id": "domain_player_1_current_01",
+            "current_index": 1,
+            "horizon": {
+              "current_index": 1,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_01_horizon",
+              "position_type": "horizon",
+              "row": "horizon",
+              "visibility": "public"
+            },
+            "metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "seal_position": {
+              "current_index": 1,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_01_seal",
+              "position_type": "seal",
+              "state_model": "not_implemented",
+              "visibility": "public"
+            },
+            "zenith": {
+              "current_index": 1,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_01_zenith",
+              "position_type": "zenith",
+              "row": "zenith",
+              "visibility": "public"
+            }
+          },
+          {
+            "current_id": "domain_player_1_current_02",
+            "current_index": 2,
+            "horizon": {
+              "current_index": 2,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_02_horizon",
+              "position_type": "horizon",
+              "row": "horizon",
+              "visibility": "public"
+            },
+            "metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "seal_position": {
+              "current_index": 2,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_02_seal",
+              "position_type": "seal",
+              "state_model": "not_implemented",
+              "visibility": "public"
+            },
+            "zenith": {
+              "current_index": 2,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_02_zenith",
+              "position_type": "zenith",
+              "row": "zenith",
+              "visibility": "public"
+            }
+          },
+          {
+            "current_id": "domain_player_1_current_03",
+            "current_index": 3,
+            "horizon": {
+              "current_index": 3,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_03_horizon",
+              "position_type": "horizon",
+              "row": "horizon",
+              "visibility": "public"
+            },
+            "metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "seal_position": {
+              "current_index": 3,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_03_seal",
+              "position_type": "seal",
+              "state_model": "not_implemented",
+              "visibility": "public"
+            },
+            "zenith": {
+              "current_index": 3,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_03_zenith",
+              "position_type": "zenith",
+              "row": "zenith",
+              "visibility": "public"
+            }
+          },
+          {
+            "current_id": "domain_player_1_current_04",
+            "current_index": 4,
+            "horizon": {
+              "current_index": 4,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_04_horizon",
+              "position_type": "horizon",
+              "row": "horizon",
+              "visibility": "public"
+            },
+            "metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "seal_position": {
+              "current_index": 4,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_04_seal",
+              "position_type": "seal",
+              "state_model": "not_implemented",
+              "visibility": "public"
+            },
+            "zenith": {
+              "current_index": 4,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_04_zenith",
+              "position_type": "zenith",
+              "row": "zenith",
+              "visibility": "public"
+            }
+          },
+          {
+            "current_id": "domain_player_1_current_05",
+            "current_index": 5,
+            "horizon": {
+              "current_index": 5,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_05_horizon",
+              "position_type": "horizon",
+              "row": "horizon",
+              "visibility": "public"
+            },
+            "metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "seal_position": {
+              "current_index": 5,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_05_seal",
+              "position_type": "seal",
+              "state_model": "not_implemented",
+              "visibility": "public"
+            },
+            "zenith": {
+              "current_index": 5,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_05_zenith",
+              "position_type": "zenith",
+              "row": "zenith",
+              "visibility": "public"
+            }
+          },
+          {
+            "current_id": "domain_player_1_current_06",
+            "current_index": 6,
+            "horizon": {
+              "current_index": 6,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_06_horizon",
+              "position_type": "horizon",
+              "row": "horizon",
+              "visibility": "public"
+            },
+            "metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "seal_position": {
+              "current_index": 6,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_06_seal",
+              "position_type": "seal",
+              "state_model": "not_implemented",
+              "visibility": "public"
+            },
+            "zenith": {
+              "current_index": 6,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_1",
+              "position_id": "domain_player_1_current_06_zenith",
+              "position_type": "zenith",
+              "row": "zenith",
+              "visibility": "public"
+            }
+          }
+        ],
+        "empty_slot_count": 12,
+        "metadata": {
+          "domain_slot_count": 12,
+          "seal_position_count": 6,
+          "visibility": "public"
+        },
+        "occupied_slot_count": 0,
+        "player_id": "player_1"
+      },
+      {
+        "current_count": 6,
+        "currents": [
+          {
+            "current_id": "domain_player_2_current_01",
+            "current_index": 1,
+            "horizon": {
+              "current_index": 1,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_01_horizon",
+              "position_type": "horizon",
+              "row": "horizon",
+              "visibility": "public"
+            },
+            "metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "seal_position": {
+              "current_index": 1,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_01_seal",
+              "position_type": "seal",
+              "state_model": "not_implemented",
+              "visibility": "public"
+            },
+            "zenith": {
+              "current_index": 1,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_01_zenith",
+              "position_type": "zenith",
+              "row": "zenith",
+              "visibility": "public"
+            }
+          },
+          {
+            "current_id": "domain_player_2_current_02",
+            "current_index": 2,
+            "horizon": {
+              "current_index": 2,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_02_horizon",
+              "position_type": "horizon",
+              "row": "horizon",
+              "visibility": "public"
+            },
+            "metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "seal_position": {
+              "current_index": 2,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_02_seal",
+              "position_type": "seal",
+              "state_model": "not_implemented",
+              "visibility": "public"
+            },
+            "zenith": {
+              "current_index": 2,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_02_zenith",
+              "position_type": "zenith",
+              "row": "zenith",
+              "visibility": "public"
+            }
+          },
+          {
+            "current_id": "domain_player_2_current_03",
+            "current_index": 3,
+            "horizon": {
+              "current_index": 3,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_03_horizon",
+              "position_type": "horizon",
+              "row": "horizon",
+              "visibility": "public"
+            },
+            "metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "seal_position": {
+              "current_index": 3,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_03_seal",
+              "position_type": "seal",
+              "state_model": "not_implemented",
+              "visibility": "public"
+            },
+            "zenith": {
+              "current_index": 3,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_03_zenith",
+              "position_type": "zenith",
+              "row": "zenith",
+              "visibility": "public"
+            }
+          },
+          {
+            "current_id": "domain_player_2_current_04",
+            "current_index": 4,
+            "horizon": {
+              "current_index": 4,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_04_horizon",
+              "position_type": "horizon",
+              "row": "horizon",
+              "visibility": "public"
+            },
+            "metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "seal_position": {
+              "current_index": 4,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_04_seal",
+              "position_type": "seal",
+              "state_model": "not_implemented",
+              "visibility": "public"
+            },
+            "zenith": {
+              "current_index": 4,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_04_zenith",
+              "position_type": "zenith",
+              "row": "zenith",
+              "visibility": "public"
+            }
+          },
+          {
+            "current_id": "domain_player_2_current_05",
+            "current_index": 5,
+            "horizon": {
+              "current_index": 5,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_05_horizon",
+              "position_type": "horizon",
+              "row": "horizon",
+              "visibility": "public"
+            },
+            "metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "seal_position": {
+              "current_index": 5,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_05_seal",
+              "position_type": "seal",
+              "state_model": "not_implemented",
+              "visibility": "public"
+            },
+            "zenith": {
+              "current_index": 5,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_05_zenith",
+              "position_type": "zenith",
+              "row": "zenith",
+              "visibility": "public"
+            }
+          },
+          {
+            "current_id": "domain_player_2_current_06",
+            "current_index": 6,
+            "horizon": {
+              "current_index": 6,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_06_horizon",
+              "position_type": "horizon",
+              "row": "horizon",
+              "visibility": "public"
+            },
+            "metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "seal_position": {
+              "current_index": 6,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_06_seal",
+              "position_type": "seal",
+              "state_model": "not_implemented",
+              "visibility": "public"
+            },
+            "zenith": {
+              "current_index": 6,
+              "metadata": {
+                "capacity": 1,
+                "occupancy_model": "single_card_instance_per_domain_position_v0"
+              },
+              "occupancy_state": "empty",
+              "occupant": null,
+              "occupied": false,
+              "player_id": "player_2",
+              "position_id": "domain_player_2_current_06_zenith",
+              "position_type": "zenith",
+              "row": "zenith",
+              "visibility": "public"
+            }
+          }
+        ],
+        "empty_slot_count": 12,
+        "metadata": {
+          "domain_slot_count": 12,
+          "seal_position_count": 6,
+          "visibility": "public"
+        },
+        "occupied_slot_count": 0,
+        "player_id": "player_2"
+      }
+    ],
+    "schema_version": "minimal-player-visible-domain-board-v0",
+    "visibility_mode": "public"
+  },
+  "contract_type": "engine_player_visible_snapshot",
+  "diagnostics_summary": {
+    "blocking_errors": 0,
+    "draw_preconditions_ok": true,
+    "hand_deck_invariants_ok": true,
+    "invariant_errors": 0,
+    "warnings": 0
+  },
+  "event_log_summary": {
+    "event_count": 3,
+    "last_event_sequence": 3,
+    "last_event_type": "zone_move"
+  },
+  "legal_action_summary": {
+    "action_count": 2,
+    "action_types": [
+      "draw_card",
+      "end_turn"
+    ],
+    "disabled_count": 0,
+    "enabled_count": 2,
+    "state_version": 3
+  },
+  "match_id": "RUNTIME-COMPARISON-MINIMAL-DRAW-END-TURN-V1",
+  "metadata": {
+    "board_model": "minimal-public-domain-board-v0",
+    "card_id_overlap_guard": false,
+    "card_instance_model": "minimal_registry_v0",
+    "debug_snapshot_source": false,
+    "hidden_information_model": "minimal_visibility_projection_v0",
+    "player_visible_snapshot_model": "stable_minimal_v2",
+    "rules_scope": "minimal_draw_end_turn_smoke"
+  },
+  "phase": "main",
+  "player_id": "player_2",
+  "players": [
+    {
+      "deck_count": 1,
+      "discard_count": 0,
+      "hand_count": 2,
+      "is_viewer": false,
+      "player_id": "player_1",
+      "relation": "opponent",
+      "zones": {
+        "deck": {
+          "count": 1,
+          "metadata": {
+            "ordered": false
+          },
+          "objects": [],
+          "redacted": true,
+          "visibility_mode": "count_only",
+          "zone": "deck"
+        },
+        "discard": {
+          "count": 0,
+          "metadata": {
+            "ordered": true
+          },
+          "objects": [],
+          "redacted": false,
+          "visibility_mode": "public",
+          "zone": "discard"
+        },
+        "hand": {
+          "count": 2,
+          "metadata": {
+            "ordered": false
+          },
+          "objects": [],
+          "redacted": true,
+          "visibility_mode": "count_only",
+          "zone": "hand"
+        }
+      }
+    },
+    {
+      "deck_count": 1,
+      "discard_count": 0,
+      "hand_count": 2,
+      "is_viewer": true,
+      "player_id": "player_2",
+      "relation": "self",
+      "zones": {
+        "deck": {
+          "count": 1,
+          "metadata": {
+            "ordered": false
+          },
+          "objects": [],
+          "redacted": true,
+          "visibility_mode": "count_only",
+          "zone": "deck"
+        },
+        "discard": {
+          "count": 0,
+          "metadata": {
+            "ordered": true
+          },
+          "objects": [],
+          "redacted": false,
+          "visibility_mode": "public",
+          "zone": "discard"
+        },
+        "hand": {
+          "count": 2,
+          "metadata": {
+            "ordered": true
+          },
+          "objects": [
+            {
+              "card_id": "FIXTURE-CARD-P2-001",
+              "card_instance_id": "ci_player_2_0001",
+              "contract_type": "object_reference",
+              "controller_player_id": "player_2",
+              "metadata": {
+                "reference_scope": "minimal_card_instance_helper"
+              },
+              "object_id": "ci_player_2_0001",
+              "object_type": "card_instance",
+              "schema_version": "minimal-object-reference-v0",
+              "visibility": "owner_only",
+              "zone": "hand",
+              "zone_sequence": 1
+            },
+            {
+              "card_id": "FIXTURE-CARD-P2-002",
+              "card_instance_id": "ci_player_2_0002",
+              "contract_type": "object_reference",
+              "controller_player_id": "player_2",
+              "metadata": {
+                "reference_scope": "minimal_card_instance_helper"
+              },
+              "object_id": "ci_player_2_0002",
+              "object_type": "card_instance",
+              "schema_version": "minimal-object-reference-v0",
+              "visibility": "owner_only",
+              "zone": "hand",
+              "zone_sequence": 2
+            }
+          ],
+          "redacted": false,
+          "visibility_mode": "owner_visible",
+          "zone": "hand"
+        }
+      }
+    }
+  ],
+  "priority_player_id": "player_2",
+  "schema_version": "engine-player-visible-snapshot-v2",
+  "snapshot_type": "player_visible_snapshot",
+  "state_version": 3,
+  "turn": 1,
+  "turn_number": 1,
+  "visibility_mode": "player",
+  "visibility_policy": {
+    "board": "public",
+    "deck": "count_only",
+    "discard": "public",
+    "model": "minimal_visibility_projection_v0",
+    "opponent_hand": "count_only",
+    "own_hand": "owner_visible"
+  }
+}

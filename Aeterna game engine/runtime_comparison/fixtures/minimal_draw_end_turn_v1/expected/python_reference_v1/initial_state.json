@@ -1,0 +1,1535 @@
+{
+  "active_player_id": "player_1",
+  "card_instances": [
+    {
+      "activity_state": null,
+      "card_id": "FIXTURE-CARD-P1-001",
+      "card_instance_id": "ci_player_1_0001",
+      "contract_type": "card_instance_record",
+      "controller_player_id": "player_1",
+      "created_sequence": 1,
+      "owner_player_id": "player_1",
+      "schema_version": "minimal-card-instance-record-v1",
+      "semantic_metadata": {
+        "creation_reason": "initial_match_setup",
+        "initial_zone": "hand"
+      },
+      "visibility": "owner_only",
+      "zone": "hand",
+      "zone_index": 0,
+      "zone_sequence": 1
+    },
+    {
+      "activity_state": null,
+      "card_id": "FIXTURE-CARD-P2-001",
+      "card_instance_id": "ci_player_2_0001",
+      "contract_type": "card_instance_record",
+      "controller_player_id": "player_2",
+      "created_sequence": 1,
+      "owner_player_id": "player_2",
+      "schema_version": "minimal-card-instance-record-v1",
+      "semantic_metadata": {
+        "creation_reason": "initial_match_setup",
+        "initial_zone": "hand"
+      },
+      "visibility": "owner_only",
+      "zone": "hand",
+      "zone_index": 0,
+      "zone_sequence": 1
+    },
+    {
+      "activity_state": null,
+      "card_id": "FIXTURE-CARD-P1-002",
+      "card_instance_id": "ci_player_1_0002",
+      "contract_type": "card_instance_record",
+      "controller_player_id": "player_1",
+      "created_sequence": 2,
+      "owner_player_id": "player_1",
+      "schema_version": "minimal-card-instance-record-v1",
+      "semantic_metadata": {
+        "creation_reason": "initial_match_setup",
+        "initial_zone": "deck"
+      },
+      "visibility": "owner_only",
+      "zone": "deck",
+      "zone_index": 0,
+      "zone_sequence": 1
+    },
+    {
+      "activity_state": null,
+      "card_id": "FIXTURE-CARD-P2-002",
+      "card_instance_id": "ci_player_2_0002",
+      "contract_type": "card_instance_record",
+      "controller_player_id": "player_2",
+      "created_sequence": 2,
+      "owner_player_id": "player_2",
+      "schema_version": "minimal-card-instance-record-v1",
+      "semantic_metadata": {
+        "creation_reason": "initial_match_setup",
+        "initial_zone": "deck"
+      },
+      "visibility": "owner_only",
+      "zone": "deck",
+      "zone_index": 0,
+      "zone_sequence": 1
+    },
+    {
+      "activity_state": null,
+      "card_id": "FIXTURE-CARD-P1-003",
+      "card_instance_id": "ci_player_1_0003",
+      "contract_type": "card_instance_record",
+      "controller_player_id": "player_1",
+      "created_sequence": 3,
+      "owner_player_id": "player_1",
+      "schema_version": "minimal-card-instance-record-v1",
+      "semantic_metadata": {
+        "creation_reason": "initial_match_setup",
+        "initial_zone": "deck"
+      },
+      "visibility": "owner_only",
+      "zone": "deck",
+      "zone_index": 1,
+      "zone_sequence": 1
+    },
+    {
+      "activity_state": null,
+      "card_id": "FIXTURE-CARD-P2-003",
+      "card_instance_id": "ci_player_2_0003",
+      "contract_type": "card_instance_record",
+      "controller_player_id": "player_2",
+      "created_sequence": 3,
+      "owner_player_id": "player_2",
+      "schema_version": "minimal-card-instance-record-v1",
+      "semantic_metadata": {
+        "creation_reason": "initial_match_setup",
+        "initial_zone": "deck"
+      },
+      "visibility": "owner_only",
+      "zone": "deck",
+      "zone_index": 1,
+      "zone_sequence": 1
+    }
+  ],
+  "contract_type": "canonical_match_state",
+  "domain_occupancies": [
+    {
+      "occupancy": {
+        "contract_type": "player_domain_occupancy",
+        "occupancy_model": "single_card_instance_per_domain_position_v0",
+        "player_id": "player_1",
+        "schema_version": "minimal-player-domain-occupancy-v0",
+        "semantic_metadata": {
+          "four_current_variant_active": false,
+          "match_state_integration": "not_implemented",
+          "mutation_api": "not_implemented",
+          "play_card_integration": "not_implemented",
+          "seal_state_model": "not_implemented",
+          "slot_capacity": 1,
+          "static_topology_reference": true
+        },
+        "slot_count": 12,
+        "slots": [
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 1,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_01_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 1,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_01_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 2,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_02_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 2,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_02_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 3,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_03_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 3,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_03_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 4,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_04_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 4,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_04_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 5,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_05_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 5,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_05_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 6,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_06_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 6,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_06_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          }
+        ],
+        "topology_model": "base_game_six_current_v0",
+        "topology_schema_version": "minimal-player-domain-topology-v0"
+      },
+      "player_id": "player_1"
+    },
+    {
+      "occupancy": {
+        "contract_type": "player_domain_occupancy",
+        "occupancy_model": "single_card_instance_per_domain_position_v0",
+        "player_id": "player_2",
+        "schema_version": "minimal-player-domain-occupancy-v0",
+        "semantic_metadata": {
+          "four_current_variant_active": false,
+          "match_state_integration": "not_implemented",
+          "mutation_api": "not_implemented",
+          "play_card_integration": "not_implemented",
+          "seal_state_model": "not_implemented",
+          "slot_capacity": 1,
+          "static_topology_reference": true
+        },
+        "slot_count": 12,
+        "slots": [
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 1,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_01_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 1,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_01_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 2,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_02_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 2,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_02_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 3,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_03_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 3,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_03_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 4,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_04_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 4,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_04_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 5,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_05_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 5,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_05_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 6,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_06_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "contract_type": "domain_position_occupancy",
+            "current_index": 6,
+            "occupancy_state": "empty",
+            "occupant_card_instance_id": null,
+            "occupant_object_type": null,
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_06_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-occupancy-v0",
+            "semantic_metadata": {
+              "capacity": 1,
+              "gameplay_integration": "not_implemented",
+              "mutation_api": "not_implemented",
+              "occupancy_model": "single_card_instance_per_domain_position_v0",
+              "seal_position_supported": false,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          }
+        ],
+        "topology_model": "base_game_six_current_v0",
+        "topology_schema_version": "minimal-player-domain-topology-v0"
+      },
+      "player_id": "player_2"
+    }
+  ],
+  "domain_topologies": [
+    {
+      "player_id": "player_1",
+      "topology": {
+        "contract_type": "player_domain_topology",
+        "current_count": 6,
+        "currents": [
+          {
+            "current_id": "domain_player_1_current_01",
+            "current_index": 1,
+            "horizon_position_id": "domain_player_1_current_01_horizon",
+            "seal_position_id": "domain_player_1_current_01_seal",
+            "semantic_metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "zenith_position_id": "domain_player_1_current_01_zenith"
+          },
+          {
+            "current_id": "domain_player_1_current_02",
+            "current_index": 2,
+            "horizon_position_id": "domain_player_1_current_02_horizon",
+            "seal_position_id": "domain_player_1_current_02_seal",
+            "semantic_metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "zenith_position_id": "domain_player_1_current_02_zenith"
+          },
+          {
+            "current_id": "domain_player_1_current_03",
+            "current_index": 3,
+            "horizon_position_id": "domain_player_1_current_03_horizon",
+            "seal_position_id": "domain_player_1_current_03_seal",
+            "semantic_metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "zenith_position_id": "domain_player_1_current_03_zenith"
+          },
+          {
+            "current_id": "domain_player_1_current_04",
+            "current_index": 4,
+            "horizon_position_id": "domain_player_1_current_04_horizon",
+            "seal_position_id": "domain_player_1_current_04_seal",
+            "semantic_metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "zenith_position_id": "domain_player_1_current_04_zenith"
+          },
+          {
+            "current_id": "domain_player_1_current_05",
+            "current_index": 5,
+            "horizon_position_id": "domain_player_1_current_05_horizon",
+            "seal_position_id": "domain_player_1_current_05_seal",
+            "semantic_metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "zenith_position_id": "domain_player_1_current_05_zenith"
+          },
+          {
+            "current_id": "domain_player_1_current_06",
+            "current_index": 6,
+            "horizon_position_id": "domain_player_1_current_06_horizon",
+            "seal_position_id": "domain_player_1_current_06_seal",
+            "semantic_metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "zenith_position_id": "domain_player_1_current_06_zenith"
+          }
+        ],
+        "player_id": "player_1",
+        "positions": [
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 1,
+            "linked_current_id": "domain_player_1_current_01",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_01_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 1,
+            "linked_current_id": "domain_player_1_current_01",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_01_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "seal_layer",
+            "contract_type": "domain_position_reference",
+            "current_index": 1,
+            "linked_current_id": "domain_player_1_current_01",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_01_seal",
+            "position_type": "seal",
+            "row": null,
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 2,
+            "linked_current_id": "domain_player_1_current_02",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_02_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 2,
+            "linked_current_id": "domain_player_1_current_02",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_02_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "seal_layer",
+            "contract_type": "domain_position_reference",
+            "current_index": 2,
+            "linked_current_id": "domain_player_1_current_02",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_02_seal",
+            "position_type": "seal",
+            "row": null,
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 3,
+            "linked_current_id": "domain_player_1_current_03",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_03_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 3,
+            "linked_current_id": "domain_player_1_current_03",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_03_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "seal_layer",
+            "contract_type": "domain_position_reference",
+            "current_index": 3,
+            "linked_current_id": "domain_player_1_current_03",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_03_seal",
+            "position_type": "seal",
+            "row": null,
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 4,
+            "linked_current_id": "domain_player_1_current_04",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_04_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 4,
+            "linked_current_id": "domain_player_1_current_04",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_04_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "seal_layer",
+            "contract_type": "domain_position_reference",
+            "current_index": 4,
+            "linked_current_id": "domain_player_1_current_04",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_04_seal",
+            "position_type": "seal",
+            "row": null,
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 5,
+            "linked_current_id": "domain_player_1_current_05",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_05_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 5,
+            "linked_current_id": "domain_player_1_current_05",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_05_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "seal_layer",
+            "contract_type": "domain_position_reference",
+            "current_index": 5,
+            "linked_current_id": "domain_player_1_current_05",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_05_seal",
+            "position_type": "seal",
+            "row": null,
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 6,
+            "linked_current_id": "domain_player_1_current_06",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_06_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 6,
+            "linked_current_id": "domain_player_1_current_06",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_06_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "seal_layer",
+            "contract_type": "domain_position_reference",
+            "current_index": 6,
+            "linked_current_id": "domain_player_1_current_06",
+            "player_id": "player_1",
+            "position_id": "domain_player_1_current_06_seal",
+            "position_type": "seal",
+            "row": null,
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          }
+        ],
+        "row_count": 2,
+        "rows": [
+          "horizon",
+          "zenith"
+        ],
+        "schema_version": "minimal-player-domain-topology-v0",
+        "semantic_metadata": {
+          "domain_scope": "combat_field_structure",
+          "four_current_variant_active": false,
+          "full_play_area_model": false,
+          "occupancy_model": "not_implemented",
+          "static_topology": true,
+          "topology_model": "base_game_six_current_v0"
+        }
+      }
+    },
+    {
+      "player_id": "player_2",
+      "topology": {
+        "contract_type": "player_domain_topology",
+        "current_count": 6,
+        "currents": [
+          {
+            "current_id": "domain_player_2_current_01",
+            "current_index": 1,
+            "horizon_position_id": "domain_player_2_current_01_horizon",
+            "seal_position_id": "domain_player_2_current_01_seal",
+            "semantic_metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "zenith_position_id": "domain_player_2_current_01_zenith"
+          },
+          {
+            "current_id": "domain_player_2_current_02",
+            "current_index": 2,
+            "horizon_position_id": "domain_player_2_current_02_horizon",
+            "seal_position_id": "domain_player_2_current_02_seal",
+            "semantic_metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "zenith_position_id": "domain_player_2_current_02_zenith"
+          },
+          {
+            "current_id": "domain_player_2_current_03",
+            "current_index": 3,
+            "horizon_position_id": "domain_player_2_current_03_horizon",
+            "seal_position_id": "domain_player_2_current_03_seal",
+            "semantic_metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "zenith_position_id": "domain_player_2_current_03_zenith"
+          },
+          {
+            "current_id": "domain_player_2_current_04",
+            "current_index": 4,
+            "horizon_position_id": "domain_player_2_current_04_horizon",
+            "seal_position_id": "domain_player_2_current_04_seal",
+            "semantic_metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "zenith_position_id": "domain_player_2_current_04_zenith"
+          },
+          {
+            "current_id": "domain_player_2_current_05",
+            "current_index": 5,
+            "horizon_position_id": "domain_player_2_current_05_horizon",
+            "seal_position_id": "domain_player_2_current_05_seal",
+            "semantic_metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "zenith_position_id": "domain_player_2_current_05_zenith"
+          },
+          {
+            "current_id": "domain_player_2_current_06",
+            "current_index": 6,
+            "horizon_position_id": "domain_player_2_current_06_horizon",
+            "seal_position_id": "domain_player_2_current_06_seal",
+            "semantic_metadata": {
+              "ordered": true,
+              "positionally_linked_seal": true
+            },
+            "zenith_position_id": "domain_player_2_current_06_zenith"
+          }
+        ],
+        "player_id": "player_2",
+        "positions": [
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 1,
+            "linked_current_id": "domain_player_2_current_01",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_01_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 1,
+            "linked_current_id": "domain_player_2_current_01",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_01_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "seal_layer",
+            "contract_type": "domain_position_reference",
+            "current_index": 1,
+            "linked_current_id": "domain_player_2_current_01",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_01_seal",
+            "position_type": "seal",
+            "row": null,
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 2,
+            "linked_current_id": "domain_player_2_current_02",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_02_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 2,
+            "linked_current_id": "domain_player_2_current_02",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_02_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "seal_layer",
+            "contract_type": "domain_position_reference",
+            "current_index": 2,
+            "linked_current_id": "domain_player_2_current_02",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_02_seal",
+            "position_type": "seal",
+            "row": null,
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 3,
+            "linked_current_id": "domain_player_2_current_03",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_03_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 3,
+            "linked_current_id": "domain_player_2_current_03",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_03_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "seal_layer",
+            "contract_type": "domain_position_reference",
+            "current_index": 3,
+            "linked_current_id": "domain_player_2_current_03",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_03_seal",
+            "position_type": "seal",
+            "row": null,
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 4,
+            "linked_current_id": "domain_player_2_current_04",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_04_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 4,
+            "linked_current_id": "domain_player_2_current_04",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_04_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "seal_layer",
+            "contract_type": "domain_position_reference",
+            "current_index": 4,
+            "linked_current_id": "domain_player_2_current_04",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_04_seal",
+            "position_type": "seal",
+            "row": null,
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 5,
+            "linked_current_id": "domain_player_2_current_05",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_05_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 5,
+            "linked_current_id": "domain_player_2_current_05",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_05_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "seal_layer",
+            "contract_type": "domain_position_reference",
+            "current_index": 5,
+            "linked_current_id": "domain_player_2_current_05",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_05_seal",
+            "position_type": "seal",
+            "row": null,
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 6,
+            "linked_current_id": "domain_player_2_current_06",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_06_horizon",
+            "position_type": "horizon",
+            "row": "horizon",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "domain",
+            "contract_type": "domain_position_reference",
+            "current_index": 6,
+            "linked_current_id": "domain_player_2_current_06",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_06_zenith",
+            "position_type": "zenith",
+            "row": "zenith",
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          },
+          {
+            "area": "seal_layer",
+            "contract_type": "domain_position_reference",
+            "current_index": 6,
+            "linked_current_id": "domain_player_2_current_06",
+            "player_id": "player_2",
+            "position_id": "domain_player_2_current_06_seal",
+            "position_type": "seal",
+            "row": null,
+            "schema_version": "minimal-domain-position-v0",
+            "semantic_metadata": {
+              "current_count": 6,
+              "occupancy_model": "not_implemented",
+              "static_topology": true,
+              "topology_model": "base_game_six_current_v0"
+            },
+            "visibility": "public"
+          }
+        ],
+        "row_count": 2,
+        "rows": [
+          "horizon",
+          "zenith"
+        ],
+        "schema_version": "minimal-player-domain-topology-v0",
+        "semantic_metadata": {
+          "domain_scope": "combat_field_structure",
+          "four_current_variant_active": false,
+          "full_play_area_model": false,
+          "occupancy_model": "not_implemented",
+          "static_topology": true,
+          "topology_model": "base_game_six_current_v0"
+        }
+      }
+    }
+  ],
+  "event_log": [],
+  "match_id": "RUNTIME-COMPARISON-MINIMAL-DRAW-END-TURN-V1",
+  "phase": "main",
+  "players": [
+    {
+      "deck_card_instance_ids": [
+        "ci_player_1_0002",
+        "ci_player_1_0003"
+      ],
+      "deck_id": "FIXTURE-DECK-PLAYER-1",
+      "discard_card_instance_ids": [],
+      "hand_card_instance_ids": [
+        "ci_player_1_0001"
+      ],
+      "player_id": "player_1"
+    },
+    {
+      "deck_card_instance_ids": [
+        "ci_player_2_0002",
+        "ci_player_2_0003"
+      ],
+      "deck_id": "FIXTURE-DECK-PLAYER-2",
+      "discard_card_instance_ids": [],
+      "hand_card_instance_ids": [
+        "ci_player_2_0001"
+      ],
+      "player_id": "player_2"
+    }
+  ],
+  "priority_model": "minimal_priority_model_v1",
+  "priority_player_id": "player_1",
+  "schema_version": "aeterna-canonical-match-state-v1",
+  "semantic_metadata": {},
+  "state_version": 0,
+  "turn_number": 1
+}

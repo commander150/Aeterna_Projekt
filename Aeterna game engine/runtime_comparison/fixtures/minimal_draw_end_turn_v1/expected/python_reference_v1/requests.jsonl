@@ -1,0 +1,4 @@
+{"action_id":"draw_card:1:0:player_1","action_type":"draw_card","expected_state_version":0,"match_id":"RUNTIME-COMPARISON-MINIMAL-DRAW-END-TURN-V1","payload":{},"player_id":"player_1","request_id":"fixture_req_001_draw_player_1"}
+{"action_id":"end_turn:1:player_1","action_type":"end_turn","expected_state_version":0,"match_id":"RUNTIME-COMPARISON-MINIMAL-DRAW-END-TURN-V1","payload":{},"player_id":"player_1","request_id":"fixture_req_002_stale_end_turn_player_1"}
+{"action_id":"end_turn:1:player_1","action_type":"end_turn","expected_state_version":1,"match_id":"RUNTIME-COMPARISON-MINIMAL-DRAW-END-TURN-V1","payload":{},"player_id":"player_1","request_id":"fixture_req_003_end_turn_player_1"}
+{"action_id":"draw_card:1:2:player_2","action_type":"draw_card","expected_state_version":2,"match_id":"RUNTIME-COMPARISON-MINIMAL-DRAW-END-TURN-V1","payload":{},"player_id":"player_2","request_id":"fixture_req_004_draw_player_2"}
