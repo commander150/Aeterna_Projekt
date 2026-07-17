@@ -52,6 +52,10 @@ class RulesKernelError(Exception):
 
 
 DEFAULT_PLAYER_IDS = ("P1", "P2")
+LEGAL_ACTION_ORDER_RANKS = {
+    "end_turn": 100,
+    "draw_card": 200,
+}
 
 
 def create_initial_match_state(
@@ -120,6 +124,7 @@ def list_legal_actions(state, player_id=None):
         "action_type": "end_turn",
         "player_id": player_id,
         "enabled": enabled,
+        "order_rank": LEGAL_ACTION_ORDER_RANKS["end_turn"],
     }
     if not enabled:
         end_turn_action["reason"] = "not_active_player"
@@ -130,6 +135,7 @@ def list_legal_actions(state, player_id=None):
         "action_type": "draw_card",
         "player_id": player_id,
         "enabled": draw_enabled,
+        "order_rank": LEGAL_ACTION_ORDER_RANKS["draw_card"],
     }
     if not enabled:
         draw_action["reason"] = "not_active_player"
@@ -137,7 +143,15 @@ def list_legal_actions(state, player_id=None):
         player = state.get_player(player_id)
         draw_action["reason"] = "deck_empty" if not player.deck_card_instance_ids else "action_not_enabled"
 
-    return [end_turn_action, draw_action]
+    actions = [end_turn_action, draw_action]
+    return sorted(
+        actions,
+        key=lambda action: (
+            action["order_rank"],
+            action["action_type"],
+            action["action_id"],
+        ),
+    )
 
 
 def apply_action(state, action):

@@ -26,6 +26,18 @@ except ModuleNotFoundError:
     from .canonical_match_state import serialize_match_state
 
 
+_MISSING = object()
+_CANONICAL_MUTATING_REQUEST_FIELDS = (
+    "request_id",
+    "match_id",
+    "player_id",
+    "action_id",
+    "action_type",
+    "expected_state_version",
+    "payload",
+)
+
+
 class MinimalEngineSession:
     """Small session wrapper over the existing minimal end_turn smoke facade.
 
@@ -126,15 +138,40 @@ class MinimalEngineSession:
 
     def submit_action_request(self, request):
         state = self._require_state()
-        expected_state_version = (request or {}).get("expected_state_version")
-        if expected_state_version is not None and expected_state_version != state.state_version:
-            response = self._build_stale_state_version_response(request, state.state_version)
-            contract = self._build_action_response_contract(request, response)
+        normalized_request, shape_error = self._normalize_submission_request(request)
+        if shape_error is not None:
+            response = self._build_invalid_request_response(normalized_request, shape_error)
+            contract = self._build_action_response_contract(
+                normalized_request,
+                response,
+                check_invariants=False,
+            )
+            self._action_response_history.append(deepcopy(contract))
+            return deepcopy(contract)
+
+        if normalized_request["match_id"] != state.match_id:
+            response = self._build_match_id_mismatch_response(normalized_request)
+            contract = self._build_action_response_contract(
+                normalized_request,
+                response,
+                check_invariants=False,
+            )
+            self._action_response_history.append(deepcopy(contract))
+            return deepcopy(contract)
+
+        normalized_request.setdefault("expected_state_version", state.state_version)
+        expected_state_version = normalized_request["expected_state_version"]
+        if expected_state_version != state.state_version:
+            response = self._build_stale_state_version_response(
+                normalized_request,
+                state.state_version,
+            )
+            contract = self._build_action_response_contract(normalized_request, response)
             self._action_response_history.append(deepcopy(contract))
             return deepcopy(contract)
         legal_actions = self.list_legal_actions()
-        response = minimal_engine.resolve_request(state, request, legal_actions)
-        contract = self._build_action_response_contract(request, response)
+        response = minimal_engine.resolve_request(state, normalized_request, legal_actions)
+        contract = self._build_action_response_contract(normalized_request, response)
         self._action_response_history.append(deepcopy(contract))
         return deepcopy(contract)
 
@@ -255,32 +292,41 @@ class MinimalEngineSession:
             }
         )
 
-    def _build_action_response_contract(self, request, response):
+    def _build_action_response_contract(self, request, response, check_invariants=True):
         state = self._require_state()
-        diagnostics = self.get_diagnostics()
-        normalized_request = dict(request or {})
+        invariant_diagnostics = self.get_diagnostics() if check_invariants else []
+        response_diagnostics = deepcopy(list(response.get("diagnostics") or []))
+        diagnostics = response_diagnostics + deepcopy(invariant_diagnostics)
+        normalized_request = deepcopy(dict(request or {}))
         action = response.get("action") or {}
-        events = list(response.get("events") or [])
+        events = deepcopy(list(response.get("events") or []))
         action_type = action.get("action_type") or normalized_request.get("action_type")
         new_event_count = int(response.get("event_count") or 0)
         accepted = bool(response.get("accepted"))
-        state_version_before = response.get("state_version_before")
-        if state_version_before is None:
+        state_version_before = response.get("state_version_before", _MISSING)
+        if state_version_before is _MISSING:
             state_version_before = state.state_version
-        state_version_after = response.get("state_version_after")
-        if state_version_after is None:
+        state_version_after = response.get("state_version_after", _MISSING)
+        if state_version_after is _MISSING:
             state_version_after = state.state_version
+        invariants_ok = len(invariant_diagnostics) == 0 if check_invariants else None
+        blocking_errors = sum(
+            1 for diagnostic in diagnostics if diagnostic.get("severity", "error") == "error"
+        )
+        warning_count = sum(
+            1 for diagnostic in diagnostics if diagnostic.get("severity") == "warning"
+        )
         return {
             "schema_version": "minimal-action-response-v0",
             "contract_type": "action_response",
             "response_type": "minimal_action_response",
-            "match_id": state.match_id,
-            "request_id": response.get("request_id"),
+            "match_id": response.get("match_id", normalized_request.get("match_id", state.match_id)),
+            "request_id": response.get("request_id") or normalized_request.get("request_id"),
             "player_id": normalized_request.get("player_id"),
             "action_id": normalized_request.get("action_id"),
             "action_type": action_type,
             "accepted": accepted,
-            "success": accepted and len(diagnostics) == 0,
+            "success": accepted and invariants_ok is True and blocking_errors == 0,
             "reason": response.get("reason"),
             "state_version_before": state_version_before,
             "state_version_after": state_version_after,
@@ -291,10 +337,10 @@ class MinimalEngineSession:
             "diagnostics": diagnostics,
             "diagnostics_summary": {
                 "count": len(diagnostics),
-                "blocking_errors": len(diagnostics),
-                "warnings": 0,
+                "blocking_errors": blocking_errors,
+                "warnings": warning_count,
             },
-            "invariants_ok": len(diagnostics) == 0,
+            "invariants_ok": invariants_ok,
             "metadata": {
                 "source": "python.engine.minimal_engine_session",
                 "rules_scope": "minimal_end_turn_smoke",
@@ -312,17 +358,19 @@ class MinimalEngineSession:
             "action_type": action_type,
             "player_id": player_id,
             "enabled": enabled,
+            "order_rank": normalized.get("order_rank"),
             "disabled_reason": None if enabled else normalized.get("reason"),
             "request_template": {
                 "action_type": action_type,
                 "player_id": player_id,
                 "expected_state_version": self._require_state().state_version,
                 "payload": {},
-                "required_fields": ["match_id", "player_id", "action_id", "action_type"],
+                "required_fields": list(_CANONICAL_MUTATING_REQUEST_FIELDS),
             },
             "metadata": {
                 "source": "rules_kernel.list_legal_actions",
                 "rules_scope": "minimal_end_turn_smoke",
+                "ordering_profile": "canonical_legal_action_ordering_v1",
             },
         }
 
@@ -375,13 +423,24 @@ class MinimalEngineSession:
             "debug_session_state_summary": self._debug_session_state_summary(self.export_debug_session_state()),
         }
 
-    def build_action_request(self, action, player_id=None):
+    def build_action_request(
+        self,
+        action,
+        player_id=None,
+        request_id=None,
+        payload=None,
+        expected_state_version=None,
+    ):
         state = self._require_state()
         return minimal_engine.build_action_request(
             state,
             action,
             player_id=player_id,
-            expected_state_version=state.state_version,
+            expected_state_version=(
+                state.state_version if expected_state_version is None else expected_state_version
+            ),
+            request_id=request_id,
+            payload=payload,
         )
 
     def validate_action_request(self, request):
@@ -390,12 +449,100 @@ class MinimalEngineSession:
     def _build_stale_state_version_response(self, request, current_state_version):
         return {
             "request_id": (request or {}).get("request_id"),
+            "match_id": (request or {}).get("match_id"),
             "accepted": False,
             "reason": "stale_state_version",
             "events": [],
             "event_count": 0,
+            "diagnostics": [
+                {
+                    "code": "STALE_STATE_VERSION",
+                    "severity": "error",
+                    "category": "request_validation",
+                    "expected_state_version": (request or {}).get("expected_state_version"),
+                    "current_state_version": current_state_version,
+                    "retry_policy": "refresh_projection",
+                }
+            ],
             "state_version_before": current_state_version,
             "state_version_after": current_state_version,
+            "new_event_sequences": [],
+        }
+
+    def _normalize_submission_request(self, request):
+        state = self._require_state()
+        if not isinstance(request, dict):
+            return {}, {
+                "code": "INVALID_ACTION_REQUEST",
+                "severity": "error",
+                "category": "request_validation",
+                "fields": ["request"],
+            }
+
+        normalized = deepcopy(request)
+        if "request_id" not in normalized:
+            match_id = normalized.get("match_id")
+            action_id = normalized.get("action_id")
+            if _is_non_empty_string(match_id) and _is_non_empty_string(action_id):
+                normalized["request_id"] = "request:%s:%s" % (match_id, action_id)
+        if "payload" not in normalized:
+            normalized["payload"] = {}
+
+        invalid_fields = []
+        for field_name in ("request_id", "match_id", "player_id", "action_id", "action_type"):
+            if not _is_non_empty_string(normalized.get(field_name)):
+                invalid_fields.append(field_name)
+        if not isinstance(normalized.get("payload"), dict):
+            invalid_fields.append("payload")
+        if "expected_state_version" in normalized and not _is_non_negative_integer(
+            normalized.get("expected_state_version")
+        ):
+            invalid_fields.append("expected_state_version")
+
+        if invalid_fields:
+            return normalized, {
+                "code": "INVALID_ACTION_REQUEST",
+                "severity": "error",
+                "category": "request_validation",
+                "fields": sorted(set(invalid_fields)),
+            }
+
+        if "expected_state_version" not in normalized and normalized.get("match_id") == state.match_id:
+            normalized["expected_state_version"] = state.state_version
+        return normalized, None
+
+    def _build_invalid_request_response(self, request, diagnostic):
+        return {
+            "request_id": (request or {}).get("request_id"),
+            "match_id": (request or {}).get("match_id"),
+            "accepted": False,
+            "reason": "invalid_request",
+            "events": [],
+            "event_count": 0,
+            "diagnostics": [deepcopy(diagnostic)],
+            "state_version_before": None,
+            "state_version_after": None,
+            "new_event_sequences": [],
+        }
+
+    def _build_match_id_mismatch_response(self, request):
+        return {
+            "request_id": request.get("request_id"),
+            "match_id": request.get("match_id"),
+            "accepted": False,
+            "reason": "match_id_mismatch",
+            "events": [],
+            "event_count": 0,
+            "diagnostics": [
+                {
+                    "code": "MATCH_ID_MISMATCH",
+                    "severity": "error",
+                    "category": "request_validation",
+                    "retry_policy": "use_active_match",
+                }
+            ],
+            "state_version_before": None,
+            "state_version_after": None,
             "new_event_sequences": [],
         }
 
@@ -436,6 +583,14 @@ class MinimalEngineSession:
             "event_count": transition_summary["event_count"],
             "replay_support": debug_session_state["metadata"]["replay_support"],
         }
+
+
+def _is_non_empty_string(value):
+    return isinstance(value, str) and value.strip() != ""
+
+
+def _is_non_negative_integer(value):
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
 
 
 class MinimalEngineSessionError(Exception):

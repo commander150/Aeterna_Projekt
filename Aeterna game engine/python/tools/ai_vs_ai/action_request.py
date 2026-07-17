@@ -7,20 +7,34 @@ allowed to mutate match state.
 
 from __future__ import annotations
 
+from copy import deepcopy
+
 try:
     from rules_kernel import apply_action
 except ModuleNotFoundError:
     from .rules_kernel import apply_action
 
 
-def create_action_request(match_id, player_id, action, expected_state_version=None):
+def create_action_request(
+    match_id,
+    player_id,
+    action,
+    expected_state_version=None,
+    request_id=None,
+    payload=None,
+):
     action_id = action.get("action_id")
     request = {
-        "request_id": "request:%s:%s" % (match_id, action_id),
+        "request_id": (
+            request_id
+            if request_id is not None
+            else "request:%s:%s" % (match_id, action_id)
+        ),
         "match_id": match_id,
         "player_id": player_id,
         "action_id": action_id,
         "action_type": action.get("action_type"),
+        "payload": deepcopy(payload) if payload is not None else {},
     }
     if expected_state_version is not None:
         request["expected_state_version"] = expected_state_version
@@ -29,6 +43,9 @@ def create_action_request(match_id, player_id, action, expected_state_version=No
 
 def validate_action_request(request, legal_actions, state):
     normalized = dict(request or {})
+    if normalized.get("match_id") != state.match_id:
+        return _validation_result(False, "match_id_mismatch", normalized)
+
     if normalized.get("player_id") != state.active_player_id:
         return _validation_result(False, "player_not_active", normalized)
 
@@ -51,12 +68,28 @@ def resolve_action_request(state, request, legal_actions):
     validation = validate_action_request(request, legal_actions, state)
     request_id = (request or {}).get("request_id")
     if not validation["valid"]:
+        expose_state_version = validation["reason"] != "match_id_mismatch"
+        state_version = getattr(state, "state_version", None) if expose_state_version else None
+        diagnostics = []
+        if validation["reason"] == "match_id_mismatch":
+            diagnostics.append(
+                {
+                    "code": "MATCH_ID_MISMATCH",
+                    "severity": "error",
+                    "category": "request_validation",
+                    "retry_policy": "use_active_match",
+                }
+            )
         return {
             "request_id": request_id,
             "accepted": False,
             "reason": validation["reason"],
             "events": [],
             "event_count": 0,
+            "diagnostics": diagnostics,
+            "state_version_before": state_version,
+            "state_version_after": state_version,
+            "new_event_sequences": [],
         }
 
     before_event_count = len(state.event_log)
@@ -70,6 +103,7 @@ def resolve_action_request(state, request, legal_actions):
         "reason": None,
         "events": events,
         "event_count": len(events),
+        "diagnostics": [],
         "state_version_before": state_version_before,
         "state_version_after": state_version_after,
         "new_event_sequences": [event.get("event_sequence") for event in events],

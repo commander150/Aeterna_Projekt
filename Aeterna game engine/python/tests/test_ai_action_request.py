@@ -50,6 +50,7 @@ class TestAIActionRequest(unittest.TestCase):
                 "player_id": "P1",
                 "action_id": chosen["action_id"],
                 "action_type": "end_turn",
+                "payload": {},
             },
         )
         self.assertTrue(response["accepted"])
