@@ -5,6 +5,10 @@ const VisualProofScene = preload(
 	"res://scenes/runtime_comparison/python_sidecar_visual_proof.tscn"
 )
 const PROOF_PREFIX = "AETERNA_GODOT_VISUAL_SIDECAR_PROOF_V1="
+const EXPECTED_RAW_SHA = "4ba84e68d98a629c46aeaf6f5eb5f262569233ce5acaf9652e3548038965486c"
+const EXPECTED_CANONICAL_SHA = "650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d"
+const EXPECTED_CANDIDATE_METHOD = "verified through exact fixture response-body byte match"
+const EXPECTED_LOG_PATH = "TEMP/godot_visual_sidecar_proof_latest.log"
 
 var _failed := false
 
@@ -42,6 +46,9 @@ func _run() -> void:
 		"candidate SHA across runs"
 	)
 	_check_equal(visual.get_run_count(), 2, "visual run count")
+	await _check_layout(visual, Vector2i(800, 600))
+	await _check_layout(visual, Vector2i(1152, 648))
+	_check_diagnostic_log(visual)
 
 	visual.queue_free()
 	await process_frame
@@ -58,9 +65,15 @@ func _check_required_nodes(visual) -> void:
 		"RunFullProofButton",
 		"EmergencyShutdownButton",
 		"ClearLogButton",
+		"ButtonRow",
+		"BodyScroll",
 		"StatusGrid",
 		"HashPanel",
+		"CandidateResultShaValue",
+		"CandidateShaMethodValue",
+		"DiagnosticLogPath",
 		"LogText",
+		"FinalPanel",
 		"FinalResultLabel",
 		"FailedAtLabel",
 		"ErrorCodeLabel",
@@ -108,7 +121,7 @@ func _check_proof(result: Dictionary, visual, label: String) -> void:
 	)
 	_check_equal(
 		result.get("raw_fixture_response_body_sha256", ""),
-		"4ba84e68d98a629c46aeaf6f5eb5f262569233ce5acaf9652e3548038965486c",
+		EXPECTED_RAW_SHA,
 		"%s.raw SHA" % label
 	)
 	_check_equal(result.get("raw_fixture_text_equal", false), true, "%s.raw text" % label)
@@ -121,17 +134,17 @@ func _check_proof(result: Dictionary, visual, label: String) -> void:
 	_check_equal(result.get("raw_response_bytes_preserved", false), true, "%s.raw proof" % label)
 	_check_equal(
 		result.get("reference_canonical_result_sha256", ""),
-		"650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d",
+		EXPECTED_CANONICAL_SHA,
 		"%s.reference SHA" % label
 	)
 	_check_equal(
 		result.get("candidate_canonical_result_sha256", ""),
-		"650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d",
+		EXPECTED_CANONICAL_SHA,
 		"%s.candidate SHA" % label
 	)
 	_check_equal(
 		result.get("candidate_sha_verification_method", ""),
-		"verified through exact fixture response-body byte match",
+		EXPECTED_CANDIDATE_METHOD,
 		"%s.candidate SHA method" % label
 	)
 	_check_equal(
@@ -149,6 +162,158 @@ func _check_proof(result: Dictionary, visual, label: String) -> void:
 		"FINAL RESULT: PASS",
 		"%s.final label" % label
 	)
+	_check_equal(
+		visual.get_node("%CandidateResultShaValue").text,
+		EXPECTED_CANONICAL_SHA,
+		"%s.candidate SHA label" % label
+	)
+	_check_equal(
+		visual.get_node("%CandidateShaMethodValue").text,
+		EXPECTED_CANDIDATE_METHOD,
+		"%s.candidate SHA method label" % label
+	)
+	_check_equal(
+		visual.get_node("%BodyScroll").is_ancestor_of(
+			visual.get_node("%CandidateResultShaValue")
+		),
+		true,
+		"%s.candidate SHA is scroll-reachable" % label
+	)
+
+
+func _check_layout(visual, requested_size: Vector2i) -> void:
+	var window: Window = visual.get_window()
+	window.size = requested_size
+	await process_frame
+	await process_frame
+	var actual_size := window.size
+	_check_equal(actual_size, requested_size, "%s viewport size" % str(requested_size))
+	var viewport_rect := Rect2(Vector2.ZERO, Vector2(actual_size))
+	var final_panel: Control = visual.get_node("%FinalPanel")
+	var button_row: Control = visual.get_node("%ButtonRow")
+	var body_scroll: ScrollContainer = visual.get_node("%BodyScroll")
+	_check_rect_inside(final_panel.get_global_rect(), viewport_rect, "FinalPanel", requested_size)
+	_check_rect_inside(button_row.get_global_rect(), viewport_rect, "ButtonRow", requested_size)
+	_check_rect_inside(body_scroll.get_global_rect(), viewport_rect, "BodyScroll", requested_size)
+	_check_equal(final_panel.is_visible_in_tree(), true, "%s FinalPanel visible" % str(requested_size))
+	_check_equal(button_row.is_visible_in_tree(), true, "%s ButtonRow visible" % str(requested_size))
+	_check_equal(
+		body_scroll.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED,
+		true,
+		"%s BodyScroll vertical mode" % str(requested_size)
+	)
+	_check_equal(
+		body_scroll.get_v_scroll_bar().max_value > body_scroll.get_v_scroll_bar().page,
+		true,
+		"%s BodyScroll has scrollable vertical content" % str(requested_size)
+	)
+	for node_name in [
+		"FinalResultLabel",
+		"CandidateResultShaValue",
+		"CandidateShaMethodValue",
+		"DiagnosticLogPath",
+	]:
+		var important_label: Label = visual.get_node("%%%s" % node_name)
+		_check_equal(
+			important_label.size.x > 0.0 and important_label.size.y > 0.0,
+			true,
+			"%s %s has positive size" % [str(requested_size), node_name]
+		)
+	print(
+		"AETERNA_VISUAL_LAYOUT_PROBE=%dx%d PASS final_bottom=%.1f viewport_bottom=%d" % [
+			actual_size.x,
+			actual_size.y,
+			final_panel.get_global_rect().end.y,
+			actual_size.y,
+		]
+	)
+
+
+func _check_rect_inside(
+	control_rect: Rect2,
+	viewport_rect: Rect2,
+	control_name: String,
+	viewport_size: Vector2i
+) -> void:
+	var tolerance := 0.5
+	var inside := (
+		control_rect.size.x > 0.0
+		and control_rect.size.y > 0.0
+		and control_rect.position.x >= viewport_rect.position.x - tolerance
+		and control_rect.position.y >= viewport_rect.position.y - tolerance
+		and control_rect.end.x <= viewport_rect.end.x + tolerance
+		and control_rect.end.y <= viewport_rect.end.y + tolerance
+	)
+	_check_equal(
+		inside,
+		true,
+		"%s is inside %s (rect=%s)" % [control_name, str(viewport_size), str(control_rect)]
+	)
+
+
+func _check_diagnostic_log(visual) -> void:
+	_check_equal(visual.get_diagnostic_log_path(), EXPECTED_LOG_PATH, "diagnostic log path")
+	_check_equal(
+		visual.get_node("%DiagnosticLogPath").text,
+		EXPECTED_LOG_PATH,
+		"diagnostic log path label"
+	)
+	var absolute_path := ProjectSettings.globalize_path("res://../../" + EXPECTED_LOG_PATH)
+	if not FileAccess.file_exists(absolute_path):
+		_fail("Diagnostic log is missing: %s" % absolute_path)
+		return
+	var bytes := FileAccess.get_file_as_bytes(absolute_path)
+	var text := bytes.get_string_from_utf8()
+	_check_equal(text.to_utf8_buffer(), bytes, "diagnostic log UTF-8 round-trip")
+	if bytes.size() >= 3:
+		_check_equal(
+			bytes.slice(0, 3) == PackedByteArray([0xef, 0xbb, 0xbf]),
+			false,
+			"diagnostic log has no UTF-8 BOM"
+		)
+	for required_text in [
+		"AETERNA GODOT VISUAL PYTHON SIDECAR PROOF LOG",
+		"log_schema_version:",
+		"started_at:",
+		"godot_version: 4.7.1",
+		"visual_proof_scene:",
+		"python_executable_source:",
+		"python_executable:",
+		"godot_pid:",
+		"sidecar_pid:",
+		"host:",
+		"port:",
+		"LIFECYCLE",
+		"health_ok: true",
+		"fixture_ok: true",
+		"raw_response_body_bytes: 130123",
+		"actual_raw_sha256: %s" % EXPECTED_RAW_SHA,
+		"expected_raw_sha256: %s" % EXPECTED_RAW_SHA,
+		"raw_text_equal: true",
+		"utf8_bytes_equal: true",
+		"base64_roundtrip_equal: true",
+		"reference_canonical_result_sha256: %s" % EXPECTED_CANONICAL_SHA,
+		"candidate_canonical_result_sha256: %s" % EXPECTED_CANONICAL_SHA,
+		"candidate_sha_verification_method: %s" % EXPECTED_CANDIDATE_METHOD,
+		"shutdown_ok: true",
+		"sidecar_exit_code: 0",
+		"process_stopped: true",
+		"listener_closed: true",
+		"stdout_remainder_empty: true",
+		"stderr_empty: true",
+		"forced_kill_used: false",
+		"FINAL RESULT: PASS",
+		"FAILED AT: none",
+		"ERROR CODE: none",
+		"ERROR: none",
+		"finished_at:",
+	]:
+		_check_equal(
+			text.contains(required_text),
+			true,
+			"diagnostic log contains %s" % required_text
+		)
+	print("AETERNA_VISUAL_LOG_PROOF=PASS path=%s bytes=%d" % [EXPECTED_LOG_PATH, bytes.size()])
 
 
 func _print_proof(result: Dictionary, run_label: String) -> void:

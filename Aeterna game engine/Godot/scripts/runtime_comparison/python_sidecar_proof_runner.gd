@@ -640,25 +640,25 @@ func _validate_python_executable(path: String, source: String) -> Dictionary:
 	return {"ok": true, "path": path, "source": source}
 
 
-func _capture_environment(name: String) -> Dictionary:
+func _capture_environment(environment_name: String) -> Dictionary:
 	return {
-		"present": OS.has_environment(name),
-		"value": OS.get_environment(name) if OS.has_environment(name) else "",
+		"present": OS.has_environment(environment_name),
+		"value": OS.get_environment(environment_name) if OS.has_environment(environment_name) else "",
 	}
 
 
-func _restore_environment(name: String, state: Dictionary) -> void:
+func _restore_environment(environment_name: String, state: Dictionary) -> void:
 	if bool(state.get("present", false)):
-		OS.set_environment(name, str(state.get("value", "")))
+		OS.set_environment(environment_name, str(state.get("value", "")))
 	else:
-		OS.unset_environment(name)
+		OS.unset_environment(environment_name)
 
 
-func _environment_matches(name: String, state: Dictionary) -> bool:
+func _environment_matches(environment_name: String, state: Dictionary) -> bool:
 	var expected_present := bool(state.get("present", false))
-	if OS.has_environment(name) != expected_present:
+	if OS.has_environment(environment_name) != expected_present:
 		return false
-	return not expected_present or OS.get_environment(name) == str(state.get("value", ""))
+	return not expected_present or OS.get_environment(environment_name) == str(state.get("value", ""))
 
 
 func _failure(code: String, message: String) -> Dictionary:

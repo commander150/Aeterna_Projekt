@@ -83,6 +83,7 @@ text = "Godot 4.7.1 developer proof: startup, TCP health, fixture raw-byte verif
 autowrap_mode = 2
 
 [node name="ButtonRow" type="HBoxContainer" parent="MarginContainer/Content"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
 
@@ -105,297 +106,312 @@ custom_minimum_size = Vector2(110, 36)
 layout_mode = 2
 text = "Clear Log"
 
-[node name="MainSplit" type="HSplitContainer" parent="MarginContainer/Content"]
+[node name="BodyScroll" type="ScrollContainer" parent="MarginContainer/Content"]
+unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 1
+vertical_scroll_mode = 1
+
+[node name="MainSplit" type="HSplitContainer" parent="MarginContainer/Content/BodyScroll"]
+custom_minimum_size = Vector2(900, 520)
+layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
 split_offset = 390
 theme_override_constants/separation = 12
 
-[node name="StatusPanel" type="PanelContainer" parent="MarginContainer/Content/MainSplit"]
+[node name="StatusPanel" type="PanelContainer" parent="MarginContainer/Content/BodyScroll/MainSplit"]
 custom_minimum_size = Vector2(360, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StylePanel")
 
-[node name="StatusColumn" type="VBoxContainer" parent="MarginContainer/Content/MainSplit/StatusPanel"]
+[node name="StatusColumn" type="VBoxContainer" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="StatusTitle" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn"]
+[node name="StatusTitle" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.92, 0.92, 1)
 theme_override_font_sizes/font_size = 16
 text = "Lifecycle status"
 
-[node name="StatusScroll" type="ScrollContainer" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn"]
+[node name="StatusScroll" type="ScrollContainer" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="StatusGrid" type="GridContainer" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll"]
+[node name="StatusGrid" type="GridContainer" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 5
 columns = 2
 
-[node name="PythonExecutableLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="PythonExecutableLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Python executable"
-[node name="PythonExecutableStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="PythonExecutableStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "NOT STARTED"
 
-[node name="SidecarProcessLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="SidecarProcessLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Sidecar process"
-[node name="SidecarProcessStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="SidecarProcessStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="StartupHandshakeLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="StartupHandshakeLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Startup handshake"
-[node name="StartupHandshakeStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="StartupHandshakeStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="TcpConnectionLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="TcpConnectionLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "TCP connection"
-[node name="TcpConnectionStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="TcpConnectionStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="ProtocolVersionLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="ProtocolVersionLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Protocol version"
-[node name="ProtocolVersionStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="ProtocolVersionStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="HealthRequestLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="HealthRequestLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Health request"
-[node name="HealthRequestStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="HealthRequestStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="FixtureRequestLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="FixtureRequestLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Fixture request"
-[node name="FixtureRequestStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="FixtureRequestStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="RawPreservationLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="RawPreservationLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Raw byte preservation"
-[node name="RawPreservationStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="RawPreservationStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="RawByteCountLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="RawByteCountLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Raw response byte count"
-[node name="RawByteCountStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="RawByteCountStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="RawShaLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="RawShaLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Raw response SHA-256"
-[node name="RawShaStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="RawShaStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="ExpectedRawShaLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="ExpectedRawShaLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Expected raw SHA-256"
-[node name="ExpectedRawShaStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="ExpectedRawShaStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="ReferenceResultShaLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="ReferenceResultShaLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Reference result SHA"
-[node name="ReferenceResultShaStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="ReferenceResultShaStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="CandidateResultShaLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="CandidateResultShaLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Candidate result SHA"
-[node name="CandidateResultShaStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="CandidateResultShaStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="ShutdownResponseLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="ShutdownResponseLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Shutdown response"
-[node name="ShutdownResponseStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="ShutdownResponseStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="SidecarExitLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="SidecarExitLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Sidecar exit"
-[node name="SidecarExitStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="SidecarExitStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="ListenerStateLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="ListenerStateLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Listener state"
-[node name="ListenerStateStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="ListenerStateStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="StandardOutputLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="StandardOutputLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Standard output"
-[node name="StandardOutputStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="StandardOutputStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="StandardErrorLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="StandardErrorLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Standard error"
-[node name="StandardErrorStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="StandardErrorStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="FinalResultStatusLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="FinalResultStatusLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 layout_mode = 2
 text = "Final result"
-[node name="FinalResultStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+[node name="FinalResultStatus" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "NOT STARTED"
 
-[node name="DetailsColumn" type="VBoxContainer" parent="MarginContainer/Content/MainSplit"]
+[node name="DetailsColumn" type="VBoxContainer" parent="MarginContainer/Content/BodyScroll/MainSplit"]
 custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="RuntimePanel" type="PanelContainer" parent="MarginContainer/Content/MainSplit/DetailsColumn"]
+[node name="RuntimePanel" type="PanelContainer" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StylePanel")
 
-[node name="RuntimeGrid" type="GridContainer" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel"]
+[node name="RuntimeGrid" type="GridContainer" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/RuntimePanel"]
 layout_mode = 2
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 5
 columns = 2
 
-[node name="RuntimeTitle" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+[node name="RuntimeTitle" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.92, 0.92, 1)
 theme_override_font_sizes/font_size = 15
 text = "Python runtime"
-[node name="RuntimeSpacer" type="Control" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+[node name="RuntimeSpacer" type="Control" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
 layout_mode = 2
 
-[node name="PythonPathLabel" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+[node name="PythonPathLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
 layout_mode = 2
 text = "Executable"
-[node name="PythonExecutablePath" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+[node name="PythonExecutablePath" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Not resolved"
 text_overrun_behavior = 3
 
-[node name="PythonSourceLabel" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+[node name="PythonSourceLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
 layout_mode = 2
 text = "Resolution source"
-[node name="PythonExecutableSource" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+[node name="PythonExecutableSource" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "not resolved"
 
-[node name="HashPanel" type="PanelContainer" parent="MarginContainer/Content/MainSplit/DetailsColumn"]
+[node name="DiagnosticLogLabel" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+layout_mode = 2
+text = "Diagnostic log"
+[node name="DiagnosticLogPath" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "TEMP/godot_visual_sidecar_proof_latest.log"
+
+[node name="HashPanel" type="PanelContainer" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StylePanel")
 
-[node name="HashColumn" type="VBoxContainer" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel"]
+[node name="HashColumn" type="VBoxContainer" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/HashPanel"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="HashTitle" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+[node name="HashTitle" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/HashPanel/HashColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.92, 0.92, 1)
 theme_override_font_sizes/font_size = 15
 text = "Raw-byte and canonical proof"
 
-[node name="ActualRawShaHeading" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+[node name="ActualRawShaHeading" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/HashPanel/HashColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.69, 0.7, 1)
 theme_override_font_sizes/font_size = 11
 text = "Actual raw response SHA-256"
-[node name="ActualRawShaValue" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+[node name="ActualRawShaValue" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/HashPanel/HashColumn"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "NOT CHECKED"
-text_overrun_behavior = 3
 
-[node name="ExpectedRawShaHeading" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+[node name="ExpectedRawShaHeading" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/HashPanel/HashColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.69, 0.7, 1)
 theme_override_font_sizes/font_size = 11
 text = "Expected raw response SHA-256"
-[node name="ExpectedRawShaValue" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+[node name="ExpectedRawShaValue" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/HashPanel/HashColumn"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "4ba84e68d98a629c46aeaf6f5eb5f262569233ce5acaf9652e3548038965486c"
-text_overrun_behavior = 3
 
-[node name="ReferenceResultShaHeading" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+[node name="ReferenceResultShaHeading" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/HashPanel/HashColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.69, 0.7, 1)
 theme_override_font_sizes/font_size = 11
 text = "Reference canonical result SHA-256"
-[node name="ReferenceResultShaValue" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+[node name="ReferenceResultShaValue" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/HashPanel/HashColumn"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d"
-text_overrun_behavior = 3
 
-[node name="CandidateResultShaHeading" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+[node name="CandidateResultShaHeading" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/HashPanel/HashColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.69, 0.7, 1)
 theme_override_font_sizes/font_size = 11
 text = "Candidate canonical result SHA-256"
-[node name="CandidateResultShaValue" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+[node name="CandidateResultShaValue" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/HashPanel/HashColumn"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "NOT CHECKED"
-text_overrun_behavior = 3
 
-[node name="CandidateShaMethodValue" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+[node name="CandidateShaMethodValue" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/HashPanel/HashColumn"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.69, 0.7, 1)
@@ -403,23 +419,23 @@ theme_override_font_sizes/font_size = 11
 text = "NOT CHECKED"
 autowrap_mode = 2
 
-[node name="LogPanel" type="PanelContainer" parent="MarginContainer/Content/MainSplit/DetailsColumn"]
+[node name="LogPanel" type="PanelContainer" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn"]
 custom_minimum_size = Vector2(0, 170)
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StylePanel")
 
-[node name="LogColumn" type="VBoxContainer" parent="MarginContainer/Content/MainSplit/DetailsColumn/LogPanel"]
+[node name="LogColumn" type="VBoxContainer" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/LogPanel"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="LogTitle" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/LogPanel/LogColumn"]
+[node name="LogTitle" type="Label" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/LogPanel/LogColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.92, 0.92, 1)
 theme_override_font_sizes/font_size = 15
 text = "Lifecycle log"
 
-[node name="LogText" type="RichTextLabel" parent="MarginContainer/Content/MainSplit/DetailsColumn/LogPanel/LogColumn"]
+[node name="LogText" type="RichTextLabel" parent="MarginContainer/Content/BodyScroll/MainSplit/DetailsColumn/LogPanel/LogColumn"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
@@ -429,6 +445,7 @@ scroll_following = true
 selection_enabled = true
 
 [node name="FinalPanel" type="PanelContainer" parent="MarginContainer/Content"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleFinal")
 

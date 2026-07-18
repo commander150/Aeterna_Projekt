@@ -2,6 +2,10 @@ extends Control
 
 
 const ProofRunner = preload("res://scripts/runtime_comparison/python_sidecar_proof_runner.gd")
+const VisualProofLog = preload("res://scripts/debug/python_sidecar_visual_proof_log.gd")
+const VISUAL_PROOF_SCENE_PATH = (
+	"res://scenes/runtime_comparison/python_sidecar_visual_proof.tscn"
+)
 
 const STATUS_COLORS = {
 	"NOT STARTED": Color("9aa0a6"),
@@ -17,6 +21,7 @@ const STATUS_COLORS = {
 @onready var _clear_button: Button = %ClearLogButton
 @onready var _python_path_label: Label = %PythonExecutablePath
 @onready var _python_source_label: Label = %PythonExecutableSource
+@onready var _diagnostic_log_path_label: Label = %DiagnosticLogPath
 @onready var _actual_raw_sha_label: Label = %ActualRawShaValue
 @onready var _expected_raw_sha_label: Label = %ExpectedRawShaValue
 @onready var _reference_sha_label: Label = %ReferenceResultShaValue
@@ -32,6 +37,7 @@ var _runner
 var _running := false
 var _run_count := 0
 var _status_labels := {}
+var _file_log = VisualProofLog.new()
 
 
 func _ready() -> void:
@@ -46,13 +52,21 @@ func _ready() -> void:
 	_emergency_button.disabled = true
 	_expected_raw_sha_label.text = ProofRunner.EXPECTED_RAW_BODY_SHA256
 	_reference_sha_label.text = ProofRunner.EXPECTED_RESULT_SHA256
+	_diagnostic_log_path_label.text = VisualProofLog.LOG_RELATIVE_PATH
+	_diagnostic_log_path_label.tooltip_text = VisualProofLog.LOG_RELATIVE_PATH
 	_reset_visual_state()
-	_ensure_readable_window_size()
 
 
 func _exit_tree() -> void:
+	var interrupted_run := _running and _file_log.is_open()
+	if interrupted_run:
+		_file_log.interrupt("F8 or window close interrupted the active visual proof.")
 	if _runner != null:
 		_runner.cleanup_now()
+	if interrupted_run:
+		_file_log.finish_interrupted_cleanup()
+	else:
+		_file_log.close()
 
 
 func run_full_proof() -> Dictionary:
@@ -67,9 +81,23 @@ func run_full_proof() -> Dictionary:
 	_reset_visual_state()
 	_run_button.disabled = true
 	_emergency_button.disabled = true
+	var log_start: Dictionary = _file_log.begin(_run_count, VISUAL_PROOF_SCENE_PATH)
+	if not bool(log_start.get("ok", false)):
+		var log_failure := {
+			"success": false,
+			"cancelled": false,
+			"failure_stage": "DIAGNOSTIC_LOG",
+			"error_code": str(log_start.get("code", "VISUAL_PROOF_LOG_FAILED")),
+			"error_message": str(log_start.get("message", "Could not start the proof log.")),
+		}
+		_apply_result(log_failure)
+		_running = false
+		_run_button.disabled = false
+		return log_failure
 	_append_log("VISUAL PROOF RUN %d" % _run_count)
 	var result: Dictionary = await _runner.run_full_proof()
 	_apply_result(result)
+	_file_log.finish(result)
 	_running = false
 	_run_button.disabled = false
 	_emergency_button.disabled = true
@@ -89,6 +117,10 @@ func get_proof_runner():
 	return _runner
 
 
+func get_diagnostic_log_path() -> String:
+	return VisualProofLog.LOG_RELATIVE_PATH
+
+
 func _on_run_full_proof_pressed() -> void:
 	await run_full_proof()
 
@@ -106,6 +138,7 @@ func _on_clear_log_pressed() -> void:
 
 
 func _on_lifecycle_status_changed(key: String, status: String, detail: String) -> void:
+	_file_log.write_lifecycle(key, status, detail)
 	var label: Label = _status_labels.get(key)
 	if label != null:
 		label.text = status
@@ -116,6 +149,11 @@ func _on_lifecycle_status_changed(key: String, status: String, detail: String) -
 		)
 	if key == "sidecar_process":
 		_emergency_button.disabled = not _runner.has_active_sidecar_process()
+	if key == "candidate_canonical_result_sha256" and status == ProofRunner.STATUS_PASS:
+		_candidate_sha_label.text = ProofRunner.EXPECTED_RESULT_SHA256
+		_candidate_sha_label.tooltip_text = _candidate_sha_label.text
+		_candidate_method_label.text = detail
+		_candidate_method_label.tooltip_text = detail
 	if not detail.is_empty() and status != ProofRunner.STATUS_NOT_STARTED:
 		_append_log("%s: %s | %s" % [key, status, detail])
 
@@ -135,12 +173,14 @@ func _apply_result(result: Dictionary) -> void:
 	_reference_sha_label.text = str(
 		result.get("reference_canonical_result_sha256", ProofRunner.EXPECTED_RESULT_SHA256)
 	)
-	_candidate_sha_label.text = str(
-		result.get("candidate_canonical_result_sha256", "NOT CHECKED")
+	var candidate_sha := str(result.get("candidate_canonical_result_sha256", ""))
+	var candidate_method := str(result.get("candidate_sha_verification_method", ""))
+	_candidate_sha_label.text = candidate_sha if not candidate_sha.is_empty() else "NOT CHECKED"
+	_candidate_method_label.text = (
+		candidate_method if not candidate_method.is_empty() else "NOT CHECKED"
 	)
-	_candidate_method_label.text = str(
-		result.get("candidate_sha_verification_method", "NOT CHECKED")
-	)
+	_candidate_sha_label.tooltip_text = _candidate_sha_label.text
+	_candidate_method_label.tooltip_text = _candidate_method_label.text
 	if bool(result.get("success", false)):
 		_final_result_label.text = "FINAL RESULT: PASS"
 		_final_result_label.add_theme_color_override("font_color", STATUS_COLORS["PASS"])
@@ -182,13 +222,7 @@ func _reset_visual_state() -> void:
 
 func _append_log(message: String) -> void:
 	_log_text.append_text("[%s] %s\n" % [Time.get_time_string_from_system(), message])
-
-
-func _ensure_readable_window_size() -> void:
-	var window := get_window()
-	window.min_size = Vector2i(960, 700)
-	if window.size.x < 1100 or window.size.y < 760:
-		window.size = Vector2i(max(window.size.x, 1100), max(window.size.y, 760))
+	_file_log.write_message(message)
 
 
 func _build_status_label_map() -> void:
