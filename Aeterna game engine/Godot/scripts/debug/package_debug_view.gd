@@ -15,6 +15,11 @@ func _ready() -> void:
 	_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(_label)
+	_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_label.offset_left = 16.0
+	_label.offset_top = 16.0
+	_label.offset_right = -16.0
+	_label.offset_bottom = -16.0
 
 	var loader = RuntimePackageLoaderScript.new()
 	var result := loader.load_package(package_path)

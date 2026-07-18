@@ -89,8 +89,6 @@ func free_loaded_views() -> void:
 		_legal_action_panel.free()
 	if _event_log_view != null and is_instance_valid(_event_log_view):
 		_event_log_view.free()
-	if _runtime_package_loader != null and is_instance_valid(_runtime_package_loader):
-		_runtime_package_loader.free()
 	_snapshot_viewer = null
 	_legal_action_panel = null
 	_event_log_view = null
