@@ -237,7 +237,7 @@ func _count_audit_notes(runtime_package) -> int:
 func _format_counts(counts) -> String:
 	if typeof(counts) != TYPE_DICTIONARY:
 		return ""
-	var keys := counts.keys()
+	var keys: Array = counts.keys()
 	keys.sort()
 	var parts: Array = []
 	for key in keys:
