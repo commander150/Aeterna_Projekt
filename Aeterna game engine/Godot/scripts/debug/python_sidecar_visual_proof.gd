@@ -17,8 +17,10 @@ const STATUS_COLORS = {
 }
 
 @onready var _run_button: Button = %RunFullProofButton
+@onready var _f8_test_button: Button = %StartF8CancellationTestButton
 @onready var _emergency_button: Button = %EmergencyShutdownButton
 @onready var _clear_button: Button = %ClearLogButton
+@onready var _f8_test_status_label: Label = %CancellationTestStatusLabel
 @onready var _python_path_label: Label = %PythonExecutablePath
 @onready var _python_source_label: Label = %PythonExecutableSource
 @onready var _diagnostic_log_path_label: Label = %DiagnosticLogPath
@@ -46,7 +48,9 @@ func _ready() -> void:
 	add_child(_runner)
 	_runner.lifecycle_status_changed.connect(_on_lifecycle_status_changed)
 	_runner.log_message.connect(_append_log)
+	_runner.cancellation_test_ready.connect(_on_cancellation_test_ready)
 	_run_button.pressed.connect(_on_run_full_proof_pressed)
+	_f8_test_button.pressed.connect(_on_start_f8_cancellation_test_pressed)
 	_emergency_button.pressed.connect(_on_emergency_shutdown_pressed)
 	_clear_button.pressed.connect(_on_clear_log_pressed)
 	_emergency_button.disabled = true
@@ -59,17 +63,29 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	var interrupted_run := _running and _file_log.is_open()
+	var runtime_context: Dictionary = _runner.get_runtime_context() if _runner != null else {}
 	if interrupted_run:
-		_file_log.interrupt("F8 or window close interrupted the active visual proof.")
+		_file_log.write_interruption_tombstone(runtime_context)
+	var cleanup_summary := {}
 	if _runner != null:
-		_runner.cleanup_now()
+		cleanup_summary = _runner.cleanup_now()
 	if interrupted_run:
-		_file_log.finish_interrupted_cleanup()
+		_file_log.finish_interrupted_cleanup(cleanup_summary)
 	else:
 		_file_log.close()
 
 
 func run_full_proof() -> Dictionary:
+	return await _run_visual_proof(0)
+
+
+func run_f8_cancellation_test(
+	hold_msec: int = ProofRunner.DEFAULT_CANCELLATION_HOLD_MSEC
+) -> Dictionary:
+	return await _run_visual_proof(hold_msec)
+
+
+func _run_visual_proof(cancellation_hold_msec: int) -> Dictionary:
 	if _running:
 		return {
 			"success": false,
@@ -80,8 +96,14 @@ func run_full_proof() -> Dictionary:
 	_run_count += 1
 	_reset_visual_state()
 	_run_button.disabled = true
+	_f8_test_button.disabled = true
 	_emergency_button.disabled = true
-	var log_start: Dictionary = _file_log.begin(_run_count, VISUAL_PROOF_SCENE_PATH)
+	var run_id := "visual-proof-%d-%d-%d" % [
+		OS.get_process_id(),
+		_run_count,
+		Time.get_ticks_usec(),
+	]
+	var log_start: Dictionary = _file_log.begin(_run_count, VISUAL_PROOF_SCENE_PATH, run_id)
 	if not bool(log_start.get("ok", false)):
 		var log_failure := {
 			"success": false,
@@ -93,13 +115,38 @@ func run_full_proof() -> Dictionary:
 		_apply_result(log_failure)
 		_running = false
 		_run_button.disabled = false
+		_f8_test_button.disabled = false
 		return log_failure
+	var watchdog_result: Dictionary = _runner.configure_parent_watchdog(
+		OS.get_process_id(),
+		_file_log.absolute_path(),
+		run_id
+	)
+	if not bool(watchdog_result.get("ok", false)):
+		var watchdog_failure := {
+			"success": false,
+			"cancelled": false,
+			"failure_stage": "PARENT_WATCHDOG",
+			"error_code": str(watchdog_result.get("code", "SIDECAR_PARENT_WATCHDOG_FAILED")),
+			"error_message": str(watchdog_result.get("message", "Parent watchdog setup failed.")),
+		}
+		_apply_result(watchdog_failure)
+		_file_log.finish(watchdog_failure)
+		_running = false
+		_run_button.disabled = false
+		_f8_test_button.disabled = false
+		return watchdog_failure
 	_append_log("VISUAL PROOF RUN %d" % _run_count)
-	var result: Dictionary = await _runner.run_full_proof()
+	var result: Dictionary
+	if cancellation_hold_msec > 0:
+		result = await _runner.run_cancellation_test(cancellation_hold_msec)
+	else:
+		result = await _runner.run_full_proof()
 	_apply_result(result)
 	_file_log.finish(result)
 	_running = false
 	_run_button.disabled = false
+	_f8_test_button.disabled = false
 	_emergency_button.disabled = true
 	return result
 
@@ -125,6 +172,10 @@ func _on_run_full_proof_pressed() -> void:
 	await run_full_proof()
 
 
+func _on_start_f8_cancellation_test_pressed() -> void:
+	await run_f8_cancellation_test()
+
+
 func _on_emergency_shutdown_pressed() -> void:
 	if not _running:
 		return
@@ -135,6 +186,15 @@ func _on_emergency_shutdown_pressed() -> void:
 
 func _on_clear_log_pressed() -> void:
 	_log_text.clear()
+
+
+func _on_cancellation_test_ready(context: Dictionary) -> void:
+	_f8_test_status_label.text = "READY FOR F8 CANCELLATION TEST\nPRESS F8 NOW\nSidecar PID: %s | Port: %s" % [
+		context.get("sidecar_pid", "unknown"),
+		context.get("port", "unknown"),
+	]
+	_f8_test_status_label.add_theme_color_override("font_color", STATUS_COLORS["RUNNING"])
+	_file_log.write_cancellation_test_ready(context)
 
 
 func _on_lifecycle_status_changed(key: String, status: String, detail: String) -> void:
@@ -218,6 +278,8 @@ func _reset_visual_state() -> void:
 	_failed_at_label.text = "FAILED AT: none"
 	_error_code_label.text = "ERROR CODE: none"
 	_error_message_label.text = "ERROR: none"
+	_f8_test_status_label.text = "F8 cancellation test: NOT STARTED"
+	_f8_test_status_label.add_theme_color_override("font_color", STATUS_COLORS["NOT STARTED"])
 
 
 func _append_log(message: String) -> void:

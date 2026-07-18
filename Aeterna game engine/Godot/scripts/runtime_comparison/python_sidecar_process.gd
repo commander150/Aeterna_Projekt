@@ -24,7 +24,10 @@ var _stdio: FileAccess
 var _stderr: FileAccess
 
 
-func start(timeout_msec: int = Protocol.DEFAULT_TIMEOUT_MSEC) -> Dictionary:
+func start(
+	timeout_msec: int = Protocol.DEFAULT_TIMEOUT_MSEC,
+	parent_watchdog_options: Dictionary = {}
+) -> Dictionary:
 	if pid > 0:
 		return _failure("SIDECAR_PROCESS_ALREADY_STARTED", "Sidecar process can only be started once.")
 	var executable_result := _resolve_python_executable()
@@ -47,6 +50,14 @@ func start(timeout_msec: int = Protocol.DEFAULT_TIMEOUT_MSEC) -> Dictionary:
 		"--port",
 		"0",
 	])
+	var watchdog_arguments_result := _append_parent_watchdog_arguments(
+		arguments,
+		parent_watchdog_options
+	)
+	if not bool(watchdog_arguments_result.get("ok", false)):
+		_restore_environment("PYTHONPATH", pythonpath_state)
+		_restore_environment("PYTHONDONTWRITEBYTECODE", bytecode_state)
+		return watchdog_arguments_result
 	var pipe_result := OS.execute_with_pipe(python_executable, arguments, false)
 	_restore_environment("PYTHONPATH", pythonpath_state)
 	_restore_environment("PYTHONDONTWRITEBYTECODE", bytecode_state)
@@ -83,6 +94,7 @@ func start(timeout_msec: int = Protocol.DEFAULT_TIMEOUT_MSEC) -> Dictionary:
 		"port_projection": startup_result.get("port_projection", ""),
 		"pythonpath_restored": pythonpath_restored,
 		"bytecode_environment_restored": bytecode_environment_restored,
+		"parent_watchdog_enabled": not parent_watchdog_options.is_empty(),
 	}
 
 
@@ -120,6 +132,46 @@ func force_stop(timeout_msec: int = 2_000) -> Dictionary:
 
 func is_running() -> bool:
 	return pid > 0 and OS.is_process_running(pid)
+
+
+func _append_parent_watchdog_arguments(
+	arguments: PackedStringArray,
+	options: Dictionary
+) -> Dictionary:
+	if options.is_empty():
+		return {"ok": true}
+	var expected_keys := ["parent_pid", "parent_exit_log", "parent_run_id"]
+	if options.size() != expected_keys.size():
+		return _failure(
+			"SIDECAR_PARENT_WATCHDOG_ARGUMENTS_INVALID",
+			"Parent watchdog options must provide PID, exit log, and run ID."
+		)
+	for key in expected_keys:
+		if not options.has(key):
+			return _failure(
+				"SIDECAR_PARENT_WATCHDOG_ARGUMENTS_INVALID",
+				"Parent watchdog options must provide PID, exit log, and run ID."
+			)
+	if typeof(options["parent_pid"]) != TYPE_INT or int(options["parent_pid"]) <= 0:
+		return _failure("SIDECAR_PARENT_PID_INVALID", "Parent PID must be a positive integer.")
+	var exit_log_path := str(options["parent_exit_log"])
+	var run_id := str(options["parent_run_id"])
+	if exit_log_path.is_empty() or not exit_log_path.is_absolute_path():
+		return _failure(
+			"SIDECAR_PARENT_EXIT_LOG_INVALID",
+			"Parent exit log must be an absolute path."
+		)
+	if run_id.is_empty():
+		return _failure("SIDECAR_PARENT_RUN_ID_INVALID", "Parent run ID must not be empty.")
+	arguments.append_array(PackedStringArray([
+		"--parent-pid",
+		str(options["parent_pid"]),
+		"--parent-exit-log",
+		exit_log_path,
+		"--parent-run-id",
+		run_id,
+	]))
+	return {"ok": true}
 
 
 func _resolve_python_executable() -> Dictionary:

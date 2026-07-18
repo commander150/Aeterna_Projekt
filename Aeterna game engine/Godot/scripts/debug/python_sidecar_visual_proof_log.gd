@@ -7,11 +7,15 @@ const LOG_GODOT_PATH = "res://../../TEMP/godot_visual_sidecar_proof_latest.log"
 
 var _file: FileAccess
 var _finished := false
+var _run_id := ""
+var _interruption_tombstone_written := false
 
 
-func begin(run_number: int, scene_path: String) -> Dictionary:
+func begin(run_number: int, scene_path: String, run_id: String) -> Dictionary:
 	close()
 	_finished = false
+	_run_id = run_id
+	_interruption_tombstone_written = false
 	var absolute_path := ProjectSettings.globalize_path(LOG_GODOT_PATH).simplify_path()
 	var directory_error := DirAccess.make_dir_recursive_absolute(absolute_path.get_base_dir())
 	if directory_error != OK and directory_error != ERR_ALREADY_EXISTS:
@@ -22,6 +26,7 @@ func begin(run_number: int, scene_path: String) -> Dictionary:
 	_write_line("AETERNA GODOT VISUAL PYTHON SIDECAR PROOF LOG")
 	_write_field("log_schema_version", LOG_SCHEMA_VERSION)
 	_write_field("run_number", run_number)
+	_write_field("run_id", run_id)
 	_write_field("started_at", Time.get_datetime_string_from_system(true))
 	_write_field("godot_version", str(Engine.get_version_info().get("string", "")))
 	_write_field("visual_proof_scene", scene_path)
@@ -66,6 +71,7 @@ func finish(result: Dictionary) -> void:
 	_write_field("candidate_canonical_result_sha256", result.get("candidate_canonical_result_sha256", ""))
 	_write_field("candidate_sha_verification_method", result.get("candidate_sha_verification_method", ""))
 	_write_field("shutdown_ok", result.get("shutdown_ok", false))
+	_write_field("shutdown_response_received", result.get("shutdown_response_received", false))
 	_write_field("sidecar_exit_code", result.get("sidecar_exit_code", -1))
 	_write_field("process_stopped", result.get("process_stopped", false))
 	_write_field("listener_closed", result.get("listener_closed", false))
@@ -84,25 +90,66 @@ func finish(result: Dictionary) -> void:
 	close()
 
 
-func interrupt(reason: String) -> void:
+func write_interruption_tombstone(context: Dictionary) -> bool:
+	if _file == null or _finished or _interruption_tombstone_written:
+		return false
+	_interruption_tombstone_written = true
+	_write_line("")
+	_write_line("MESSAGE | SCENE EXIT REQUESTED")
+	_write_line("MESSAGE | ACTIVE PROOF INTERRUPTED")
+	_write_line("LIFECYCLE | final_result | CANCELLED | FINAL RESULT: CANCELLED")
+	_write_line("")
+	_write_line("INTERRUPTION SUMMARY")
+	_write_field("run_id", _run_id)
+	_write_field("interruption_origin", "godot_exit_callback")
+	_write_field("interruption_reason", "scene_exit")
+	_write_field("cleanup_requested", true)
+	_write_field("godot_pid", OS.get_process_id())
+	_write_field("sidecar_pid", _known_or_unknown(context.get("sidecar_pid", -1)))
+	_write_field("host", _known_or_unknown(context.get("host", "")))
+	_write_field("port", _known_or_unknown(context.get("port", -1)))
+	_write_field("FINAL RESULT", "CANCELLED")
+	_write_field("FAILED AT", "interrupted_by_scene_exit")
+	_write_field("ERROR CODE", "USER_INTERRUPTED")
+	_write_field("ERROR", "Visual proof was interrupted before completion.")
+	_write_field("interrupted_at", Time.get_datetime_string_from_system(true))
+	return true
+
+
+func write_cancellation_test_ready(context: Dictionary) -> void:
 	if _file == null or _finished:
 		return
 	_write_line("")
-	_write_field("run_interrupted", true)
-	_write_field("interruption_reason", reason)
-	_write_field("cleanup_pending", true)
+	_write_line("CANCELLATION TEST READY")
+	_write_field("run_id", _run_id)
+	_write_line("READY FOR F8 CANCELLATION TEST")
+	_write_line("PRESS F8 NOW")
+	_write_field("sidecar_pid", context.get("sidecar_pid", "unknown"))
+	_write_field("host", context.get("host", "unknown"))
+	_write_field("port", context.get("port", "unknown"))
 
 
-func finish_interrupted_cleanup() -> void:
+func finish_interrupted_cleanup(summary: Dictionary) -> void:
 	if _file == null or _finished:
 		return
-	_write_field("cleanup_completed", true)
-	_write_field("FINAL RESULT", "CANCELLED")
-	_write_field("FAILED AT", "WINDOW_CLOSE")
-	_write_field("ERROR CODE", "VISUAL_PROOF_WINDOW_CLOSED")
-	_write_field("ERROR", "Visual proof stopped before completion.")
+	_write_line("")
+	_write_line("GODOT EXIT CLEANUP SUMMARY")
+	for field_name in [
+		"cleanup_requested",
+		"graceful_shutdown_attempted",
+		"graceful_shutdown_accepted",
+		"active_connection_closed",
+		"worker_joined",
+		"worker_join_timed_out",
+		"forced_kill_used",
+		"process_stopped",
+		"listener_closed",
+		"sidecar_exit_code",
+	]:
+		_write_field(field_name, summary.get(field_name, "unavailable"))
 	_write_field("finished_at", Time.get_datetime_string_from_system(true))
 	_finished = true
+	close()
 
 
 func close() -> void:
@@ -118,6 +165,10 @@ func is_open() -> bool:
 
 func absolute_path() -> String:
 	return ProjectSettings.globalize_path(LOG_GODOT_PATH).simplify_path()
+
+
+func run_id() -> String:
+	return _run_id
 
 
 func _write_field(field_name: String, value) -> void:
@@ -138,3 +189,8 @@ func _failure(code: String, message: String) -> Dictionary:
 func _nonempty_or(value, fallback: String) -> String:
 	var text := str(value)
 	return fallback if text.is_empty() else text
+
+
+func _known_or_unknown(value) -> String:
+	var text := str(value)
+	return "unknown" if text.is_empty() or text in ["-1", "0"] else text

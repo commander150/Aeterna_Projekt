@@ -63,8 +63,10 @@ func _run() -> void:
 func _check_required_nodes(visual) -> void:
 	var required := [
 		"RunFullProofButton",
+		"StartF8CancellationTestButton",
 		"EmergencyShutdownButton",
 		"ClearLogButton",
+		"CancellationTestStatusLabel",
 		"ButtonRow",
 		"BodyScroll",
 		"StatusGrid",
@@ -274,6 +276,7 @@ func _check_diagnostic_log(visual) -> void:
 	for required_text in [
 		"AETERNA GODOT VISUAL PYTHON SIDECAR PROOF LOG",
 		"log_schema_version:",
+		"run_id:",
 		"started_at:",
 		"godot_version: 4.7.1",
 		"visual_proof_scene:",
@@ -296,6 +299,7 @@ func _check_diagnostic_log(visual) -> void:
 		"candidate_canonical_result_sha256: %s" % EXPECTED_CANONICAL_SHA,
 		"candidate_sha_verification_method: %s" % EXPECTED_CANDIDATE_METHOD,
 		"shutdown_ok: true",
+		"shutdown_response_received: true",
 		"sidecar_exit_code: 0",
 		"process_stopped: true",
 		"listener_closed: true",
@@ -313,6 +317,7 @@ func _check_diagnostic_log(visual) -> void:
 			true,
 			"diagnostic log contains %s" % required_text
 		)
+	_check_equal(text.contains("PARENT WATCHDOG SUMMARY"), false, "normal proof has no watchdog tombstone")
 	print("AETERNA_VISUAL_LOG_PROOF=PASS path=%s bytes=%d" % [EXPECTED_LOG_PATH, bytes.size()])
 
 

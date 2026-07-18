@@ -4,6 +4,7 @@ extends Node
 signal lifecycle_status_changed(key: String, status: String, detail: String)
 signal log_message(message: String)
 signal proof_completed(result: Dictionary)
+signal cancellation_test_ready(context: Dictionary)
 
 const Protocol = preload("res://scripts/runtime_comparison/python_sidecar_protocol.gd")
 const SidecarClient = preload("res://scripts/runtime_comparison/python_sidecar_client.gd")
@@ -18,6 +19,8 @@ const EXPECTED_RAW_BODY_SHA256 = "4ba84e68d98a629c46aeaf6f5eb5f262569233ce5acaf9
 const EXPECTED_RESULT_SHA256 = "650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d"
 const CANDIDATE_SHA_METHOD = "verified through exact fixture response-body byte match"
 const EMERGENCY_WORKER_GRACE_MSEC = 1_000
+const DEFAULT_CANCELLATION_HOLD_MSEC = 10_000
+const EXIT_CLEANUP_WORKER_LIMIT_MSEC = 750
 
 const STATUS_NOT_STARTED = "NOT STARTED"
 const STATUS_RUNNING = "RUNNING"
@@ -58,9 +61,13 @@ var _sidecar_client
 var _worker_thread: Thread
 var _worker_started_msec := 0
 var _emergency_fallback_used := false
+var _parent_watchdog_options := {}
 
 
-func run_full_proof(fixture_path: String = DEFAULT_FIXTURE_PATH) -> Dictionary:
+func run_full_proof(
+	fixture_path: String = DEFAULT_FIXTURE_PATH,
+	cancellation_hold_msec: int = 0
+) -> Dictionary:
 	if active:
 		return _standalone_failure(
 			"PROOF_ALREADY_RUNNING",
@@ -155,6 +162,8 @@ func run_full_proof(fixture_path: String = DEFAULT_FIXTURE_PATH) -> Dictionary:
 	_proof["protocol_version"] = Protocol.PROTOCOL_VERSION
 	_set_status("protocol_version", STATUS_PASS, Protocol.PROTOCOL_VERSION)
 	_set_status("health_request", STATUS_PASS, "Sidecar status is ready.")
+	if cancellation_hold_msec > 0:
+		return await _run_cancellation_hold(cancellation_hold_msec)
 
 	_stage("RUNNING FIXTURE")
 	_set_status("fixture_request", STATUS_RUNNING, fixture_path)
@@ -260,6 +269,7 @@ func run_full_proof(fixture_path: String = DEFAULT_FIXTURE_PATH) -> Dictionary:
 			_failure("SIDECAR_SHUTDOWN_RESPONSE_INVALID", "Shutdown response is invalid.")
 		)
 	_proof["shutdown_ok"] = true
+	_proof["shutdown_response_received"] = true
 	_set_status("shutdown_response", STATUS_PASS, "Graceful shutdown accepted.")
 	_sidecar_client.close()
 
@@ -342,28 +352,136 @@ func request_emergency_shutdown() -> void:
 	_log("Emergency shutdown requested; graceful cleanup will run at the next safe boundary.")
 
 
+func run_cancellation_test(hold_msec: int = DEFAULT_CANCELLATION_HOLD_MSEC) -> Dictionary:
+	if hold_msec <= 0:
+		return _standalone_failure(
+			"CANCELLATION_HOLD_INVALID",
+			"Cancellation test hold must be a positive duration."
+		)
+	return await run_full_proof(DEFAULT_FIXTURE_PATH, hold_msec)
+
+
+func configure_parent_watchdog(parent_pid: int, exit_log_path: String, run_id: String) -> Dictionary:
+	if active:
+		return _failure(
+			"SIDECAR_PARENT_WATCHDOG_ALREADY_ACTIVE",
+			"Parent watchdog must be configured before the proof starts."
+		)
+	if parent_pid <= 0 or exit_log_path.is_empty() or not exit_log_path.is_absolute_path():
+		return _failure(
+			"SIDECAR_PARENT_WATCHDOG_ARGUMENTS_INVALID",
+			"Parent watchdog requires a positive PID and absolute exit log path."
+		)
+	if run_id.is_empty():
+		return _failure("SIDECAR_PARENT_RUN_ID_INVALID", "Parent run ID must not be empty.")
+	_parent_watchdog_options = {
+		"parent_pid": parent_pid,
+		"parent_exit_log": exit_log_path,
+		"parent_run_id": run_id,
+	}
+	return {"ok": true}
+
+
+func get_runtime_context() -> Dictionary:
+	return {
+		"godot_pid": OS.get_process_id(),
+		"sidecar_pid": (
+			_sidecar_process.pid
+			if _sidecar_process != null and _sidecar_process.pid > 0
+			else -1
+		),
+		"host": (
+			_sidecar_process.host
+			if _sidecar_process != null and not _sidecar_process.host.is_empty()
+			else str(_proof.get("host", "unknown"))
+		),
+		"port": (
+			_sidecar_process.port
+			if _sidecar_process != null and _sidecar_process.port > 0
+			else int(_proof.get("port", -1))
+		),
+	}
+
+
 func has_active_sidecar_process() -> bool:
 	return _sidecar_process != null and _sidecar_process.is_running()
 
 
-func cleanup_now() -> void:
+func _run_cancellation_hold(hold_msec: int) -> Dictionary:
+	_proof["cancellation_test_mode"] = true
+	_proof["cancellation_test_ready"] = true
+	var context := get_runtime_context()
+	_log("READY FOR F8 CANCELLATION TEST")
+	_log("PRESS F8 NOW")
+	_log("Sidecar PID: %s" % context["sidecar_pid"])
+	_log("Port: %s" % context["port"])
+	cancellation_test_ready.emit(context)
+	var deadline := Time.get_ticks_msec() + hold_msec
+	while not cancel_requested and Time.get_ticks_msec() < deadline:
+		await get_tree().process_frame
+	if not cancel_requested:
+		request_emergency_shutdown()
+	return await _finish_cancelled("CANCELLATION_HOLD")
+
+
+func cleanup_now() -> Dictionary:
+	var summary := {
+		"cleanup_requested": true,
+		"graceful_shutdown_attempted": false,
+		"graceful_shutdown_accepted": false,
+		"active_connection_closed": true,
+		"worker_joined": true,
+		"worker_join_timed_out": false,
+		"forced_kill_used": false,
+		"process_stopped": true,
+		"listener_closed": true,
+		"sidecar_exit_code": "unavailable",
+	}
 	if not active and (_sidecar_process == null or not _sidecar_process.is_running()):
-		return
+		return summary
 	cancel_requested = true
 	if _worker_thread != null and _worker_thread.is_alive():
 		if _sidecar_process != null and _sidecar_process.is_running():
 			_sidecar_process.force_stop(500)
-		_worker_thread.wait_to_finish()
-		_worker_thread = null
+		var worker_deadline := Time.get_ticks_msec() + EXIT_CLEANUP_WORKER_LIMIT_MSEC
+		while _worker_thread.is_alive() and Time.get_ticks_msec() < worker_deadline:
+			OS.delay_msec(5)
+		if _worker_thread.is_alive():
+			summary["worker_joined"] = false
+			summary["worker_join_timed_out"] = true
+		else:
+			_worker_thread.wait_to_finish()
+			_worker_thread = null
 	elif _sidecar_client != null and _sidecar_client.has_tcp_connection():
-		_sidecar_client.request("visual_cleanup_shutdown", "shutdown", {}, 500)
+		summary["graceful_shutdown_attempted"] = true
+		var shutdown_result: Dictionary = _sidecar_client.request(
+			"visual_cleanup_shutdown",
+			"shutdown",
+			{},
+			500
+		)
+		summary["graceful_shutdown_accepted"] = bool(shutdown_result.get("ok", false))
 	if _sidecar_client != null:
 		_sidecar_client.close()
-	if _sidecar_process != null and _sidecar_process.is_running():
+	if _sidecar_process != null and _sidecar_process.pid > 0:
 		var wait_result: Dictionary = _sidecar_process.wait_for_exit(500)
-		if not bool(wait_result.get("ok", false)):
+		if not bool(wait_result.get("ok", false)) and _sidecar_process.is_running():
 			_sidecar_process.force_stop(500)
+		if _sidecar_process.exit_code == -1 and not _sidecar_process.is_running():
+			_sidecar_process.wait_for_exit(0)
+		_update_process_output_proof()
+		summary["forced_kill_used"] = _sidecar_process.forced_kill_used
+		summary["process_stopped"] = not _sidecar_process.is_running()
+		summary["sidecar_exit_code"] = (
+			"unavailable" if _sidecar_process.exit_code == -1 else _sidecar_process.exit_code
+		)
+		if not _sidecar_process.host.is_empty() and _sidecar_process.port > 0:
+			summary["listener_closed"] = _listener_is_closed(
+				_sidecar_process.host,
+				_sidecar_process.port
+			)
 	active = false
+	return summary
 
 
 func resolve_python_executable() -> Dictionary:
@@ -426,7 +544,10 @@ func _run_threaded(callable: Callable):
 func _start_process_with_environment(executable: String) -> Dictionary:
 	var state := _capture_environment("AETERNA_PYTHON_EXECUTABLE")
 	OS.set_environment("AETERNA_PYTHON_EXECUTABLE", executable)
-	var result: Dictionary = _sidecar_process.start()
+	var result: Dictionary = _sidecar_process.start(
+		Protocol.DEFAULT_TIMEOUT_MSEC,
+		_parent_watchdog_options
+	)
 	_restore_environment("AETERNA_PYTHON_EXECUTABLE", state)
 	result["python_executable_environment_restored"] = _environment_matches(
 		"AETERNA_PYTHON_EXECUTABLE",
@@ -464,16 +585,21 @@ func _cleanup_after_run(cancelled: bool) -> void:
 			var shutdown = await _run_threaded(
 				_sidecar_client.request.bind("visual_cleanup_shutdown", "shutdown", {}, 1_000)
 			)
+			if bool(shutdown.get("ok", false)):
+				_proof["shutdown_response_received"] = true
 			if bool(shutdown.get("ok", false)) and not cancelled:
 				_proof["shutdown_ok"] = true
 				_set_status("shutdown_response", STATUS_PASS, "Cleanup shutdown accepted.")
 			elif bool(shutdown.get("ok", false)):
 				_set_status("shutdown_response", STATUS_CANCELLED, "Cleanup shutdown accepted.")
 		_sidecar_client.close()
-	if _sidecar_process != null and _sidecar_process.is_running():
-		var wait_result = await _run_threaded(_sidecar_process.wait_for_exit.bind(1_000))
-		if not bool(wait_result.get("ok", false)) and _sidecar_process.is_running():
-			await _run_threaded(_sidecar_process.force_stop)
+	if _sidecar_process != null and _sidecar_process.pid > 0:
+		if _sidecar_process.is_running():
+			var wait_result = await _run_threaded(_sidecar_process.wait_for_exit.bind(1_000))
+			if not bool(wait_result.get("ok", false)) and _sidecar_process.is_running():
+				await _run_threaded(_sidecar_process.force_stop)
+		elif _sidecar_process.exit_code == -1:
+			_sidecar_process.wait_for_exit(0)
 	_update_process_output_proof()
 	if _sidecar_process != null and _sidecar_process.pid > 0:
 		_set_status(
@@ -553,12 +679,16 @@ func _new_proof() -> Dictionary:
 		"health_ok": false,
 		"fixture_ok": false,
 		"shutdown_ok": false,
+		"shutdown_response_received": false,
 		"process_stopped": false,
 		"listener_closed": false,
 		"sidecar_exit_code": -1,
 		"stdout_remainder_empty": false,
 		"stderr_empty": false,
 		"forced_kill_used": false,
+		"parent_watchdog_enabled": not _parent_watchdog_options.is_empty(),
+		"cancellation_test_mode": false,
+		"cancellation_test_ready": false,
 		"raw_fixture_response_body_bytes": 0,
 		"raw_fixture_response_body_sha256": "",
 		"expected_raw_fixture_response_body_bytes": EXPECTED_RAW_BODY_BYTES,

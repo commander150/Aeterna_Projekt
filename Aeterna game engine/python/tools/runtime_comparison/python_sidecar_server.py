@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import socket
+import threading
 from pathlib import Path, PurePosixPath
 
 from tools.runtime_comparison.python_reference_fixture import (
@@ -26,6 +28,13 @@ from tools.runtime_comparison.sidecar_protocol import (
     send_frame,
     validate_request,
 )
+from tools.runtime_comparison.parent_process_watchdog import (
+    PARENT_EXIT_CODE,
+    ParentProcessWatchdog,
+    ParentProcessWatchdogError,
+    append_parent_exit_tombstone,
+    build_parent_watchdog_config,
+)
 
 
 LOOPBACK_HOST = "127.0.0.1"
@@ -42,29 +51,63 @@ class SidecarServerInputError(ValueError):
         super().__init__("%s: %s" % (self.code, self.message))
 
 
-def serve_sidecar(host, port, *, fixture_root=DEFAULT_FIXTURE_ROOT):
+def serve_sidecar(
+    host,
+    port,
+    *,
+    fixture_root=DEFAULT_FIXTURE_ROOT,
+    parent_watchdog_config=None,
+    exit_process=os._exit,
+):
     """Bind the proof server, print one startup line, then serve until shutdown."""
 
     _validate_bind_address(host, port)
     fixture_root = Path(fixture_root).resolve(strict=True)
+    lifecycle = _ServerLifecycle(parent_watchdog_config, exit_process)
+    watchdog = None
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         listener.bind((host, port))
         listener.listen(1)
         bound_port = listener.getsockname()[1]
+        lifecycle.set_listener(listener, host, bound_port)
+        if parent_watchdog_config is not None:
+            watchdog = ParentProcessWatchdog(
+                parent_watchdog_config,
+                lifecycle.handle_parent_exit,
+            ).start()
         startup = build_startup_handshake(host, bound_port)
         sys.stdout.write(compact_json_object_bytes(startup).decode("utf-8") + "\n")
         sys.stdout.flush()
 
-        shutdown_requested = False
-        while not shutdown_requested:
-            connection, _ = listener.accept()
-            with connection:
-                connection.settimeout(DEFAULT_SOCKET_TIMEOUT)
-                shutdown_requested = _serve_connection(connection, fixture_root)
+        try:
+            shutdown_requested = False
+            while not shutdown_requested:
+                try:
+                    connection, _ = listener.accept()
+                except OSError:
+                    if lifecycle.parent_exit_started:
+                        lifecycle.wait_for_parent_exit_log()
+                        exit_process(PARENT_EXIT_CODE)
+                    raise
+                lifecycle.set_connection(connection)
+                try:
+                    with connection:
+                        connection.settimeout(DEFAULT_SOCKET_TIMEOUT)
+                        shutdown_requested = _serve_connection(
+                            connection,
+                            fixture_root,
+                            on_shutdown_requested=lifecycle.mark_normal_shutdown,
+                        )
+                finally:
+                    lifecycle.clear_connection(connection)
+        finally:
+            lifecycle.clear_listener(listener)
+            if watchdog is not None and not lifecycle.parent_exit_started:
+                watchdog.stop()
     return 0
 
 
-def _serve_connection(connection, fixture_root):
+def _serve_connection(connection, fixture_root, *, on_shutdown_requested=None):
     used_request_ids = set()
     while True:
         try:
@@ -102,6 +145,8 @@ def _serve_connection(connection, fixture_root):
             )
             should_shutdown = False
 
+        if should_shutdown and on_shutdown_requested is not None:
+            on_shutdown_requested()
         try:
             send_frame(connection, response)
         except SidecarProtocolError:
@@ -223,6 +268,88 @@ def _validate_bind_address(host, port):
         )
 
 
+class _ServerLifecycle:
+    def __init__(self, parent_watchdog_config, exit_process):
+        self.parent_watchdog_config = parent_watchdog_config
+        self.exit_process = exit_process
+        self.parent_exit_started = False
+        self._normal_shutdown = False
+        self._listener = None
+        self._connection = None
+        self._host = LOOPBACK_HOST
+        self._port = 0
+        self._lock = threading.Lock()
+        self._parent_exit_logged = threading.Event()
+
+    def set_listener(self, listener, host, port):
+        with self._lock:
+            self._listener = listener
+            self._host = host
+            self._port = port
+
+    def clear_listener(self, listener):
+        with self._lock:
+            if self._listener is listener:
+                self._listener = None
+
+    def set_connection(self, connection):
+        with self._lock:
+            self._connection = connection
+
+    def clear_connection(self, connection):
+        with self._lock:
+            if self._connection is connection:
+                self._connection = None
+
+    def mark_normal_shutdown(self):
+        with self._lock:
+            self._normal_shutdown = True
+
+    def handle_parent_exit(self):
+        with self._lock:
+            if self._normal_shutdown or self.parent_exit_started:
+                return
+            self.parent_exit_started = True
+            connection = self._connection
+            listener = self._listener
+            self._connection = None
+            self._listener = None
+            host = self._host
+            port = self._port
+        connection_closed = _close_socket(connection)
+        listener_closed = _close_socket(listener)
+        try:
+            append_parent_exit_tombstone(
+                self.parent_watchdog_config,
+                {
+                    "host": host,
+                    "port": port,
+                    "active_connection_closed": connection_closed,
+                    "listener_closed_by_sidecar": listener_closed,
+                },
+            )
+        finally:
+            self._parent_exit_logged.set()
+            self.exit_process(PARENT_EXIT_CODE)
+
+    def wait_for_parent_exit_log(self):
+        self._parent_exit_logged.wait(timeout=1.0)
+
+
+def _close_socket(active_socket):
+    if active_socket is None:
+        return True
+    try:
+        active_socket.shutdown(socket.SHUT_RDWR)
+    except OSError:
+        pass
+    try:
+        active_socket.close()
+    except OSError:
+        return False
+    return True
+
+
 class _ArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         raise SidecarServerInputError(
@@ -235,14 +362,26 @@ def _build_parser():
     parser = _ArgumentParser(description="Run the AETERNA Python loopback sidecar proof.")
     parser.add_argument("--host", default=LOOPBACK_HOST)
     parser.add_argument("--port", type=int, default=0)
+    parser.add_argument("--parent-pid", type=int)
+    parser.add_argument("--parent-exit-log")
+    parser.add_argument("--parent-run-id")
     return parser
 
 
 def main(argv=None):
     try:
         arguments = _build_parser().parse_args(argv)
-        return serve_sidecar(arguments.host, arguments.port)
-    except SidecarServerInputError as exc:
+        parent_watchdog_config = build_parent_watchdog_config(
+            arguments.parent_pid,
+            arguments.parent_exit_log,
+            arguments.parent_run_id,
+        )
+        return serve_sidecar(
+            arguments.host,
+            arguments.port,
+            parent_watchdog_config=parent_watchdog_config,
+        )
+    except (SidecarServerInputError, ParentProcessWatchdogError) as exc:
         print("%s: %s" % (exc.code, exc.message), file=sys.stderr)
         return 2
     except (OSError, ValueError):

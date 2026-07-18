@@ -93,6 +93,12 @@ custom_minimum_size = Vector2(170, 36)
 layout_mode = 2
 text = "Run Full Proof"
 
+[node name="StartF8CancellationTestButton" type="Button" parent="MarginContainer/Content/ButtonRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 36)
+layout_mode = 2
+text = "Start F8 Cancellation Test"
+
 [node name="EmergencyShutdownButton" type="Button" parent="MarginContainer/Content/ButtonRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(190, 36)
@@ -105,6 +111,15 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(110, 36)
 layout_mode = 2
 text = "Clear Log"
+
+[node name="CancellationTestStatusLabel" type="Label" parent="MarginContainer/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.603922, 0.627451, 0.65098, 1)
+theme_override_font_sizes/font_size = 13
+text = "F8 cancellation test: NOT STARTED"
+autowrap_mode = 2
 
 [node name="BodyScroll" type="ScrollContainer" parent="MarginContainer/Content"]
 unique_name_in_owner = true
