@@ -1,0 +1,459 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/debug/python_sidecar_visual_proof.gd" id="1_visual_proof"]
+
+[sub_resource type="StyleBoxFlat" id="StylePanel"]
+bg_color = Color(0.085, 0.094, 0.098, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.24, 0.27, 0.28, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="StyleFinal"]
+bg_color = Color(0.055, 0.061, 0.064, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.27, 0.31, 0.32, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 16.0
+content_margin_top = 10.0
+content_margin_right = 16.0
+content_margin_bottom = 10.0
+
+[node name="PythonSidecarVisualProof" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_visual_proof")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.035, 0.039, 0.041, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="Content" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.95, 0.95, 1)
+theme_override_font_sizes/font_size = 26
+text = "AETERNA Python Sidecar Visual Proof"
+
+[node name="DescriptionLabel" type="Label" parent="MarginContainer/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.67, 0.71, 0.72, 1)
+theme_override_font_sizes/font_size = 13
+text = "Godot 4.7.1 developer proof: startup, TCP health, fixture raw-byte verification, graceful shutdown and orphan checks."
+autowrap_mode = 2
+
+[node name="ButtonRow" type="HBoxContainer" parent="MarginContainer/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="RunFullProofButton" type="Button" parent="MarginContainer/Content/ButtonRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 36)
+layout_mode = 2
+text = "Run Full Proof"
+
+[node name="EmergencyShutdownButton" type="Button" parent="MarginContainer/Content/ButtonRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(190, 36)
+layout_mode = 2
+disabled = true
+text = "Emergency Shutdown"
+
+[node name="ClearLogButton" type="Button" parent="MarginContainer/Content/ButtonRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 36)
+layout_mode = 2
+text = "Clear Log"
+
+[node name="MainSplit" type="HSplitContainer" parent="MarginContainer/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+split_offset = 390
+theme_override_constants/separation = 12
+
+[node name="StatusPanel" type="PanelContainer" parent="MarginContainer/Content/MainSplit"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StylePanel")
+
+[node name="StatusColumn" type="VBoxContainer" parent="MarginContainer/Content/MainSplit/StatusPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="StatusTitle" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.92, 0.92, 1)
+theme_override_font_sizes/font_size = 16
+text = "Lifecycle status"
+
+[node name="StatusScroll" type="ScrollContainer" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="StatusGrid" type="GridContainer" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 5
+columns = 2
+
+[node name="PythonExecutableLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Python executable"
+[node name="PythonExecutableStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "NOT STARTED"
+
+[node name="SidecarProcessLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Sidecar process"
+[node name="SidecarProcessStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="StartupHandshakeLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Startup handshake"
+[node name="StartupHandshakeStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="TcpConnectionLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "TCP connection"
+[node name="TcpConnectionStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="ProtocolVersionLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Protocol version"
+[node name="ProtocolVersionStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="HealthRequestLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Health request"
+[node name="HealthRequestStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="FixtureRequestLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Fixture request"
+[node name="FixtureRequestStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="RawPreservationLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Raw byte preservation"
+[node name="RawPreservationStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="RawByteCountLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Raw response byte count"
+[node name="RawByteCountStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="RawShaLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Raw response SHA-256"
+[node name="RawShaStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="ExpectedRawShaLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Expected raw SHA-256"
+[node name="ExpectedRawShaStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="ReferenceResultShaLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Reference result SHA"
+[node name="ReferenceResultShaStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="CandidateResultShaLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Candidate result SHA"
+[node name="CandidateResultShaStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="ShutdownResponseLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Shutdown response"
+[node name="ShutdownResponseStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="SidecarExitLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Sidecar exit"
+[node name="SidecarExitStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="ListenerStateLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Listener state"
+[node name="ListenerStateStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="StandardOutputLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Standard output"
+[node name="StandardOutputStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="StandardErrorLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Standard error"
+[node name="StandardErrorStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="FinalResultStatusLabel" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+layout_mode = 2
+text = "Final result"
+[node name="FinalResultStatus" type="Label" parent="MarginContainer/Content/MainSplit/StatusPanel/StatusColumn/StatusScroll/StatusGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "NOT STARTED"
+
+[node name="DetailsColumn" type="VBoxContainer" parent="MarginContainer/Content/MainSplit"]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="RuntimePanel" type="PanelContainer" parent="MarginContainer/Content/MainSplit/DetailsColumn"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StylePanel")
+
+[node name="RuntimeGrid" type="GridContainer" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel"]
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 5
+columns = 2
+
+[node name="RuntimeTitle" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.92, 0.92, 1)
+theme_override_font_sizes/font_size = 15
+text = "Python runtime"
+[node name="RuntimeSpacer" type="Control" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+layout_mode = 2
+
+[node name="PythonPathLabel" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+layout_mode = 2
+text = "Executable"
+[node name="PythonExecutablePath" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Not resolved"
+text_overrun_behavior = 3
+
+[node name="PythonSourceLabel" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+layout_mode = 2
+text = "Resolution source"
+[node name="PythonExecutableSource" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/RuntimePanel/RuntimeGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "not resolved"
+
+[node name="HashPanel" type="PanelContainer" parent="MarginContainer/Content/MainSplit/DetailsColumn"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StylePanel")
+
+[node name="HashColumn" type="VBoxContainer" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HashTitle" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.92, 0.92, 1)
+theme_override_font_sizes/font_size = 15
+text = "Raw-byte and canonical proof"
+
+[node name="ActualRawShaHeading" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.69, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "Actual raw response SHA-256"
+[node name="ActualRawShaValue" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "NOT CHECKED"
+text_overrun_behavior = 3
+
+[node name="ExpectedRawShaHeading" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.69, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "Expected raw response SHA-256"
+[node name="ExpectedRawShaValue" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "4ba84e68d98a629c46aeaf6f5eb5f262569233ce5acaf9652e3548038965486c"
+text_overrun_behavior = 3
+
+[node name="ReferenceResultShaHeading" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.69, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "Reference canonical result SHA-256"
+[node name="ReferenceResultShaValue" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d"
+text_overrun_behavior = 3
+
+[node name="CandidateResultShaHeading" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.69, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "Candidate canonical result SHA-256"
+[node name="CandidateResultShaValue" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "NOT CHECKED"
+text_overrun_behavior = 3
+
+[node name="CandidateShaMethodValue" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/HashPanel/HashColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.69, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "NOT CHECKED"
+autowrap_mode = 2
+
+[node name="LogPanel" type="PanelContainer" parent="MarginContainer/Content/MainSplit/DetailsColumn"]
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StylePanel")
+
+[node name="LogColumn" type="VBoxContainer" parent="MarginContainer/Content/MainSplit/DetailsColumn/LogPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="LogTitle" type="Label" parent="MarginContainer/Content/MainSplit/DetailsColumn/LogPanel/LogColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.92, 0.92, 1)
+theme_override_font_sizes/font_size = 15
+text = "Lifecycle log"
+
+[node name="LogText" type="RichTextLabel" parent="MarginContainer/Content/MainSplit/DetailsColumn/LogPanel/LogColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/default_color = Color(0.76, 0.79, 0.8, 1)
+theme_override_font_sizes/normal_font_size = 12
+scroll_following = true
+selection_enabled = true
+
+[node name="FinalPanel" type="PanelContainer" parent="MarginContainer/Content"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleFinal")
+
+[node name="FinalColumn" type="VBoxContainer" parent="MarginContainer/Content/FinalPanel"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="FinalResultLabel" type="Label" parent="MarginContainer/Content/FinalPanel/FinalColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 21
+text = "FINAL RESULT: NOT STARTED"
+
+[node name="FailedAtLabel" type="Label" parent="MarginContainer/Content/FinalPanel/FinalColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "FAILED AT: none"
+
+[node name="ErrorCodeLabel" type="Label" parent="MarginContainer/Content/FinalPanel/FinalColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "ERROR CODE: none"
+
+[node name="ErrorMessageLabel" type="Label" parent="MarginContainer/Content/FinalPanel/FinalColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "ERROR: none"
+autowrap_mode = 2
