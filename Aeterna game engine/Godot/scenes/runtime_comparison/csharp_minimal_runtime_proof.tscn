@@ -1,0 +1,129 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/debug/CsharpMinimalRuntimeProof.cs" id="1_proof"]
+
+[node name="CsharpMinimalRuntimeProof" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_proof")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.035, 0.043, 0.047, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "C# Minimal Runtime Candidate"
+
+[node name="Architecture" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.74, 0.77, 1)
+text = "Direct in-process: YES  |  Separate engine process: NO  |  Python process: NOT USED  |  TCP/listener: NOT USED"
+autowrap_mode = 2
+
+[node name="Details" type="GridContainer" parent="Margin/Content"]
+layout_mode = 2
+columns = 2
+
+[node name="EnvironmentLabel" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+text = "Environment"
+
+[node name="EnvironmentValue" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+text = "Godot / .NET / target framework"
+
+[node name="FixtureLabel" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+text = "Fixture ID"
+
+[node name="FixtureValue" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+text = "minimal_draw_end_turn_v1"
+
+[node name="ExpectedShaLabel" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+text = "Expected canonical SHA"
+
+[node name="ExpectedShaValue" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+text = "650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d"
+
+[node name="ActualShaLabel" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+text = "Actual canonical SHA"
+
+[node name="ActualShaValue" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+text = "not run"
+
+[node name="ShaMatchLabel" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+text = "SHA match"
+
+[node name="ShaMatchValue" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+text = "not run"
+
+[node name="ElapsedLabel" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+text = "Elapsed time"
+
+[node name="ElapsedValue" type="Label" parent="Margin/Content/Details"]
+layout_mode = 2
+text = "not run"
+
+[node name="Buttons" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="RunButton" type="Button" parent="Margin/Content/Buttons"]
+layout_mode = 2
+text = "Run C# Minimal Proof"
+
+[node name="ClearButton" type="Button" parent="Margin/Content/Buttons"]
+layout_mode = 2
+text = "Clear Log"
+
+[node name="FinalResultValue" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "FINAL RESULT: NOT RUN"
+
+[node name="LogTitle" type="Label" parent="Margin/Content"]
+layout_mode = 2
+text = "Visual proof log"
+
+[node name="Log" type="RichTextLabel" parent="Margin/Content"]
+custom_minimum_size = Vector2(0, 230)
+layout_mode = 2
+size_flags_vertical = 3
+scroll_active = true
+selection_enabled = true

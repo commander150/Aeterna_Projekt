@@ -12,7 +12,11 @@ config_version=5
 
 config/name="AETERNA Contract Loader Prototype"
 run/main_scene="res://scenes/package_loader_test.tscn"
-config/features=PackedStringArray("4.7")
+config/features=PackedStringArray("4.7", "C#")
+
+[dotnet]
+
+project/assembly_name="Aeterna.Godot"
 
 [rendering]
 
