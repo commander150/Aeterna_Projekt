@@ -114,7 +114,7 @@ text = "Clear Log"
 
 [node name="CancellationTestStatusLabel" type="Label" parent="MarginContainer/Content"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 68)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.603922, 0.627451, 0.65098, 1)
 theme_override_font_sizes/font_size = 13

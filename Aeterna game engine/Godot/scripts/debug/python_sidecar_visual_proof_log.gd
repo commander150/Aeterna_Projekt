@@ -11,29 +11,35 @@ var _run_id := ""
 var _interruption_tombstone_written := false
 
 
-func begin(run_number: int, scene_path: String, run_id: String) -> Dictionary:
+func begin(run_number: int, scene_path: String, proof_run_id: String) -> Dictionary:
 	close()
 	_finished = false
-	_run_id = run_id
+	_run_id = proof_run_id
 	_interruption_tombstone_written = false
-	var absolute_path := ProjectSettings.globalize_path(LOG_GODOT_PATH).simplify_path()
-	var directory_error := DirAccess.make_dir_recursive_absolute(absolute_path.get_base_dir())
+	var resolved_absolute_path := ProjectSettings.globalize_path(LOG_GODOT_PATH).simplify_path()
+	var directory_error := DirAccess.make_dir_recursive_absolute(
+		resolved_absolute_path.get_base_dir()
+	)
 	if directory_error != OK and directory_error != ERR_ALREADY_EXISTS:
 		return _failure("VISUAL_PROOF_LOG_DIRECTORY_FAILED", "Could not prepare the TEMP log directory.")
-	_file = FileAccess.open(absolute_path, FileAccess.WRITE)
+	_file = FileAccess.open(resolved_absolute_path, FileAccess.WRITE)
 	if _file == null:
 		return _failure("VISUAL_PROOF_LOG_OPEN_FAILED", "Could not open the visual proof log file.")
 	_write_line("AETERNA GODOT VISUAL PYTHON SIDECAR PROOF LOG")
 	_write_field("log_schema_version", LOG_SCHEMA_VERSION)
 	_write_field("run_number", run_number)
-	_write_field("run_id", run_id)
+	_write_field("run_id", proof_run_id)
 	_write_field("started_at", Time.get_datetime_string_from_system(true))
 	_write_field("godot_version", str(Engine.get_version_info().get("string", "")))
 	_write_field("visual_proof_scene", scene_path)
 	_write_field("godot_pid", OS.get_process_id())
 	_write_field("log_path", LOG_RELATIVE_PATH)
 	_write_line("")
-	return {"ok": true, "path": absolute_path, "relative_path": LOG_RELATIVE_PATH}
+	return {
+		"ok": true,
+		"path": resolved_absolute_path,
+		"relative_path": LOG_RELATIVE_PATH,
+	}
 
 
 func write_lifecycle(key: String, status: String, detail: String) -> void:

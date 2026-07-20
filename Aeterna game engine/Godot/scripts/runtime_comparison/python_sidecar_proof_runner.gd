@@ -19,7 +19,7 @@ const EXPECTED_RAW_BODY_SHA256 = "4ba84e68d98a629c46aeaf6f5eb5f262569233ce5acaf9
 const EXPECTED_RESULT_SHA256 = "650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d"
 const CANDIDATE_SHA_METHOD = "verified through exact fixture response-body byte match"
 const EMERGENCY_WORKER_GRACE_MSEC = 1_000
-const DEFAULT_CANCELLATION_HOLD_MSEC = 10_000
+const DEFAULT_CANCELLATION_HOLD_MSEC = 30_000
 const EXIT_CLEANUP_WORKER_LIMIT_MSEC = 750
 
 const STATUS_NOT_STARTED = "NOT STARTED"
@@ -411,6 +411,7 @@ func _run_cancellation_hold(hold_msec: int) -> Dictionary:
 	_proof["cancellation_test_mode"] = true
 	_proof["cancellation_test_ready"] = true
 	var context := get_runtime_context()
+	context["hold_msec"] = hold_msec
 	_log("READY FOR F8 CANCELLATION TEST")
 	_log("PRESS F8 NOW")
 	_log("Sidecar PID: %s" % context["sidecar_pid"])

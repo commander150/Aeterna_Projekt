@@ -189,9 +189,11 @@ func _on_clear_log_pressed() -> void:
 
 
 func _on_cancellation_test_ready(context: Dictionary) -> void:
-	_f8_test_status_label.text = "READY FOR F8 CANCELLATION TEST\nPRESS F8 NOW\nSidecar PID: %s | Port: %s" % [
+	var hold_seconds := ceili(float(context.get("hold_msec", 0)) / 1_000.0)
+	_f8_test_status_label.text = "READY FOR F8 CANCELLATION TEST\nPRESS F8 NOW\nSidecar PID: %s | Port: %s\nMANUAL HOLD ACTIVE (%d seconds)" % [
 		context.get("sidecar_pid", "unknown"),
 		context.get("port", "unknown"),
+		hold_seconds,
 	]
 	_f8_test_status_label.add_theme_color_override("font_color", STATUS_COLORS["RUNNING"])
 	_file_log.write_cancellation_test_ready(context)
