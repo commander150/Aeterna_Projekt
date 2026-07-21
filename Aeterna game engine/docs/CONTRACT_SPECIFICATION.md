@@ -2,750 +2,829 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.4  
-**Dátum:** 2026-07-15  
+**Dokumentumverzió:** 1.5  
+**Dátum:** 2026-07-20  
 **Státusz:** aktív, technológiafüggetlen contract-specifikáció  
-**Aktuális Python technikai bázis:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
+**Aktuális megvalósítási státusz:** `CONTRACT_STATUS.md`  
+**Production authority:** C#/.NET  
+**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
 Ez a dokumentum az AETERNA Game Engine contract-first rétegének aktív szerkezeti specifikációja.
 
 Nem:
 
-- teljes rules engine specifikáció;
+- teljes rules engine-specifikáció;
 - runtime package mezőszintű schema;
-- ability module rendszerleírás;
-- MatchState kóddokumentáció;
-- valamely runtime-nyelv előzetes kiválasztása;
-- minden jövőbeli mező kötelező sémává nyilvánítása.
+- ability executor;
+- kártyaadatbázis;
+- valamely nyelv belső osztálydokumentációja;
+- minden jövőbeli mező kötelezővé nyilvánítása.
 
-Kapcsolódó aktív dokumentumok:
+Kapcsolódó dokumentumok:
 
-- `CURRENT_CONTRACT_STATUS.md` – tényleges implementációs státusz;
-- `CURRENT_OPEN_QUESTIONS.md` – nyitott és lezárt döntések;
-- `CONTRACT_SPECIFICATION_MIGRATION_MAP.md` – történeti migration-reference;
-- `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md` – runtime-összehasonlítás;
-- `RUNTIME_COMPARISON_FIXTURE_SPEC.md` – közös comparison scenario;
-- `ARCHITECTURE.md` – rendszerhatárok;
-- `CURRENT_RUNTIME_PACKAGE_STATUS.md` – statikus package-adatút;
-- `ABILITY_MODULE_SYSTEM.md` – későbbi ability-contractok;
-- `checkpoints/CURRENT_ENGINE_CHECKPOINT.md` – aktuális engine-checkpoint.
-
-Eltérés esetén az irányadó sorrend:
-
-1. működő kód és tesztek;
-2. `CURRENT_CONTRACT_STATUS.md`;
-3. `CURRENT_OPEN_QUESTIONS.md` és aktív döntési dokumentumok;
-4. ez a specifikáció;
-5. történeti tervek és sample dokumentumok.
-
-A canonical szabályok az aktuális rulesetben kötelezők. Szabályhű playtest alapján később felülvizsgálhatók, de csak explicit emberi döntés, döntésnapló és verziózott forrásátvezetés után módosíthatják az engine-contractot.
+- `CONTRACT_STATUS.md`
+- `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`
+- `OPEN_QUESTIONS.md`
+- `OPEN_QUESTIONS_DECISIONS.md`
+- `ARCHITECTURE.md`
+- `TECHNOLOGY_DECISIONS.md`
+- `RUNTIME_PACKAGE_SPECIFICATION.md`
+- `ABILITY_MODULE_SYSTEM.md`
+- `RUNTIME_COMPARISON_FIXTURE_SPEC.md`
+- `checkpoints/ENGINE_CHECKPOINT.md`
 
 ---
 
 ## 1. Contract-first alapelv
 
-> **Előbb explicit contract, utána implementáció.**
+> Előbb explicit contract, utána implementáció.
 
 Kötelező következmények:
 
-- pontosan egy authoritative MatchState létezik;
-- a frontend és az AI nem találgat legalitást;
-- a frontend action requestet küld, nem módosít state-et;
-- az authoritative engine validál és hajt végre transitiont;
+- pontosan egy authoritative MatchState;
+- state mutation csak az authoritative engine-ben;
+- frontend és AI nem találgat legalitást;
+- kliens action requestet küld;
+- engine validál és transitiont hajt végre;
 - rejected request nem okozhat részleges mutationt;
 - player-facing output nem teljes MatchState dump;
-- hidden information nem szivároghat snapshotba, eventbe, legal actionbe vagy diagnosticsba;
-- debug és player-visible contract elkülönül;
-- azonos input és state esetén determinisztikus output szükséges;
-- a contractoknak Python, C#, GDScript vagy más runtime mellett ugyanazt a játékjelentést kell hordozniuk.
-
-A működő Python referencia és bármely későbbi product runtime ugyanazon fixture-ön legyen összehasonlítható.
+- hidden information nem szivároghat;
+- debug és player-visible contract külön;
+- azonos state és input determinisztikus outputot ad;
+- contractjelentés Python-, C#- és Godot-adapter között megőrzendő;
+- a production authority C#, a Python referencia és tooling.
 
 ---
 
-## 2. Contract-státuszok
+## 2. Forráselsőbbség
+
+Contracteltérésnél:
+
+1. hivatalos játékszabályforrás;
+2. elfogadott, verziózott emberi döntés;
+3. aktív Open Questions döntésnapló;
+4. jelen contract-specifikáció;
+5. elfogadott fixture;
+6. Python reference implementation;
+7. C# implementation;
+8. történeti sample és migration dokumentum.
+
+A működő kód technikai tényt bizonyíthat, de nem írhatja felül a hivatalos szabályt.
+
+---
+
+## 3. Contract-státuszok
 
 | Státusz | Jelentés |
 |---|---|
-| `active_runtime` | A minimal authoritative engine ténylegesen használja. |
-| `active_projection` | Player-facing vagy debug projekcióban ténylegesen használatos. |
-| `active_isolated` | Megvalósított és tesztelt helpercontract, de még nincs MatchState/runtime integrációban. |
-| `foundation_only` | Alapcontract létezik, de a teljes gameplay-lánc még hiányzik. |
-| `planned` | Dokumentált jövőbeli contract; nincs aktív implementáció. |
-| `superseded` | Korábbi séma vagy modell, amelyet újabb aktív változat felváltott. |
-| `debug_fixture` | Parser-, loader- vagy UI-tesztadat; nem authoritative gameplay-contract. |
+| `active_reference_runtime` | A Python referenciaengine használja. |
+| `active_reference_projection` | A Python player/debug projection használja. |
+| `proven_csharp_candidate` | A C# candidate proofban működött. |
+| `active_isolated` | Megvalósított és tesztelt, de nincs teljes runtime-integrációban. |
+| `foundation_only` | Alapcontract létezik, teljes gameplay még nincs. |
+| `planned_c5b` | A production C# foundation része. |
+| `planned_gameplay` | Későbbi production gameplay-réteg. |
+| `superseded` | Újabb contract felváltotta. |
+| `debug_fixture` | Loader/UI/comparison tesztadat. |
+| `reference_only` | Történeti vagy összehasonlító referencia. |
 
-Szabály:
-
-- javasolt mező nem válik kötelezővé implementáció és teszt nélkül;
-- `active_isolated` nem nevezhető integrált runtime-funkciónak;
-- `foundation_only` nem nevezhető teljes gameplay-támogatásnak;
-- `debug_fixture` nem nevezhető production sémának.
+Az aktuális státuszokat a `CONTRACT_STATUS.md` tartalmazza.
 
 ---
 
-## 3. Contract-rétegek
+## 4. Contract-rétegek
 
-### 3.1 Runtime package
+### 4.1 Runtime package
 
 Statikus programadat:
 
-- card és deck definition;
-- LOOKUPS és canonical értékek;
-- aliasok és normalizációs adatok;
-- ability registry foundation;
-- engine-support és build diagnostics.
+- card definition;
+- deck definition;
+- lookup;
+- alias;
+- ability registry;
+- support státusz;
+- build diagnostics.
 
-Nem MatchState, save game, snapshot, legal action vagy authoritative mérkőzésállapot.
+Nem:
 
-### 3.2 MatchState
+- MatchState;
+- save;
+- snapshot;
+- legal action;
+- action request;
+- event log.
 
-Az authoritative belső igaz állapot. Tartalmazhat:
+### 4.2 Authoritative MatchState
 
-- player state-eket;
-- card instance registryt;
-- zónatagságot és sorrendet;
-- owner/controller adatot;
-- activity state-et;
-- Domain topológiát és occupancy state-et;
-- turn, phase és priority alapot;
-- turn-scoped decision state-et;
-- state versiont;
-- event logot;
-- később pending decisiont, effect- és duration-state-et.
+A belső igaz állapot.
 
-A MatchState nem player-facing contract.
+Tartalmazhat:
 
-### 3.3 Projection
+- match ID;
+- seed;
+- state version;
+- turn és phase;
+- active player;
+- priority player;
+- player state-ek;
+- card instance registry;
+- zónák;
+- Domain topology és occupancy;
+- Wellspring;
+- turn-scoped decision state;
+- pending decision;
+- event sequence és log;
+- match result;
+- később effect, duration és reaction state.
 
-A MatchState-ből származtatott, viewer-specifikus output:
+Nem adható ki módosítható player-facing objektumként.
+
+### 4.3 Projection
+
+Viewer-specifikus, MatchState-ből származtatott output:
 
 - player-visible snapshot;
-- public Domain board;
+- public board;
 - Wellspring summary;
 - legal action projection;
+- visible event window;
 - debug snapshot;
-- később visible event ablak, spectator és replay projection.
+- később spectator és replay projection.
 
-### 3.4 Legal action
+### 4.4 Legal action
 
-Az authoritative engine által számított döntési lehetőség.
+Az engine által számított döntési lehetőség.
 
-- nem frontend-találgatás;
-- nem state mutation;
-- tartalmazhat source-, target-, choice- és payment-contextet;
-- fair AI számára csak player-visible információból épülhet;
-- stabil és determinisztikus sorrendű;
-- action neve a döntés szemantikáját tükrözi.
+Nem:
 
-### 3.5 Action request és response
+- frontend-találgatás;
+- state mutation;
+- kártyaszöveg szabad értelmezése.
 
-A request a játékos, frontend vagy AI szándéka. Nem bizonyít legalitást; az engine újra validál.
+Tartalmazhat:
 
-A response a validálás és transition strukturált eredménye, például:
+- action ID;
+- action type/family;
+- player;
+- source;
+- target/choice/payment context;
+- enabled;
+- disabled reason debug módban;
+- order rank;
+- payload schema;
+- UI-hint, amely nem szabályforrás.
 
-- accepted/rejected;
-- reason és diagnostics;
+### 4.5 Action request
+
+A játékos, UI vagy AI szándéka.
+
+Nem bizonyít legalitást.
+
+Minimum:
+
+- schema version;
+- request ID;
+- match ID;
+- player ID;
+- expected state version;
+- action ID;
+- action type;
+- payload.
+
+### 4.6 Action response
+
+A validálás és transition eredménye.
+
+Minimum:
+
+- schema version;
+- request ID;
+- match ID;
+- accepted;
+- reason;
 - state version before/after;
-- transition summary;
-- typed eventek;
-- később pending decision, payment-, target- és choice-result.
+- events;
+- diagnostics;
+- opcionális transition summary;
+- opcionális pending decision.
 
-### 3.6 Event
+### 4.7 Event
 
-A state transition történeti, strukturált leírása.
+A transition strukturált történeti leírása.
 
-Az event:
+Nem authoritative state.
 
-- nem authoritative state;
-- determinisztikus sorrendű;
-- state versionhöz és matchhez kapcsolódik;
-- player-facing formában visibility-szűrt;
-- UI-animációhoz, replayhez, AI-elemzéshez és diagnosticshez használható;
-- nem duplikálhat indokolatlanul más typed eventben már teljesen kifejezett transitiont.
+Minimum:
 
-### 3.7 Diagnostics
-
-Strukturált hiba-, warning- és auditadat.
-
-- normál hibás inputra lehetőleg non-throwing validator result;
-- severity és blocking külön fogalom;
-- player-facing diagnostics nem szivárogtathat hidden informationt;
-- developer/debug diagnostics külön csatorna.
-
----
-
-## 4. Aktív schema-index
-
-### Belső state
-
-- `minimal-card-instance-record-v1` – `active_runtime`;
-- `minimal-object-reference-v0` – `active_projection`;
-- minimal ZoneMove – `active_runtime`;
-- MatchState – `active_runtime`;
-- `minimal-domain-position-v0` – `active_runtime`;
-- `minimal-player-domain-topology-v0` – `active_runtime`;
-- `minimal-domain-position-occupancy-v0` – `active_runtime`;
-- `minimal-player-domain-occupancy-v0` – `active_runtime`.
-
-### Projection
-
-- `engine-player-visible-snapshot-v2` – `active_projection`;
-- `minimal-player-visible-domain-board-v0` – `active_projection`;
-- `minimal-public-domain-board-v0` – `active_projection`;
-- debug snapshot – `active_projection`.
-
-### Action, event és AI
-
-- minimal legal action space – `foundation_only`;
-- minimal action request/response – `active_runtime`;
-- `minimal-engine-event-v0` – `active_runtime`;
-- `minimal-ai-vs-ai-episode-v1` – `active_runtime`.
-
-### Izolált következő alapok
-
-- `minimal-entity-domain-placement-option-v0` – `active_isolated`;
-- `minimal-entity-domain-placement-options-v0` – `active_isolated`;
-- `minimal-player-wellspring-state-v0` – `active_isolated`;
-- `minimal-wellspring-resource-summary-v0` – `active_isolated`.
-
-### Felváltott vagy fixture
-
-- `engine-player-visible-snapshot-v1` – `superseded`;
-- `minimal-card-instance-record-v0` – `superseded`;
-- Godot sample snapshot, legal action és event – `debug_fixture`.
-
----
-
-## 5. Card instance, activity és zónák
-
-A card instance record fő fogalmai:
-
-- stabil `card_instance_id`;
-- `card_id`;
-- owner és controller;
-- zone és zone index;
+- event ID;
+- sequence;
+- type;
+- match ID;
+- state version;
+- actor/cause;
+- structured payload;
 - visibility;
-- created és zone sequence;
-- activity state;
-- metadata.
+- opcionális correlation/parent.
 
-Activity:
+### 4.8 Diagnostics
 
-- deck, hand és discard: `None`;
-- Domain és Wellspring: `active` vagy `exhausted`.
+Strukturált probléma-, warning-, audit- és supportadat.
 
-Az activity nem summoning sickness és nem támadási jogosultság.
+Minimum:
 
-A listás player-zónák és a registry tagsága kétirányú invariáns. Ugyanez érvényes a Domain occupancy és registry kapcsolatára.
+- code;
+- category;
+- severity;
+- blocking;
+- safe message;
+- developer message;
+- source/object/action/event reference;
+- structured details;
+- retry vagy suggested fix.
 
 ---
 
-## 6. Domain topology és placement
+## 5. EngineSession publikus határ
+
+Tervezett production API:
+
+- `CreateMatch`;
+- `GetPlayerSnapshot`;
+- `ListLegalActions`;
+- `SubmitAction`;
+- `GetEvents`;
+- `GetMatchResult`.
+
+Elvek:
+
+- az EngineSession birtokolja a belső MatchState-et;
+- a caller nem kap módosítható state-referenciát;
+- minden mutation `SubmitAction` vagy egyenértékű validált belső transition;
+- snapshot és event projection új objektum;
+- request input nem módosul;
+- exception helyett normál hibás inputra strukturált reject/diagnostic;
+- programmer error és corrupt internal state külön exception lehet.
+
+---
+
+## 6. Card definition és card instance
+
+### Card definition
+
+Statikus package-adat:
+
+- card ID;
+- név;
+- card type;
+- realm;
+- printed Magnitude;
+- printed Aura;
+- rules text;
+- set/printing;
+- ability/support reference.
+
+### Card instance
+
+Meccsspecifikus authoritative objektum:
+
+- instance ID;
+- card ID;
+- owner;
+- controller;
+- zone;
+- zone index vagy board reference;
+- visibility;
+- created sequence;
+- zone sequence;
+- activity state;
+- runtime metadata.
+
+A definition és instance nem keverhető.
+
+---
+
+## 7. PlayerState és zónák
+
+PlayerState tartalmazhat:
+
+- player ID;
+- deck ID;
+- deck instance ID-k;
+- hand instance ID-k;
+- discard instance ID-k;
+- Wellspring instance ID-k;
+- resource summary;
+- player-scoped usage state.
+
+Aktív vagy tervezett zónák:
+
+- `deck`;
+- `hand`;
+- `discard`;
+- `wellspring`;
+- `domain`;
+- `void`;
+- szükség szerinti resolution zóna.
+
+Listás zóna és registry kölcsönösen konzisztens.
+
+---
+
+## 8. Domain
 
 Játékosonként:
 
 - 6 Áramlat;
-- 6 horizon slot;
-- 6 zenith slot;
-- 6 statikus seal position;
-- 18 stabil position reference;
-- 12 foglalható horizon/zenith slot.
+- 6 Horizont;
+- 6 Zenit;
+- 6 Pecsét-pozíció;
+- 12 foglalható card slot.
 
-A seal position nem általános occupancy slot.
+A topology és occupancy külön contract.
 
-A structural Entity placement:
+A Pecsét nem hagyományos card occupancy slot és nem HP-objektum.
 
-- 12 saját horizon/zenith opciót generál;
-- foglalt targetet disabled structurális optionként megőriz;
-- nem ellenőrzi a timingot, priorityt, Magnitúdót, paymentet, kártyaszöveget vagy entry-state-et;
-- ezért nem teljes `play_card` legalitás.
+A position reference stabil.
+
+Occupancy:
+
+- legfeljebb egy occupant;
+- occupant instance létezik;
+- zone `domain`;
+- controller és position kapcsolata érvényes;
+- registry és occupancy kétirányú invariáns.
 
 ---
 
-## 7. Snapshot és visibility
+## 9. Activity state
 
-### 7.1 Általános policy
+Alapértékek:
+
+- `active`;
+- `exhausted`;
+- zónán kívüli vagy nem releváns esetben null/none.
+
+Canonical elv:
+
+- deck/hand/discard: nincs active/exhausted gameplay activity;
+- Domain/Wellspring: active vagy exhausted.
+
+Nem azonos:
+
+- face-up/face-down;
+- revealed/hidden;
+- summoning sickness;
+- attack eligibility;
+- ownership;
+- control.
+
+---
+
+## 10. Snapshot és visibility
+
+### Player-visible snapshot
+
+Minimum:
+
+- schema version;
+- snapshot ID;
+- match ID;
+- viewer ID;
+- state version;
+- turn/phase/priority summary;
+- own public/private allowed data;
+- opponent redacted data;
+- board;
+- resource summary;
+- pending decision summary;
+- enabled legal actions vagy reference;
+- recent visible events vagy index;
+- match result.
+
+### Visibility
 
 - saját kéz: owner-visible;
-- ellenfél kéz: redacted és count-only;
+- ellenfél kéz: count/redacted;
 - deck: count-only;
-- discard: public;
-- Domain board: public;
-- teljes registry, paklisorrend és belső topology/occupancy nem kerül player-facing outputba;
-- fair AI ugyanazt a canonical player-visible observationt használja, mint az azonos oldalon játszó emberi játékos.
+- discard: public, szabály szerint;
+- Domain: public;
+- saját Wellspring identity: owner-visible;
+- ellenfél Wellspring identity: redacted;
+- Wellspring count/activity: public;
+- face-down Jel: viewer szerint szűrt;
+- debug: külön mód.
 
-### 7.2 Ősforrás visibility-policy
+Player-facing output nem tartalmaz szükségtelen internal instance ID-t vagy debug payloadot.
 
-**Emberi döntés – 2026-07-15:**
+### Fair AI
 
-- a teljes Magnitúdó mindkét játékos számára nyilvános;
-- az Aktív és Kimerült Ősforrás-lapok száma és activity state-je nyilvános;
-- a saját játékos a saját képpel lefelé lévő Ősforrás-lapjainak kártyaazonosságát később is visszanézheti;
-- az ellenfél nem láthatja ezek kártyaazonosságát;
-- opponent projection csak count- és activity-adatot ad;
-- technikai `card_instance_id` egyik játékos számára sem jelenhet meg;
-- owner projection biztonságos reference-en keresztül Card_ID-t és megjelenítési adatot adhat;
-- debug projection ettől elkülönítve tartalmazhat technikai azonosítót.
-
-### 7.3 Safe player reference
-
-Player-facing legal action és action request nem használhat nyers technikai `card_instance_id` értéket.
-
-A player-safe reference:
-
-- viewer- és state-version-specifikus;
-- csak az engine tudja belső instance-re feloldani;
-- nem szivárogtat hidden identityt;
-- stale state version után érvényteleníthető;
-- stabilan rendezhető ugyanazon projectionön belül.
-
-### 7.4 Debug snapshot
-
-A debug snapshot többletinformációt tartalmazhat, de nem használható fair AI observationként és nem kerülhet normál player-facing csatornába.
+Ugyanazt az observationt, enabled legal action listát és visible eventet kapja, mint az adott emberi játékos.
 
 ---
 
-## 8. Legal action, request és response
+## 11. Pending decision
 
-Aktív minimal actionök:
+A complex choice authoritative state.
 
-- `draw_card`;
-- `end_turn`.
+Lehetséges window family-k:
 
-Kötelező legal-action elvek:
+- main;
+- reaction;
+- targeting;
+- choice;
+- payment;
+- combat;
+- system.
 
-- csak az authoritative engine generálhat legal actiont;
-- fair AI és normál UI ugyanazon legalitási eredményre épül;
-- hidden source vagy target identity nem szivároghat;
-- stabil, determinisztikus rendezés szükséges;
-- debug disabled reason nem válhat hidden-information csatornává.
+Minimum:
 
-A current request match-, player-, action- és expected-state-version adatot hordoz. Stale vagy hibás state version kontrollált rejectet ad.
+- has pending;
+- window type;
+- priority player;
+- expected action family;
+- can pass;
+- state version;
+- allowed choices/action IDs;
+- optional safe prompt key/params.
+
+A frontend nem tárolhat egyedüli igaz pending állapotot.
+
+---
+
+## 12. Legal action szabályok
+
+Player-facing:
+
+- csak enabled actionök.
+
+Debug:
+
+- enabled és disabled;
+- structured disabled reason.
+
+Action ID:
+
+- az adott state version/legal action listához kötött;
+- state változáskor érvénytelen;
+- determinisztikus a jelenlegi state-ben.
+
+A legal action lehet:
+
+- automatic;
+- forced;
+- choice.
+
+Az AI és UI csak listából választhat, de az engine requestkor újra validál.
+
+---
+
+## 13. Request-validáció
+
+Mutation előtt:
+
+1. schema;
+2. request ID;
+3. match;
+4. player;
+5. expected state version;
+6. action ID/type;
+7. active/priority permission;
+8. source;
+9. target/choice/payment;
+10. current legality;
+11. atomic transition plan.
 
 Reject esetén:
 
-- nincs state mutation;
-- nincs transitionből származó event-log növekedés;
-- active/priority player és zónaállapot változatlan;
-- strukturált reason és diagnostics készül.
-
-Később szükséges:
-
-- `perform_inflow` és `skip_inflow`;
-- `play_card`;
-- target és choice;
-- payment context;
-- pending decision;
-- ability;
-- combat;
-- reaction;
-- idempotencia és duplicate policy csak tényleges kliens/PvP igénynél.
+- state változatlan;
+- event sequence változatlan;
+- request változatlan;
+- nincs részleges cost;
+- stabil code és reason;
+- hidden information nem szivárog.
 
 ---
 
-## 9. Event-contractok
+## 14. Payment contract
 
-Aktív typed eventek:
+Az első card-play payment:
+
+- printed Aura cost;
+- Realm-alapú source identity;
+- AETHER Core policy;
+- source selection mode:
+  `none | forced | choice`;
+- exact payment;
+- source active;
+- unique source;
+- owner/controller ellenőrzés;
+- atomikus active → exhausted.
+
+A payment a `play_card` transition része, nem külön előzetes mutation.
+
+Később:
+
+- modifier;
+- temporary Aura;
+- alternate cost;
+- wildcard;
+- replacement;
+- ability cost.
+
+---
+
+## 15. Infusion / Beáramlás contract
+
+Canonical technical phase:
+
+- `infusion`.
+
+Normál Beáramlás:
+
+- körönként legfeljebb egy;
+- opcionális;
+- kéz → Wellspring;
+- face-down;
+- active;
+- azonnal növeli Magnitúdót és elérhető Aurát;
+- nem nyit automatikusan reaction windowt;
+- turn-scoped status:
+  `pending | performed | skipped`.
+
+Legal action:
+
+- perform;
+- skip.
+
+Accepted transition:
+
+- atomikus;
+- egyszeri state-version növelés;
+- zone move;
+- phase transition;
+- visibility-safe snapshot/event.
+
+---
+
+## 16. Event architecture
+
+A snapshot az állapot, az event a történet.
+
+Rétegek:
+
+- gameplay;
+- debug;
+- system;
+- később explanation/audit/balance.
+
+Viewer projection:
+
+- egy belső ordered történetből;
+- hidden-information szűréssel;
+- fair AI = player view;
+- debug külön.
+
+Aktív reference eventek:
 
 - `zone_move`;
 - `turn_transition`.
 
-A draw `zone_move`, az end turn `turn_transition` eventet ad.
+Későbbi:
 
-Nincs szükség általános `action_resolved` eventre, ha a transition pontosabb typed eventtel kifejezhető.
-
-Tervezett eventek:
-
-- `phase_transition`;
-- `aura_payment`;
-- activity state change;
+- activity state changed;
+- payment;
 - card played;
 - Entity entered Domain;
-- attack, block és Entity-sebzés;
-- Pecsét feltörés/visszaállítás;
-- victory és defeat;
-- ability trigger és resolution.
-
-Általános event-invariánsok:
-
-- egy accepted action pontosan egyszer növeli a state versiont;
-- egy action több eventet is létrehozhat ugyanahhoz a resulting state versionhöz;
-- az event sequence szigorúan növekvő és determinisztikus;
-- event csak ténylegesen végrehajtott transitionből jön létre;
-- reject nem hoz létre gameplay eventet;
-- player-visible event payload visibility-szűrt.
+- reaction;
+- combat;
+- ward break/restore;
+- victory/defeat;
+- ability resolution.
 
 ---
 
-## 10. Ősforrás, Beáramlás és erőforrás
-
-### 10.1 Wellspring-state és resource summary
-
-Canonical alapszámítás:
-
-- `magnitude == wellspring_card_count`;
-- `available_aura == active_source_count`;
-- `active_source_count + exhausted_source_count == total_source_count`.
-
-Ne legyen külön authoritative `magnitude`, `spent_aura` vagy `remaining_aura` számláló, ha az érték zónából és activity state-ből származtatható.
-
-### 10.2 Beáramlás Core-döntés
-
-A normál Beáramlás:
-
-- a kör második fázisának opcionális művelete;
-- legfeljebb 1 kézlapot helyez az Ősforrásba;
-- a lap képpel lefelé kerül;
-- `active` activity state-et kap;
-- azonnal növeli a Magnitúdót;
-- azonnal növeli az elérhető Aurát;
-- ugyanabban a körben használható Aura fizetésére;
-- fizetéskor `exhausted` állapotba kerül;
-- külön kártyahatásból történő Ősforrás-bővítés nem fogyasztja el a normál Beáramlás lehetőségét, hacsak a hatás másként nem rendelkezik.
-
-A szabályi döntés dokumentált; a transition contract még `planned`.
-
-### 10.3 Normál Beáramlás timing és priority
-
-**Engine-döntés – 2026-07-15:**
-
-- a normál Beáramlás az aktív játékos egyszeri fázisdöntése;
-- nem váltakozó priority-ablak;
-- nem nyit automatikusan reakciós ablakot;
-- csak explicit szabály, kártyaszöveg vagy trigger hozhat létre reakciót;
-- a kihagyás action neve `skip_inflow`, nem `pass_priority`;
-- a választható actionök: `perform_inflow` jogosult kézlapra, illetve `skip_inflow`;
-- ha nincs jogosult lap és nincs külön fázisdöntés, a phase controller automatikus kihagyást végezhet;
-- elfogadott döntés után újabb normál Beáramlás nem választható;
-- a fázis csak stabil állapotban zárható le;
-- kötelező trigger, pending decision vagy explicit reakciós ablak esetén előbb ezeket kell rendezni;
-- az első minimal implementációban, ability- és reaction-engine hiányában a fázis közvetlenül Manifesztációra léphet.
-
-A normál Beáramlás nem igényel alternating `priority_player_id` működést. A döntési jogosultságot az aktív játékosnak adott legal actionök fejezik ki.
-
-### 10.4 Turn-scoped Beáramlás-állapot
-
-Tervezett authoritative mező:
-
-- `normal_inflow_status: pending | performed | skipped`.
-
-Értelmezés:
-
-- Beáramlás fázis elején `pending`;
-- sikeres `perform_inflow` után `performed`;
-- sikeres vagy automatikus kihagyás után `skipped`;
-- a következő saját körben új döntési állapot jön létre.
-
-### 10.5 `perform_inflow` precondition és transition
-
-Minimális precondition:
-
-- helyes match és expected state version;
-- a kérelmező az aktív játékos;
-- current phase `inflow`;
-- `normal_inflow_status == pending`;
-- a kiválasztott card instance a játékos saját kezében van;
-- nincs explicit tiltó szabály vagy effect.
-
-Atomikus transition:
-
-1. hand → wellspring;
-2. face-down, belső `owner_only` visibility;
-3. `activity_state: active`;
-4. `normal_inflow_status: performed`;
-5. resource summary újraszámítása;
-6. state version pontosan egyszeri növelése;
-7. ordered eventek létrehozása.
-
-Reject esetén sem zóna-, activity-, status-, phase- vagy eventváltozás nem történhet.
-
-### 10.6 `skip_inflow`
-
-Minimális precondition:
-
-- aktív játékos;
-- current phase `inflow`;
-- `normal_inflow_status == pending`;
-- helyes expected state version.
-
-Transition:
-
-- `normal_inflow_status: skipped`;
-- nincs card move;
-- state version egyszer nő;
-- `phase_transition` készül `normal_inflow_skipped` cause-zal.
-
-### 10.7 Beáramlás eventmodell
-
-Első implementációban nem készül külön, tartalmilag duplikált `inflow` typed event.
-
-Sikeres `perform_inflow`:
-
-1. `zone_move`
-   - `from_zone: hand`;
-   - `to_zone: wellspring`;
-   - `cause: normal_inflow`;
-   - `activity_state_after: active`;
-   - visibility-adatok;
-2. `phase_transition`
-   - `from_phase: inflow`;
-   - `to_phase: manifestation`;
-   - `cause: normal_inflow_performed`.
-
-Sikeres `skip_inflow`:
-
-- nincs `zone_move`;
-- `phase_transition` `cause: normal_inflow_skipped` értékkel.
-
-Event-sorrend:
-
-- zónamozgás előbb;
-- trigger/pending/reaction rendezés, ha van;
-- fázisváltás utána;
-- minden event ugyanahhoz az accepted action resulting state versionjéhez kapcsolódhat.
-
-Külön `inflow` event csak bizonyított UI-, replay-, trigger- vagy diagnostics-igény esetén vezethető be.
-
-### 10.8 Aura-identitás és AETHER
-
-Az Aura forrásidentitása alapesetben az Ősforrás-lap Birodalma.
-
-- azonos Birodalom lapját saját Birodalmi Auraként fizeti;
-- Entitás AETHER/Aether-Semleges támogató Aurából is fizethető;
-- AETHER forrás saját AETHER nem-Entitást saját Birodalmi Auraként fizet;
-- AETHER forrás más Birodalom nem-Entitását alapból nem fizeti;
-- ettől csak explicit szabály vagy kártyahatás térhet el;
-- Soft Penalty nem aktív Core-szabály.
-
-A korlátozott modell jelenleg canonical, de szabályhű playtest után verziózott emberi döntéssel felülvizsgálható.
-
-### 10.9 Payment source selection
-
-**Engine-döntés – 2026-07-15:**
-
-#### Contract-elv
-
-- a payment az első implementációban a `play_card` request része;
-- nincs külön előzetes payment action;
-- a request explicit, végleges forráslistát tartalmaz;
-- a kliens nem küld authoritative költséget;
-- az engine a current state és a card definition alapján újraszámítja a költséget és újravalidálja a forrásokat.
-
-Tervezett request-mező:
-
-- `payment_source_refs: []`.
-
-A referenciák player-safe, state-versionhöz kötött object reference-ek. Nyers `card_instance_id` nem kerül player-facing requestbe.
-
-#### Selection mode
-
-A legal action payment-contextje:
-
-- `none` – Aura-költség 0, üres forráslista;
-- `forced` – pontosan egy jogszerű forráskészlet; a frontend automatikusan kitöltheti, de explicit listát küld;
-- `choice` – több jogszerű forráskészlet; a játékos választja ki és erősíti meg a végleges listát.
-
-`choice` esetén az engine vagy a frontend adhat javaslatot, de a játékos helyett nem hajthat végre automatikus választást. A konkrétan Kimerített forrás későbbi hatások, triggerek és visszaállítások miatt játékjelentéssel bírhat.
-
-#### Legal action payment-context
-
-A `play_card` legal action származtatott mezői legalább:
-
-- `aura_cost`;
-- `payment_selection_mode`;
-- `required_source_count`;
-- determinisztikusan rendezett `eligible_payment_source_refs`;
-- `forced_payment_source_refs`, ha a mód `forced`;
-- strukturált disabled reason, ha nincs jogszerű fizetés.
-
-Nem kell minden lehetséges kombinációt előre felsorolni.
-
-#### Determinisztika
-
-- eligible források sorrendje: Wellspring zone index, majd stabil safe reference;
-- a request source-listáját az engine canonical sorrendre normalizálja;
-- duplikált reference invalid;
-- azonos state és választás azonos payment resultot ad;
-- deterministic baseline AI `choice` esetén az első jogszerű kombinációt választja canonical sorrendben;
-- fejlettebb AI csak legal actionből és saját látható információból választhat más kombinációt.
-
-#### Validáció
-
-Mutation előtt ellenőrizendő:
-
-1. helyes match, player, action és expected state version;
-2. a kijátszandó lap továbbra is szabályosan kijátszható;
-3. a Magnitúdó-küszöb teljesül;
-4. minden reference feloldható és saját Wellspring-forrásra mutat;
-5. minden forrás `active`;
-6. nincs duplikáció;
-7. minden forrás Aura-identitása jogosult;
-8. a forrásszám és az Aura pontosan megfelel a normalizált költségnek;
-9. 0 költségnél csak üres lista érvényes;
-10. az első implementációban túlfizetés nem engedélyezett.
-
-Kedvezmény, alternatív költség, ideiglenes Aura vagy override esetén az engine előbb normalizálja a fizetendő költséget, és csak utána validálja a source-listát.
-
-#### Atomikus transition
-
-Sikeres `play_card` action egyetlen tranzakció:
-
-1. teljes preflight és payment-validáció;
-2. kiválasztott források `active → exhausted` mutationje;
-3. a kijátszandó lap zónatransitionje;
-4. szükséges placement/entry state;
-5. state version pontosan egyszeri növelése;
-6. ordered payment-, zone-, play- és entry eventek.
-
-Bármely hiba esetén:
-
-- nincs részleges Kimerítés;
-- nincs kártyamozgás;
-- nincs költségvesztés;
-- nincs state-version növekedés;
-- nincs gameplay event.
-
-#### Response és visibility
-
-A normalizált `payment_result` tartalmazhatja:
-
-- `paid_aura`;
-- normalizált source reference listát;
-- source countot;
-- Aura-identitások összegzését;
-- `selection_mode` értéket.
-
-Owner-facing output láthatja a saját források Card_ID-ját. Opponent-facing output csak a nyilvános forráspozíciót vagy activity-változást láthatja, a face-down kártyaazonosságot nem.
-
-### 10.10 Későbbi payment-bővítések
-
-Nem része az első payment implementációnak:
-
-- túlfizetés;
-- többféle alternatív költség egy actionben;
-- részleges vagy több lépcsős fizetés;
-- payment cancellation mutation után;
-- temporary Aura pool;
-- wildcard vagy konvertálható Aura;
-- payment replacement/prevention;
-- külön pending payment window.
-
-Ezek csak stabil alap `play_card` és pending-decision contract után vezethetők be.
-
-### 10.11 Következő erőforrás-contractok
-
-1. Wellspring PlayerState- és MatchState-integráció;
-2. player-visible Wellspring summary;
-3. Inflow legal actionök és turn-scoped status;
-4. Inflow transition és `phase_transition`;
-5. Magnitúdó-preflight;
-6. LOOKUPS Aura- és override-mapping;
-7. payment source validation;
-8. atomikus payment és activity mutation;
-9. `play_card` precondition és transition.
+## 17. Aeternal és Pecsét contract
+
+Rögzített:
+
+- Aeternal = játékos;
+- nincs HP;
+- nem damage/heal target;
+- Pecsét nincs HP;
+- ward break/restore esemény;
+- védelem nélküli sikeres direkt támadás vereség.
+
+Preferált eventek:
+
+- `ward_broken`;
+- `ward_restored`;
+- `ward_break_prevented`;
+- `aeternal_unprotected`;
+- `direct_attack_victory`;
+- `player_defeated`.
+
+Nyitott:
+
+- Pecsét létrehozása;
+- visibility;
+- linked current;
+- restore action/effect;
+- combat payload;
+- snapshot state.
 
 ---
 
-## 11. AI és trajectory
+## 18. AI contract
 
-Aktív schema:
+AI input:
 
-- `minimal-ai-vs-ai-episode-v1`.
+- player-visible snapshot;
+- enabled legal actions;
+- visible event window;
+- policy/config;
+- seed.
 
-Támogatott:
+AI output:
 
-- deterministic bot policy;
-- accepted és rejected step;
-- player-visible observation;
-- action request/response;
-- typed eventek;
-- trajectory validation;
-- determinisztikus JSON output.
+- választott action ID;
+- payload/choice;
+- decision log.
 
-Kötelező AI-elv:
+Az engine validál.
 
-- fair AI nem kaphat több információt, mint a játékos;
-- AI nem mutálhat state-et közvetlenül;
-- AI csak legal actionből választhat;
-- debug AI külön, explicit módban kaphat többletinformációt.
+AI-hiba:
 
-Replay readiness jelenleg `false`.
+- rossz, de szabályos döntés.
 
----
+Engine-hiba:
 
-## 12. Ability registry és support
+- szabálytalan request elfogadása vagy rossz transition.
 
-A registry jelenleg foundation, nem executor.
-
-Bizonyított állapot:
-
-- 2 modul `declared_only`;
-- kártyák supportja `not_evaluated`;
-- `runtime_executes_abilities: false`;
-- card-local fallback csak átmeneti, diagnosztizált és migrációs jelölt lehet.
-
-Ability executor csak a Wellspring, Beáramlás, erőforrás, `play_card`, timing, phase, priority, target, choice és event alapok után indulhat.
+Fair és debug AI elkülönül.
 
 ---
 
-## 13. Validációs alapelvek
+## 19. Determinizmus
 
-- JSON-kompatibilis dict/list output;
-- schema version és contract type;
-- non-throwing validator normál hibás inputra;
-- strukturált `{valid, errors}` eredmény;
-- kontrollált builder exception invalid state/query esetén;
-- deep-copy és inputváltozatlanság;
-- determinisztikus sorrend és azonosítók;
-- runtime state leak és tiltott mezők ellenőrzése;
-- canonical builder/validator újrahasználata;
-- hidden-information audit;
-- accepted action atomikus;
-- reject mutation- és gameplay-event-mentes;
-- player-safe reference nem oldható fel más viewer vagy stale state contextben.
+Kötelező:
 
----
-
-## 14. Tiltott vagy félrevezető modellek
-
-Nem használható:
-
-- teljes MatchState player snapshotként;
-- UI mint rules engine;
-- sample fixture production schemaként;
-- structural placement teljes play legalityként;
-- replay foundation kész replayként;
-- nyers `card_instance_id` player-facing payment requestben;
-- több fizetési lehetőségnél engine által észrevétlenül választott forráskészlet;
-- részleges forrás-Kimerítés sikertelen `play_card` esetén;
-- túlfizetés az első payment implementációban;
-- `skip_inflow` helyett `pass_priority`, ha nincs priority-ablak;
-- normál Beáramlás automatikus reakciós ablakként;
-- külön `inflow` event pusztán a `zone_move` és `phase_transition` duplikálására;
-- Pecsét HP;
-- Aeternal HP, sebzés vagy gyógyítás;
-- `player_damage`, `aeternal_damage`, `heal_player`, `heal_aeternal`, `ward_hp`, `seal_hp`, `ward_damage`, `seal_damage` mint aktív canonical gameplay-fogalom.
+- seedelt random;
+- stabil instance/action/event ID;
+- ordinal ordering;
+- explicit array-sorrend;
+- canonical JSON;
+- UTF-8, BOM nélkül;
+- LF;
+- egész számok;
+- azonos input → azonos output;
+- reprodukálható fixture.
 
 ---
 
-## 15. Következő contract-lánc
+## 20. Validáció és invariánsok
 
-A runtime-nyelvi döntési kapu után:
+Minimum invariánsok:
 
-1. Wellspring production integráció;
-2. viewer-specifikus Wellspring projection;
-3. `normal_inflow_status`;
-4. `perform_inflow` és `skip_inflow` legal action;
-5. Inflow atomikus transition;
-6. `phase_transition` typed event;
-7. Magnitúdó-preflight;
-8. LOOKUPS payment mapping;
-9. explicit payment source selection;
-10. atomikus Aura payment és activity mutation;
-11. Entity play precondition;
-12. `play_card` action és response;
-13. Entity entry event;
-14. teljes phase/priority/reaction contractok;
-15. combat;
-16. ability execution.
+- unique IDs;
+- listás zóna és registry egyezik;
+- egy instance egy authoritative zónában;
+- owner/controller valid;
+- Domain occupancy cross-reference valid;
+- state version monoton;
+- event sequence monoton;
+- active/priority valid;
+- hidden info nem szivárog;
+- pending decision konzisztens;
+- rejected action no mutation.
+
+Invalid internal state blocking developer error.
+
+---
+
+## 21. Replay-előkészítés
+
+Teljes replay nem korai követelmény.
+
+Előkészítő contractok:
+
+- action history;
+- event sequence;
+- state version;
+- seed;
+- package/ruleset/engine version;
+- snapshot checkpoint lehetősége;
+- correlation ID.
+
+Replay-ready csak külön runner és determinisztikus visszaépítés után.
+
+---
+
+## 22. Diagnostics és player-safe hiba
+
+Player-facing:
+
+- rövid;
+- lokalizálható;
+- safe;
+- nem árul el rejtett okot.
+
+Developer:
+
+- code;
+- category;
+- state/request/event reference;
+- details;
+- stack/exception, ha releváns.
+
+A diagnostics nem gameplay event, de hivatkozhat rá.
+
+---
+
+## 23. Canonical serialization
+
+Külön réteg:
+
+- nem a domain modell véletlen JSON dumpja;
+- stabil key ordering;
+- stabil enum- és null-policy;
+- explicit schema version;
+- canonicalization profile;
+- SHA-256.
+
+A comparison fixture canonical SHA csak explicit contractváltozás után módosítható.
+
+---
+
+## 24. Production C# C.5B minimum
+
+Contractok:
+
+- runtime package source/descriptor;
+- `CreateMatchRequest`;
+- `CreateMatchResponse`;
+- `ActionRequest`;
+- `ActionResponse`;
+- `LegalAction`;
+- `PlayerSnapshot`;
+- `EngineEvent`;
+- `EngineDiagnostic`;
+- `MatchResult`.
+
+Működés:
+
+- draw;
+- end turn;
+- stale reject;
+- events;
+- snapshots;
+- legal actions;
+- canonical serializer;
+- fixture adapter;
+- Godot bridge;
+- headless JSON/JSONL host.
+
+Nem része:
+
+- Wellspring gameplay;
+- infusion;
+- payment;
+- play_card;
+- combat;
+- ability execution.
+
+---
+
+## 25. Contractverziózás
+
+Egy contract verziót kell emelni, ha:
+
+- mező jelentése változik;
+- kötelező mező kerül be;
+- enum jelentése változik;
+- visibility változik;
+- canonical ordering változik;
+- rejection semantics változik.
+
+Kompatibilis bővítés lehet minor változás.
+
+Breaking változás explicit migrationt és fixture-frissítést igényel.
+
+---
+
+## 26. Dokumentumkapcsolat
+
+Aktuális implementációs állapot:
+
+- `CONTRACT_STATUS.md`.
+
+Történeti migráció:
+
+- `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`.
+
+Nyitott döntések:
+
+- `OPEN_QUESTIONS.md`;
+- `OPEN_QUESTIONS_DECISIONS.md`.
+
+A korábbi 1.4-es, Python-reference-központú specifikáció a Git-történetben megmarad. Az 1.5-ös változat a lezárt C# authority mellett technológiafüggetlen contractjelentést tart fenn.

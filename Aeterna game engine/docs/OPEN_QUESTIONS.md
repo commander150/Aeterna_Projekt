@@ -1,1293 +1,603 @@
 # AETERNA Game Engine – Open Questions
 
-Ez a fájl az AETERNA Game Engine dokumentációiban szereplő nyitott kérdések és döntési kapuk központi nyilvántartása.
+## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-Célja, hogy a DOCX → MD migráció és dokumentum-összevonás során egyetlen megválaszolandó kérdés se vesszen el.
+**Dokumentumverzió:** 2.0  
+**Dátum:** 2026-07-20  
+**Státusz:** aktív kanonikus kérdés- és döntésikapu-regiszter  
+**Kapcsolódó válasznapló:** `OPEN_QUESTIONS_DECISIONS.md`  
+**Beolvasztott átmeneti fájl:** `CURRENT_OPEN_QUESTIONS.md`  
+**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
-Ez nem döntési dokumentum, hanem döntés-előkészítő kérdéslista.
+Ez a fájl az AETERNA Game Engine összes nyitott, részben megválaszolt, elhalasztott és már lezárt OQ-tételének központi indexe.
 
----
+A részletes döntések az `OPEN_QUESTIONS_DECISIONS.md` fájlban maradnak. A lezárt kérdések nem törlődnek: `answered` státusszal megmaradnak a döntések visszakereshetősége érdekében.
+
+A korábbi `CURRENT_OPEN_QUESTIONS.md` külön prioritásrétege megszűnik. A benne lévő:
+- kérdések és fennmaradó kapuk ebbe a regiszterbe;
+- elfogadott válaszok és döntések a válasznaplóba;
+- elavult prioritások a Git-történetbe
+
+kerülnek.
 
 ## Státuszok
 
 | Státusz | Jelentés |
 |---|---|
-| `open` | Még nincs megválaszolva. |
-| `partly_answered` | Részben már van irány, de nincs végleges döntés. |
-| `deferred` | Későbbi fázisra halasztva. |
-| `answered` | Megválaszolva és átvezetve. |
-| `obsolete` | Már nem aktuális. |
-| `blocked_by_prototype` | Prototípus vagy teszt kell a válaszhoz. |
-| `blocked_by_godot_prototype` | Godot/GDScript prototípus vagy smoke test kell a válaszhoz. |
-| `blocked_by_engine_test` | Engine vagy smoke test szükséges. |
-| `blocked_by_data_audit` | Kártyaadat / LOOKUPS / structured audit szükséges. |
-| `blocked_by_lookup_audit` | LOOKUPS audit szükséges. |
-| `blocked_by_rules_audit` | Szabályforrás-audit szükséges. |
-| `blocked_by_card_data_audit` | Kártyaadat-audit szükséges. |
-| `blocked_by_runtime_package_builder` | Runtime package builder vagy package report szükséges. |
-| `blocked_by_runtime_package_design` | Runtime package szerkezeti döntés szükséges. |
-| `blocked_by_engine_support_checker` | Engine support checker / unsupported feature vizsgálat szükséges. |
-| `blocked_by_ui_prototype` | UI vagy debug UI prototípus szükséges. |
-| `blocked_by_ai_test_design` | AI-tesztelési terv szükséges. |
-| `blocked_by_balance_test_design` | Balansztesztelési terv szükséges. |
-| `blocked_by_validation_layer` | Validációs réteg szükséges. |
-| `blocked_by_event_log_prototype` | Event log prototípus szükséges. |
-| `blocked_by_event_viewer_test` | Event viewer / event debug test szükséges. |
-| `blocked_by_diagnostics_design` | Diagnostics rendszerterv szükséges. |
-| `blocked_by_visibility_rules` | Rejtett információ / visibility szabályok pontosítása szükséges. |
-| `blocked_by_effect_module_prototype` | Ability/effect module prototípus szükséges. |
-| `blocked_by_keyword_audit` | Keyword audit szükséges. |
-| `blocked_by_structured_audit` | Structured mezők auditja szükséges. |
-| `blocked_by_technology_decision` | Technológiai döntés szükséges. |
-| `blocked_by_comparison_test` | Python ↔ GDScript összehasonlító teszt szükséges. |
-| `blocked_by_combat_rules_spec` | Harci szabályspecifikáció szükséges. |
-| `blocked_by_targeting_prototype` | Targeting prototípus szükséges. |
-| `blocked_by_interactive_prototype` | Interaktív prototípus szükséges. |
-| `blocked_by_reaction_prototype` | Reakcióablak prototípus szükséges. |
-| `blocked_by_rules_examples` | Konkrét szabálypéldák szükségesek. |
-| `deferred_until_interactive_ui` | Interaktív UI/prototípus fázisig halasztva. |
-| `deferred_until_ai_test` | AI-tesztelési fázisig halasztva. |
-| `ready_for_decision_later` | Később döntésre előkészíthető. |
+| `open` | Nincs még elégséges döntés vagy bizonyíték. |
+| `partly_answered` | Az alapirány eldőlt, de maradt részletes döntési vagy implementációs kapu. |
+| `deferred` | Valós kérdés, de későbbi mérföldkőhöz tartozik. |
+| `answered` | Megválaszolva; a részletes döntés a válasznaplóban és/vagy célfájlban szerepel. |
+
+## Összesítés
+
+- `open`: 2
+- `partly_answered`: 43
+- `deferred`: 7
+- `answered`: 22
+- összes OQ: 74
+
+## Használati szabály
+
+1. Új kérdés csak egyedi OQ-azonosítóval vehető fel.
+2. Az eredeti kérdés és a fennmaradó döntési kapu itt marad.
+3. A döntés és indoklás az `OPEN_QUESTIONS_DECISIONS.md` fájlba kerül.
+4. `answered` státusz csak akkor adható, ha a döntés visszakereshető.
+5. Implementációs hiány nem nyitja újra automatikusan a már eldöntött szabályi vagy architektúrakérdést.
+6. Playtest új bizonyíték alapján felülvizsgálatot indíthat, de csak explicit, verziózott emberi döntés módosít canonical szabályt.
+7. A végső dokumentumaudit során minden OQ-hivatkozást és célfájlt újra ellenőrizni kell.
 
 ---
 
-## 1. Projektirány és célarchitektúra
+## 1. Projektirány és architektúra
+### OQ-ARCH-001 – Régi és új Python motor szerepe
 
-### OQ-ARCH-001 – Régi Python motor sorsa
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** A production authoritative runtime C#; a Python referencia-, adat-, audit-, AI- és batch-tooling. A régi motorból csak célzott, auditált logika emelhető át.
 
-**Státusz:** `open`, `blocked_by_engine_test`  
-**Célfájl:** `TECHNOLOGY_DECISIONS.md`, `ARCHITECTURE.md`
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ARCH-001`
 
-- A régi Python motor hosszú távon backenddé alakítható?
-- Új tiszta Python backend készüljön?
-- GDScript/Godot runtime irány legyen a fő?
-- A Python csak adatpipeline / validáció / AI-vs-AI / referencia szerepben maradjon?
-- Mely részek menthetők át a régi motorból?
+### OQ-ARCH-002 – Runtime nyelv és integrációs modell
 
-### OQ-ARCH-002 – Python / GDScript / hibrid modell
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** Godot/GDScript vizuális kliens, C# egyetlen authority, Python külső tooling. Két párhuzamos kanonikus motor nem tartható fenn.
 
-**Státusz:** `open`, `blocked_by_prototype`  
-**Célfájl:** `TECHNOLOGY_DECISIONS.md`
-
-- GDScript alkalmas-e hosszú távú fő runtime engine-nek?
-- Python maradjon-e AI-vs-AI tesztmotor?
-- Legyen-e Python tesztmotor + GDScript játékengine hibrid?
-- Ha két motor él, hogyan ellenőrizzük, hogy ugyanazt csinálják?
-- Kell-e Python ↔ GDScript event log összehasonlító teszt?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ARCH-002`
 
 ### OQ-ARCH-003 – UI és rules engine szétválasztása
 
-**Státusz:** `open`, `blocked_by_prototype`  
-**Célfájl:** `ARCHITECTURE.md`, `TECHNOLOGY_DECISIONS.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** A UI action requestet küld; a C# engine validál és mutál. A Godot bridge nem tartalmazhat játékszabályt.
 
-Kérdések:
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ARCH-003`
 
-- Hogyan biztosítjuk, hogy a Godot UI ne tartalmazzon szabálylogikát?
-- Milyen réteg legyen a `rules_service`?
-- A Godot UI csak action requestet küldjön?
-- Milyen contract választja el az inputot a szabálymotortól?
-
----
 
 ## 2. Dokumentáció és fájlstátusz
-
 ### OQ-DOC-001 – DOCX → Markdown migráció
 
 **Státusz:** `partly_answered`  
-**Célfájl:** `DECISION_MAP.md`
+**Aktuális kérdés / fennmaradó kapu:** Az engine-dokumentáció Markdown-alapú. A hivatalos szabályfőforrások egyelőre DOCX-ek. Hátralévő kapu: a másik dokumentummappa teljes auditja és az esetleges olvasói DOCX/PDF export.
 
-- Mely dokumentumok legyenek aktív Markdown fájlok?
-- Mely DOCX-ek maradjanak archív eredetik?
-- A hivatalos szabályfőforrások maradjanak-e DOCX-ben?
-- Készüljön-e később exportált DOCX/PDF olvasói változat?
-- A jövőbeli frissítések mindig meglévő MD fájlba kerüljenek-e új fájl helyett?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DOC-001`
 
 ### OQ-DOC-002 – Checkpointok kezelése
 
-**Státusz:** `partly_answered`  
-**Célfájl:** `CHECKPOINTS.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** Egy aktív `ENGINE_CHECKPOINT.md` és külön történeti `CHECKPOINTS.md` marad a `docs/checkpoints/` mappában.
 
-- Minden checkpoint egyetlen `CHECKPOINTS.md` fájlba kerüljön?
-- A checkpoint fájl a gyökérben vagy `docs/checkpoints/` alatt legyen?
-- A régi checkpoint DOCX-ek státusza `MERGED_TO_MD` legyen-e?
-- A checkpoint tartalmazzon-e csak rövid tényeket, vagy részletes technikai naplót is?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DOC-002`
 
 ### OQ-DOC-003 – Dokumentumszaporodás elkerülése
 
-**Státusz:** `partly_answered`  
-**Célfájl:** `DECISION_MAP.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** Elsődlegesen meglévő aktív fájlt frissítünk. Új dokumentum csak önálló canonical szerep esetén készülhet. Minden aktív dokumentum verziót, dátumot és státuszt kap.
 
-Kérdések:
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DOC-003`
 
-- Milyen esetben készülhet új dokumentum?
-- Mikor kell meglévő dokumentumba beépíteni az új tartalmat?
-- Mi legyen az átmeneti munkatervek sorsa?
-- Törölhetők-e az átmeneti merge-tervek, ha a tartalom átkerült?
-
----
 
 ## 3. Runtime package és adatút
-
 ### OQ-DATA-001 – Compiled runtime package szükségessége
 
-**Státusz:** `open`  
-**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** A validált, manifestes runtime package a program kötelező adatinputja; a nyers export köztes, audit- vagy debug-output.
 
-- A program hosszú távon csak compiled runtime package-ből dolgozzon?
-- A nyers exportok közvetlenül is futtathatók legyenek?
-- Mikor váljon kötelezővé a manifestes package?
-- A nyers export csak köztes réteg legyen?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DATA-001`
 
-### OQ-DATA-002 – Google Sheets → XLSX → Python build pipeline → runtime package adatút
+### OQ-DATA-002 – Google Sheets → XLSX → runtime package adatút
 
-**Státusz:** `partly_answered`, `blocked_by_runtime_package_builder`  
-**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`, `ARCHITECTURE.md`, `DECISION_MAP.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Az adatút és publish pipeline működik. Hátralévő kapu: végleges package identity, build/output mappaszerkezet, source fingerprint és release policy.
 
-Jelenlegi irány:
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DATA-002`
 
-- A fő szerkesztés Google Sheetsben történik.
-- A lokális XLSX a Google Sheetsből letöltött forrásmásolat.
-- Az `XLSX export/` mappán belüli `.xlsx` fájlok pipeline input másolatok.
-- Az exportáló funkció hosszabb távon az `Aeterna game engine/python/` tooling / build pipeline része legyen.
-- A Godot ne olvasson közvetlenül XLSX-et.
-- A Godot validált runtime package-et fogyasszon.
-- A Python build pipeline kezelje az exportot, validációt, runtime package buildet és később a Godot consumption copy frissítését.
+### OQ-DATA-003 – Engine support státusz és blokkolás
 
-Nyitott kérdések:
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** A support státusz és futási mód szerinti blocking alapmodell elfogadott. Hátralévő kapu: production C# support checker és kártyacoverage-policy.
 
-- Pontosan hol legyen a canonical lokális XLSX helye?
-- Kell-e hosszú távon `XLSX export/source/` másolat?
-- Az exportáló funkció pontosan melyik Python tooling mappába kerüljön?
-- Hogyan paraméterezhető a source és output útvonal?
-- A nyers exportok regenerálható fájlok vagy verziózott referencia-outputok legyenek?
-- Mikor szüntethető meg az `XLSX export/` külön aktív programhely státusza?
-- Milyen smoke / unit test szükséges a migráció elfogadásához?
-
-Kiegészítő döntési kapu – TEMP candidate pipeline:
-
-Jelenlegi átmeneti irány:
-
-* Az XLSX → runtime package → Godot publish útvonalban a `TEMP/` alatti candidate runtime package elfogadott fejlesztői staging megoldás.
-* A candidate package célja, hogy a Godot fogyasztási mappa csak validált runtime package-et kapjon.
-* A `TEMP/` használata jelenleg biztonsági kapu: előbb build, validáció és diagnostics ellenőrzés történik, és csak ezután frissülhet a Godot `runtime_package` mappája.
-
-Nyitott véglegesítési kérdések:
-
-* A végleges pipeline-ban maradjon-e `TEMP/` alapú candidate staging?
-* Vagy legyen külön, tisztább build/output mappa, például `build/runtime_package_candidate/`?
-* Legyen-e package registry vagy verziózott runtime package kiadási mappa?
-* Mikor írhat a pipeline közvetlenül a Godot runtime package mappába?
-* Ha közvetlen Godot publish lesz, milyen validációs és rollback védelem kell?
-* Mikor tekinthető a `TEMP/` alapú megoldás kiválthatónak?
-* Mely package outputok legyenek verziózottak, és melyek legyenek regenerálható build artifactok?
-
-Jelenlegi döntés:
-
-* A `TEMP/` candidate pipeline rövid távon elfogadott.
-* A `TEMP/` candidate pipeline nem végleges architektúra.
-* Véglegesítés előtt külön build output / package publish döntés szükséges.
-
-
-### OQ-DATA-003 – Engine support státusz
-
-**Státusz:** `open`, `blocked_by_engine_test`  
-**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`, `ABILITY_MODULE_SYSTEM.md`
-
-Kérdések:
-
-- Az `unsupported` kártya blokkolja-e a package buildet?
-- Csak akkor blokkoljon, ha deckben szerepel?
-- `partial` státusz warning vagy audit note legyen?
-- Card-local fallback megengedett-e AI-vs-AI tesztben?
-- Godot runtime esetén unsupported effect mit okozzon?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DATA-003`
 
 ### OQ-DATA-004 – Legacy alias és canonical értékek
 
-**Státusz:** `partly_answered`, `blocked_by_runtime_package_design`
-**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** `normalization_aliases.json` és a LOOKUPS legacy réteg iránya rögzített. Hátralévő kapu: dangerous/audit_required esetek teljes auditja és visszavezetési policy.
 
-Jelenlegi irány:
-
-* A jelenlegi `aliases.json` sample / placeholder runtime package fájl.
-* Az `aliases.json` jelenleg nem canonical normalizációs forrás.
-* Az `aliases.json` nem a `LOOKUPS.xlsx` fájlból készül.
-* Az `aliases.json` nem a `RUNTIME_LEGACY_ALIAS` sheetből készül.
-* A hosszú távú legacy / alias normalizációs forrásjelölt a `LOOKUPS.xlsx` `RUNTIME_LEGACY_ALIAS` sheetje.
-* A `RUNTIME_LEGACY_ALIAS` tartalma nem önthető vakon az `aliases.json` fájlba.
-* Az `audit_required` canonical értékű sorok nem automatikus runtime mappingek.
-* A `runtime_legacy_aliases_reader.py` már külön olvassa a `RUNTIME_LEGACY_ALIAS` sheetet, de még nem ír runtime package outputot.
-* A publish pipeline-ba a legacy alias normalizáció még nincs bekötve.
-
-Nyitott kérdések:
-
-* Maradjon-e az `aliases.json` név, de új sémával?
-* Készüljön-e külön `normalization_aliases.json` fájl?
-* Készüljön-e külön `legacy_aliases.json` fájl?
-* A legacy alias adat részben diagnostics / audit input legyen-e?
-* Mely sorokat javíthatja automatikusan a pipeline?
-* Mikor kell emberi audit?
-* Mikor legyen blocking error?
-* Hogyan kezeljük az `audit_required` canonical értékű sorokat?
-* A veszélyes alias mindig audit note legyen?
-* A canonical javítás visszakerüljön-e a forrásadatba?
-* Régi Aeternal/Pecsét HP-modellre utaló értékek automatikusan tiltottak legyenek?
-
-Előzetes ajánlott irány:
-
-* Rövid távon az `aliases.json` maradjon sample / placeholder státuszban.
-* A valódi legacy normalizációhoz később külön, egyértelműbb nevű runtime package fájl készüljön, például `normalization_aliases.json`.
-* A publish pipeline-ba csak akkor kerüljön be, ha a séma, az auditkezelés és a blocking szabályok eldőltek.
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DATA-004`
 
 ### OQ-TECH-004B – Python build pipeline hosszú távú szerepe
 
-**Státusz:** `partly_answered`, `blocked_by_runtime_package_builder`  
-**Célfájl:** `TECHNOLOGY_DECISIONS.md`, `ARCHITECTURE.md`, `RUNTIME_PACKAGE_SPECIFICATION.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** A Python marad az export, normalizálás, validáció, package build, diagnostics, fixture-, AI- és batch-tooling elsődleges rétege.
 
-Jelenlegi irány:
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-004B`
 
-- Python legyen az XLSX export, validáció, diagnostics, runtime package build és későbbi batch / AI tesztelés elsődleges jelölt rétege.
-- Godot a validált runtime package-et fogyassza.
-- A Godot ne olvasson közvetlenül XLSX-et.
-- Az `XLSX export/` programfunkció hosszabb távon az új engine Python tooling része legyen.
+### OQ-DATA-005 – Build pipeline és változásérzékelés
 
-Nyitott kérdések:
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Az explicit teljes build helyes első lépés. Hash/fingerprint és cache csak későbbi optimalizáció; a correctness elsődleges.
 
-- A Python build pipeline meddig marad csak tooling, és mikortól válhat referencia runtime réteggé?
-- A Python build pipeline része legyen-e a későbbi full package builder?
-- A Python build pipeline készítsen-e AI-vs-AI test package-eket?
-- Később release package-et is Python állítson elő?
-- Milyen határig maradjon Python oldalon a validáció, és mi kerüljön át Godot oldalra?
-- Mi a minimális bizonyíték arra, hogy az exporter migráció után az `XLSX export/` mappa külön aktív programként megszüntethető?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DATA-005`
 
----
+### OQ-DATA-006 – Duplikált sample/runtime package mappák
 
-### OQ-DATA-005 – Fejlesztői build pipeline és változásérzékelés
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Canonical szerkesztési forrás egyik sem. A Godot-mappa consumption copy. Hátralévő kapu: a történeti sample mappák végleges archiválása vagy eltávolítása.
 
-**Státusz:** `open`, `blocked_by_runtime_package_builder`  
-**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`, `PROTOTYPE_PLANS.md`, `TECHNOLOGY_DECISIONS.md`
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DATA-006`
 
-Kérdések:
 
-- A fejlesztői build pipeline első verziója pontosan milyen lépéseket futtasson?
-- Elég-e első körben XLSX export + runtime package build + Godot copy frissítés?
-- A smoke testek a build pipeline részei legyenek, vagy külön futtatandók?
-- Legyen-e egyetlen `build_runtime_package.bat` jellegű futtató?
-- A build pipeline mikor írjon újra outputot?
-- Elég-e első körben fájl-időbélyeg vagy hash alapú változásérzékelés?
-- Mikor szükséges érdemi `source_fingerprint`?
-- A `source_fingerprint` milyen mezőket vegyen figyelembe?
-- A cache development mode-ban csak gyorsítás legyen, vagy correctness-ellenőrzés is?
-- Később Godotból indítható legyen-e a rebuild, vagy maradjon Python/BAT oldalon?
-
----
-
-### OQ-DATA-006 – Két sample_runtime_package mappa kezelése
-
-**Státusz:** `partly_answered`, `blocked_by_runtime_package_builder`  
-**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`, `ARCHITECTURE.md`, `PROTOTYPE_PLANS.md`
-
-Jelenlegi irány:
-
-- Python oldali `sample_runtime_package`: `GENERATED_TEST_FIXTURE`
-- Godot oldali `sample_runtime_package`: `GODOT_CONSUMPTION_COPY`
-- Egyik sem canonical szerkesztési forrás.
-- A Godot oldali package frissítése később a Python build pipeline feladata legyen.
-
-Nyitott kérdések:
-
-- Maradjon-e hosszú távon külön Python build output és Godot consumption copy?
-- A Python builder közvetlenül írhat-e a Godot consumption mappába?
-- Kell-e külön központi generated package mappa?
-- Hogyan ellenőrizzük, hogy a Godot oldali másolat egyezik a Python build outputtal?
-- A Godot oldali `sample_runtime_package` Gitben verziózott fixture maradjon, vagy regenerálható output legyen?
-- Baráti teszt buildben a package hogyan kerüljön át a Godot oldalra?
-- Publikusabb build esetén hogyan különül el a szerkesztési XLSX és a runtime package?
-
-## 4. Snapshot
-
+## 4. Snapshot és visibility
 ### OQ-SNAP-001 – Snapshot típusok
 
-**Státusz:** `open`, `blocked_by_prototype`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Aktív alap: viewer-specifikus player-visible snapshot és külön debug snapshot. Spectator-, replay- és külön AI-contract későbbi feladat.
 
-- Kell-e külön `opponent_visible_snapshot`, vagy elég a `player_visible_snapshot` viewer alapján?
-- Mikor váljon fontossá a `spectator_snapshot`?
-- A debug snapshot tartalmazhat-e teljes kézlap-, pakli- és face-down információt?
-- AI-hoz kell-e külön `ai_fair_snapshot` és `ai_debug_snapshot`?
-- Replayhez külön `replay_snapshot` kell, vagy a debug/player snapshotokból származtatható?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-001`
 
 ### OQ-SNAP-002 – Pecsétmodell snapshotban
 
-**Státusz:** `open`, `blocked_by_rules_audit`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`, `ARCHITECTURE.md`
+**Státusz:** `open`  
+**Aktuális kérdés / fennmaradó kapu:** Döntendő a Pecsét létrehozási, láthatósági és állapotmodellje; HP-mező nem használható.
 
-Jelenlegi rögzített irány:
-
-- A Pecsét nem HP-alapú objektum.
-- A Pecsét feltörési / visszaállítási eseményként kezelendő.
-- A snapshotban ne szerepeljen `ward_hp`, `seal_hp` vagy hasonló HP-mező.
-
-Nyitott kérdések:
-
-- A Pecsét snapshotban lapként, védelmi objektumként vagy mindkettőként jelenjen meg?
-- A feltört Pecsét hová kerül pontosan a snapshotban?
-- Kell-e `linked_current` minden Pecsétre?
-- A Pecsétlapok nevei láthatók-e a játékosok számára?
-- A Pecsét állapota `standing`, `broken`, `restored`, `removed` formában legyen?
-- A Pecsétállapot játékosonként külön objektum legyen, vagy a board/current struktúrához kapcsolódjon?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-002`
 
 ### OQ-SNAP-003 – Ősforrás láthatóság és állapot
 
-**Státusz:** `open`, `blocked_by_rules_audit`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** A Magnitúdó, az Aktív/Kimerült darabszám és activity publikus; a saját kártyaazonosság owner-visible; az ellenfélnek redacted.
 
-- Az Ősforrás lapjai publikusak vagy részben rejtettek?
-- Az ellenfél mit lát az Ősforrásból?
-- Kell-e külön `used`, `ready`, `exhausted` vagy hasonló állapot minden Ősforrás-lapra?
-- Az Aura forrása látszódjon-e a snapshotban?
-- A snapshotban elég az Ősforrás darabszáma, vagy kártyareferenciák is kellenek?
-- Az AI fair snapshot ugyanazt lássa az Ősforrásból, mint egy játékos?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-003`
 
 ### OQ-SNAP-004 – Rejtett információ és visibility
 
-**Státusz:** `open`, `blocked_by_prototype`, `blocked_by_rules_audit`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** A viewer-specifikus projection és fair-AI elv elfogadott. Hátralévő kapu: face-down Jel, spectator, replay és PvP visibility-audit.
 
-- Mit lát pontosan az ellenfél a face-down Jelekből?
-- Az ellenfél kézlapjai hogyan jelenjenek meg?
-- A deck teteje debugon kívül soha nem látszik?
-- A face-down Jel saját játékosnak ismert, ellenfélnek rejtett objektum legyen?
-- A `known_to`, `visibility`, `face_down`, `revealed` mezők közül melyek legyenek kötelezőek?
-- Fair AI pontosan ugyanazt lássa, mint az adott játékos?
-- A debug snapshot minden rejtett információt tartalmazhat?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-004`
 
 ### OQ-SNAP-005 – Pending decision és döntési ablak
 
-**Státusz:** `open`, `blocked_by_prototype`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** A snapshot külön pending/priority állapotot hordozzon. A pontos reaction/targeting/payment/combat window schema későbbi gameplay-spec.
 
-- A snapshot tartalmazza-e mindig, hogy van-e folyamatban lévő döntés?
-- A `pending` mező legyen kötelező minden snapshotban?
-- A `window_type` milyen értékeket vehet fel MVP-ben?
-- A `priority_player` mindig szerepeljen?
-- A `prompt_hu` backendből jöjjön, vagy frontend generálja?
-- A `can_pass` minden döntési ablaknál kötelező legyen?
-- Az automatikusan feloldható helyzeteknél legyen-e pending állapot?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-005`
 
 ### OQ-SNAP-006 – Event log a snapshotban
 
-**Státusz:** `open`, `blocked_by_event_viewer_test`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** A snapshot nem teljes történeti dump; csak rövid recent/visible event ablakot és indexet tartalmazhat. A teljes log külön contract.
 
-- Mennyi esemény legyen közvetlenül a snapshotban?
-- A snapshot csak `recent_events` rövid listát tartalmazzon?
-- A teljes event log külön contract / endpoint / fájl legyen?
-- Kell-e külön `visible_event_log` és `debug_event_log`?
-- Kell-e `last_event_index` és `next_event_index` minden snapshotba?
-- Az explanation log a snapshot része legyen, vagy külön event layer?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-006`
 
----
 
 ## 5. Legal actions
-
 ### OQ-LA-001 – Enabled és disabled actionök
 
-**Státusz:** `open`, `blocked_by_ui_prototype`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** Player-facing és fair AI nézetben enabled actionök; debugban disabled actionök strukturált reasonnel is megjelenhetnek.
 
-- Normál játékban csak enabled actionök jelenjenek meg?
-- Debug módban jelenjenek meg disabled actionök is?
-- Tutorial módban kell-e disabled reason?
-- A disabled actionök ugyanabban a listában legyenek, vagy külön debug listában?
-- A legal action lista tartalmazzon-e UI-segédadatokat?
-- A frontend kapjon-e magyarázatot arra, hogy egy kártya miért nem játszható ki?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-001`
 
 ### OQ-LA-002 – Reakcióablak modell
 
-**Státusz:** `open`, `blocked_by_rules_audit`, `blocked_by_prototype`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`, `ABILITY_MODULE_SYSTEM.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Core timing/priority + pending reaction window az irány. A stack/chain, prevention, replacement és trigger-sorrend későbbi szabálykapu.
 
-- Elég reaction queue, vagy kell stack / chain jellegű modell?
-- Burst és Jel ugyanabban a reaction rendszerben legyen?
-- Prevention és replacement hatások ugyanabba a rendszerbe tartozzanak?
-- Pass reaction külön legal action legyen?
-- Reakcióablak automatikusan átugorható, ha nincs valódi döntés?
-- Több lehetséges reakció esetén ki választ sorrendet?
-- A reaction window a snapshot `pending` mezőjében, a legal action listában vagy mindkettőben jelenjen meg?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-002`
 
 ### OQ-LA-003 – Combat actionök
 
-**Státusz:** `open`, `blocked_by_combat_rules_spec`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`, `ARCHITECTURE.md`
+**Státusz:** `open`  
+**Aktuális kérdés / fennmaradó kapu:** A támadás, célpont, blokkolás és Pecsétfeltörés action/event modellje combat rules spec után dönthető el.
 
-- Mikor kerüljön be a `declare_attack` action?
-- Kell-e külön `choose_attack_target` action?
-- A blokkolás választás legyen vagy automatikus szabály?
-- Kell-e külön `choose_blocker` action?
-- A Pecsét feltörése attack action után hogyan jelenjen meg?
-- A Pecsétre támadás targetként, eventként vagy mindkettőként jelenjen meg?
-- A combat legal actionök MVP-ben szerepeljenek, vagy későbbi fázisra kerüljenek?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-003`
 
 ### OQ-LA-004 – Fizetés és Aura
 
-**Státusz:** `open`, `blocked_by_rules_audit`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`, `RUNTIME_PACKAGE_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Az explicit, engine-validált payment source selection és `none|forced|choice` modell elfogadott. Temporary Aura, alternate cost és modifier-rendszer nyitott.
 
-- Meddig legyen automatikus Aura-fizetés?
-- Mikor kell kézi forrásválasztás?
-- Ideiglenes Aura elsőként vagy utolsóként költődjön?
-- Alternatív költségek mikor kerüljenek be?
-- A fizetés külön legal action legyen?
-- Több fizetési forrásnál kell-e payment window?
-- A legal action tartalmazza-e a `cost_summary` mellett a konkrét fizetési lehetőségeket is?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-004`
 
 ### OQ-LA-005 – Targeting
 
-**Státusz:** `open`, `blocked_by_targeting_prototype`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`, `ABILITY_MODULE_SYSTEM.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Egyszerű target a play request része lehet; komplex target külön pending döntés. A partial resolution és retarget szabályok nyitottak.
 
-- Célpontválasztás külön action legyen?
-- Vagy a play action része?
-- Több célpontnál hogyan kezeljük a sorrendet?
-- Invalid target esetén teljes vagy részleges feloldás legyen?
-- A legal action tartalmazzon target preview-t?
-- A debug UI mutassa az invalid targeteket is?
-- A frontend kiemeléseit teljesen a legal action targeting adatokból építsük?
-- A célpont-érvényesség végső döntése mindig a rules engine-ben maradjon?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-005`
 
 ### OQ-LA-006 – UI mezők a legal actionben
 
-**Státusz:** `open`, `blocked_by_ui_prototype`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Minimális UI-hint megengedett, de nem szabályforrás. Hosszú távon lokalizációs kulcs és paraméterezés szükséges.
 
-- A legal action tartalmazzon magyar `label_hu` mezőt?
-- A legal action tartalmazzon `prompt_hu` mezőt?
-- Vagy a frontend lookupból generálja ezeket?
-- Mennyi UI-segédadat legyen a contract része?
-- A promptok később lokalizálhatók legyenek?
-- A debug UI és a végleges játék UI ugyanazt a legal action mezőkészletet használja?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-006`
 
 ### OQ-LA-007 – AI legal action mezők
 
-**Státusz:** `open`, `blocked_by_ai_test_design`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`, `TECHNOLOGY_DECISIONS.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** A fair AI ugyanazt az enabled legal action listát kapja. Heurisztika külön policy-réteg, nem canonical rules mező.
 
-- Kell-e az actionökhöz AI heuristic tag?
-- Vagy az AI külön értékelje a legal actionöket?
-- Fair AI és debug AI külön legal action listát kapjon?
-- AI kaphat-e becsült értékeket?
-- Balance tesztnél fair vagy debug AI legyen az alap?
-- Az AI legal action listája tartalmazhat-e olyan információt, amit játékos nem látna?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-007`
 
----
 
 ## 6. Action request / response
-
 ### OQ-AR-001 – Request azonosítás
 
-**Státusz:** `open`, `deferred_until_interactive_ui`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Request ID szükséges; a pontos idempotencia és hálózati policy a későbbi interaktív/PvP réteghez tartozik.
 
-- Kötelező legyen-e a `client_request_id`?
-- Backend vagy frontend generálja a request ID-t?
-- Hogyan kezeljük a duplicate requestet?
-- Kell-e idempotencia már MVP-ben?
-- Hálózati / későbbi PvP működéshez milyen azonosítás kell?
-- Lokális debug módban egyszerűbb request modell is elég?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-001`
 
 ### OQ-AR-002 – Snapshot frissesség és state_version
 
-**Státusz:** `open`, `blocked_by_interactive_prototype`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** Az expected state version kötelező authority-guard; stale request reject és nem mutálhat állapotot.
 
-- Kell-e `state_version` már MVP-ben?
-- Elavult snapshot esetén mindig reject legyen?
-- Vagy a backend próbálja újravalidálni az actiont az aktuális állapotban?
-- PvP előtt mennyire legyen szigorú?
-- Lokális single-player módban lazább lehet?
-- A stale snapshot warning, error vagy blocking legyen?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-002`
 
 ### OQ-AR-003 – Action ID élettartama
 
-**Státusz:** `open`, `deferred`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** Az action ID az adott state version/legal action lista kontextusában érvényes; állapotváltozáskor érvénytelen.
 
-- Az action ID csak snapshoton belül stabil?
-- Hosszabb életű action token kell?
-- Kell-e signed / opaque action token később?
-- Ha a legal action lista frissül, mikor érvénytelenedik a régi action ID?
-- AI-vs-AI tesztnél kell-e stabil action ID?
-- Debug UI-ban elég-e egyszerű `action_id`?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-003`
 
 ### OQ-AR-004 – Többlépcsős targeting és pending állapot
 
-**Státusz:** `open`, `blocked_by_targeting_prototype`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** A komplex választás authoritative pending state-ben tárolandó. Invalidáció, cancel és visszakérdezés részletes szabályai nyitottak.
 
-- A célpontválasztás külön request legyen?
-- Vagy a play action már tartalmazza a célpontot?
-- Többlépcsős célzásnál hogyan tároljuk a pending állapotot?
-- Target invalidáció után visszakérdezzen a motor?
-- Partial resolution és invalid target hogyan különüljön el?
-- A target selection snapshotot generáljon?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-004`
 
 ### OQ-AR-005 – Action response és reakcióablak
 
-**Státusz:** `open`, `blocked_by_reaction_prototype`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** A response és az új snapshot jelezheti a pending reactiont; a teljes reaction resolution contract későbbi feladat.
 
-- Az eredeti action response `pending_reaction` státuszt kapjon?
-- Vagy az action előbb teljesen rögzül, majd külön reaction window event nyílik?
-- Burst és Jel válasz ugyanabban a rendszerben legyen?
-- Az action response tartalmazza a reaction window legal actions hintjét?
-- A reakcióablak külön snapshotot generáljon?
-- A reaction pass külön action request legyen?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-005`
 
 ### OQ-AR-006 – Partial resolution státuszok
 
-**Státusz:** `open`, `blocked_by_rules_examples`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Alap státuszszókészlet rögzített, de a `partially_resolved`, `prevented`, `replaced`, `cancelled` pontos szabálypéldái hiányoznak.
 
-- Mikor legyen `partially_resolved`?
-- Mikor legyen `failed`?
-- Mikor legyen `cancelled`?
-- Mikor legyen `prevented`?
-- Mikor legyen `replaced`?
-- Feltételes ág kimaradása normál result, info vagy warning?
-- Részleges feloldás mikor jelent valódi hibát?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-006`
 
----
+### OQ-AR-007 – Unsupported feature action közben
 
-### OQ-AR-007 – Unsupported engine feature action közben
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Az engine nem találgathat; reject/not_executable és diagnostics szükséges. A player-safe event és release blocking részletes policy későbbi.
 
-**Státusz:** `open`, `blocked_by_engine_support_checker`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`, `ABILITY_MODULE_SYSTEM.md`
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-007`
 
-- Engine unsupported mindig blocking error legyen?
-- Fejlesztési módban lehet-e warning?
-- Card-local fallback normál játékban engedett legyen?
-- AI-vs-AI tesztben unsupported lap kihagyható legyen?
-- Action response mikor legyen `not_executable`?
-- Unsupported effect esetén generálódjon event, diagnostics entry vagy mindkettő?
 
 ## 7. Event log
-
 ### OQ-EVENT-001 – Event részletesség
 
-**Státusz:** `open`, `blocked_by_event_log_prototype`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Typed, gameplay-szintű eventek és külön debug/system réteg az irány. A teljes event taxonomy gameplay-migrációval bővül.
 
-- Mennyire legyen részletes az MVP event log?
-- Minden apró belső engine-lépésről készüljön event?
-- Vagy csak gameplay-szinten látható események kerüljenek az event logba?
-- A debug eventek külön layerben legyenek?
-- A frontend eventek külön generált rétegként jelenjenek meg?
-- A gameplay event és debug event ugyanabban a logban legyen szűrhető módon, vagy külön fájlban / contractban?
-- Az event log mennyire legyen alkalmas későbbi replayre már MVP-ben?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-EVENT-001`
 
----
+### OQ-EVENT-002 – Explanation log
 
-### OQ-EVENT-002 – Explanation log és játékosbarát magyarázat
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Rövid távon player-safe message használható; hosszú távon localization key + params. Nem minden event igényel magyarázatot.
 
-**Státusz:** `open`, `blocked_by_ui_prototype`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-EVENT-002`
 
-- Minden komplex eseményhez kell magyar magyarázat?
-- Vagy csak reakció, replacement, prevention, részleges feloldás és hibás action esetén?
-- A `message_hu` backendből jöjjön?
-- Vagy a frontend lookupból / lokalizációs rétegből generálja?
-- Az explanation log külön event layer legyen?
-- A játékosbarát magyarázat tartalmazhat-e szabályértelmező szöveget?
-- Debug módban külön részletesebb magyarázat kell?
+### OQ-EVENT-003 – Debug, audit és diagnostics kapcsolat
 
----
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Az event és diagnostics külön réteg, kölcsönös hivatkozással. A teljes correlation/schema még nyitott.
 
-### OQ-EVENT-003 – Debug eventek, audit eventek és diagnostics kapcsolat
-
-**Státusz:** `open`, `blocked_by_diagnostics_design`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
-
-- Debug eventek bekerüljenek a normál event logba szűrhető rétegként?
-- Vagy teljesen külön debug log legyen?
-- Audit eventek a gameplay event log részei legyenek?
-- Card-local fallback eventként is jelenjen meg?
-- Unsupported effect event legyen, diagnostics entry legyen, vagy mindkettő?
-- Engine warning esetén készüljön event is?
-- A diagnostics és event log között legyen-e kötelező hivatkozás?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-EVENT-003`
 
 ### OQ-EVENT-004 – Rejtett információ event logban
 
-**Státusz:** `open`, `blocked_by_visibility_rules`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Egy belső történetből viewer-specifikus, szűrt nézet készül. PvP előtt külön visibility-audit szükséges.
 
-- Egyetlen belső teljes event logból szűrjünk viewer szerint?
-- Vagy eleve több event log készüljön nézőpontonként?
-- PvP előtt kell-e külön biztonsági szűrő?
-- Fair AI event log hogyan különüljön el a debug event logtól?
-- Debug log tartalmazhat-e minden rejtett információt?
-- A face-down Jel aktiválása előtt milyen event látszódjon az ellenfélnek?
-- Az event log soha ne szivárogtasson rejtett információt player-visible módban?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-EVENT-004`
 
 ### OQ-EVENT-005 – Replay-kompatibilitás
 
-**Státusz:** `deferred`, `open`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `deferred`  
+**Aktuális kérdés / fennmaradó kapu:** Az eventek készítsék elő a replayt, de teljes replay-rendszer nem korai mérföldkő.
 
-- MVP-ben kell-e replay-kompatibilitás?
-- Vagy elég, ha az event log szerkezete később replayre alkalmassá tehető?
-- Kell-e action history külön az event log mellé?
-- Kell-e időnként snapshot checkpoint a replay gyorsításához?
-- Replayhez teljes belső event log kell?
-- Vagy player-visible replay log is elég?
-- A replay rendszer mikor váljon fejlesztési prioritássá?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-EVENT-005`
 
 ### OQ-EVENT-006 – Balance test eventek
 
-**Státusz:** `open`, `blocked_by_balance_test_design`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`, `DECISION_MAP.md`
+**Státusz:** `deferred`  
+**Aktuális kérdés / fennmaradó kapu:** A balanszgyanú futás utáni elemzés és külön report; a szükséges metrikák a stabil gameplay után véglegesíthetők.
 
-- A balance suspicion eventek meccs közben keletkezzenek?
-- Vagy csak futás utáni elemzésben?
-- Kell-e külön `balance_report` contract?
-- Mely eventeket kell gyűjteni balanszvizsgálathoz?
-- Card usage, damage, ward break, draw, discard és win condition eventek külön jelölendők?
-- Balance eventek normál gameplay logban legyenek vagy külön reportban?
-- Hogyan különítjük el a balanszgyanút az engine-hibától vagy decklista-hibától?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-EVENT-006`
 
----
 
 ## 8. Diagnostics
+### OQ-DIAG-001 – Severity és blocking
 
-### OQ-DIAG-001 – Severity és blocking rendszer
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** A severity és blocking külön mező. A critical alapból blokkoló; warning/audit_note alapból nem; balance_suspicion nem engine-hiba.
 
-**Státusz:** `open`, `ready_for_decision_later`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`, `RUNTIME_PACKAGE_SPECIFICATION.md`
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-001`
 
-- Kell-e külön `critical` severity?
-- Vagy elég az `error` + `blocking: true` kombináció?
-- A `warning` mindig nem blokkoló legyen?
-- Az `audit_note` severity legyen, vagy külön workflow kategória?
-- A `balance_suspicion` severity legyen, vagy külön category?
-- A severity és a blocking külön mezőként maradjon?
-- Mely severity látszódjon runtime közben, és melyik csak fejlesztői reportban?
+### OQ-DIAG-002 – Blocking szabályok futási módonként
 
----
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Development, publish és runtime külön szigorúságú. A production C# és release policy részletes kódmátrixa még hátra van.
 
-### OQ-DIAG-002 – Blocking szabályok development és runtime módban
-
-**Státusz:** `open`, `blocked_by_engine_support_checker`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`, `RUNTIME_PACKAGE_SPECIFICATION.md`
-
-- Mely engine-hiányok blokkoljanak development mode-ban?
-- Aktív runtime kártyán unsupported effect mindig blokkoljon?
-- Card-local fallback lehet warning normál futásban?
-- Hidden information violation mindig critical/blocking legyen?
-- Legacy alias mikor blocking?
-- Workflow érték runtime mezőben mikor warning és mikor error?
-- Deckben szereplő unsupported kártya blokkolja-e a package betöltést?
-- Nem deckben szereplő unsupported kártya elég warning legyen?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-002`
 
 ### OQ-DIAG-003 – Diagnostics report formátum
 
-**Státusz:** `open`, `blocked_by_runtime_package_builder`  
-**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`, `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Elsődleges gépi JSON és emberi Markdown summary. A végleges schema és output-elhelyezés nyitott.
 
-- Egy nagy diagnostics report legyen?
-- Vagy külön export, runtime, engine, audit és balance report?
-- JSON, JSONL vagy Markdown formátum legyen az elsődleges?
-- Kell-e emberi olvasásra alkalmas Markdown összefoglaló?
-- Kell-e gépi fogyasztásra alkalmas JSON diagnostics fájl?
-- A runtime package tartalmazza az összes diagnosticot?
-- Vagy csak diagnostics summaryt és hivatkozást adjon külön report fájlra?
-- A report fájlok regenerálható outputok vagy verziózott referenciafájlok legyenek?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-003`
 
 ### OQ-DIAG-004 – Runtime visibility
 
-**Státusz:** `open`, `blocked_by_ui_prototype`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Player-facing csak rövid, safe hiba; developer/debug részlet külön. A konkrét UI és localization policy későbbi.
 
-- A játékos lásson-e bármilyen diagnostics üzenetet normál játékban?
-- Vagy diagnostics csak fejlesztői / debug módban jelenjen meg?
-- Tutorial módban lehet-e warning jellegű magyarázat?
-- Diagnostics üzenet soha ne szivárogtasson rejtett információt?
-- Player-visible diagnostics és debug diagnostics külön nézet legyen?
-- UI-ban hogyan különüljön el a játékosbarát hibaüzenet és a fejlesztői diagnostics?
-- Action rejected esetén mennyit kell elmondani a játékosnak?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-004`
 
 ### OQ-DIAG-005 – LOOKUPS diagnostics
 
-**Státusz:** `open`, `blocked_by_lookup_audit`  
-**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`, `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Unknown/inactive/workflow-only aktív runtime érték publish előtt blokkol. A teljes enum- és alias-hibamátrix auditálandó.
 
-- `audit_required` érték aktív runtime kártyán mikor blokkoljon?
-- Legacy alias automatikusan javítható legyen export közben?
-- Veszélyes legacy alias esetén mindig kártyaaudit kell?
-- Inactive érték aktív kártyán mikor error?
-- Label_HU és Value keveredése warning vagy blocking legyen?
-- Workflow-only érték runtime mezőben mikor blokkoljon?
-- Unknown enum value development mode-ban warning vagy error?
-- Runtime-supported és unsupported-but-known értékek hogyan különüljenek el?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-005`
 
 ### OQ-DIAG-006 – Balance suspicion
 
-**Státusz:** `open`, `blocked_by_balance_test_design`  
-**Célfájl:** `DECISION_MAP.md`, `CONTRACT_SPECIFICATION.md`
+**Státusz:** `deferred`  
+**Aktuális kérdés / fennmaradó kapu:** Nem blokkoló, emberi review-t igénylő futás utáni jelzés. Mintaszámok és küszöbök stabil AI/gameplay után.
 
-- Mikortól számít winrate gyanúsnak?
-- Mennyi meccs kell egy balance suspicionhöz?
-- Balance suspicion kártyára, deckre, klánra vagy matchupra vonatkozzon első körben?
-- Mit jelent a 40–60 winrate-sáv?
-- Hogyan kezeljük az erős, de identitásból fakadó előnyöket?
-- Hogyan különítjük el a valódi balanszhibát az engine- vagy paklihibától?
-- Balance suspicion blokkoljon valamit, vagy csak reportban jelenjen meg?
-- Balance suspicion emberi döntést igénylő audit note-ot generáljon?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-006`
 
 ### OQ-DIAG-007 – Diagnostics és checkpointok kapcsolata
 
-**Státusz:** `open`, `deferred`  
-**Célfájl:** `CHECKPOINTS.md`, `CONTRACT_SPECIFICATION.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** Checkpoint csak rövid summaryt és lényeges hibákat tartalmaz; a teljes diagnostics külön generált report.
 
-- A checkpointok tartalmazzanak diagnostics összefoglalót?
-- A smoke testek diagnostics warningjai bekerüljenek a checkpointba?
-- Nem blokkoló Godot / Windows warningokat külön listázzuk?
-- Mikor tekinthető egy warning ismert, nem blokkoló technikai környezeti jelzésnek?
-- A checkpoint csak tényleges AETERNA hibát tartalmazzon, vagy környezeti warningokat is?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-007`
 
----
 
 ## 9. Ability module system
-
 ### OQ-ABIL-001 – Structured mezők részletessége
 
-**Státusz:** `open`, `blocked_by_card_data_audit`  
-**Célfájl:** `ABILITY_MODULE_SYSTEM.md`, `RUNTIME_PACKAGE_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** A structured mezők audit- és köztes réteg. Új oszlop csak ismétlődő executable igény alapján.
 
-- A mostani structured oszlopok elég részletesek-e?
-- Kell-e külön `parameter` mező?
-- Kell-e külön `secondary_target` mező?
-- Kell-e külön `secondary_effect` mező?
-- A többértékű mezők hogyan kapcsolódjanak össze sorrend szerint?
-- A Hatáscímkék elégségesek-e végrehajtási logikához?
-- Mikor kell új structured oszlop?
-- Mikor kell egy structured értéket csak auditcímkeként kezelni?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-001`
 
 ### OQ-ABIL-002 – Execution plan
 
-**Státusz:** `open`, `blocked_by_effect_module_prototype`  
-**Célfájl:** `ABILITY_MODULE_SYSTEM.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Nem kötelező minden laphoz korán. Előbb simple plan néhány képességhez; később generált, verziózott plan.
 
-- A runtime package tartalmazzon előre generált execution plant?
-- Vagy a motor futáskor építse?
-- GDScripthez hasznosabb lenne-e előre fordított plan?
-- Pythonban és GDScriptben ugyanaz a plan legyen?
-- Execution plan legyen debugolható?
-- Execution plan event loghoz köthető legyen?
-- Ha az execution plan hibás, az package build error vagy runtime error legyen?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-002`
 
 ### OQ-ABIL-003 – Card-local fallback
 
-**Státusz:** `open`, `blocked_by_engine_support_checker`  
-**Célfájl:** `ABILITY_MODULE_SYSTEM.md`, `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Csak átmeneti, explicit diagnostics/support státusszal; release-ben nem futhat csendben.
 
-- Normál játékban engedjük-e a card-local fallbacket?
-- AI-vs-AI tesztben engedjük-e?
-- Godot/GDScript játékmotorban engedjük-e?
-- Minden fallback warning legyen?
-- Fallback migrációs lista készüljön?
-- Fallback mikor váljon blockinggá?
-- Card-local fallback eventként, diagnostics entryként vagy mindkettőként jelenjen meg?
-- A fallback hosszú távon kivétel legyen, nem alapműködés?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-003`
 
 ### OQ-ABIL-004 – Reaction system ability szinten
 
-**Státusz:** `open`, `blocked_by_rules_audit`, `blocked_by_effect_module_prototype`  
-**Célfájl:** `ABILITY_MODULE_SYSTEM.md`, `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Core timing engine nyitja az ablakot, ability hook ad lehetőséget. Stack/chain és trigger-sorrend nyitott.
 
-- Elég reaction queue?
-- Kell stack / chain jellegű modell?
-- Burst és Jel ugyanazon reaction rendszerben fusson?
-- Prevention és replacement ugyanabba a rendszerbe tartozzon?
-- Trigger-sorrend választás mikor kell?
-- Automatikus és opcionális trigger hogyan különüljön el?
-- A reaction rendszer ability module szinten vagy core rules engine szinten legyen?
-- A reaction ablakok event logban hogyan jelenjenek meg?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-004`
 
 ### OQ-ABIL-005 – Keywordök MVP-támogatása
 
-**Státusz:** `open`, `blocked_by_keyword_audit`  
-**Célfájl:** `ABILITY_MODULE_SYSTEM.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Keyword registry és support státusz szükséges; a támogatott első keyword-készlet gameplay-prioritás alapján döntendő.
 
-- Mely keywordök legyenek MVP-supported?
-- Mely keywordök igényelnek külön event window-t?
-- Mely keywordök csak statikus módosítók?
-- Kulcsszavak ability module-ként vagy külön keyword registryként működjenek?
-- A kártyaszövegben ne kelljen kiírni a kulcsszó teljes jelentését, de az engine hol tárolja?
-- A keyword definíciók runtime package-ben, rules specben vagy külön registryben legyenek?
-- Unsupported keyword aktív kártyán mikor blokkoljon?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-005`
 
----
+### OQ-ABIL-006 – Pecsét/Aeternal targetek
 
-### OQ-ABIL-006 – Pecsét / Aeternal ability targetek
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Aeternal nem damage/heal target; Pecsét csak explicit ward effectekhez. A részletes target és event payload nyitott.
 
-**Státusz:** `partly_answered`, `blocked_by_rules_audit`  
-**Célfájl:** `ABILITY_MODULE_SYSTEM.md`, `CONTRACT_SPECIFICATION.md`
-
-Jelenlegi rögzített irány:
-
-- Aeternal nem HP objektum.
-- Aeternal nem kaphat sebzést.
-- Aeternal nem gyógyítható.
-- Pecsét nem HP objektum.
-- Pecsét feltörési / visszaállítási eseményként kezelendő.
-
-Nyitott kérdések:
-
-- Aeternal target érték egyáltalán bekerüljön-e MVP-be?
-- `own_aeternal` és `enemy_aeternal` mikor legyenek érvényes targetek?
-- Pecsét targeteknél minden esetben `linked_current` is kell?
-- A `ward_break` eventet combat és effect külön payloadban jelölje?
-- Mely effect modulok engedélyezettek Pecsétre?
-- Mely effect modulok soha nem engedélyezettek Pecsétre?
-- Aeternalra csak nagyon speciális, explicit engedélyezett hatások mehessenek?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-006`
 
 ### OQ-ABIL-007 – Hatáscímkék szerepe
 
-**Státusz:** `open`, `blocked_by_structured_audit`  
-**Célfájl:** `ABILITY_MODULE_SYSTEM.md`, `RUNTIME_PACKAGE_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Effect tag önmagában nem executable modul. Modul csak schema, target/condition, diagnostics, event és teszt után.
 
-- A Hatáscímkék maradjanak diagnosztikai / auditcímkék?
-- Vagy később végrehajtási modulokat is indíthatnak?
-- Mikor válik egy Effect_Tag engine-supported effect module-lá?
-- Túl általános hatáscímke esetén audit note kell?
-- A Hatáscímkék és structured ability mezők hogyan kapcsolódjanak?
-- Egy kártyán több effect tag sorrendje számítson?
-- Effect tag alapján készüljön engine support report?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-007`
 
----
+### OQ-ABIL-008 – Ability registry és runtime package
 
-### OQ-ABIL-008 – Ability registry és runtime package kapcsolat
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** `ability_registry.json` foundation létezik. A production C# executor, module schema és coverage-policy későbbi.
 
-**Státusz:** `open`, `blocked_by_runtime_package_design`  
-**Célfájl:** `ABILITY_MODULE_SYSTEM.md`, `RUNTIME_PACKAGE_SPECIFICATION.md`
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-008`
 
-- Az ability registry a runtime package része legyen?
-- Külön fájl legyen, például `ability_registry.json`?
-- Minden module_id tartalmazzon support_status értéket?
-- Ability module-hoz kell input parameter schema?
-- Ability module-hoz kell output event lista?
-- Unsupported module szerepelhet registryben?
-- Godot loader csak betölti a registryt, vagy már validálja is?
-- Python builder számolja az ability support státuszokat?
 
 ## 10. Technology decisions
-
 ### OQ-TECH-001 – Python hosszú távú szerepe
 
-**Státusz:** `open`, `blocked_by_technology_decision`  
-**Célfájl:** `TECHNOLOGY_DECISIONS.md`, `ARCHITECTURE.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** Python külső tooling, referencia és AI/batch controller; nem production gameplay authority.
 
-- Python maradjon-e hosszú távon szabálymotor / backend?
-- Python csak adatpipeline, exportvalidáció, runtime package build és riportkészítés szerepben maradjon?
-- Python maradjon-e AI-vs-AI tesztmotor?
-- A régi Python motorból mely modulok menthetők át?
-- Új tiszta Python backend készüljön, vagy a jelenlegi motor refaktorálódjon?
-- Milyen technikai bizonyíték kell ahhoz, hogy Python backendként maradjon?
-- Milyen kockázatokkal járna, ha a végleges Godot játék Python backendtől függne?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-001`
 
----
+### OQ-TECH-002 – GDScript/Godot runtime alkalmassága
 
-### OQ-TECH-002 – GDScript / Godot runtime alkalmassága
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** Godot/GDScript vizuális kliens- és adapterréteg; nem authoritative rules runtime.
 
-**Státusz:** `open`, `blocked_by_godot_prototype`  
-**Célfájl:** `TECHNOLOGY_DECISIONS.md`, `PROTOTYPE_PLANS.md`
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-002`
 
-- GDScript alkalmas-e hosszú távú AETERNA rules engine-nek?
-- GDScriptben tisztán elkülöníthető-e a rules service az UI node-októl?
-- Godot/GDScript képes-e kényelmesen fogyasztani a runtime package-et?
-- GDScript alkalmas-e legal action, action request, event log és diagnostics contract kezelésére?
-- GDScriptben megoldható-e automatizált smoke test / headless tesztelés hosszú távon?
-- GDScriptben megoldható-e AI-vs-AI futtatás?
-- Vagy Godot/GDScript maradjon inkább UI, debug viewer és későbbi kliensréteg?
+### OQ-TECH-003 – Python + GDScript/C# hibrid modell
 
----
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** Elfogadott hibrid: Godot visual + C# authority + Python external tooling. Nincs megosztott kanonikus szabálymotor.
 
-### OQ-TECH-003 – Python + GDScript hibrid modell
-
-**Státusz:** `open`, `blocked_by_comparison_test`  
-**Célfájl:** `TECHNOLOGY_DECISIONS.md`, `ARCHITECTURE.md`
-
-- Maradjon-e hosszú távon Python package builder + GDScript runtime modell?
-- Python legyen-e a tesztmotor, GDScript pedig a játszható kliens?
-- Ha két rendszer él párhuzamosan, hogyan akadályozzuk meg a szabályeltérést?
-- Kell-e Python ↔ GDScript összehasonlító event log teszt?
-- Melyik rendszer legyen a referencia, ha eltérő eredményt adnak?
-- A runtime package legyen-e a közös, kötelező adatforrás mindkét oldalnak?
-- Mennyi duplikált szabálylogika fogadható el átmenetileg?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-003`
 
 ### OQ-TECH-004 – Runtime package mint technológiai határ
 
-**Státusz:** `partly_answered`, `open`  
-**Célfájl:** `TECHNOLOGY_DECISIONS.md`, `RUNTIME_PACKAGE_SPECIFICATION.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** Statikus, validált programadat; nem MatchState és nem rules engine. A Python és C# is ezt fogyasztja.
 
-Jelenlegi irány:
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-004`
 
-- A runtime package legyen a Python és Godot közötti közös adatcsomag.
-- Python erős jelölt a package build, validáció és riportkészítés területén.
-- Godot/GDScript elsődlegesen package fogyasztóként és debug / kliens oldalon bizonyított.
+### OQ-TECH-005 – Godot headless/smoke stratégia
 
-Nyitott kérdések:
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Headless és visual proof működik. A végleges CI, export és warning policy production szakaszban zárandó.
 
-- A runtime package legyen-e az egyetlen hivatalos programinput?
-- A Godot runtime közvetlenül csak package-ből dolgozzon?
-- Python AI-vs-AI teszt is ugyanebből a package-ből fusson?
-- A package tartalmazzon-e előre generált ability execution plant?
-- A package schema verziózás mikor váljon szigorúvá?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-005`
 
----
+### OQ-TECH-006 – Codex-feladatok bontása
 
-### OQ-TECH-005 – Godot headless / smoke test stratégia
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** Rövid, célzott, tesztelhető scope; döntés és dokumentációs irányítás az asszisztens/felhasználó feladata; commit csak teljes PASS után.
 
-**Státusz:** `partly_answered`, `open`  
-**Célfájl:** `TECHNOLOGY_DECISIONS.md`, `CHECKPOINTS.md`
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-006`
 
-Jelenlegi tanulság:
-
-- Godot headless smoke test explicit `--log-file` használatával stabilabban fut Windows / Godot 4.7 környezetben.
-- A root certificate store warning jelenleg nem blokkoló, ha az `OK` output után jelenik meg.
-
-Nyitott kérdések:
-
-- Minden Godot smoke testhez külön `.bat` futtató legyen?
-- A headless smoke logok mindig ignorált fájlok legyenek?
-- Milyen Godot warning számít AETERNA hibának?
-- Milyen Godot warning számít környezeti, nem blokkoló jelzésnek?
-- Később CI-ben is futtathatók legyenek-e ezek a smoke tesztek?
-
----
-
-### OQ-TECH-006 – Codex-feladatok technológiai bontása
-
-**Státusz:** `partly_answered`, `open`  
-**Célfájl:** `DECISION_MAP.md`, `TECHNOLOGY_DECISIONS.md`
-
-Jelenlegi irány:
-
-- Codex rövid, célzott technikai feladatokat kapjon.
-- Ne kapjon teljes projektirányítást.
-- Ne kapjon nagy, homályos refaktort.
-- Ne döntsön szabályi vagy balanszkérdésben.
-
-Nyitott kérdések:
-
-- Milyen méretű Codex-feladat számít biztonságosnak?
-- Mikor kell előbb ChatGPT-vel tervet készíteni Codex előtt?
-- Codex készíthet-e dokumentációt, vagy csak technikai riportot?
-- Codex implementálhat-e GDScript rules service prototípust?
-- Codex módosíthat-e mappaszerkezetet, vagy csak explicit fájllista alapján?
-
----
 
 ## 11. AI / simulation / balance
-
 ### OQ-AI-001 – AI-vs-AI helye
 
-**Státusz:** `open`, `blocked_by_technology_decision`  
-**Célfájl:** `TECHNOLOGY_DECISIONS.md`, `ARCHITECTURE.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** A Python vezérli a C# headless authoritative engine-t; Godot nem kap külön párhuzamos AI rules motort.
 
-- AI-vs-AI tesztelés Pythonban maradjon?
-- GDScriptben is újra kell építeni az AI-vs-AI futtatást?
-- Mindkét oldalon legyen AI-vs-AI?
-- Python AI vezérelheti-e később a GDScript motort?
-- Balance tesztnél melyik motor eredménye legyen hiteles?
-- A régi Python AI-vs-AI tapasztalatok hogyan menthetők át?
-- Mikor mondhatjuk, hogy az új engine alkalmas balansztesztelésre?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-001`
 
 ### OQ-AI-002 – Fair AI és debug AI
 
-**Státusz:** `open`, `blocked_by_ai_test_design`  
-**Célfájl:** `TECHNOLOGY_DECISIONS.md`, `CONTRACT_SPECIFICATION.md`
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** Fair AI játékosnézetet kap és balanszmérés alapja; debug AI külön fejlesztői mód.
 
-- Kell-e külön fair AI és debug AI mód?
-- Fair AI pontosan ugyanazt lássa, mint egy játékos?
-- Debug AI láthat-e rejtett információt tesztelési célból?
-- Balance méréshez csak fair AI használható?
-- Debug AI használható-e engine-hibakereséshez?
-- A snapshot contract külön támogassa-e az AI nézőpontokat?
-- AI event log szűrése ugyanaz legyen, mint player-visible módban?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-002`
 
----
+### OQ-AI-003 – AI heurisztika és legal actions
 
-### OQ-AI-003 – AI döntési heurisztika és legal actions
+**Státusz:** `answered`  
+**Aktuális kérdés / fennmaradó kapu:** AI a C# legal action listából választ; policy külön réteg; engine minden requestet validál.
 
-**Státusz:** `open`, `blocked_by_ai_test_design`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`, `ARCHITECTURE.md`
-
-- Az AI ugyanazt a legal action listát kapja, mint a játékos?
-- A legal action tartalmazzon AI heuristic mezőket?
-- Vagy az AI külön értékelje az actionöket?
-- Az AI kaphat-e előszűrt actionlistát?
-- Az AI döntési hibája hogyan különüljön el az engine hibájától?
-- Az AI ne hajthasson végre szabálytalan actiont akkor sem, ha rosszul dönt?
-- Kell-e AI decision log?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-003`
 
 ### OQ-AI-004 – Balance suspicion forrása
 
-**Státusz:** `open`, `blocked_by_balance_test_design`  
-**Célfájl:** `DECISION_MAP.md`, `CONTRACT_SPECIFICATION.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Több metrikából, nem csak winrate-ből. A konkrét modellek stabil gameplay és adatgyűjtés után.
 
-- Balance suspicion milyen adatokból keletkezzen?
-- Winrate alapján?
-- Card usage alapján?
-- Matchup alapján?
-- Deck pattern alapján?
-- Túl gyakori ward break / túl gyors győzelem alapján?
-- Hány meccs után értelmezhető egy balance suspicion?
-- A balance suspicion kártyára, deckre, klánra vagy matchupra vonatkozzon?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-004`
 
 ### OQ-AI-005 – Winrate és klánidentitás
 
-**Státusz:** `open`, `blocked_by_balance_test_design`  
-**Célfájl:** `DECISION_MAP.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Nem cél steril 50/50; identitás védendő. Mintaszámok és auditküszöbök később.
 
-Jelenlegi munkahipotézis:
-
-- A cél nem steril 50/50 balansz.
-- A klánidentitás fontos.
-- Az erős, karakteres klánirány önmagában nem hiba.
-- A 40–60 winrate-sáv csak kezdeti figyelési elv, nem végleges matematikai szabály.
-
-Nyitott kérdések:
-
-- Pontosan mit jelent a 40–60 winrate-sáv?
-- Hány meccs után tekinthető relevánsnak?
-- Hogyan kezeljük az erős, de identitásból fakadó matchup előnyöket?
-- Mikor lesz egy matchup túl egyoldalú?
-- Hogyan kerülhető el a kő-papír-olló rendszer?
-- Hogyan különítjük el a valódi balanszhibát az engine-, AI- vagy decklistahibától?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-005`
 
 ### OQ-AI-006 – Balance report
 
-**Státusz:** `open`, `deferred_until_ai_test`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`, `RUNTIME_PACKAGE_SPECIFICATION.md`
+**Státusz:** `deferred`  
+**Aktuális kérdés / fennmaradó kapu:** Később gépi JSON + emberi Markdown summary, stabil fair AI és gameplay után.
 
-- Kell-e külön `balance_report` contract?
-- A balance report JSON, Markdown vagy mindkettő legyen?
-- Meccsenkénti és összesített riport különüljön el?
-- Card usage statisztika kell-e?
-- Deck matchup statisztika kell-e?
-- Milyen eventeket kell gyűjteni balanszhoz?
-- Balance report regenerálható output legyen vagy verziózott referencia?
-
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-006`
 
 ### OQ-AI-007 – Korábbi kártyajavítások visszaellenőrzése
 
-**Státusz:** `open`, `blocked_by_balance_test_design`  
-**Célfájl:** `DECISION_MAP.md`
+**Státusz:** `deferred`  
+**Aktuális kérdés / fennmaradó kapu:** Fair AI-vs-AI, deckvalidáció, support report és teljesebb gameplay után.
 
-- A korábban javított lapok nem lettek-e túlgyengítve?
-- Megmaradt-e az egyediségük?
-- Megmaradt-e a klánidentitásuk?
-- Működnek-e játék közben?
-- Nem lettek-e túl steril vagy túl óvatos lapok?
-- A kártyajavítások visszatesztelése mikor induljon?
-- Előbb szükséges-e stabil AI-vs-AI tesztmotor?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-007`
 
----
 
-## 12. Rules audit and card audit timing
-
+## 12. Rules- és kártyaaudit
 ### OQ-RULES-001 – Hivatalos főforrás-audit
 
-**Státusz:** `deferred`, `blocked_by_validation_layer`  
-**Célfájl:** `DECISION_MAP.md`, `ARCHITECTURE.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Szükséges, de rétegezett és célzott formában. A teljes audit előtt stabilabb validation és engine-barát rules spec kell.
 
-- Mikor induljon külön főforrás-audit?
-- A két 1.4v hivatalos főforrásban maradtak-e ellentmondások?
-- Milyen hibákat kell még keresni a főforrásokban?
-- A főforrás-audit előtt kell-e stabilabb engine/adatút?
-- A főforrás-audit célja szabálytisztítás, játékosbarát szöveg vagy engine-barát specifikáció legyen?
-- A főforrás-audit eredménye új DOCX, MD vagy mindkettő legyen?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-001`
 
----
+### OQ-RULES-002 – Játékosbarát szabálykönyv
 
-### OQ-RULES-002 – Játékosbarát szabálykönyv időzítése
+**Státusz:** `deferred`  
+**Aktuális kérdés / fennmaradó kapu:** Külön, későbbi magyarázó dokumentum; főforrás-audit és stabil gameplay után.
 
-**Státusz:** `deferred`, `blocked_by_rules_audit`  
-**Célfájl:** `DECISION_MAP.md`
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-002`
 
-- Mikor készülhet játékosbarát szabálykönyv?
-- Előtte kötelező-e a főforrás-audit?
-- A játékosbarát szabálykönyv külön dokumentum legyen?
-- Milyen mélységben magyarázza a kezdőknek a szabályokat?
-- Tartalmazzon-e példákat?
-- Tartalmazzon-e vizuális pályamagyarázatot?
-- A játékosbarát szabálykönyv DOCX, MD vagy később PDF legyen?
+### OQ-RULES-003 – Engine/AI-barát szabályspecifikáció
 
----
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Kell külön MD-alapú, hivatalos forrásból származtatott spec. A részletes szerkezet és elkészítés időzítése nyitott.
 
-### OQ-RULES-003 – Engine / AI / Codex-barát szabályspecifikáció
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-003`
 
-**Státusz:** `deferred`, `blocked_by_rules_audit`  
-**Célfájl:** `ARCHITECTURE.md`, `CONTRACT_SPECIFICATION.md`
+### OQ-RULES-004 – Új teljes kártyaaudit időzítése
 
-- Készüljön-e külön engine-barát szabályspecifikáció?
-- Ez a hivatalos főforrásból származzon?
-- Tartalmazza-e a fázisokat, akcióablakokat, célpontválasztást, triggerablakokat és győzelmi feltételeket?
-- Codex számára külön rövidebb szabályspecifikáció készüljön?
-- Az engine-barát szabályspecifikáció legyen MD-alapú?
-- Ez váljon-e később a rules engine implementáció egyik fő forrásává?
+**Státusz:** `deferred`  
+**Aktuális kérdés / fennmaradó kapu:** Előbb structured/LOOKUPS, diagnostics, support report, deckvalidáció és legalább részleges tesztmotor.
 
----
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-004`
 
-### OQ-RULES-004 – Új kártyaaudit időzítése
+### OQ-RULES-005 – LOOKUPS és structured audit
 
-**Státusz:** `deferred`, `blocked_by_validation_layer`  
-**Célfájl:** `DECISION_MAP.md`
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** Lépcsőzetesen indítható critical enumokkal és dangerous/legacy értékekkel. A teljes munkalista későbbi auditfeladat.
 
-Jelenlegi irány:
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-005`
 
-- Nem most indul új teljes kártyaaudit.
-- Előbb stabilabb adatút, LOOKUPS, structured és diagnostics rendszer kell.
-- A balanszaudit előtt legalább részben működő tesztelési / validációs réteg szükséges.
+### OQ-RULES-006 – Kártyaszöveg és structured eltérés
 
-Nyitott kérdések:
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** A motor nem találgathat; eltérés diagnostics és szükség esetén blocking audit. A konkrét javítási workflow részletezendő.
 
-- Mikor indulhat új kártyaaudit?
-- Előbb kell-e stabil runtime package?
-- Előbb kell-e LOOKUPS / structured / validation rendezés?
-- Kell-e működő AI-vs-AI teszt?
-- Kell-e engine support report?
-- Mikor ellenőrizzük vissza a korábbi kártyajavításokat?
-- A kártyaaudit birodalmonként, klánonként vagy hibakategóriánként induljon újra?
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-006`
+
+### OQ-RULES-007 – Aeternal/Pecsét engine-spec
+
+**Státusz:** `partly_answered`  
+**Aktuális kérdés / fennmaradó kapu:** A HP nélküli alapmodell rögzített. A snapshot, combat, target, ward-break/restore és victory event payloadok részletesítendők.
+
+**Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-007`
 
 ---
 
-### OQ-RULES-005 – LOOKUPS és structured audit időzítése
+## Dokumentumkezelési hatás
 
-**Státusz:** `open`, `blocked_by_data_audit`  
-**Célfájl:** `RUNTIME_PACKAGE_SPECIFICATION.md`, `ABILITY_MODULE_SYSTEM.md`
+A repositoryba történő beillesztéskor:
 
-- Mikor induljon a LOOKUPS/structured teljes audit?
-- Előbb a runtime package buildernek kell-e stabilnak lennie?
-- A Value / Label_HU / Canonical_Value irány már véglegesnek tekinthető?
-- A legacy alias réteg mikor zárható?
-- A dangerous / audit_required structured értékek listája mikor készüljön el?
-- A structured értékek programlogikai mappingje mikor kezdődjön?
-- Mely structured mezők a legfontosabbak az első engine támogatáshoz?
-
----
-
-### OQ-RULES-006 – Kártyaszöveg és structured adat eltérései
-
-**Státusz:** `open`, `blocked_by_card_data_audit`  
-**Célfájl:** `ABILITY_MODULE_SYSTEM.md`, `RUNTIME_PACKAGE_SPECIFICATION.md`
-
-- Mi történjen, ha a kártyaszöveg jó, de a structured mező hiányos?
-- Mi történjen, ha a structured mező jó, de a kártyaszöveg félrevezető?
-- Melyik számít elsődlegesnek engine szempontból?
-- A structured adat audit note-ot vagy warningot generáljon eltérés esetén?
-- Kártyaszöveg és structured adat eltérése blokkolja-e a runtime package-et?
-- A javítás a kártyaszövegben, structured mezőben vagy mindkettőben történjen?
-
----
-
-### OQ-RULES-007 – Aeternal / Pecsét szabálymodell végleges engine-specifikációja
-
-**Státusz:** `partly_answered`, `blocked_by_rules_audit`  
-**Célfájl:** `CONTRACT_SPECIFICATION.md`, `ABILITY_MODULE_SYSTEM.md`, `ARCHITECTURE.md`
-
-Jelenlegi rögzített irány:
-
-- Az Aeternal maga a játékos.
-- Az Aeternal nem rendelkezik HP-val.
-- Az Aeternal nem kaphat sebzést.
-- Az Aeternal nem gyógyítható.
-- A Pecsét nem HP-alapú objektum.
-- A Pecsét feltörési / visszaállítási eseményként kezelendő.
-- Ha nincs Entitás és Pecsét, ami véd, egy célba érő támadás azonnali vereséget jelent.
-
-Nyitott kérdések:
-
-- Az Aeternal target érték milyen korlátozással létezhet engine szinten?
-- A Pecsét feltörése pontosan milyen event payloadot kapjon?
-- A Pecsét visszaállítása milyen action/effect/event modellben szerepeljen?
-- A combatból származó Pecsétfeltörés és effectből származó Pecsétfeltörés közös event_type legyen?
-- Azonnali vereség triggerelése milyen eventként jelenjen meg?
-- A snapshotban hogyan jelenjen meg, hogy egy játékos Aeternalja védtelen?
+1. ez a fájl lecseréli a meglévő `OPEN_QUESTIONS.md` tartalmát;
+2. az új `OPEN_QUESTIONS_DECISIONS.md` vele együtt kerül be;
+3. a `CURRENT_OPEN_QUESTIONS.md` csak a két új fájl és minden hivatkozás ellenőrzése után távolítható el;
+4. az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` szándékos kérdés–válasz dokumentumpárként megmarad;
+5. új `CURRENT_OPEN_QUESTIONS.md` vagy más párhuzamos current OQ-fájl nem készülhet.

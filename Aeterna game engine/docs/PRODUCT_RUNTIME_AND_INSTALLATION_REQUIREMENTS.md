@@ -2,475 +2,391 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.1  
-**Dátum:** 2026-07-15  
-**Státusz:** aktív termékkövetelmény és runtime-döntési mérce  
-**Kapcsolódó mérföldkő:** AETERNA 0.0.1 zárt tesztkiadás
+**Dokumentumverzió:** 1.2  
+**Dátum:** 2026-07-20  
+**Státusz:** aktív termékkövetelmény és release-elfogadási mérce  
+**Kapcsolódó mérföldkő:** AETERNA 0.0.1 zárt tesztkiadás  
+**Kiválasztott architektúra:** Godot/GDScript visual client + C# authoritative engine + Python external tooling
 
-Ez a dokumentum nem választ ki programnyelvet vagy engine-runtime modellt.
+Ez a dokumentum azt rögzíti, milyen programot kell a játékos és a tesztelő kezébe adni.
 
-Feladata annak rögzítése, hogy:
+Nem:
 
-- milyen programot kell végül a játékos és a tesztelő kezébe adni;
-- milyen telepítési és futtatási élmény kötelező;
-- milyen külső függőségek elfogadhatók;
-- milyen stabilitási és csomagolási bizonyíték szükséges;
-- milyen mérce alapján hasonlítható össze a Python sidecar, a Godot .NET/C#, a GDScript vagy más jelölt;
-- mikor tekinthető egy runtime-megoldás az AETERNA számára alkalmasnak.
+- rules engine-specifikáció;
+- napi fejlesztési terv;
+- csomagolóscript;
+- annak bizonyítéka, hogy a production build már elkészült.
 
-A nyelvváltás nem önálló cél.
-
-> **A jelenlegi Python engine csak akkor váltandó le vagy portolandó, ha a bizonyított termékkövetelmények teljesítését akadályozza, vagy egy másik megoldás összességében lényegesen biztonságosabb és fenntarthatóbb.**
+A runtime-nyelvi döntés lezárult, de a production C# packaging még külön bizonyítandó.
 
 ---
 
-## 1. Lezárt első termékdöntések
+## 1. Elsődleges platform
 
-### 1.1 Elsődleges platform
+Döntés:
 
-**Döntés:**
+- 64 bites Windows 10 és újabb támogatott Windows asztali rendszer;
+- 32 bites Windows nem cél;
+- Linux később vizsgálható;
+- Linux nem blokkolja a 0.0.1 Windows-kiadást.
 
-- elsődleges platform: 64 bites Windows 10 és minden ennél újabb támogatott Windows asztali rendszer;
-- a 32 bites Windows nem cél;
-- Linux-támogatás később vizsgálható;
-- Linux jelenleg nem prioritás és nem blokkolja a 0.0.1 Windows-kiadást.
-
-### 1.2 Jelenlegi kiadási forma
-
-**Döntés:**
-
-- a technológiai proofokhoz és a jelenlegi zárt tesztverziókhoz portable, kibontott mappa elegendő;
-- jelenleg nem készül telepítő;
-- a portable csomag egyértelmű fő executable-ből induljon;
-- a véglegesebb vagy szélesebb kiadásnál később külön telepítő készülhet;
-- a telepítő kérdése nem blokkolja a mostani runtime-összehasonlítást.
-
-### 1.3 Jogosultság és felhasználói fájlok
-
-**Döntés:**
-
-- a program normál futtatásához ne kelljen adminisztrátori jogosultság;
-- a portable program saját mappájából induljon;
-- a mentések, beállítások, logok és hibacsomagok felhasználói írható mappába kerüljenek;
-- a program ne írjon futás közben védett rendszerkönyvtárba;
-- egy későbbi telepítő lehetőleg felhasználónként, adminjog nélkül is telepíthető legyen.
-
-### 1.4 Külső függőségek
-
-**Döntés:**
-
-- a játékosnak ne kelljen külön Pythont, Godot Editort, .NET SDK-t, Visual Studiót vagy más fejlesztői környezetet telepítenie;
-- ne kelljen csomagokat, modulokat, környezeti változókat vagy több külön indítóprogramot kezelnie;
-- egy kevés számú, közismert és egyszerű prerequisite elfogadható;
-- például egy .NET runtime vagy hasonló széles körben használt rendszerkomponens nem kizáró ok;
-- az alkalmazással együtt szállított self-contained runtime továbbra is előny;
-- minden szükséges külső komponens legyen dokumentált, jogszerűen terjeszthető és egyszerűen kezelhető.
+A pontos minimális OS-build és hardverigény valós production build mérése után rögzíthető.
 
 ---
 
-## 2. Elsődleges termékcél
+## 2. Kiadási forma
 
-Az AETERNA 0.0.1 célja:
+A proofokhoz és zárt tesztverzióhoz:
 
-- zárt, baráti és fejlesztői tesztelés;
-- internetkapcsolat nélkül is használható játékmenet;
-- egyszerű, játékokra jellemző indítás;
-- stabil és reprodukálható futás;
-- a játékos számára egyetlen termékként viselkedő program.
+- portable, kibontott mappa;
+- egyértelmű fő executable;
+- telepítő nélkül;
+- internetkapcsolat nélkül is használható;
+- egyszerű törlés és frissítés.
 
-A játékos szempontjából az alkalmazás egyetlen termék legyen, függetlenül attól, hogy belül:
+Később:
 
-- egy folyamat;
-- több folyamat;
-- beágyazott runtime;
-- natív könyvtár;
-- vagy más technikai modell működik.
+- külön installer;
+- digitális aláírás;
+- automatikus frissítés;
+- platform-specifikus csomagolás.
 
-A belső architektúra nem terhelheti a játékost kézi fejlesztői beállításokkal.
+Ezek nem korai C.5B-követelmények.
 
 ---
 
-## 3. Kötelező felhasználói futtatási élmény
+## 3. Jogosultság és felhasználói fájlok
 
-### 3.1 Indítás
+A normál futtatás:
+
+- ne igényeljen adminisztrátori jogosultságot;
+- ne írjon védett rendszerkönyvtárba;
+- ne igényeljen fejlesztői parancssort.
+
+A következő adatok felhasználói írható helyre kerüljenek:
+
+- mentések;
+- beállítások;
+- profil;
+- logok;
+- crash/bug report csomag;
+- replay vagy diagnosztikai export, ha van.
+
+A pontos Windows-könyvtár külön implementation decision.
+
+---
+
+## 4. Külső függőségek
+
+A játékosnak nem kellhet:
+
+- Python;
+- Godot Editor;
+- .NET SDK;
+- Visual Studio;
+- csomagkezelő;
+- környezeti változó;
+- több kézi processzindítás;
+- külön adatbuilder.
+
+Elfogadható:
+
+- az alkalmazással szállított self-contained .NET runtime;
+- vagy kevés, közismert, egyszerű prerequisite, dokumentált telepítéssel.
+
+Előnyben részesített:
+
+- egyetlen Godot .NET alkalmazáscsomag;
+- szükséges C# runtime-komponensek együtt szállítva;
+- Python nélküli játékosoldali futás.
+
+---
+
+## 5. Processztopológia
+
+Tervezett normál játék:
+
+```text
+Godot .NET application
+    └── C# authoritative engine in-process
+```
+
+Nem szükséges:
+
+- Python sidecar;
+- TCP-listener;
+- külön engine executable;
+- watchdog;
+- orphan-processz kezelés;
+- localhost service.
+
+Fejlesztői/batch környezetben külön használható:
+
+- `Aeterna.Engine.Headless`;
+- Python controller;
+- CI;
+- AI-vs-AI és fixture runner.
+
+---
+
+## 6. Indítás és leállítás
 
 Kötelező cél:
 
-- a portable csomag kibontás után indítható legyen;
-- a program ikonról vagy egyértelmű fő executable-ből induljon;
-- ne kelljen parancssort használni;
-- ne kelljen BAT- vagy Python-scriptet kézzel futtatni;
-- ne kelljen környezeti változót beállítani;
-- ne kelljen portszámot vagy processzt kézzel kezelni;
-- ne jelenjen meg szükségtelen konzolablak;
-- az engine és a kliens indulása automatikusan, kontrolláltan történjen;
-- indítási hiba esetén érthető hibaüzenet és diagnosztikai napló készüljön.
+- kibontás után egyértelműen indítható;
+- egy fő executable;
+- normál ablakbezárás;
+- F8 vagy fejlesztői stop esetén tiszta leállás;
+- nincs elárvult AETERNA processz;
+- nincs nyitva maradó TCP-listener;
+- nincs kézi cleanup;
+- újraindítás tiszta állapotból.
 
-### 3.2 Leállítás
-
-Kötelező cél:
-
-- a program normál bezáráskor minden saját folyamatát leállítsa;
-- ne maradjon háttérben elárvult engine-processz;
-- mentés vagy logírás közben biztonságos lezárás történjen;
-- kényszerített leállás után a következő indítás felismerhesse az előző rendellenes kilépést;
-- a sérült vagy félbehagyott ideiglenes fájl ne tegye indíthatatlanná a programot.
-
-### 3.3 Offline működés
-
-A 0.0.1 alapjátékmenethez:
-
-- ne legyen kötelező internetkapcsolat;
-- ne legyen kötelező online fiók;
-- ne legyen kötelező külső licenc- vagy hitelesítőszerver;
-- a runtime package, mentések és szükséges programkomponensek helyben legyenek elérhetők.
-
-Későbbi frissítés-, telemetria- vagy online rendszer külön döntési kapu.
+A bizonyított C# candidate proof megfelelt a processzen belüli működés alapjainak, de a production engine és export külön tesztelendő.
 
 ---
 
-## 4. Függőség- és terjesztési szabály
+## 7. Offline működés
 
-### 4.1 Amit a játékosnak nem kellhet külön telepítenie vagy kezelnie
+A 0.0.1 alapjátéka:
 
-A célkiadás nem követelheti meg kézzel:
+- internet nélkül induljon;
+- internet nélkül játsszon;
+- internet nélkül töltsön be runtime package-et;
+- ne igényeljen online fiókot;
+- ne igényeljen felhőszolgáltatást.
 
-- a Python teljes rendszertelepítését;
-- Python package-ek vagy `pip` használatát;
-- a Godot Editort;
-- a .NET SDK-t;
-- Visual Studio vagy más fejlesztői környezet telepítését;
-- Git, Node.js, Java vagy más fejlesztői toolchain használatát;
-- projektfájlok vagy konfigurációk kézi szerkesztését;
-- több külön indítóprogram megfelelő sorrendű kézi elindítását.
-
-### 4.2 Elfogadható függőség
-
-Elfogadható lehet:
-
-- az alkalmazással együtt szállított runtime;
-- az alkalmazás saját könyvtárában lévő interpreter vagy framework;
-- kevés számú, széles körben használt rendszerkomponens vagy redistributable;
-- például megfelelő .NET runtime, ha a választott megoldás ezt ténylegesen igényli;
-- olyan prerequisite, amelynek telepítése egyszerű és egyértelmű;
-- operációs rendszer által biztosított alapkomponens.
-
-Feltételek:
-
-- a szükségessége dokumentált legyen;
-- ne igényeljen fejlesztői tudást;
-- a licenc és terjeszthetőség ellenőrzött legyen;
-- a prerequisite hiánya esetén a program érthetően jelezzen;
-- a külső függőségek száma maradjon a lehető legkisebb;
-- a runtime-jelölt összehasonlításában külön mérjük a kézi telepítések számát és bonyolultságát.
-
-### 4.3 Terjesztési modellek időbeli sorrendje
-
-**Jelenlegi proof- és tesztfázis:**
-
-1. portable, kibontott Windows-mappa;
-2. egyértelmű fő executable;
-3. külön telepítő nélkül.
-
-**Későbbi véglegesebb kiadás:**
-
-- Windows-telepítő;
-- Start menü és parancsikon;
-- eltávolítás és frissítés;
-- szükség esetén prerequisite-kezelés.
-
-A proofok jelenleg kizárólag a portable modellt kötelesek bizonyítani.
+Opcionális későbbi online szolgáltatás nem ronthatja az offline alapműködést.
 
 ---
 
-## 5. Stabilitási követelmények
+## 8. Stabilitás
 
-### 5.1 Engine-stabilitás
+Minimum release-elfogadás:
 
-A kiválasztott runtime-nak támogatnia kell:
+- normál indítás;
+- ismételt indítás;
+- több egymás utáni mérkőzés;
+- normál kilépés;
+- fejlesztői stop;
+- hosszabb soak futás;
+- hibás package kezelése;
+- hiányzó vagy inkompatibilis package kezelése;
+- mentés- és logírási hiba kezelése;
+- crash esetén diagnosztikai nyom.
 
-- determinisztikus MatchState-kezelést;
-- expected state version ellenőrzést;
-- atomikus state transitiont;
-- rejected action esetén változatlan state-et;
-- typed eventeket;
-- player-visible és debug projekció szétválasztását;
-- rejtett információ védelmét;
-- reprodukálható scenario-futtatást;
-- strukturált diagnostics kimenetet.
+Nem elfogadható:
 
-### 5.2 Folyamat- és kapcsolatstabilitás
-
-Ha több folyamat vagy bridge működik:
-
-- legyen verziózott handshake;
-- legyen timeout;
-- legyen kontrollált shutdown;
-- legyen megszakadt kapcsolat felismerése;
-- legyen újraindítási vagy biztonságos kilépési stratégia;
-- a kliens ne folytasson játékmenetet bizonytalan authoritative state mellett;
-- stdout, stderr, protokoll és emberi log ne keveredjen ellenőrizetlenül.
-
-### 5.3 Mentés és diagnosztika
-
-Kötelező cél:
-
-- a mentési forma verziózott legyen;
-- mentés közben ne íródjon felül közvetlenül az egyetlen érvényes példány biztonsági stratégia nélkül;
-- rendellenes leállás után legyen diagnosztikai nyom;
-- a felhasználó által elküldhető hibacsomag ne tartalmazzon szükségtelen személyes adatot;
-- a logok és mentések helye legyen meghatározott és dokumentált;
-- a portable program mappája ne legyen az egyetlen kötelező írható adattárolási hely.
-
-A teljes save/replay rendszer későbbi implementáció, de a runtime-döntés nem akadályozhatja annak biztonságos kialakítását.
+- csendes állapotromlás;
+- félbehagyott state mutation;
+- rejtett információ szivárgása;
+- elárvult processz;
+- fejlesztői környezet hiánya miatt használhatatlan player build.
 
 ---
 
-## 6. Telepítési és csomagolási elfogadási próbák
+## 9. Determinizmus és reprodukálhatóság
 
-Minden komoly runtime-jelölt ugyanazon környezetben vizsgálandó.
+Fejlesztői és teszt buildben legyen rögzíthető:
 
-### 6.1 Tiszta Windows-környezet
+- engine version;
+- ruleset version;
+- runtime package ID/version/hash;
+- seed;
+- deck ID-k;
+- match ID;
+- AI policy/version;
+- action history;
+- event sequence;
+- state version;
+- diagnostics summary.
 
-Kötelező proof:
-
-- 64 bites Windows 10 vagy újabb, a projekttől független tesztkörnyezet;
-- nincs előre telepített fejlesztői Python;
-- nincs Godot Editor;
-- nincs .NET SDK;
-- nincs projektforrás;
-- csak a portable kiadási csomag és az explicit prerequisite áll rendelkezésre;
-- normál futtatás adminisztrátori jogosultság nélkül.
-
-Ellenőrzendő:
-
-- ZIP vagy más csomag kibontása;
-- első indítás;
-- meccs-scenario futtatása;
-- mentés vagy tesztállapot írása felhasználói mappába;
-- bezárás;
-- újraindítás;
-- portable mappa törölhetősége;
-- visszamaradt processzek és fájlok;
-- hiányzó prerequisite érthető kezelése.
-
-### 6.2 Ismételt indítás és leállítás
-
-Első minimum proof:
-
-- legalább 20 egymást követő indítás és szabályos leállítás;
-- nincs elárvult processz;
-- nincs portütközés;
-- nincs átmeneti fájl miatti indulási hiba;
-- a logok kezelhető méretűek maradnak.
-
-### 6.3 Hosszabb futás
-
-Első minimum soak proof:
-
-- legalább 2 órás headless vagy gyorsított AI-vs-AI futás;
-- memóriahasználat megfigyelése;
-- processz- és handle-szivárgás ellenőrzése;
-- determinisztikus scenario-k kontrollmintája;
-- crash vagy kapcsolatvesztés esetén használható diagnostics.
-
-A végleges kiadás előtt ennél hosszabb tesztek szükségesek lehetnek.
-
-### 6.4 Offline próba
-
-- hálózat nélkül elindul;
-- a helyi játékmenet működik;
-- hiányzó hálózat nem okoz hosszú, megmagyarázatlan várakozást;
-- opcionális online funkció hiánya érthetően kezelhető.
-
-### 6.5 Későbbi Linux-vizsgálat
-
-- a Windows-runtime döntésnél előny, ha a választott technológia később Linuxra is átvihető;
-- a Linux-proof jelenleg nem kötelező;
-- a Linux-támogatás hiánya önmagában nem zár ki runtime-jelöltet a 0.0.1-ből;
-- a platformfüggő döntéseket úgy dokumentáljuk, hogy egy későbbi Linux-port költsége becsülhető legyen.
+Azonos inputból az engine determinisztikus contractok esetén azonos eredményt adjon.
 
 ---
 
-## 7. Runtime-jelöltek összehasonlítási szempontjai
+## 10. Log és hibacsomag
 
-A jelöltek nem pusztán programnyelvként, hanem teljes termékruntime-modellként hasonlítandók össze.
+Fejlesztői vagy tesztmódban legyen elérhető:
 
-Fő jelöltek:
+- alkalmazásverzió;
+- OS és runtime információ;
+- runtime package identity;
+- engine diagnostics;
+- Godot log;
+- C# exception/stack trace;
+- match vagy scenario reference;
+- seed;
+- releváns snapshot/event/action adatok;
+- rejtett információt nem szivárogtató felhasználói csomag.
 
-- Python sidecar + Godot kliens;
-- Godot .NET/C# authoritative runtime;
-- GDScript authoritative runtime vagy szűk rules proof;
-- szükség esetén C++ GDExtension vagy más technológia;
-- embedded Python csak akkor, ha az érettség és packaging bizonyítható.
+Player-facing hibaüzenet rövid és biztonságos.
 
-### 7.1 Elsődleges súlyozás
-
-| Terület | Javasolt súly |
-|---|---:|
-| Stabilitás és hibakezelés | 25% |
-| Telepítés és felhasználói egyszerűség | 25% |
-| Karbantarthatóság és tesztelhetőség | 20% |
-| Godot-integráció | 15% |
-| AI, batch és fejlesztői tooling | 10% |
-| Nyers teljesítmény | 5% |
-
-A súlyozás emberi döntéssel módosítható, de a stabilitás és a telepítési egyszerűség nem kerülhet másodlagos helyre pusztán a fejlesztési kényelem miatt.
-
-### 7.2 Kötelezően mérendő adatok
-
-- kiadási csomag mérete;
-- első indítás ideje;
-- ismételt indítás megbízhatósága;
-- memóriahasználat;
-- engine-válaszidő;
-- build reprodukálhatósága;
-- szükséges külső telepítések száma és bonyolultsága;
-- adminjog szükségessége;
-- platform- és runtime-verziófüggés;
-- crash és kapcsolatvesztés kezelése;
-- unit és integration tesztelhetőség;
-- Codex által készített kis módosítások ellenőrizhetősége;
-- szabálymotor és UI fizikai elválaszthatósága;
-- Python AI/batch toolinggal való együttműködés;
-- későbbi Linux-port várható költsége;
-- licenc- és attributionkötelezettség;
-- antivírus vagy aláíratlan executable okozta tesztproblémák.
+A részletes developer diagnostics elkülönül.
 
 ---
 
-## 8. Kötelező architekturális elvek minden jelöltnél
+## 11. Runtime package elhelyezése
 
-A kiválasztott nyelvtől függetlenül:
+A player build tartalmazza vagy biztonságosan eléri a validált runtime package-et.
 
-- egy futásban pontosan egy authoritative MatchState legyen;
-- a UI ne legyen szabályforrás;
-- a kliens ne módosítsa közvetlenül az authoritative state-et;
-- action request, validation, transition és response különüljön el;
-- a rules engine UI nélkül is tesztelhető legyen;
-- a player-visible és debug output külön maradjon;
-- a runtime package ne legyen azonos a MatchState-tel;
-- a kártyaadat és lookupforrás továbbra is az export- és validációs pipeline-on keresztül érkezzen;
-- a Python AI-, audit- és batch tooling megtartandó akkor is, ha a termékruntime más nyelvű lesz;
-- két teljes authoritative szabálymotor tartós párhuzamos fenntartása csak rendkívül erős indokkal fogadható el.
+Kötelező:
+
+- verzió- és compatibility-ellenőrzés;
+- hiányzó package esetén kontrollált hiba;
+- sérült package esetén kontrollált hiba;
+- development és release package elkülönítése;
+- szerkesztési XLSX nem szükséges a player buildhez.
 
 ---
 
-## 9. Döntési kapu és prioritási sorrend
+## 12. Mentés és profil
 
-### P0 – Termékkövetelmények
+A 0.0.1 célállapotban tervezett:
 
-**Állapot:** első döntési csomag lezárva.
+- helyi profil;
+- beállítások;
+- paklik;
+- gyűjtemény;
+- tesztgazdaság;
+- mérkőzésállapot vagy folytatás, ha a gameplay design igényli.
+
+A save schema:
+
+- verziózott;
+- visszafelé kompatibilitási vagy migrációs policyvel;
+- hibás mentésnél kontrollált;
+- külön a runtime package-től.
+
+A pontos mentési contract későbbi szakasz.
+
+---
+
+## 13. Biztonság és adatvédelem
+
+A zárt tesztverzió:
+
+- ne gyűjtsön szükségtelen személyes adatot;
+- ne küldjön automatikusan logot internetre;
+- hibacsomag megosztása felhasználói művelet legyen;
+- logban ne legyen szükségtelen elérési út vagy érzékeny adat;
+- rejtett játékinformáció player-facing csomagban ne szivárogjon.
+
+Nyilvánosabb kiadásnál később:
+
+- package integritás;
+- code signing;
+- tamper detection;
+- privacy notice;
+- crash reporting consent.
+
+---
+
+## 14. Teljesítmény
+
+A pontos célértékek valós vertical slice után mérendők.
+
+Elvárt:
+
+- UI nem fagy meg normál action alatt;
+- legal action és snapshot elfogadható időn belül készül;
+- egy meccs memóriája kontrollált;
+- batch futás külön headless útvonalon skálázható;
+- a Python tooling nem kerül a Godot frame loopba;
+- service API csak mért szükség esetén készül.
+
+---
+
+## 15. Windows packaging proof
+
+A production C# engine után kötelező bizonyítás:
+
+1. Godot .NET export;
+2. tiszta tesztgépes indítás;
+3. szükséges .NET runtime modell;
+4. portable mappa;
+5. offline futás;
+6. normál kilépés;
+7. több egymás utáni indítás;
+8. runtime package betöltés;
+9. log és user data helye;
+10. nincs Python prerequisite;
+11. nincs SDK vagy Editor prerequisite;
+12. nincs orphan process vagy listener;
+13. legalább rövid soak teszt;
+14. verzió- és hibajelzés.
+
+Ez a proof még nincs kész.
+
+---
+
+## 16. Release profilok
+
+Javasolt fokozatok:
+
+### Developer
+
+- részletes log;
+- debug snapshot;
+- developer diagnostics;
+- fixture és smoke eszközök.
+
+### Closed test
+
+- player-facing alkalmazás;
+- kontrollált bug report;
+- debug funkciók korlátozva;
+- validált runtime package;
+- egyszerű portable terjesztés.
+
+### Public release
+
+- stabil packaging;
+- integritásvédelem;
+- code signing lehetőség;
+- release notes;
+- kompatibilitási és frissítési policy.
+
+---
+
+## 17. Elfogadási kapu 0.0.1 előtt
+
+A program akkor tekinthető átadható zárt tesztbuildnek, ha:
+
+- egyszerűen indul;
+- offline működik;
+- nem igényel fejlesztői eszközt;
+- teljes meccs lejátszható;
+- szabálymotor determinisztikus és tesztelt;
+- hidden information védett;
+- mentés és beállítások kontrolláltak;
+- log és bug report használható;
+- nincs ismert blocking crash;
+- nincs orphan process;
+- runtime package kompatibilis;
+- verziók visszakereshetők;
+- a fő gameplay vertical slice-ok zöldek.
+
+---
+
+## 18. Aktuális állapot
 
 Lezárt:
 
-- 64 bites Windows 10 és újabb;
-- Linux későbbi, nem prioritásos lehetőség;
-- portable csomag a jelenlegi proof- és tesztfázisban;
-- telepítő csak későbbi véglegesebb kiadáshoz;
-- adminjog nélküli normál futás;
-- felhasználói írható mentés-, beállítás- és loghely;
-- kevés számú közismert prerequisite elfogadható;
-- fejlesztői környezet kézi telepítése nem fogadható el.
+- Python-sidecar proof;
+- C# in-process candidate proof;
+- runtime-nyelvi döntés;
+- Godot + C# + Python szerepfelosztás.
 
-### P1 – Tanulóprogram-audit
+Még nyitott:
 
-- helyi programleltár;
-- licenc;
-- runtime és nyelvek;
-- Godot-integráció;
-- csomagolás;
-- stabilitási minták;
-- tiszta szobásan használható architektúraötletek.
+- production C# engine;
+- production Godot bridge;
+- Windows export;
+- self-contained/prerequisite döntés;
+- save/log végleges helye;
+- soak és tiszta gépes teszt;
+- release package identity;
+- 0.0.1 teljes gameplay.
 
-### P2 – Közös comparison fixture
-
-- azonos initial state;
-- azonos action requestek;
-- azonos expected output;
-- determinisztikus JSON;
-- azonos rejection-scenario;
-- nyelvfüggetlen kiértékelés.
-
-### P3 – Runtime proofok
-
-- Python sidecar;
-- C#/.NET;
-- szükség esetén GDScript;
-- csak indokolt esetben más technológia.
-
-### P4 – Portable és stabilitási proof
-
-- tiszta Windows 10+ 64-bit környezet;
-- portable mappa;
-- adminjog nélküli futás;
-- explicit prerequisite;
-- ismételt indítás;
-- hosszabb futás;
-- offline próba;
-- diagnosztika.
-
-### P5 – Döntési jelentés
-
-- pontozás;
-- mérési eredmények;
-- ismert kockázatok;
-- migrációs költség;
-- ajánlás;
-- emberi jóváhagyás.
-
-### P6 – Gameplay-fejlesztés folytatása
-
-A kiválasztott runtime-ágon:
-
-1. Wellspring runtime integráció;
-2. player-visible Wellspring summary;
-3. Beáramlás;
-4. Magnitúdó és Aura-payment;
-5. első `play_card`;
-6. további gameplay-engine lánc.
-
-Ha a munka közben ennél súlyosabb blokkoló vagy termékkockázat merül fel, a prioritási sorrend megállítható és külön döntési kapu nyitható.
-
----
-
-## 10. Nyitott, de a proof kezdetét nem blokkoló termékkérdések
-
-A következők később döntendők el:
-
-- milyen maximális csomagméret fogadható el;
-- kell-e digitális kódaláírás a zárt 0.0.1 teszthez;
-- a Windows felhasználói mappán belül pontosan hová kerüljenek a mentések, logok és hibacsomagok;
-- milyen frissítési modell szükséges a 0.0.1 után;
-- kell-e külön headless engine executable a tesztelői csomagban;
-- mikor induljon a Linux-proof;
-- milyen minimális hardverkövetelmény legyen;
-- milyen adatokat tartalmazhat a hibajelentési csomag;
-- hogyan kezeljük a runtime- és package-verzió inkompatibilitását;
-- egy külső prerequisite-et a portable csomag mellé adjunk, automatikusan ellenőrizzünk vagy későbbi telepítő kezeljen.
-
-Ezeket nem kell egyszerre lezárni. Mindig csak az a kérdés kerül előre, amely a következő auditot vagy proofot ténylegesen blokkolja.
-
----
-
-## 11. Rövid elfogadási összefoglaló
-
-Egy runtime-jelölt csak akkor ajánlható az AETERNA 0.0.1 authoritative termékruntime-jának, ha bizonyítottan:
-
-- 64 bites Windows 10 vagy újabb rendszeren fut;
-- portable csomagból, egyértelműen indítható;
-- normál használatnál nem igényel adminjogot;
-- nem igényel több fejlesztői környezet kézi telepítését;
-- legfeljebb kevés, közismert és egyszerű prerequisite-et igényel;
-- stabilan leáll és nem hagy elárvult folyamatot;
-- offline is működik;
-- tiszta Windows-környezetben reprodukálhatóan futtatható;
-- megtartja a contract-first és hidden-information elveket;
-- UI nélkül is tesztelhető;
-- támogatja a determinisztikus és hosszabb AI-vs-AI tesztelést;
-- megfelelő diagnosticsot ad;
-- licencelése és terjesztése kezelhető;
-- karbantartási költsége arányos a projekt méretével;
-- nem kényszeríti a projektet két tartósan eltérő authoritative rules engine fenntartására.
-
-A végleges döntés a technikai proofok, a tanulóprogram-audit, a portable futtatási tesztek és az emberi mérlegelés együttes eredménye lesz.
+A termékruntime-követelmények továbbra is kötelező elfogadási mércék. A kiválasztott C# architektúra csak akkor tekinthető release-késznek, ha ezeket production builddel bizonyítja.

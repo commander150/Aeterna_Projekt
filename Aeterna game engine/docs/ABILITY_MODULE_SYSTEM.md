@@ -2,35 +2,34 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.1  
-**Dátum:** 2026-07-15  
-**Státusz:** aktív, technológiafüggetlen hosszú távú ability-architektúra; implementáció a runtime-nyelvi kapu és az alap gameplay-lánc után  
-**Aktuális Python referencia:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
+**Dokumentumverzió:** 1.2  
+**Dátum:** 2026-07-20  
+**Státusz:** aktív, hosszú távú ability-architektúra; production implementáció a core gameplay-alapok után  
+**Production authority:** C#/.NET  
+**Adat- és buildréteg:** Python  
+**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
-Ez a dokumentum meghatározza, hogyan épüljön fel hosszú távon az AETERNA kártyaképesség-, effect- és ability-execution rendszere.
+Ez a dokumentum az AETERNA kártyaképesség-, keyword-, trigger-, effect- és ability-execution rendszerének hosszú távú felépítését rögzíti.
 
 Nem:
 
-- teljes rules engine specifikáció;
-- végleges kártyaképesség-adatséma;
-- runtime package specifikáció;
-- kártyaaudit-dokumentum;
+- teljes rules engine-specifikáció;
+- végleges kártyaképesség-JSON schema;
+- runtime package-specifikáció;
+- kártyaaudit-napló;
 - a következő közvetlen programozási feladat;
-- valamely runtime-nyelv előzetes kiválasztása.
-
-A korábbi részletes tervezési változat a Git-történetben megmarad. Ez az aktív változat a jelenlegi engine-, runtime- és dokumentációs állapothoz igazított konszolidáció.
+- működő ability executor leírása.
 
 Kapcsolódó aktív dokumentumok:
 
-- `CURRENT_OPEN_QUESTIONS.md`;
-- `CURRENT_CONTRACT_STATUS.md`;
-- `CURRENT_RUNTIME_PACKAGE_STATUS.md`;
-- `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
-- `RUNTIME_COMPARISON_FIXTURE_SPEC.md`;
-- `ARCHITECTURE.md`;
-- `TECHNOLOGY_DECISIONS.md`;
-- `CONTRACT_SPECIFICATION.md`;
-- `RUNTIME_PACKAGE_SPECIFICATION.md`.
+- `OPEN_QUESTIONS.md`
+- `OPEN_QUESTIONS_DECISIONS.md`
+- `CONTRACT_STATUS.md`
+- `RUNTIME_PACKAGE_STATUS.md`
+- `RUNTIME_PACKAGE_SPECIFICATION.md`
+- `ARCHITECTURE.md`
+- `TECHNOLOGY_DECISIONS.md`
+- `checkpoints/ENGINE_CHECKPOINT.md`
 
 ---
 
@@ -40,807 +39,582 @@ A runtime package jelenleg:
 
 - tartalmaz `ability_registry.json` fájlt;
 - tartalmaz `engine_support.json` fájlt;
-- betölt két deklarált ability modult;
-- a modulokat `declared_only` állapotban kezeli;
-- a kártyák engine-support státuszát `not_evaluated` értéken tartja;
-- strukturált diagnostics-réteget biztosít;
-- nem futtat kártyaképességeket.
+- két deklarált ability modult kezel;
+- a modulok státusza `declared_only`;
+- a kártyák supportja `not_evaluated`;
+- diagnostics- és loader-foundationt biztosít;
+- nem futtat kártyaképességet.
 
-Aktuális manifestállítás:
+Manifestállítás:
 
 - `runtime_executes_abilities: false`.
 
-Ezért jelenleg:
+Nincs még:
 
-- nincs production ability executor;
-- nincs általános trigger resolver;
-- nincs target-, choice-, cost- vagy effect execution pipeline;
-- nincs reaction, replacement vagy prevention runtime;
-- a 814 runtime-kártya package-ben való jelenléte nem jelenti a képességeik engine-támogatását;
-- a Godot ability registry loader nem rules engine.
+- production ability executor;
+- trigger resolver;
+- target/choice/cost/effect pipeline;
+- reaction, prevention vagy replacement runtime;
+- teljes keyword support;
+- teljes kártyafedettség.
 
-A jelenlegi ability-réteg minősítése:
-
-- adat- és loader-foundation: `working_foundation`;
-- support-status modell: `foundation_only`;
-- ability execution: `not_implemented`;
-- teljes kártyafedettség: `not_evaluated`.
+A package-ben szereplő 814 kártya nem jelent 814 engine-supported képességet.
 
 ---
 
-## 2. Prioritási hely
+## 2. Authority és réteghatár
 
-Az ability executor nem a következő gameplay-fejlesztés.
+### Python
 
-Kötelező előfeltételek:
+Feladata:
 
-1. runtime-nyelvi és integrációs döntési kapu lezárása;
-2. Wellspring production integráció;
-3. Beáramlás transition és resource summary;
-4. Magnitúdó-preflight;
-5. Aura-payment és activity mutation;
-6. `play_card` action és atomikus transition;
-7. legal action alap;
-8. timing, phase és priority alap;
-9. target- és choice-contract minimuma;
-10. typed event és player-visible projection stabil alapja.
-
-Csak ezek után indulhat az első valódi ability-executor MVP.
-
-Ez a sorrend megakadályozza, hogy az ability rendszer:
-
-- hiányzó alapmechanikákat saját lokális logikával pótoljon;
-- párhuzamos payment-, targeting- vagy timing-rendszert hozzon létre;
-- UI-node-okba rejtett szabálylogikát építsen;
-- a végleges runtime-nyelvi döntés előtt nagy migrációs adósságot termeljen.
-
----
-
-## 3. Alapelv
-
-Az AETERNA kártyaképességeit hosszú távon nem kártyánként szétszórt, kézzel írt szabálykóddal kell futtatni.
-
-Cél:
-
-- minél több képesség structured adatokból;
-- újrahasználható trigger-, condition-, cost-, target-, choice- és effect-modulokból;
-- verziózott execution plan alapján;
-- explicit engine-support státusszal;
-- strukturált diagnostics-szal;
-- typed eventekkel;
-- determinisztikusan és tesztelhetően működjön.
-
-Alapelv:
-
-> **A nyomtatott kártyaszöveg emberi szabályszöveg. A structured ability és az ability registry programlogikai köztes réteg. Az authoritative végrehajtást kizárólag a rules engine végzi.**
-
----
-
-## 4. Kötelező réteghatárok
-
-### 4.1 Card definition
-
-Statikus programadat:
-
-- Card_ID;
-- kártyatípus;
-- Magnitúdó- és Aura-adatok;
-- printed text;
-- structured ability forrásmezők;
-- keyword- és effectcímkék;
-- source metadata.
-
-Nem tartalmazhat mérkőzésállapotot.
-
-### 4.2 Ability definition
-
-Deklaratív, stabil ability-rekord:
-
-- ability ID;
-- source card ID;
-- ability type;
-- trigger;
-- conditionök;
-- costok;
-- targetek;
-- choice-ok;
-- effectek;
-- duration és limit;
-- support status;
-- schema és version metadata.
-
-### 4.3 MatchState
-
-Authoritative mérkőzésállapot:
-
-- kártyapéldányok;
-- zónák;
-- controller és owner;
-- activity state;
-- sebzés és módosítók;
-- pending decision;
-- turn, phase és priority;
-- event sequence;
-- effect- és duration-state.
-
-### 4.4 Execution plan
-
-A validált ability konkrét végrehajtási terve.
-
-Nem lehet:
-
-- nyers kártyaszöveg újraértelmezése futás közben;
-- UI által összeállított szabálylogika;
-- rejtett, card-local kódelágazás dokumentált support státusz nélkül.
-
-### 4.5 Execution result
-
-Strukturált eredmény:
-
-- accepted vagy rejected;
-- state version before/after;
-- applied costok;
-- selected targetek és choice-ok;
-- effect resultok;
-- typed eventek;
+- structured adatok feldolgozása;
+- ability registry build;
+- normalizálás;
+- support-status számítás;
 - diagnostics;
-- pending következő döntés;
-- player-visible projekcióhoz szükséges változások.
+- execution plan generálás, ha később szükséges;
+- coverage és audit report.
+
+Nem futtat production gameplayt.
+
+### C#
+
+Feladata:
+
+- ability precondition;
+- cost;
+- targeting;
+- choice;
+- effect resolution;
+- trigger és reaction hook;
+- state mutation;
+- typed event;
+- diagnostics;
+- player-visible projection.
+
+A production ability executor kizárólag C#-ban lehet authoritative.
+
+### Godot/GDScript
+
+Feladata:
+
+- registry és support megjelenítése;
+- target/choice/payment UI;
+- event animáció;
+- debug viewer;
+- action request összeállítása.
+
+Nem értelmezhet önállóan kártyaszöveget és nem futtathat párhuzamos ability-logikát.
 
 ---
 
-## 5. Stabil azonosítók
+## 3. Kötelező előfeltételek
 
-Minden ability kapjon determinisztikus, stabil azonosítót.
+Az ability executor nem a következő gameplay-feladat.
 
-Javasolt alap:
+Előbb szükséges:
 
-- `Card_ID + ability_index`;
-- vagy `Card_ID + stabil structured ability group`.
+1. C.5B production C# engine foundation;
+2. Wellspring production state;
+3. player-visible Wellspring;
+4. `infusion` transition;
+5. Magnitúdó-preflight;
+6. Aura-payment;
+7. activity mutation;
+8. `play_card`;
+9. Entity Domain-placement;
+10. phase és priority minimum;
+11. target és choice contract minimum;
+12. stabil typed event és projection.
 
-Az ability ID:
-
-- ne függjön a megjelenített magyar névtől;
-- ne függjön szabad szöveges effectleírástól;
-- ne változzon puszta szövegjavítás miatt, ha a programlogikai ability nem változott;
-- legyen használható save-, replay-, diagnostics- és support-report hivatkozásként.
-
-Külön azonosítandó:
-
-- ability definition;
-- runtime ability instance vagy pending resolution;
-- source card instance;
-- execution request;
-- target és choice decision.
+Csak ezután indulhat az első production ability vertical slice.
 
 ---
 
-## 6. Ability fő szerkezete
+## 4. Alapfogalmak
 
-Javasolt technológiafüggetlen fogalmi mezők:
+### Ability
+
+Egy kártyához tartozó szabályi egység.
+
+Tartalmazhat:
+
+- triggert;
+- timingot;
+- feltételt;
+- költséget;
+- célpontot;
+- választást;
+- effectet;
+- durationt;
+- optional/mandatory jelleget;
+- event- és diagnostics-következményt.
+
+### Module
+
+Újrahasználható, explicit schema és viselkedés alapján futó végrehajtási egység.
+
+### Effect tag
+
+Audit-, keresési és coverage-címke.
+
+Az effect tag önmagában nem executable module.
+
+### Execution plan
+
+Az ability modulok, paraméterek, sorrendek és kapcsolatok normalizált végrehajtási terve.
+
+Korai MVP-ben nem kötelező minden kártyához.
+
+---
+
+## 5. Ability registry
+
+A `ability_registry.json` a runtime package része vagy közvetlenül hozzá tartozó fájl.
+
+Minimum rekord:
 
 - `ability_id`;
 - `source_card_id`;
-- `ability_type`;
-- `timing`;
-- `triggers`;
-- `conditions`;
-- `costs`;
-- `targets`;
-- `choices`;
-- `effects`;
-- `duration`;
-- `limits`;
-- `replacement`;
-- `prevention`;
-- `execution_mode`;
+- `ability_index`;
+- `module_id` vagy structured reference;
 - `support_status`;
-- `schema_version`;
-- `diagnostics`;
-- `metadata`.
+- `execution_mode`;
+- `trigger_summary`;
+- `target_summary`;
+- `diagnostics_refs`;
+- `fallback_required`;
+- `manual_review_required`;
+- schema version.
 
-Nem minden mező kötelező minden abilitynél.
+Az `ability_id` determinisztikus.
 
-A végleges JSON-schema csak a működő MVP és a valós kártyaaudit alapján zárható le.
+Nem függhet:
 
----
-
-## 7. Ability-típusok
-
-Lehetséges fő kategóriák:
-
-- keyword;
-- static;
-- triggered;
-- activated;
-- reaction;
-- replacement;
-- prevention;
-- continuous;
-- one-shot;
-- passive.
-
-Az ability type önmagában nem végrehajtási logika. Szerepe:
-
-- support mérés;
-- timing- és legal-action kapcsolás;
-- event window kiválasztása;
-- AI döntés-előkészítés;
-- diagnostics és audit.
-
-A keywordök lehetnek külön keyword registryben, de végrehajtásuk ugyanazon authoritative engine és event rendszer része marad.
+- véletlentől;
+- buildidőtől;
+- instabil szövegtől;
+- meccsspecifikus instance ID-től.
 
 ---
 
-## 8. Modulcsaládok
+## 6. Support status és execution mode
 
-### 8.1 Trigger
+Javasolt support státuszok:
 
-Meghatározza, milyen authoritative event vagy phase-helyzet figyelhető.
+- `supported`;
+- `partial`;
+- `unsupported`;
+- `not_checked`;
+- `fallback_required`;
+- `manual_review_required`.
 
-Példakategóriák:
+Javasolt execution mode:
 
-- kijátszás;
-- Domíniumba vagy pozícióba belépés;
-- támadás és harci esemény;
-- sebzés, gyógyítás vagy megsemmisülés;
-- Pecsét feltörése vagy visszaállítása;
-- lap húzása, eldobása vagy zónamozgása;
-- Aura fizetése;
-- kör- és fáziskezdet/vég;
-- reaction window.
+- `fully_modular`;
+- `partially_modular`;
+- `card_local_fallback`;
+- `manual_only`;
+- `unsupported`;
+- `not_checked`.
 
-A trigger canonical értékei csak a szabályforrás és LOOKUPS auditja után véglegesíthetők.
+Elvek:
 
-### 8.2 Condition
-
-Meghatározza, hogy az ability alkalmazható-e.
-
-A condition:
-
-- nem mutál state-et;
-- ugyanazon state-en determinisztikus;
-- használható legal action és execution validációhoz;
-- strukturált failure reasonnel tér vissza.
-
-### 8.3 Cost
-
-A cost nem effect.
-
-A costot:
-
-- az effect előtt validálni kell;
-- atomikusan kell alkalmazni;
-- rejection esetén nem maradhat részleges mutation;
-- payment- és activity-contractokra kell építeni.
-
-Példakategóriák:
-
-- Aura fizetés;
-- source Kimerítése;
-- Entitás feláldozása;
-- lap eldobása;
-- zónamozgatási költség;
-- alternatív vagy additional cost.
-
-### 8.4 Target
-
-A targetmodul:
-
-- candidate listát generál;
-- visibility- és controller-szabályt alkalmaz;
-- legalitást validál;
-- stabil target reference-t ad;
-- nem enged frontend-találgatást.
-
-Az Aeternal és Pecsét nem kezelhető általános HP-targetként.
-
-### 8.5 Choice
-
-A choice külön pending decision lehet.
-
-Lehetséges formák:
-
-- célpontválasztás;
-- módválasztás;
-- mennyiségválasztás;
-- sorrendválasztás;
-- payment source választás;
-- replacement vagy prevention választás;
-- optional trigger elfogadása vagy elutasítása.
-
-### 8.6 Effect
-
-Az effect végzi a validált state transitiont.
-
-Elsőként csak már meglévő authoritative alapokra épülő effect választható.
-
-Lehetséges későbbi modulok:
-
-- lap húzása;
-- zónamozgatás;
-- Entitás sebzése vagy gyógyítása;
-- activity state változtatása;
-- keyword adása vagy eltávolítása;
-- token létrehozása;
-- stat módosítása;
-- Pecsét feltörése vagy visszaállítása;
-- prevention vagy replacement.
-
-### 8.7 Duration és continuous state
-
-Az ideiglenes vagy folyamatos hatásnak authoritative runtime state-re van szüksége.
-
-Kötelező:
-
-- source és effect ID;
-- érintett objektumok;
-- kezdő és lejárati feltétel;
-- stacking és priority policy;
-- eltávolítás és cleanup;
-- save/replay serialization.
+- unsupported modul szerepelhet registryben;
+- unsupported nem futhat csendben;
+- aktív tesztdeckben unsupported/not-checked tartalom blocking lehet;
+- partial eredmény külön diagnosticsot és coverage-jelölést kap;
+- support státusz nem azonos a kártya balanszával.
 
 ---
 
-## 9. Execution pipeline
+## 7. Structured adatok szerepe
 
-Hosszú távú fogalmi lánc:
+A kártyaszöveg emberi szabályszöveg.
 
-1. runtime card definition betöltése;
-2. ability definition feloldása;
-3. trigger vagy action azonosítása;
-4. timing és priority validáció;
-5. condition preflight;
-6. cost preflight;
-7. target- és choice-candidate generálás;
-8. szükséges player decisionök begyűjtése;
-9. execution plan összeállítása;
-10. teljes atomikus újravalidálás;
-11. cost alkalmazása;
-12. effectek determinisztikus végrehajtása;
-13. state invariánsok ellenőrzése;
-14. typed eventek létrehozása;
-15. state version növelése;
-16. legal action és player-visible snapshot újragenerálása;
-17. diagnostics és trajectory rögzítése.
+A structured adat programlogikai köztes réteg.
 
-Rejection esetén:
+A structured mezők rövid távú szerepe:
 
-- nincs részleges mutation;
-- nincs gameplay event;
-- strukturált reason és diagnostics készül;
-- a request és input state nem módosul.
+- audit;
+- keresés;
+- support becslés;
+- diagnostics;
+- registry build;
+- module-jelölt képzés;
+- későbbi execution plan.
+
+A structured mező nem válik automatikusan executable logikává.
+
+Új mező csak akkor készül, ha:
+
+- ismétlődő;
+- konkrét;
+- végrehajtáshoz szükséges;
+- meglévő mezővel nem írható le biztonságosan;
+- schema és validáció rendelhető hozzá.
+
+Példák későbbi kapcsolómezőkre:
+
+- `ability_group`;
+- `effect_order`;
+- `target_ref`;
+- `condition_ref`;
+- `choice_ref`;
+- `duration_ref`.
 
 ---
 
-## 10. Legal action és pending decision
+## 8. Module-szerződés
 
-Az ability rendszer nem kerülheti meg a legal action modellt.
+Egy production module csak akkor nevezhető támogatottnak, ha van:
 
-Legal actionként vagy pending decisionként jelenhet meg:
+- stabil `module_id`;
+- input parameter schema;
+- precondition;
+- valid target/choice szabály;
+- authoritative transition;
+- output/result contract;
+- typed event;
+- diagnostics code;
+- hidden-information policy;
+- positive fixture;
+- negative fixture;
+- deterministic test;
+- state-invariant teszt;
+- C# implementation.
 
-- activated ability;
-- optional trigger;
-- target selection;
-- mode vagy amount választás;
-- payment source választás;
-- reaction pass;
-- replacement vagy prevention döntés.
+A module nem olvashat és nem értelmezhet futás közben szabad természetes nyelvű kártyaszöveget.
+
+---
+
+## 9. Trigger és timing
+
+A trigger nem önálló UI-funkció.
+
+A core C# timing/priority rendszer feladata:
+
+- eventfigyelés;
+- trigger-jelöltek összegyűjtése;
+- kötelező/opcionális megkülönböztetés;
+- reaction window nyitása;
+- sorrend;
+- pass;
+- resolution;
+- lezárás.
+
+Az ability module:
+
+- triggerfeltételt deklarál;
+- reaction/prevention/replacement lehetőséget ad;
+- payloadot szolgáltat.
+
+A core engine marad az authority.
+
+---
+
+## 10. Targeting és choice
+
+Egyszerű target:
+
+- a legal action vagy play request payload része lehet.
+
+Komplex target:
+
+- külön authoritative pending decision;
+- több lépcső;
+- sorrend;
+- cancel/return policy;
+- state-version guard;
+- player-safe object reference.
 
 A frontend:
 
-- csak a rules engine által generált opciókat jeleníti meg;
-- action requestet küld;
-- nem épít saját candidate listát;
-- nem mutál state-et;
-- nem dönti el, hogy egy ability legális-e.
+- kiemelheti az engine által megadott targeteket;
+- nem dönthet végleges legalitásról.
+
+Invalid target esetén a production C# engine rejectel vagy explicit szabály alapján részlegesen old fel.
 
 ---
 
-## 11. Eventmodell
+## 11. Cost és payment
 
-Az ability execution typed eventeket generál.
+Az ability cost különül el a normál card-play Aura-költségtől.
 
-Példakategóriák:
+Későbbi cost típusok lehetnek:
 
-- ability triggered;
-- ability activation requested;
-- target vagy choice selected;
-- cost paid;
-- ability resolved;
-- ability rejected vagy cancelled;
-- effect applied;
-- effect prevented vagy replaced;
-- damage, heal, zone move vagy activity change;
-- token created;
-- duration started vagy expired.
+- Aura;
+- source exhaustion;
+- sacrifice;
+- discard;
+- life/ward jellegű, csak ha szabály szerint értelmes;
+- counter removal;
+- once-per-turn usage;
+- choice;
+- alternate cost.
 
-Kötelező elvek:
+A cost:
 
-- az event nem maga az authoritative state;
-- az event sorrend determinisztikus;
-- minden event stabil sequence-et kap;
-- player-facing és debug payload elválik;
-- rejtett információ nem szivároghat;
-- eventekből UI-animáció, replay és diagnostics készíthető.
+- preflight része;
+- atomikus transitionnel kerül kifizetésre;
+- hiba esetén nem okozhat részleges mutationt.
+
+Aeternal HP-költség nem használható, mert az Aeternal nem HP-objektum.
 
 ---
 
-## 12. Support státusz
+## 12. Effect pipeline
 
-Javasolt supportállapotok:
+Egy effect feldolgozása:
 
-- `not_evaluated`;
-- `declared_only`;
-- `unsupported`;
-- `partial`;
-- `supported`;
-- `fallback_required`;
-- `blocked_invalid_data`;
-- `blocked_missing_engine_feature`.
+1. module és schema validáció;
+2. source és controller;
+3. timing;
+4. condition;
+5. target/choice;
+6. cost;
+7. replacement/prevention;
+8. transition;
+9. event;
+10. projection;
+11. diagnostics;
+12. invariant check.
 
-A support státusz:
+Az effectek sorrendje explicit.
 
-- nem manuális marketingcímke;
-- konkrét module-, schema- és testbizonyítékhoz kötött;
-- kártyánként és abilitynként mérhető;
-- build mode szerint blokkolhatja a decket vagy buildet.
-
-Egy kártya csak akkor tekinthető teljesen támogatottnak, ha:
-
-- minden aktív abilityje támogatott;
-- a szükséges alapmechanikák működnek;
-- nincs rejtett card-local fallback;
-- contract-, unit- és scenario-tesztjei zöldek.
+Az effect tag sorrendje nem execution order.
 
 ---
 
-## 13. Fallback policy
+## 13. Reaction, prevention és replacement
 
-A fallback átmeneti eszköz, nem hosszú távú alapműködés.
+Elfogadott irány:
 
-Fallback csak akkor használható, ha:
+- reaction windowt a core engine kezeli;
+- Burst és Jel ugyanazon keretrendszerben, eltérő subtype-pal kezelhető;
+- prevention és replacement ugyanahhoz a timingrendszerhez kapcsolódik;
+- nincs korai kötelező teljes stack/chain;
+- az első modell pending reaction queue lehet.
 
-- külön ID-val és support státusszal látható;
-- diagnostics és audit report jelzi;
-- nem kerül UI-node-ba;
-- ugyanazon authoritative engine API-t használja;
-- van hozzá célzott teszt;
-- migrációs feladat és owner tartozik hozzá.
+Nyitott:
 
-Tilos:
-
-- névtelen card-specific `if Card_ID == ...` elágazások szétszórása;
-- frontendben végrehajtott szabályhatás;
-- diagnostics nélküli partial support;
-- release buildben ismeretlen vagy nem auditált fallback.
+- több trigger sorrendjének játékosi választása;
+- nested reaction;
+- replacement prioritás;
+- prevention és replacement lánc;
+- optional trigger timeout/pass;
+- részleges resolution.
 
 ---
 
-## 14. Runtime package és LOOKUPS
+## 14. Card-local fallback
 
-A runtime package szerepe:
+A card-local fallback egyedi, kártyaspecifikus C# logika.
 
-- ability definition és registry szállítása;
-- canonical értékek;
-- schema- és version metadata;
-- support státusz;
+Státusza:
+
+- átmeneti kivétel;
+- nem hosszú távú alap;
+- explicit diagnostics;
+- support report;
+- migrációs lista.
+
+Release-ben nem futhat csendben.
+
+Development/debug módban csak akkor engedhető, ha:
+
+- külön jelölt;
+- tesztelt;
+- nem szivárogtat rejtett információt;
+- nem torzít fair balance futást észrevétlenül.
+
+---
+
+## 15. Keyword registry
+
+A keyword registry minimuma:
+
+- canonical keyword ID;
+- Label_HU;
+- rules reference;
+- category;
+- support status;
+- required timing/event window;
+- module vagy core rule kapcsolat;
 - diagnostics;
-- static card reference.
+- version.
 
-A runtime package nem:
+Alap keywordök:
 
-- MatchState;
-- pending decision store;
-- save game;
-- authoritative execution log;
-- rules engine.
+- Gyorsaság;
+- Oltalom;
+- Hasítás;
+- Légies;
+- Métely;
+- Harmonizálás;
+- Rezonancia;
+- Visszhang;
+- Riadó;
+- Kényszerítés.
 
-A LOOKUPS feladata:
+Nem kell mindet egyszerre támogatni.
 
-- controlled vocabulary;
-- canonical Value;
-- magyar Label;
-- active/inactive státusz;
-- legacy alias;
-- workflow-only és runtime-supported elhatárolás;
-- danger vagy audit-required jelzés.
-
-A LOOKUPS és ability registry pontos határa külön későbbi data-contract audit.
+Combatfüggő keyword combat után, reactionfüggő keyword reaction engine után kerülhet production supportba.
 
 ---
 
-## 15. Diagnostics
+## 16. Aeternal és Pecsét
 
-Minden parse-, validation- és execution-szakasz strukturált diagnostics eredményt adhat.
+Kötelező alap:
 
-Példák:
+- Aeternal nem HP-objektum;
+- nem damage target;
+- nem heal target;
+- Pecsét nem HP-objektum;
+- Pecsét feltörés/visszaállítás esemény;
+- explicit ward effectek szükségesek.
 
-- unknown trigger;
-- unknown target;
-- unsupported effect;
-- missing parameter;
-- ambiguous structured mapping;
-- workflow-only érték runtime mezőben;
-- card-local fallback required;
-- partial support;
-- invalid Aeternal/Pecsét target;
-- unknown keyword;
-- missing lookup;
-- invalid duration;
-- cyclic execution plan;
-- hidden-information leak risk.
+Tiltott vagy kerülendő:
 
-A diagnostics tartalmazzon:
+- `player_damage`;
+- `aeternal_damage`;
+- `heal_aeternal`;
+- `seal_damage`;
+- `ward_damage`;
+- `ward_hp_change`.
 
-- stabil code;
-- severity;
-- source card és ability ID;
-- mező vagy module path;
-- emberi magyarázat;
-- blocking/non-blocking státusz;
-- javasolt audit vagy implementációs lépés.
+Preferált:
 
----
+- `ward_break`;
+- `ward_restore`;
+- `ward_break_prevent`;
+- `aeternal_unprotected`;
+- `direct_attack_victory`;
+- `player_defeated`.
 
-## 16. Build mode
-
-Lehetséges buildmódok:
-
-- sample;
-- development;
-- strict;
-- audit;
-- ai_test;
-- balance_test;
-- release_candidate.
-
-Elvi policy:
-
-- sample engedhet nem futtatott deklaratív elemeket;
-- development warninggal továbbmehet;
-- strict unknown vagy invalid modult blokkol;
-- ai_test nem engedhet olyan aktív lapot, amely torzítja a szimulációt;
-- release candidate nem engedhet `fallback_required`, `not_evaluated` vagy blocking diagnostics állapotú aktív kártyát.
-
-A pontos blocking policy későbbi döntés.
+A részletes target és payload a rules audit után készül.
 
 ---
 
-## 17. Runtime-nyelvi semlegesség
+## 17. Execution plan
 
-Az ability data model és a contractok nem függhetnek attól, hogy a végleges executor:
+Három szint:
 
-- Python sidecarban;
-- Godot .NET/C# rules libraryben;
-- GDScriptben;
-- vagy indokolt más runtime-ban működik.
+1. nincs plan – csak audit/support;
+2. simple plan – kevés egyszerű ability;
+3. generated plan – stabil modulrendszer után.
 
-A runtime-nyelvi döntési kapu előtt:
+Javasolt plan mezők:
 
-- nem készül teljes ability executor egyik jelöltben sem;
-- nem készül két párhuzamos ability engine;
-- a Python referencia ability modellje sem tekinthető automatikusan végleges termékkódnak;
-- a C# vagy GDScript proof nem bővülhet kártyaképesség-rendszerré.
+- schema version;
+- ability ID;
+- ordered steps;
+- module ID;
+- parameters;
+- source/target/choice refs;
+- condition;
+- optional flag;
+- duration;
+- failure policy;
+- event hints;
+- diagnostics refs.
 
-A runtime-döntés után is kötelező:
+A Python builder generálhat plan-t.
 
-- közös vagy explicit mappelt ability schema;
-- determinisztikus execution result;
-- azonos hidden-information policy;
-- összehasonlítható event és diagnostics;
-- Python AI/batch tooling adapterének fenntartása.
+A C# executor validálja és futtatja.
 
----
-
-## 18. Első ability-executor MVP
-
-Az MVP csak a szükséges alapmechanikák elkészülte után indulhat.
-
-Javasolt scope:
-
-1. egyetlen kötelező, automatikus trigger vagy egyszerű activated ability;
-2. egy condition nélküli és egy egyszerű conditionnel rendelkező példa;
-3. legfeljebb egy target;
-4. legfeljebb egy egyszerű cost;
-5. egy vagy két már létező state transitionre épülő effect;
-6. strukturált accepted és rejected result;
-7. typed event;
-8. player-visible snapshot ellenőrzés;
-9. determinisztikus scenario;
-10. Python reference és product runtime összevetése, ha eltérő nyelvűek.
-
-Nem megfelelő első effect:
-
-- teljes combatot igénylő képesség;
-- reaction stack;
-- replacement/prevention;
-- komplex Sík continuous effect;
-- több target és több choice;
-- tokenek teljes ökoszisztémája;
-- kártyaláncok vagy rekurzív abilityk.
-
-Az első konkrét effectet a már elkészült engine-contractok és a kártyaadat-audit alapján kell kiválasztani, nem a jelen dokumentum előre rögzített példalistájából.
+A Godot megjeleníti, de nem authoritative executor.
 
 ---
 
-## 19. Kötelező szabályi korlátok
+## 18. Első production ability vertical slice
 
-### 19.1 Aeternal
+Csak core gameplay után.
 
-- nem HP-objektum;
-- nem kaphat sebzést;
-- nem gyógyítható;
-- csak explicit, auditált szabályhatás célozhatja;
-- nem használható általános `entity` targetként.
+Jó első module-jelöltek lehetnek:
 
-### 19.2 Pecsét
+- egyszerű kártyahúzás;
+- Entitás sebzése;
+- Entitás gyógyítása;
+- egyszerű keyword adása kör végéig;
+- egyszerű token létrehozás;
+- ward restore vagy break prevention, ha a Pecsét-spec kész.
 
-- nem HP-objektum;
-- feltörés és visszaállítás külön állapot- és eventmodell;
-- nem kezelhető általános damage/heal effecttel;
-- Áramlat-kapcsolata canonical topologyból származik.
+Kiválasztási feltétel:
 
-### 19.3 Token
-
-- létrehozott runtime instance;
-- Domínium elhagyásakor megszűnik;
-- alapból Aktív, ha szabály vagy hatás másként nem rendelkezik;
-- nem kerülhet tartósan deck-, hand- vagy discard-definitionként kezelésre.
-
-### 19.4 Hidden information
-
-- opponent hand és deck tartalma nem szivároghat;
-- target candidate sem fedhet fel tiltott Card_ID-t;
-- diagnostics player-facing formája külön redakciót igényel;
-- AI ugyanazt az observation-policyt használja, mint a játékos.
+- auditált kártya;
+- egyértelmű szabály;
+- kevés target;
+- nincs reaction stack;
+- nincs replacement;
+- nincs összetett duration;
+- teljes positive/negative fixture.
 
 ---
 
-## 20. Tesztelési követelmények
+## 19. Tesztelés
 
-Minden támogatott modulhoz szükséges:
+Minden module esetén:
 
-- unit test;
-- invalid input test;
-- no-mutation-on-rejection test;
-- deterministic serialization test;
-- hidden-information test;
-- event ordering test;
-- state invariant test;
-- legal action vagy pending decision test;
-- player-visible snapshot test;
-- replay/trajectory-kompatibilis artifact, amikor a replay alap elkészül.
+- schema validation;
+- unsupported case;
+- valid source;
+- invalid source;
+- valid target;
+- invalid target;
+- cost success/fail;
+- atomicity;
+- determinism;
+- hidden-information;
+- event payload;
+- diagnostics;
+- C# unit/integration;
+- Godot bridge regression;
+- Python reference összevetés, ha van.
 
-Komplexebb module-oknál:
-
-- property test;
-- differential test;
-- fuzz vagy malformed payload test;
-- hosszabb AI-vs-AI scenario;
-- save/load round-trip.
+A teljes kártyafedettséget coverage report méri.
 
 ---
 
-## 21. Nyitott döntési kapuk
+## 20. Nem cél az első MVP-ben
 
-A részletes történeti kérdések központi regisztere továbbra is:
+- minden kártya teljes futtatása;
+- minden keyword;
+- teljes trigger stack;
+- minden prevention/replacement;
+- teljes Sík continuous-effect rendszer;
+- teljes combat ability-rendszer;
+- automatikus természetesnyelv-értelmezés;
+- csendes fallback;
+- teljes tanuló AI;
+- teljes balanszaudit.
+
+---
+
+## 21. Következő lépések
+
+Közvetlenül nem ability executor következik.
+
+Sorrend:
+
+1. C.5B production engine foundation;
+2. Wellspring;
+3. infusion;
+4. Magnitúdó;
+5. payment;
+6. play_card;
+7. Entity placement;
+8. phase/priority;
+9. target/choice minimum;
+10. első simple ability vertical slice.
+
+A pontos nyitott kérdések:
 
 - `OPEN_QUESTIONS.md`;
-- `OPEN_QUESTIONS_DECISIONS.md`;
-- current kivonat: `CURRENT_OPEN_QUESTIONS.md`.
+- `OPEN_QUESTIONS_DECISIONS.md`.
 
-Ability-specifikus nyitott témák:
+Az implementációs állapot:
 
-### Adatmodell
-
-- structured ability részletessége;
-- ability ID végleges képzése;
-- LOOKUPS és registry határa;
-- execution plan tárolási helye;
-- schema migration és backward compatibility.
-
-### Trigger és timing
-
-- kötelező és opcionális triggerek;
-- több azonos trigger sorrendje;
-- ki választ trigger-sorrendet;
-- trigger priority és reaction window;
-- eventből származó triggerlánc és ciklusvédelem.
-
-### Cost és payment
-
-- automatikus vagy kézi Aura-forrásválasztás;
-- alternatív és additional cost;
-- cost visszaellenőrzése resolution előtt;
-- rollback és atomikus végrehajtás.
-
-### Target és choice
-
-- target candidate contract;
-- több target/effect mapping;
-- target order;
-- invalid target resolution policy;
-- hidden-information és owner/controller kezelés;
-- pending decision serialization.
-
-### Effect és duration
-
-- effect ordering;
-- partial resolution engedhetősége;
-- continuous modifier layering;
-- stacking;
-- end-of-turn és más expiry;
-- source eltűnésének hatása;
-- replacement és prevention sorrend.
-
-### Keyword és token
-
-- keyword registry vagy ability module;
-- parametrizált keywordök;
-- ideiglenes keyword forrása és lejárata;
-- token definition és runtime instance határa;
-- token másolás és transform későbbi modellje.
-
-### Support és fallback
-
-- mikor `partial`, `unsupported` vagy `fallback_required`;
-- release blocking policy;
-- card-local fallback maximális scope-ja;
-- support coverage számítása;
-- meglévő 814 kártya auditbatch-sorrendje.
-
-### Runtime és AI
-
-- product runtime adaptere a Python batch toolinghoz;
-- ability executor differential comparison;
-- fair AI legal action és observation;
-- gyorsított batch és balance telemetry;
-- replay és save/load contract.
-
-Ezeket nem kell egyszerre lezárni. Minden döntés a legkisebb következő implementálható vertical slice előtt válik kötelezővé.
-
----
-
-## 22. Következő feladatok sorrendje
-
-### Most
-
-1. runtime-nyelvi audit és proof;
-2. Wellspring, Beáramlás, Magnitúdó/Aura és `play_card` alapok;
-3. timing, phase, priority és legal action minimum;
-4. current contractok és visibility-policy stabilizálása.
-
-### Ezután
-
-5. ability definition minimális schema;
-6. support-status és diagnostics policy;
-7. első execution plan;
-8. egy szűk ability-executor MVP;
-9. product runtime és Python reference comparison;
-10. fokozatos kártyafedettségi audit.
-
-### Nem indul még
-
-- teljes ability library;
-- teljes reaction stack;
-- replacement/prevention rendszer;
-- minden keyword;
-- minden kártya automatikus futtatása;
-- card-local fallback tömeges létrehozása;
-- teljes Sík continuous engine;
-- ability execution UI-node-okban.
-
----
-
-## 23. Záró állapot
-
-- Az ability module rendszer szükséges hosszú távú engine-réteg.
-- A jelenlegi registry és support report csak deklaratív foundation.
-- Nincs működő ability executor.
-- A data modelnek és contractoknak runtime-nyelvtől függetlennek kell maradniuk.
-- A végleges executor nyelvét a runtime-nyelvi döntési kapu választja ki.
-- Az ability implementáció csak az alap gameplay- és decision-contractok után indulhat.
-- A fallback átmeneti, látható és tesztelt megoldás lehet, de nem válhat fő architektúrává.
-- Minden ability végrehajtás authoritative state transition, typed event, diagnostics és player-visible projection része.
-- Új párhuzamos ability-dokumentum nem készül; a current tervet ebben a fájlban kell karbantartani.
+- `CONTRACT_STATUS.md`;
+- `PROTOTYPE_STATUS.md`.

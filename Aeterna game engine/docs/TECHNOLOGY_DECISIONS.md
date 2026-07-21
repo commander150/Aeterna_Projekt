@@ -2,441 +2,537 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.2  
-**Dátum:** 2026-07-15  
-**Státusz:** aktív technológiai döntési és vizsgálati dokumentum  
-**Aktuális technikai bázis:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
+**Dokumentumverzió:** 2.3  
+**Dátum:** 2026-07-20  
+**Státusz:** aktív technológiai döntési nyilvántartás  
+**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
 
-Ez a dokumentum külön kezeli:
+Ez a dokumentum az AETERNA elfogadott technológiai döntéseit, azok indokait, korlátait és újranyitási feltételeit rögzíti.
 
-- a jelenleg bizonyított és használt fejlesztési modellt;
-- a működő Python referenciaimplementációt;
-- a hosszú távú authoritative termékruntime jelöltjeit;
-- a végleges döntéshez szükséges prototípusokat és auditokat;
-- a Codex következő elsődleges feladatát.
-
-Kapcsolódó elsődleges dokumentumok:
+Kapcsolódó aktív dokumentumok:
 
 - `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
-- `OPEN_QUESTIONS.md`
-- `OPEN_QUESTIONS_DECISIONS.md`
-- `CURRENT_OPEN_QUESTIONS.md`
 - `ARCHITECTURE.md`
 - `DECISION_MAP.md`
 - `CURRENT_PROTOTYPE_STATUS.md`
+- `CURRENT_CONTRACT_STATUS.md`
+- `CURRENT_OPEN_QUESTIONS.md`
 - `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
-
-Az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` együtt olvasandó. Az előbbi a kérdésindex, az utóbbi a részleges válaszok és döntési irányok nyilvántartása.
-
----
-
-## 1. A technológiai döntés jelenlegi állapota
-
-### 1.1 Biztos jelenlegi munkabázis
-
-A jelenleg működő, tesztelt és authoritative referenciaimplementáció:
-
-> **az új Python minimal rules engine.**
-
-Ez ténylegesen biztosít:
-
-- MatchState-et és PlayerState-et;
-- card instance registryt;
-- state invariantokat;
-- action request/response alapot;
-- draw és end-turn transitiont;
-- typed eventeket;
-- player-visible snapshotot;
-- Domain topológiát és occupancyt;
-- AI-vs-AI trajectoryt;
-- nagy számú automatizált tesztet.
-
-A Python engine ezért:
-
-- megőrzendő;
-- regression/reference oracle;
-- comparison fixture alap;
-- későbbi AI/batch és fejlesztői tooling alapja;
-- akkor sem elveszett munka, ha a végső termékruntime C# lesz.
-
-### 1.2 Ami még nem végleges döntés
-
-Nincs még véglegesen eldöntve, hogy a kész AETERNA termék authoritative rules runtime-ja:
-
-- külön Python sidecar lesz;
-- Godot .NET/C# lesz;
-- részleges vagy teljes GDScript runtime lesz;
-- más, contract-first hibrid modell lesz.
-
-Embedded Python binding/GDExtension megoldás szintén létezik mint kutatási irány, de jelenleg nem elsődleges proof.
-
-### 1.3 Új prioritási döntés
-
-A következő Codex-hozzáférés elsődleges feladata:
-
-> **Python sidecar + Godot és Godot .NET/C# authoritative runtime összehasonlító proof.**
-
-A jelentős új gameplay-engine bővítés a döntési kapuig szünetel.
-
-A Wellspring production integráció:
-
-- továbbra is kész következő gameplay-feladat;
-- nincs törölve;
-- a kiválasztott runtime-ágon folytatandó.
+- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.2.md`
 
 ---
 
-## 2. Contract-first közös alap
+## 1. TD-001 – Contract-first fejlesztés
 
-A végleges technológiai modelltől függetlenül elfogadott:
+**Státusz:** ELFOGADVA  
+**Hatály:** teljes digitális rendszer
+
+Döntés:
 
 - előbb contract, utána implementáció;
-- a UI nem lehet szabályforrás;
-- a kliens nem módosíthatja közvetlenül a MatchState-et;
-- a legalitást authoritative engine számítja;
 - a kliens action requestet küld;
-- az engine action response-t, eventeket és projectiont ad;
-- player-visible és debug nézet külön marad;
-- rejtett információ nem szivároghat;
-- state mutation atomikus;
-- rejected action nem mutál state-et;
-- eventek determinisztikusak és auditálhatók;
-- ugyanazon comparison scenariónak nyelvtől függetlenül azonos jelentésű outputot kell adnia.
+- az engine action response-t, eventet és projectiont ad;
+- player-visible és debug contract külön marad;
+- rejtett információt projection véd;
+- rejected action nem mutálhat state-et;
+- eventek determinisztikusak és auditálhatók.
 
-Ezek Python, C#, GDScript vagy más hibrid megoldás esetén is megtartandók.
+Indok:
 
----
+Az AETERNA több fogyasztót támogat:
 
-## 3. Jelenlegi működő rendszerkép
+- Godot UI;
+- AI;
+- headless tesztek;
+- replay;
+- diagnostics;
+- későbbi hálózati vagy autoritatív futás.
 
-A jelenlegi fejlesztési és tesztelési út:
+Újranyitás:
 
-    Google Sheets / XLSX
-            ↓
-    Python export, validáció és runtime package build
-            ↓
-    runtime package
-            ↓
-    Python minimal rules engine
-            ↓
-    snapshot / legal actions / responses / events
-            ↓
-    Godot loader és debug kliensalap
-
-Ez a jelenlegi működő fejlesztési kép, nem feltétlenül a végleges process- és packaging-architektúra.
+Nem tervezett. Csak teljes architektúraváltás esetén.
 
 ---
 
-## 4. Python tartósan biztos szerepei
+## 2. TD-002 – Egyetlen authoritative rules runtime
 
-A végleges runtime-nyelvtől függetlenül a Python erős és valószínűleg tartós szerepei:
+**Státusz:** ELFOGADVA  
+**Hatály:** teljes gameplay
+
+Döntés:
+
+Egy meccsnek pontosan egy authoritative state-je és egy kanonikus szabálymotorja lehet.
+
+A production authoritative runtime:
+
+> **C#/.NET**
+
+A Godot/GDScript és a Python nem tarthat külön kanonikus meccsállapotot.
+
+Tiltott:
+
+- ugyanazon szabály párhuzamos authoritative C# és Python implementációja;
+- kliensoldali legalitásmintázás authoritative döntésként;
+- GDScript által közvetlenül módosított MatchState;
+- Python által a C# transition API megkerülésével módosított state.
+
+Indok:
+
+- elkerüli a rules driftet;
+- javítja a determinisztikát;
+- egyszerűsíti a replayt;
+- támogatja az AI és az emberi kliens azonos szabálymotorát;
+- csökkenti a kettős hibakeresést.
+
+---
+
+## 3. TD-003 – Godot/GDScript vizuális kliensréteg
+
+**Státusz:** ELFOGADVA
+
+A Godot/GDScript feladata:
+
+- jelenetek;
+- input;
+- UI;
+- animáció;
+- hang;
+- vizuális kártyaállapot;
+- debugpanelek;
+- snapshot- és eventmegjelenítés;
+- action requestek előkészítése.
+
+Nem feladata:
+
+- legalitás;
+- költség;
+- effect resolution;
+- turn transition;
+- combat;
+- hidden-information authority;
+- győzelmi feltétel.
+
+A Godot és a C# közvetlenül, ugyanazon processzen belül kommunikál.
+
+Nem használunk közöttük:
+
+- TCP-t;
+- HTTP-t;
+- gRPC-t;
+- külön engine-processzt.
+
+---
+
+## 4. TD-004 – C# authoritative runtime kiválasztása
+
+**Státusz:** ELFOGADVA  
+**Döntési dátum:** 2026-07-20
+
+Elfogadott modell:
+
+- Godot/GDScript – vizuális kliens;
+- C# – authoritative rules runtime;
+- Python – külső tooling.
+
+Bizonyító commit:
+
+`8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
+
+Bizonyított:
+
+- Godot 4.7.1 .NET;
+- .NET 8;
+- pure C# runtime;
+- közvetlen in-process hívás;
+- nincs külön engine-processz;
+- nincs Python;
+- nincs TCP;
+- Debug és Release build;
+- nulla warning/error;
+- headless proof;
+- visual proof;
+- két manuális PASS;
+- 100-run determinisztika;
+- mutation negative proof;
+- GDScript regressziók.
+
+Közös canonical SHA:
+
+`650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`
+
+Indok:
+
+A C# ugyanazt a kanonikus eredményt kisebb futási és lifecycle-összetettséggel állította elő, mint a Python sidecar.
+
+Újranyitás:
+
+Csak új, AETERNA-specifikus bizonyíték esetén, amely jelentős problémát mutat:
+
+- production packaging;
+- teljesítmény;
+- karbantarthatóság;
+- platformkompatibilitás;
+- Godot-integráció.
+
+---
+
+## 5. TD-005 – Python–Godot sidecar lezárása
+
+**Státusz:** COMPLETE AND FROZEN
+
+Lezáró commit:
+
+`d1fb7aaa23d58f166a30f9e0241799f35f5ac14e` – `Fix Godot sidecar cancellation race warnings`
+
+Bizonyított:
+
+- localhost TCP;
+- request/response framing;
+- handshake;
+- timeout;
+- controlled shutdown;
+- Emergency Shutdown;
+- F8 parent watchdog;
+- orphan cleanup;
+- warning/error nélküli manuális futás;
+- helyes canonical output.
+
+Döntés:
+
+A proof megmarad összehasonlítási és történeti referenciaként, de nem fejlesztjük production főmotorrá.
+
+Nem készül hozzá jelenleg:
+
+- packaging;
+- új protokoll;
+- új watchdog;
+- új sidecar UI;
+- további TCP funkció.
+
+Indok:
+
+A működő proof bizonyította a modell életképességét, de a külön processz, TCP, shutdown és watchdog infrastruktúra szükségtelen a közvetlen C# in-process modell mellett.
+
+---
+
+## 6. TD-006 – Python tartós szerepe
+
+**Státusz:** ELFOGADVA
+
+Python marad:
 
 - adatpipeline;
-- XLSX és JSON/JSONL feldolgozás;
+- XLSX/JSON/JSONL feldolgozás;
 - runtime package build;
-- validáció és diagnostics;
-- AI-vs-AI és batch futtatás;
-- balansz- és statisztikai tooling;
-- szabályregressziós referencia;
+- validáció;
+- audit;
+- fixture-generálás;
 - scenario runner;
-- replay és reprodukálhatósági ellenőrzés;
-- tanuló AI és kutatási workflow.
+- AI-vs-AI koordináció;
+- batch futtatás;
+- balansz- és statisztikai tooling;
+- riport;
+- regression/reference oracle;
+- differential testing.
 
-Ha a termékruntime C# lesz, a Python engine:
+A Python minimal engine:
 
-- referenciaimplementáció maradhat;
-- expected outputot adhat;
-- differential testing alap lehet;
-- nem kell automatikusan minden termékkódot duplikálnia.
+- megőrzendő;
+- nem törlendő automatikusan;
+- referenciaimplementáció;
+- expected-output forrás;
+- migrációs ellenőrző alap.
 
----
-
-## 5. Godot tartósan biztos szerepei
-
-Bizonyított:
-
-- runtime package loader;
-- card/deck/lookup registry;
-- sample snapshot, legal action és event betöltés;
-- snapshot viewer;
-- legal action debug panel;
-- event log debug view;
-- unified debug dashboard;
-- headless smoke futtatás;
-- Windows/Godot futtatási minta.
-
-Jelenlegi biztos szerepek:
-
-- runtime package fogyasztó;
-- debug- és visualization-réteg;
-- játékos UI;
-- input és animáció;
-- kliensoldali contract-fogyasztás.
-
-Kötelező határ:
-
-- UI node-ba nem kerülhet rejtett szabálylogika;
-- a Godot kliens nem találgathat legalitást;
-- C# runtime esetén is külön rules library/réteg kell;
-- GDScript proof esetén sem keverhető a rules state a megjelenítési node-okkal.
+A Python nem maradhat külön fejlődő production authoritative gameplay engine.
 
 ---
 
-## 6. Technológiai modellek aktuális státusza
+## 7. TD-007 – Python–C# kommunikáció
 
-### Modell A – Régi Python motor mint backend
+**Státusz:** ELFOGADOTT IRÁNY, MÉG NEM IMPLEMENTÁLT PRODUCTION CONTRACT
 
-**Státusz:** `reference_only_pending_audit`
+Első forma:
 
-- nem automatikus új backend;
-- algoritmus-, AI-, diagnostics- és balanszforrás lehet;
-- célzott audit és új teszt nélkül nem emelhető át.
+```text
+Python
+  ↓ subprocess + JSON/JSONL
+Aeterna.Engine.Headless
+  ↓ canonical JSON/JSONL
+Python
+```
 
-### Modell B – Új Python sidecar backend + Godot frontend
+Használat:
 
-**Státusz:** `leading_candidate_pending_proof`
+- fixture;
+- scenario;
+- AI-vs-AI;
+- batch;
+- balanszelemzés;
+- CI;
+- regresszió.
 
-Bizonyított:
+A Python csak a C# által kiadott legal actionökből választhat.
 
-- a Python engine belső működése;
-- a Godot kliens- és loaderalap;
-- külön folyamatú Godot–Python kommunikációra létező működő külső minta.
+A state mutation a C# engine transition API-ján keresztül történik.
 
-Még bizonyítandó:
+Későbbi localhost HTTP vagy gRPC:
 
-- AETERNA handshake és protocol;
-- stdin/stdout vagy TCP választás;
-- process lifecycle;
-- Windows packaging;
-- version mismatch;
-- crash és restart;
-- deployment méret és egyszerű indítás.
+- csak teljesítménymérés alapján;
+- csak hosszú életű batch/service igény esetén;
+- nem a Godot normál runtime részeként.
 
-### Modell C – Godot .NET/C# authoritative runtime
+---
 
-**Státusz:** `leading_candidate_pending_proof`
+## 8. TD-008 – Embedded Python elhalasztása
 
-Előnyjelölt:
+**Státusz:** RESEARCH_ONLY_DEFERRED
 
-- hivatalos Godot/.NET út;
-- közvetlen Godot-integráció;
-- nincs külön Python process;
-- erős statikus típusosság;
-- kiforrott unit test és serialization ökoszisztéma;
-- egyszerűbb egyetlen Windows-alkalmazásként való csomagolás lehetősége.
+Jelenleg nem választott:
 
-Még bizonyítandó:
-
-- tiszta rules library/UI-elhatárolás;
-- ugyanazon Python reference scenarióval való contractegyezés;
-- Godot .NET build és export;
-- portolási költség;
-- karbantarthatóság;
-- Codex által készített C# kód minősége;
-- Python AI/batch toolinggal való együttélés.
-
-### Modell D – Teljes vagy részleges GDScript rules runtime
-
-**Státusz:** `open_but_not_primary_proof`
-
-- nincs kiválasztva főágként;
-- nincs véglegesen elutasítva;
-- tanulóprogram-audit vagy első két proof után kaphat szűk vizsgálati scope-ot;
-- teljes második motor nem előfeltétel.
-
-### Modell E – Embedded Python Godotban
-
-**Státusz:** `research_only_deferred`
-
-Vizsgált közösségi irányok:
-
+- Python.NET;
 - py4godot;
 - godot-python-extension;
 - GodoPy;
-- régi godot-python.
+- egyéb CPython/GDExtension binding.
 
-Jelenlegi megállapítás:
+Fő kockázatok:
 
-- technikailag érdekes;
-- több projekt aktív vagy fejlődő;
-- több projekt experimental/WIP;
-- Godot- és Python-verzió kompatibilitás, natív build és packaging kockázatosabb;
-- nem az első AETERNA comparison proof.
-
-### Modell F – Python reference + C# product runtime
-
-**Státusz:** `possible_hybrid_outcome`
-
-Lehetséges végállapot:
-
-- Python: adatpipeline, AI/batch, differential test és referencia;
-- C#: authoritative játék-runtime;
-- Godot .NET: kliens és termékfuttatás;
-- közös contractok és fixture-ek.
-
-Csak akkor fogadható el, ha a differential testing és a contractkezelés nem hoz létre kezelhetetlen kettős szabálykarbantartást.
-
----
-
-## 7. Tanulóprogram-audit
-
-A felhasználó által letöltött tanulóprogramok szándékosan nincsenek az AETERNA GitHub repositoryban licencbiztonsági okból.
-
-A következő Codex-audit helyileg vizsgálja őket.
-
-Kötelező auditmezők:
-
-- projekt és forrás;
-- vizsgált commit/tag/verzió;
-- licenc;
-- nyelvek;
-- Godot-verzió;
-- rules runtime helye;
-- authoritative state;
-- Python használat;
-- C# használat;
-- GDScript szerep;
-- kommunikáció és bridge;
+- CPython DLL és verzió;
+- natív build;
+- GIL;
+- típuskonverzió;
 - packaging;
-- Windows támogatás;
-- automatikus tesztek;
-- clean-room módon használható minta;
-- attributionkövetelmény;
-- AETERNA-kockázat.
+- platformkompatibilitás;
+- közös processzben bekövetkező crash;
+- három nyelv szoros runtime-csatolása.
 
-Kiemelt online referenciák:
+Újranyitás:
 
-- Godot RL Agents;
-- py4godot;
-- godot-python-extension;
-- GodoPy;
-- régi godot-python.
-
-Másolt kód alapértelmezés szerint ne kerüljön az AETERNA repositoryba.
+Csak nélkülözhetetlen, elkülöníthető és nem authoritative Python-funkció esetén.
 
 ---
 
-## 8. Közös comparison scenario
+## 9. TD-009 – Runtime package és adatpipeline
 
-A Python sidecar és C# proof ugyanazt a minimal scenariót használja:
+**Státusz:** ELFOGADVA
 
-1. initial state;
-2. `draw_card` P1;
-3. `end_turn`;
-4. `draw_card` P2;
-5. player-visible snapshot P1;
-6. player-visible snapshot P2;
-7. typed event log;
-8. stale expected state version rejection;
-9. determinisztikus második futás;
-10. canonical JSON összevetés.
-
-Kötelezően összevetendő:
-
-- contracthűség;
-- determinisztika;
-- hidden-information;
-- unit tesztelhetőség;
-- headless futás;
-- AI/batch alkalmasság;
-- Godot-integráció;
-- Windows packaging;
-- process- és crash-kezelés;
-- teljesítmény;
-- build reprodukálhatóság;
-- emberi karbantarthatóság;
-- Codex kódminőség;
-- portolási költség;
-- licenc.
-
-Részletes terv:
-
-- `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
-
----
-
-## 9. Runtime package és adatpipeline
-
-Ezek a döntések lezártnak tekinthetők:
+Döntések:
 
 - a fő szerkesztés Google Sheetsben történik;
 - a lokális XLSX forrásmásolat;
 - Godot nem olvas közvetlenül XLSX-et;
+- C# engine nem olvas közvetlenül XLSX-et;
 - Python végzi az exportot, validációt és package buildet;
 - a runtime package statikus programadat;
 - publish előtt validation gate kell;
 - a Godot `runtime_package/` consumption copy;
 - a generált output nem canonical szerkesztési forrás.
 
-A package identity, release-versioning, final build/output struktúra és integritásvédelem még nyitott.
+Még nyitott:
 
-Ezek akkor is érvényesek maradhatnak, ha a rules runtime C# lesz.
-
----
-
-## 10. Tesztelési döntések
-
-Elfogadott:
-
-- minden új engine-contract kapjon célzott tesztet;
-- state mutation success és rejection tesztet kapjon;
-- rejected action ne mutáljon state-et;
-- a Python referencia teljes izolált tesztkészlete megmarad;
-- minimal engine smoke megmarad;
-- AI-vs-AI determinisztikus JSON ellenőrzés megmarad;
-- hidden-information tesztek kötelezők;
-- deep-copy és inputváltozatlanság ellenőrzendő;
-- Godot loader és contract smoke tesztek megőrzendők;
-- comparison proofhoz közös fixture és expected output kell;
-- C# proof kapjon saját unit teszteket;
-- bridge-prototípus kapjon kétoldali compatibility és lifecycle tesztet;
-- a két runtime outputeltérését strukturált differential report jelezze.
+- package identity;
+- release versioning;
+- final build/output struktúra;
+- integritásvédelem;
+- publikus kiadásnál tamper resistance.
 
 ---
 
-## 11. Prioritási sorrend
+## 10. TD-010 – Production C# project-határok
 
-### Következő Codex-prioritás
+**Státusz:** ELFOGADOTT TERV  
+**Implementáció:** C.5B-ben következik
 
-1. helyi tanulóprogram-audit;
-2. licenc- és forrásleltár;
-3. közös scenario/fixture;
-4. Python sidecar proof;
-5. Godot .NET/C# proof;
-6. összehasonlító tesztek és Windows packaging;
-7. szükség esetén minimal GDScript proof;
-8. döntési jelentés;
-9. emberi választás.
+Tervezett projektek:
 
-### Gameplay-engine queue a döntés után
+```text
+Aeterna.Engine
+Aeterna.Engine.Headless
+Aeterna.Engine.Tests
+```
 
-1. Wellspring production integráció;
-2. player-visible Wellspring summary;
-3. Beáramlás;
-4. Magnitúdó és payment;
-5. első `play_card`;
-6. első szabálymotoros vertical slice.
+### Aeterna.Engine
 
-### Codex nélküli munkasáv
+- pure C#;
+- Godot nélkül buildelhető;
+- nincs Python;
+- nincs processzkezelés;
+- nincs TCP/HTTP/gRPC;
+- authoritative state és rules.
 
-- Open Questions + Decisions közös triázsa;
-- dokumentációs konszolidáció;
-- auditmezők és comparison kritériumok kidolgozása;
-- ability module audit;
-- contract-specifikáció konszolidációja;
-- hivatalos szabályforrás-ellenőrzés.
+### Aeterna.Engine.Headless
+
+- vékony console host;
+- fixture és scenario;
+- Python tooling kapcsolat;
+- nincs saját gameplay-logika.
+
+### Aeterna.Engine.Tests
+
+- contract;
+- invariant;
+- transition;
+- determinism;
+- hidden information;
+- candidate/Python comparison;
+- headless regresszió.
+
+A jelenlegi `Aeterna.RuntimeCandidate` státusza:
+
+`ACCEPTED_PROOF`
+
+Nem nevezendő át közvetlenül production motorrá.
 
 ---
 
-## 12. Jelenleg biztosan kijelenthető
+## 11. TD-011 – Tesztelési minimum
 
-- A Python minimal engine működik és értékes referencia.
-- A Godot runtime package-, registry- és debugalap működik.
-- A C#/.NET komolyan vizsgálandó, hivatalos Godot-runtime jelölt.
-- A Python sidecar technikailag reális jelölt.
-- A contract-first határ minden modellnél szükséges.
-- A UI nem lehet szabályforrás.
-- Nem célszerű két teljes szabálymotort előre felépíteni.
-- A jelentős gameplay-fejlesztést a nyelvi/runtime döntési kapu után kell folytatni.
-- A végleges termékarchitektúra még technológiai bizonyítást igényel.
-- A végleges döntés emberi jóváhagyással történik.
+**Státusz:** ELFOGADVA
+
+Minden production gameplay-migrációhoz szükséges:
+
+- hivatalos szabályforrás-ellenőrzés;
+- typed contract;
+- pozitív és negatív fixture;
+- success és rejection teszt;
+- rejected action state-immutability;
+- request immutability;
+- state invariants;
+- hidden-information;
+- deterministic output;
+- canonical SHA;
+- Python reference comparison;
+- C# candidate regression;
+- Godot in-process proof;
+- GDScript regresszió;
+- Debug és Release build;
+- warning/error audit;
+- process/listener audit.
+
+A fair AI ugyanazt a player-visible snapshotot és legal action listát használja, mint az emberi játékos.
+
+---
+
+## 12. TD-012 – Production packaging
+
+**Státusz:** NYITOTT, NEM BLOKKOLJA A NYELVI DÖNTÉST
+
+Bizonyítandó:
+
+- Windows Godot .NET export;
+- szükséges .NET runtime kezelése;
+- self-contained vagy prerequisite modell;
+- tiszta tesztgépes indítás;
+- egyszerű felhasználói indítás;
+- log- és crashcsomag;
+- verzió- és runtime package compatibility;
+- hosszabb soak teszt.
+
+Normál játék tervezett processztopológiája:
+
+```text
+Godot .NET application
+    └── C# authoritative engine
+```
+
+Python nem kötelező játékosoldali runtime-komponens.
+
+---
+
+## 13. TD-013 – C# formázási megfigyelés
+
+**Státusz:** OBSERVE_ONLY – NON_BLOCKING
+
+A `CsharpMinimalRuntimeProof.cs` összehasonlított változatai logikailag azonosak voltak.
+
+Eltérés:
+
+- 4 szóköz;
+- tabulátor.
+
+Döntés:
+
+- most nincs `.editorconfig` módosítás;
+- nincs whitespace-only commit;
+- ismétlődés esetén egységes szabály készül.
+
+---
+
+## 14. TD-014 – Dokumentumkezelés és verziózás
+
+**Státusz:** ELFOGADVA
+
+Döntések:
+
+- elsődlegesen meglévő aktív dokumentumot frissítünk;
+- új dokumentum csak önálló canonical szerep esetén készül;
+- minden aktív dokumentumnak legyen verzióblokkja;
+- minden aktív dokumentumnak legyen dátuma;
+- minden aktív dokumentumnak legyen státusza;
+- verzió nélküli dokumentumokat a későbbi teljes auditban verzióval kell ellátni;
+- azonos szerepű párhuzamos current dokumentumok összevonandók;
+- történeti dokumentumok külön archív státuszt kapnak;
+- nyitott kérdés vagy korábbi döntés nem veszhet el merge során;
+- törlés és archiválás csak teljes audit és felhasználói jóváhagyás után történhet.
+
+A későbbi dokumentumaudit feladata:
+
+- inventory;
+- szerep;
+- aktuális vagy történeti státusz;
+- verzió;
+- forráselsőbbség;
+- átfedés;
+- merge-cél;
+- archív vagy törlési jelölt.
+
+---
+
+## 15. Aktuális végrehajtási sorrend
+
+### Elkészült
+
+- Python reference engine;
+- runtime package/Godot alap;
+- Python sidecar proof;
+- C# in-process proof;
+- runtime language decision gate;
+- C.5A architecture plan.
+
+### Következő kódolási feladat
+
+**C.5B – Production C# engine foundation**
+
+Státusz:
+
+`READY_FOR_IMPLEMENTATION`
+
+Ideiglenesen:
+
+`PAUSED – CODEX QUOTA`
+
+### Codex nélküli aktív sáv
+
+- meglévő dokumentumok aktualizálása;
+- dokumentumverziók és státuszok rendezése;
+- dokumentumaudit előkészítése;
+- projekt-térkép;
+- Open Questions triázs;
+- kártyaadat- és szabályaudit;
+- kártyadizájn-workflow.
+
+---
+
+## 16. Rövid döntési összefoglaló
+
+- A contract-first modell kötelező.
+- Egyetlen authoritative state lehet.
+- A Godot/GDScript a vizuális kliens.
+- A C#/.NET az authoritative production runtime.
+- A Python külső tooling, AI, batch és referencia.
+- A Python sidecar proof lezárt és befagyasztott.
+- A C# in-process proof elfogadott.
+- A Godot–C# kapcsolat közvetlen in-process.
+- A Python–C# első külső kapcsolata headless JSON/JSONL lesz.
+- Embedded Python és service API csak későbbi mérés alapján vizsgálható.
+- A dokumentációt később teljes körűen auditálni, verziózni és konszolidálni kell.

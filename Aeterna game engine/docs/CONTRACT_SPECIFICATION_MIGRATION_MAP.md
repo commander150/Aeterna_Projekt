@@ -2,350 +2,307 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.1  
-**Dátum:** 2026-07-15  
-**Státusz:** első contract-konszolidációs kör lezárva; történeti ellenőrzési és későbbi migration-reference  
-**Technikai bázis:** `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
+**Dokumentumverzió:** 1.2  
+**Dátum:** 2026-07-20  
+**Státusz:** történeti konszolidációs és későbbi migration-reference  
+**Aktív specifikáció:** `CONTRACT_SPECIFICATION.md` 1.5  
+**Aktuális státusz:** `CONTRACT_STATUS.md` 1.1  
+**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
-Ez a dokumentum eredetileg a hosszú `CONTRACT_SPECIFICATION.md` és a működő Python engine eltéréseit térképezte fel.
+Ez a dokumentum nem aktív napi contractlista.
 
-Az első konszolidációs kör a `CONTRACT_SPECIFICATION.md` 1.1 verziójával lezárult. A korábbi részletes migration map és a régi contract-specifikáció a Git-történetben megmarad.
+Feladata:
 
-A jelen fájl feladata most:
-
-- rögzíteni, mi került át az aktív specifikációba;
-- megjelölni, mi maradt current státusz-, nyitott kérdés- vagy későbbi gameplay-téma;
-- megakadályozni, hogy a régi sample mezőlisták újra aktív sémának tűnjenek;
-- kijelölni, mikor szükséges újabb contract-migrációs kör.
+- megőrizni a korábbi konszolidációk eredményét;
+- jelezni, mi került az aktív contract-specifikációba;
+- megakadályozni, hogy régi sample vagy Python-specifikus mezőlista újra canonical sémának tűnjön;
+- kijelölni a következő migration-kör indítási feltételeit.
 
 Elsődleges aktív források:
 
-1. működő kód és tesztek;
-2. `CURRENT_CONTRACT_STATUS.md`;
-3. `CURRENT_OPEN_QUESTIONS.md`;
-4. `CONTRACT_SPECIFICATION.md`;
-5. ez a migration reference;
-6. történeti tervek és sample dokumentumok.
+1. hivatalos játékszabály;
+2. `OPEN_QUESTIONS_DECISIONS.md`;
+3. `CONTRACT_SPECIFICATION.md`;
+4. `CONTRACT_STATUS.md`;
+5. elfogadott fixture és teszt;
+6. jelen történeti migration map.
 
 ---
 
-## 1. Első konszolidációs kör eredménye
+## 1. Első konszolidációs kör
 
-### 1.1 Dokumentumstátusz és forráshierarchia
+Korábban átvezetett fő területek:
 
-**Státusz:** `completed`
-
-A contract-specifikáció most:
-
-- explicit current státuszt tartalmaz;
-- a működő kód és current dokumentumok elsőbbségét rögzíti;
-- technológiafüggetlen;
-- nem kezeli a Python–GDScript kettőst végleges architektúrának;
-- a Python sidecar, C#, GDScript és más jelölteket ugyanazon contractjelentés alá rendeli.
-
-### 1.2 Sample és aktív schema elhatárolása
-
-**Státusz:** `completed`
-
-A Godot sample snapshot, legal action és event fájlok:
-
-- `debug_fixture` státuszt kaptak;
-- parser-, loader- és UI-bizonyítékként megmaradnak;
-- nem számítanak authoritative Python gameplay-sémának;
-- nem törlendők automatikusan.
-
-### 1.3 Aktív schema-index
-
-**Státusz:** `completed`
-
-Az aktív specifikáció külön indexeli:
-
-- card instance v1;
-- ObjectReference;
-- ZoneMove;
-- MatchState;
+- contract-first alapelv;
+- MatchState authority;
+- card definition és instance elhatárolása;
+- owner/controller;
+- zone/index/sequence;
+- activity state;
 - Domain topology és occupancy;
-- snapshot v2;
-- public Domain board;
-- minimal action request/response;
-- typed engine eventek;
-- AI episode v1;
-- isolated placement és Wellspring contractok.
+- player-visible snapshot;
+- hidden information;
+- legal action authority;
+- action request/response;
+- expected state version;
+- rejected action no-mutation;
+- typed event;
+- AI episode;
+- Wellspring isolated state és resource summary;
+- diagnostics és validation elvek;
+- ability registry foundation.
 
-### 1.4 Card instance, activity és zónainvariáns
+A sample Godot fixture-ek `debug_fixture` státuszt kaptak.
 
-**Státusz:** `completed`
+---
 
-Beépült:
+## 2. Runtime-nyelvi döntés utáni migráció
 
-- owner/controller elhatárolás;
-- zone/index és sequence;
-- `active`, `exhausted`, illetve zónán kívüli `None` activity;
-- listás zóna és registry konzisztencia;
-- Domain occupancy cross-validation;
-- activity nem azonos summoning sickness-szel.
+2026-07-20-i lezárt döntés:
 
-### 1.5 Domain topology és projection
+- production authority: C#/.NET;
+- Godot/GDScript: visual client;
+- Python: external tooling és reference.
 
-**Státusz:** `completed`
+Következmény:
 
-Beépült:
+- a contract jelentése technológiafüggetlen marad;
+- Python dict/JSON formája nem kötelező C# belső objektumforma;
+- a production C# API typed contractokat kap;
+- a Python reference output fixture-orákulum;
+- a C# candidate proof contractjai nem automatikusan production publikus API-k;
+- GDScript nem tart fenn parallel authoritative contractot.
 
-- játékosonként 6 Áramlat;
-- horizon, zenith és statikus seal position;
-- 12 foglalható slot;
-- occupancy és registry kétirányú kapcsolat;
-- public Domain board;
-- structural placement és teljes play legality elhatárolása.
+---
 
-### 1.6 Snapshot és visibility
+## 3. Snapshot migration
 
-**Státusz:** `completed_first_pass`
+Átvezetett:
 
-Beépült:
+- viewer-specifikus player-visible snapshot;
+- debug snapshot külön;
+- own hand visible;
+- opponent hand redacted;
+- deck count-only;
+- public Domain;
+- fair AI = player view;
+- internal state leak tiltása.
 
-- `engine-player-visible-snapshot-v2`;
-- viewer-specifikus projection;
-- saját kéz, ellenfél kéz, deck, discard és Domain visibility;
-- fair AI ugyanazt a player-visible observationt használja;
-- debug snapshot külön réteg;
-- teljes MatchState és registry player-facing tiltása.
+Újabb döntés:
 
-Későbbi migration:
-
-- Wellspring summary;
-- Pecsét állapot;
-- pending decision;
-- visible event window;
-- spectator és replay projection.
-
-### 1.7 Legal action, request és response
-
-**Státusz:** `completed_first_pass`
-
-Beépült:
-
-- aktív minimal actionök: `draw_card`, `end_turn`;
-- legal action engine-authority;
-- minimal request;
-- expected state version guard;
-- rejected request mutationmentessége;
-- current response szerepe;
-- későbbi target-, choice-, payment- és reaction-payload elhatárolása.
+- saját Wellspring identity owner-visible;
+- ellenfél Wellspring identity redacted;
+- Magnitúdó és activity-count public;
+- snapshot nem teljes event log.
 
 Későbbi migration:
 
-- Inflow action;
-- `play_card`;
+- Pecsét state;
+- face-down Jel;
+- pending decision teljes schema;
+- spectator;
+- replay.
+
+---
+
+## 4. Legal action és request migration
+
+Átvezetett:
+
+- engine számít legal actiont;
+- frontend/AI nem találgat;
+- enabled player-facing;
+- disabled debug;
+- state-version guard;
+- snapshot-scoped action ID;
+- structured reject;
+- no mutation.
+
+Újabb decision:
+
+- production C# `SubmitAction`;
+- request ID kötelező;
+- source/target/payment payload;
+- complex choice pending state;
+- bridge rules logic nélkül.
+
+Későbbi migration:
+
+- reaction;
+- targeting;
 - payment;
-- pending decision;
-- combat és reaction.
+- combat;
+- partial resolution.
 
-### 1.8 Typed eventek
+---
 
-**Státusz:** `completed_first_pass`
+## 5. Event migration
 
-Beépült:
+Átvezetett:
 
-- `minimal-engine-event-v0`;
+- ordered typed event;
 - `zone_move`;
 - `turn_transition`;
-- generic `action_resolved` felváltása pontosabb typed eventtel;
-- hidden-information-védett visible payload követelménye.
+- player-visible és debug projection;
+- hidden-information policy.
 
-Későbbi migration:
+Későbbi:
 
-- Inflow/Wellspring;
-- activity change;
+- activity;
+- infusion;
 - payment;
-- card played és entry;
+- card played;
+- entry;
+- reaction;
 - combat;
-- Pecsét;
+- ward;
 - victory;
-- ability execution.
+- ability.
 
-### 1.9 Wellspring és resource summary
-
-**Státusz:** `completed_as_isolated_contract`
-
-Beépült:
-
-- `minimal-player-wellspring-state-v0`;
-- `minimal-wellspring-resource-summary-v0`;
-- `magnitude == wellspring_card_count`;
-- `available_aura == active_source_count`;
-- active + exhausted = total;
-- integrált és isolated státusz elhatárolása.
-
-Új Core-döntésként bekerült:
-
-- a normál Beáramlással bekerülő lap Aktív;
-- ugyanabban a körben Aura fizetésére használható;
-- fizetéskor Kimerül.
-
-A transition implementation továbbra is későbbi feladat.
-
-### 1.10 AI és trajectory
-
-**Státusz:** `completed_first_pass`
-
-Beépült:
-
-- `minimal-ai-vs-ai-episode-v1`;
-- accepted/rejected step;
-- player-visible observation;
-- determinisztikus JSON;
-- AI nem mutálhat state-et;
-- `replay_ready: false` elhatárolás.
-
-### 1.11 Diagnostics és validáció
-
-**Státusz:** `completed_first_pass`
-
-Beépült:
-
-- strukturált validator result;
-- builder/validator elhatárolás;
-- deep-copy és inputváltozatlanság;
-- determinisztikus sorrend;
-- hidden-information audit;
-- severity és blocking elvi szétválasztása;
-- player-facing és developer diagnostics elhatárolása.
-
-Egyetlen globális diagnostics schema továbbra sem kötelező, amíg a külön contractok következetes strukturált hibát adnak.
-
-### 1.12 Ability registry és support
-
-**Státusz:** `completed_as_foundation`
-
-Beépült:
-
-- ability registry nem executor;
-- 2 modul `declared_only`;
-- kártyák supportja `not_evaluated`;
-- `runtime_executes_abilities: false`;
-- card-local fallback átmeneti és diagnosztizált lehet csak;
-- ability executor az alap gameplay-contractok után következhet.
+A generic `action_resolved` nem kötelező aktív esemény.
 
 ---
 
-## 2. Felváltott vagy történeti elemek
+## 6. Wellspring és resource migration
 
-### 2.1 Snapshot v1
+Átvezetett isolated contract:
+
+- player Wellspring state;
+- card count;
+- active/exhausted count;
+- magnitude = count;
+- available Aura = active count.
+
+Döntés:
+
+- normál infusion face-down és active;
+- ugyanabban a körben fizethet;
+- paymentkor exhausted;
+- owner-visible identity;
+- opponent redacted identity.
+
+Production migration:
+
+- C.5B után;
+- PlayerState;
+- MatchState;
+- invariant;
+- projection;
+- infusion;
+- payment.
+
+---
+
+## 7. Package és definition migration
+
+A runtime package:
+
+- static definition layer;
+- nem MatchState;
+- nem card instance;
+- nem snapshot.
+
+Production C#:
+
+- package loader;
+- typed definitions;
+- saját instance létrehozás;
+- compatibility validation.
+
+Régi sample identity nem production-final.
+
+---
+
+## 8. Ability migration
+
+Átvezetett:
+
+- registry és support foundation;
+- effect tag nem executable;
+- fallback kivétel;
+- module schema és test követelmény;
+- core timing + ability hook;
+- keyword registry irány.
+
+Későbbi:
+
+- C# executor;
+- first supported modules;
+- execution plan;
+- coverage;
+- reaction/prevention/replacement.
+
+---
+
+## 9. Superseded contractok
+
+Történeti:
 
 - `engine-player-visible-snapshot-v1`;
-- `superseded`;
-- felváltotta a v2 public Domain boarddal.
-
-### 2.2 Card instance v0
-
 - `minimal-card-instance-record-v0`;
-- `superseded`;
-- felváltotta a v1 activity state-tel.
+- korai sample legal action;
+- korai sample event;
+- fixture-specifikus candidate output modellek;
+- Python-only belső helperdict, ha production API-ként volt értelmezve.
 
-### 2.3 Régi sample mezőlisták
-
-- nem canonical field listák;
-- nem minden mező közös vagy kötelező;
-- csak történeti tervezési jelöltek és debug fixture-ek.
-
-### 2.4 Python–GDScript kettős engine-feltételezés
-
-- felváltotta a runtime-nyelvi döntési kapu;
-- kötelező fő proof: Python sidecar és Godot .NET/C#;
-- GDScript vagy más nyelv csak indokolt további proof;
-- két teljes authoritative motor tartós párhuzamos fenntartása kerülendő.
+Ezek nem törlendők automatikusan a fixture- vagy Git-történetből.
 
 ---
 
-## 3. Továbbra is nyitott vagy későbbi contract-kapuk
+## 10. Következő migration-kör indítási feltétele
 
-### 3.1 Runtime-nyelvi kapu
+Új teljes contract-migrációs kör akkor szükséges, ha:
 
-- `fourth turn` audit;
-- comparison fixture;
-- Python sidecar proof;
-- C# proof;
-- packaging és stabilitás;
-- emberi döntés.
+- C.5B production API elkészült;
+- Wellspring/infusion/payment vertical slice elkészült;
+- `play_card` és Entity placement működik;
+- reaction vagy combat contract készül;
+- Pecsétmodell lezárul;
+- ability executor első module-jai elkészülnek;
+- replay/save/network contract indul;
+- breaking schema változik.
 
-### 3.2 Wellspring és Beáramlás
-
-- PlayerState/MatchState integráció;
-- player-visible summary;
-- Inflow precondition;
-- transition és event;
-- per-turn usage;
-- visibility policy.
-
-### 3.3 Magnitúdó, Aura és payment
-
-- canonical Aura LOOKUPS mapping;
-- preflight result;
-- source selection;
-- atomic payment;
-- activity event;
-- temporary Aura és kivételek.
-
-### 3.4 `play_card`
-
-- timing és priority;
-- Magnitúdó és payment;
-- placement/target/choice;
-- atomic transition;
-- card played és entry event;
-- structured rejection.
-
-### 3.5 Reaction, combat és ability
-
-- pending decision;
-- queue/stack/chain;
-- Burst és Jel reaction;
-- attack/block/damage;
-- Pecsét és victory;
-- trigger/condition/cost/target/choice/effect.
-
-### 3.6 Replay és spectator
-
-- action history;
-- snapshot checkpoint;
-- deterministic reconstruction;
-- event visibility;
-- spectator policy.
-
-Ezek részletes döntéseinek aktív helye a `CURRENT_OPEN_QUESTIONS.md`.
+Kis compatible bővítéshez nem kell új nagy migration map.
 
 ---
 
-## 4. Mikor kell új migration-kör?
+## 11. Migration-munkarend
 
-Új contract-specifikációs migration szükséges, ha:
+1. hivatalos szabálypont;
+2. OQ-döntés;
+3. contract-spec módosítás;
+4. status módosítás;
+5. fixture;
+6. implementation;
+7. tests;
+8. Godot/Python adapter;
+9. docs links;
+10. checkpoint.
 
-- a runtime-nyelvi kapu lezárul és új product runtime kerül kiválasztásra;
-- Wellspring és Beáramlás production integráció elkészül;
-- a snapshot új főverziót kap;
-- `play_card`, payment vagy pending decision aktívvá válik;
-- combat vagy reaction layer elkészül;
-- ability executor MVP elkészül;
-- replay/spectator contract aktívvá válik;
-- current kód és specifikáció között jelentős eltérés keletkezik.
+Breaking változásnál:
 
-A migration során továbbra is tilos:
+- régi contract;
+- új contract;
+- compatibility;
+- migráció;
+- negative test;
+- version bump
 
-- dokumentációból runtime-sémát megváltoztatni;
-- javasolt mezőt implementáció nélkül kötelezővé tenni;
-- sample fixture-t production contractnak nevezni;
-- teljes MatchState-et player snapshotként kezelni;
-- isolated helpert integrált gameplayként leírni;
-- nyitott kérdést elveszíteni.
+együtt dokumentálandó.
 
 ---
 
-## 5. Rövid lezárás
+## 12. Dokumentumstátusz
 
-**Első konszolidáció:** lezárva.  
-**Aktív főspecifikáció:** `CONTRACT_SPECIFICATION.md` 1.1.  
-**Aktuális implementációs státusz:** `CURRENT_CONTRACT_STATUS.md`.  
-**Nyitott döntések:** `CURRENT_OPEN_QUESTIONS.md`.  
-**Történeti részletes eltéréstérkép:** Git-történetben megőrizve.  
-**Következő migration:** csak új működő contract-réteg vagy lezárt runtime-döntés után.
+Ez a fájl történeti/reference dokumentum.
+
+Nem:
+
+- következő tasklista;
+- aktív state truth;
+- production API;
+- Open Questions-regiszter.
+
+A végső dokumentumauditban ellenőrizendő, hogy szükséges-e továbbra is a working tree-ben, vagy archiválható a Git-történet és egy rövid migration history mellett.
+
+Addig megőrzendő, mert a contractkonszolidáció és a sample/active elhatárolás visszakereshető forrása.
