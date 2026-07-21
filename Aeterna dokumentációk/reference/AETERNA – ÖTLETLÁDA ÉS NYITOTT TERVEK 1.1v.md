@@ -1,6 +1,13 @@
-AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK
+# AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK
 
-VERZIÓ / DOKUMENTUMSTÁTUSZ
+## VERZIÓ / DOKUMENTUMSTÁTUSZ
+
+**Dokumentumverzió:** 1.1v  
+**Dátum:** 2026-07-21  
+**Státusz:** aktív ötlet-, backlog- és nyitott tervgyűjtő munkadokumentum  
+**Dokumentumszerep:** nem kanonikus döntés-előkészítő referencia  
+**Felváltott dokumentum:** `AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK 1.0v.md`  
+**Hivatalos szabályforrás:** nem
 
 A jelen dokumentum az AETERNA projekt ötlet-, backlog- és nyitott tervgyűjtő dokumentuma.
 
@@ -10,8 +17,25 @@ A dokumentumban szereplő ötletek nem válnak automatikusan aktív szabállyá,
 
 A dokumentum verziózása nem az egyes beemelt ötletek számát vagy tartalmát követi. Új verzióbejegyzés csak akkor szükséges, ha a dokumentum alapfunkciója, szerkezete, státuszrendszere, kategóriarendszere, bejegyzéssablonja, átvezetési rendje vagy hivatalos használati elve módosul.
 
-Verziótörténet
-1.0v verzió
+## Verziótörténet
+
+### 1.1v verzió
+
+**Módosítás típusa:** dokumentum-metaadatok szabványosítása / első tényleges ötletbejegyzés integrálása / különálló ötletfájl megszüntetésének előkészítése  
+**Érintett részek:** fejléc, verziótörténet, 9. fejezet  
+**Státusz:** aktív ötlet- és nyitott tervgyűjtő munkadokumentum
+
+**Változás leírása:**
+
+- bekerült az egységes verzió-, dátum- és státuszblokk;
+- a 4 Áramlatos alternatív formátum `ÖT-0001` azonosítóval tényleges bejegyzéssé vált;
+- a külön `Ötlet - Aeterna 4 .md` fájl érvényes tartalma beolvadt;
+- rögzítésre került az alapjáték változatlan, 6 Áramlatos és 6 Pecsétre épülő iránya;
+- a külön ötletfájl a végső hivatkozás-ellenőrzés után eltávolítható.
+
+A dokumentum működési elve és státuszrendszere változatlan maradt.
+
+### 1.0v verzió
 
 Módosítás típusa: dokumentum létrehozása / ötletláda-keretrendszer kialakítása
 Érintett részek: teljes dokumentum
@@ -120,7 +144,6 @@ A bizonytalan elemek inkább maradjanak itt.
 Ha nem világos, hogy egy elem alapjátékos, kiegészítői, archív vagy elvetett, akkor nem szabad automatikusan átvezetni máshová.
 Az Ötletláda védi a főforrásokat.
 A dokumentum egyik fő célja, hogy a még nem végleges ötletek ne szennyezzék az aktív szabályanyagokat.
-
 4. Státuszkategóriák
 
 Minden ötlethez státuszt kell rendelni.
@@ -145,7 +168,6 @@ Archív / nem aktív
 Megőrzendő, de jelenleg nem használható aktív szabályként vagy kártyatervezési elemként.
 Elvetett
 Az ötlet átgondolás után nem kerül tovább, de a döntés nyoma megmarad.
-
 5. Kategóriák
 
 Minden ötlethez kategóriát kell rendelni.
@@ -165,7 +187,6 @@ Lore / világépítési ötlet
 Balanszmegfigyelés
 Archív / régi forrásból mentett elem
 Kártyatervezési segédötlet
-
 6. Bejegyzéssablon
 
 Minden új ötletet az alábbi sablon szerint érdemes rögzíteni.
@@ -219,61 +240,6 @@ Ezek csak akkor kerülhetnek át a Kártyatervezési katalógusba vagy a kártya
 
 Ide kerülnek azok az ötletek, amelyek nem alapjátékosak, hanem későbbi kiegészítői, packfüggő, formátumfüggő vagy külön aktiválható tartalomként lehetnek érdekesek.
 
-ÖT-0002 – Démoni paktum: saját Pecsét megsemmisítése költségként
-
-Kategória:
-Kiegészítői ötlet / Mechanikaötlet / Kártyatervezési segédötlet
-
-Státusz:
-Vizsgálandó / Kiegészítőbe való
-
-Érintett főforrás:
-Kiegészítő; későbbi főforrás-döntést igényel
-
-Érintett terület:
-IGNIS, UMBRA, démoni paktum jellegű lapok, Pecsét, áldozati költség, kockázatos erőforráscsere, engine, balansz
-
-Rövid leírás:
-Az ötlet lényege, hogy egyes démoni, paktum jellegű vagy erősen önveszélyes lapok saját ép Pecsét megsemmisítését használhatnák rendkívül erős hatás költségeként.
-
-A saját Pecsét megsemmisítése nem azonos a Pecsét feltörésével. Nem aktiválhatna Surge / Áradat, Burst vagy Pecsét feltöréséhez kötött hatásokat, és a Pecsét alatt lévő lap nem kerülhetne kézbe. A pontos zónakezelést, triggerelhatárolást és engine-kezelést később külön szabályozni kellene.
-
-Miért lehet hasznos:
-Erős démoni paktumhangulatot adhat a játéknak. Jól használható lehet későbbi IGNIS, UMBRA vagy más sötétebb / önveszélyes mechanikai irányokhoz. Különösen alkalmas lehet ritka booster lapokhoz, haladó mechanikai csomagokhoz vagy olyan kártyákhoz, amelyek nagy erejű hatást adnak nagyon komoly saját veszteség árán.
-
-A Démoni Lángidéző korábbi vizsgálatánál ez az irány tematikusan erősnek bizonyult, de CORE01 alapjátékos működésként túl sok szabályi és engine-kérdést nyitott volna.
-
-Kockázat / ellenérv:
-A saját Pecsét megsemmisítése nagyon érzékeny szabályi terület. Tisztázni kell, hogy nem számít Pecsét feltörésének, nem indít Pecsét feltöréséhez kötött hatásokat, nem adja kézbe a Pecsét alatt lévő lapot, és nem keveredik össze a győzelmi feltételekkel.
-
-Engine-oldalon külön kezelést igényelhet a saját Pecsét kiválasztása, megsemmisítése, Ürességbe kerülése, valamint annak biztosítása, hogy ez ne fusson le Surge / Áradat / Burst logikaként.
-
-Balansz szempontból veszélyes, mert egy túl erős hatásért cserébe a játékos saját védelmét áldozza fel. Ez lehet izgalmas döntéshelyzet, de könnyen túl erős, túl gyenge vagy túl swinges is lehet.
-
-Jelenlegi döntés:
-Nem kerül be a CORE01 alapjátékos Démoni Lángidéző változatába.
-
-A Démoni Lángidéző CORE01 változata ehelyett saját Zenit-Entitás feláldozásával működik:
-
-[DOMÍNIUM] Riadó — Feláldozhatsz 1 saját Zenit-Entitást. Ha így teszel, ez a lap 3 sebzést okoz minden ellenséges Horizont-Entitásnak.
-
-A saját Pecsét megsemmisítésének ötlete parkoltatott kiegészítői / booster / haladó mechanikai jelöltként marad meg.
-
-Következő lépés:
-Csak későbbi kiegészítői vagy booster-tervezési szakaszban nyitható újra.
-
-Újranyitáskor külön dönteni kell:
-- pontosan mi számít saját Pecsét megsemmisítésének;
-- a megsemmisített Pecsét alatt lévő lap hová kerül;
-- aktivál-e bármilyen Pecsét-feltöréshez kötött hatást;
-- használható-e, ha a játékosnak csak 1 ép Pecséte maradt;
-- milyen hatáserő indokolhat ilyen súlyos költséget;
-- milyen Birodalmak és Klánok használhatják;
-- hogyan kezeli ezt az engine.
-
-Kapcsolódó anyag / forrás:
-Lángidéző klánaudit; Démoni Lángidéző CORE01 újratervezése; AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS; későbbi démoni paktum / booster mechanikai jelölt.
-
 7.4 Alternatív formátumok
 
 Ide kerülnek azok az ötletek, amelyek nem az alapjátékot módosítják, hanem külön játékmódot, gyorsított formátumot, alternatív Domínium-szerkezetet vagy speciális szabálymodult javasolnak.
@@ -320,20 +286,134 @@ Régi státusz:
 Átvezetés helye:
 Megjegyzés:
 
-9. Első bejegyzés helye
+9. Bejegyzések
 
-Az első beépíthető ötlet a már mentett 4 Áramlatos alternatív AETERNA-formátum lehet.
+## ÖT-0001 – 4 Áramlatos alternatív AETERNA-formátum
 
-Javasolt státusza:
+**Kategória:** Alternatív formátum  
+**Státusz:** Archív / nem aktív, később vizsgálandó  
+**Érintett főforrás:** egyik aktív főforrást sem módosítja  
+**Lehetséges későbbi réteg:** kiegészítői, formátumfüggő vagy digitális tesztváltozat  
+**Érintett terület:** Domínium, Áramlatok, Horizont, Zenit, Pecsétek, pozíciókezelés, balansz és digitális megjelenítés  
+**Korábbi külön forrás:** `Ötlet - Aeterna 4 .md`
 
-Kategória: Alternatív formátum
-Státusz: Archív / nem aktív, később vizsgálandó
-Érintett főforrás: Egyik sem aktívan; későbbi kiegészítői vagy formátumfüggő lehetőség
-Érintett terület: Domínium, Áramlatok, Pecsétek, alternatív játékmód, balanszteszt
-Jelenlegi döntés: Nem aktív alapjátékos szabály; parkoltatott alternatív modell
-Következő lépés: Csak akkor újranyitandó, ha a 6 Áramlatos alapjáték tesztelése túl lassú, túl széles vagy túl nehezen átlátható játékot mutat.
+### Rövid leírás
 
-A teljes szöveg később rövidíthető vagy külön bejegyzésként beemelhető. Most elég, ha az Ötletláda keretszerkezete elkészül, és ennek az ötletnek előkészítjük benne a helyét.
+A modell az AETERNA játéktér szűkített változata lenne:
+
+- 4 Áramlat;
+- 4 Horizont;
+- 4 Zenit;
+- 4 Pecsét;
+- 4 teljes védelmi oszlop.
+
+A cél egy kisebb, feszesebb, gyorsabban átlátható és erősebben pozíciós alternatív játéktér vizsgálata.
+
+### Jelenlegi hivatalos döntés
+
+Az alapjátékban nem ez a modell érvényes.
+
+Az aktív alapjátékos irány:
+
+- 6 Áramlat;
+- 6 Horizont;
+- 6 Zenit;
+- 6 Pecsét;
+- Áramlat–Pecsét kapcsolat.
+
+A 4 Áramlatos változat nem írhatja felül ezt a rendszert és nem használható aktív kártyatervezési vagy engine-szabályként.
+
+### Miért lehet hasznos?
+
+Lehetséges előnyök:
+
+- kisebb és könnyebben áttekinthető játéktér;
+- gyorsabb döntéshozatal;
+- egyszerűbb kezdőbarát magyarázat;
+- tisztább digitális vagy mobilos megjelenítés;
+- kevesebb egyidejű célpont;
+- nagyobb pozíciós súly;
+- rövidebb meccsek;
+- feszesebb végjáték;
+- alternatív verseny- vagy „Rush” jellegű formátum lehetősége.
+
+### Fő kockázatok
+
+A kisebb pálya jelentős balanszváltozást okozhat:
+
+- az agresszív paklik felgyorsulhatnak;
+- az Oltalom aránytalanul erőssé válhat;
+- a Légies lapok kezelése nehezebb lehet;
+- a Hasítás nagyobb nyomást gyakorolhat;
+- a Pecsét-visszaállítás és Pecsétvédelem felértékelődhet;
+- a Jel-limit túl sok Zenit-helyet foglalhat;
+- a széles boardra épülő stratégiák gyengülhetnek;
+- a nagy Entitások és a célzott eltávolítás túl nagy relatív értéket kaphat;
+- a pozícióváltás és újratámadás erősebb lehet;
+- az AETHER kapcsolt vagy több elemet igénylő rendszerei helyhiányba ütközhetnek.
+
+Négy Pecsét esetén minden egyes Pecsét a teljes védelem 25%-át jelenti, ezért minden feltörési, visszaállítási és megelőzési hatás külön újrabalanszolást igényelne.
+
+### Birodalmi hatásvizsgálati irány
+
+- **IGNIS:** várható gyorsulás és nagyobb korai nyomás;
+- **AQUA:** pozíciós kontroll és mezőmozgatás felértékelődése;
+- **TERRA:** nagy Entitások erősödése, széles board gyengülése;
+- **LUX:** Oltalom, védelem és Pecsét-visszaállítás erősödése;
+- **UMBRA:** a rejtett Jel-játék érdekesebb, de szűkebb lehet;
+- **VENTUS:** mobilitás és támadási ablakok újranyitása erősödhet;
+- **AETHER:** a kapcsolt működés tisztább lehet, de a helyigény problémássá válhat.
+
+### Külön vizsgálandó Pecsétmodellek
+
+1. **Pozíciós Pecsétmodell**
+   - minden Áramlat mögött saját Pecsét áll;
+   - erősen pozíciós;
+   - szabályozni kell a már feltört Pecsét mögötti Áramlat jelentését.
+
+2. **Közös Pecsét-réteg**
+   - az Áramlat átjárást nyit a fennálló Pecsétekhez;
+   - egyszerűbb;
+   - kevésbé hangsúlyozza az Áramlatok egyedi védelmi szerepét.
+
+### Újranyitási feltétel
+
+Az ötlet csak akkor kerüljön ismét aktív vizsgálatra, ha a 6 Áramlatos alapjáték tényleges tesztje azt mutatja, hogy a játék:
+
+- túl hosszú;
+- túl széles;
+- túl zsúfolt;
+- kezdőknek nehezen átlátható;
+- digitális felületen aránytalanul nehezen kezelhető;
+- vagy a pozíciós döntések súlya túl alacsony.
+
+### Tesztelendő változat
+
+- 4 Horizont;
+- 4 Zenit;
+- 4 Áramlat;
+- 4 Pecsét;
+- a 2 Jeles limit ideiglenes megtartása;
+- pozíciós és közös Pecsétmodell külön összevetése.
+
+### Mérendő adatok
+
+- átlagos meccshossz;
+- első és utolsó Pecsét feltörésének ideje;
+- Aeternal elleni győzelmek gyakorisága;
+- első és második játékos győzelmi aránya;
+- aggro–kontroll arány;
+- Oltalom, Légies és Hasítás hatása;
+- Jel-limit és Zenit-torlódás;
+- kézben ragadó lapok száma;
+- Pecsét-visszaállítás ereje;
+- Birodalmonkénti eltérés.
+
+### Jelenlegi döntés
+
+**Nem aktív alapjátékos szabály. Parkoltatott alternatív formátum.**
+
+A külön `Ötlet - Aeterna 4 .md` fájl a jelen bejegyzés, a belső hivatkozások és a Git diff ellenőrzése után eltávolítható.
 
 10. Záró alapelv
 
