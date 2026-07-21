@@ -2,143 +2,90 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.3  
-**Dátum:** 2026-07-21  
-**Státusz:** aktív elsődleges technikai és dokumentációs folytatási checkpoint  
-**Felváltott fájlok:** `CURRENT_ENGINE_CHECKPOINT.md`, `AETERNA_CURRENT_ENGINE_CHECKPOINT_v1.1_2026-07-20.md`  
-**Aktuális repository HEAD:** `32a0cbea24c82dda440f1a053b454ef03949d8ae` – `docs update 2`  
-**Aktuális C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
+**Dokumentumverzió:** 1.4  
+**Dátum:** 2026-07-22  
+**Státusz:** aktív elsődleges technikai folytatási checkpoint  
+**Felváltott verzió:** `ENGINE_CHECKPOINT.md` 1.3  
+**Ellenőrzött repository-bázis:** `66a206c6e3bf9155fb9f71a354236fb5b6ab3b90` – `docs update 2026.07.22`  
+**C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
 
-Ez a dokumentum az AETERNA Game Engine biztonságos folytatási pontja.
-
-Nem hivatalos játékszabály és nem teljes production engine-specifikáció.
+Ez a dokumentum az AETERNA Game Engine biztonságos technikai folytatási pontja. Nem hivatalos játékszabály és nem teljes production engine-specifikáció.
 
 ---
 
-## 1. Rövid állapot
+## 1. Elfogadott architektúra
 
-A runtime-nyelvi döntési kapu lezárult.
+- **Godot/GDScript:** vizuális kliens.
+- **C#/.NET:** az egyetlen production authoritative rules engine.
+- **Python:** external tooling, reference, AI és batch controller.
 
-Elfogadott architektúra:
-
-```text
-Godot/GDScript = vizuális kliens
-C#/.NET         = egyetlen production authoritative rules engine
-Python          = external tooling, reference, AI és batch controller
-```
-
-Proofok:
-
-- Python–Godot sidecar: `COMPLETE_AND_FROZEN`;
-- Godot .NET/C# in-process candidate: `COMPLETE_AND_ACCEPTED`.
-
-Canonical SHA:
-
-`650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`
-
-A production C# engine még nem létezik.
+A runtime-nyelvi döntési kapu lezárult. Nem készül új GDScript-authority vagy production Python-sidecar irány.
 
 ---
 
-## 2. Forráselsőbbség
+## 2. Bizonyított proofok
 
-1. hivatalos 1.4v szabályfőforrások;
-2. elfogadott emberi döntések;
-3. 0.0.1 termékcél;
-4. aktuális projektterv v6.2;
-5. projekt-térkép v1.5;
-6. jelen checkpoint;
-7. runtime-nyelvi döntési gate;
-8. architecture és technology decisions;
-9. aktuális státuszdokumentumok;
-10. Open Questions kérdés–válasz pár;
-11. specificationök;
-12. Python reference és proofok;
-13. történeti dokumentumok.
+### Python reference engine
 
----
+Státusz: `REFERENCE_IMPLEMENTATION / COMPARISON_ORACLE`
 
-## 3. Python reference engine
-
-Státusz:
-
-`REFERENCE_IMPLEMENTATION / COMPARISON_ORACLE / EXTERNAL_TOOLING_BASE`
-
-Bizonyított fő elemek:
+Bizonyított:
 
 - MatchState és PlayerState;
 - state version guard;
 - card instance registry;
-- deck/hand/discard instance-zónák;
+- deck, hand és discard instance-zónák;
 - draw és end-turn;
-- typed zone/turn eventek;
-- invariánsok;
+- typed eventek;
 - player-visible snapshot;
-- hidden-information alap;
+- hidden-information projection;
 - Domain topology és occupancy;
-- public board;
-- structural Entity placement option;
 - activity state;
-- izolált Wellspring és resource summary;
+- izolált Wellspring;
 - deterministic AI trajectory.
 
 A Python nem production authority.
 
----
+### Python–Godot sidecar
 
-## 4. Python–Godot sidecar proof
-
-Státusz:
-
-`COMPLETE_AND_FROZEN`
+Státusz: `COMPLETE_AND_FROZEN`
 
 Lezáró commit:
 
 `d1fb7aaa23d58f166a30f9e0241799f35f5ac14e`
 
-Bizonyította:
+Megmarad regressziós és történeti proofként.
 
-- külön Python processz;
-- localhost TCP;
-- request/response;
-- lifecycle és shutdown;
-- parent watchdog;
-- orphan elleni védelem;
-- canonical fixture-egyezés.
+### C# in-process candidate
 
-Production főmotorként nem folytatandó.
-
----
-
-## 5. C# in-process candidate proof
-
-Státusz:
-
-`COMPLETE_AND_ACCEPTED`
+Státusz: `COMPLETE_AND_ACCEPTED`
 
 Proof-bázis:
 
 `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
-Bizonyította:
+Bizonyított:
 
 - pure C# runtime candidate;
 - Godot .NET in-process bridge;
-- Python, TCP és külön engine-processz nélküli futás;
+- nincs Python, TCP vagy külön engine-processz;
 - draw, stale reject és end-turn;
-- legal action, snapshot és typed event;
-- canonical JSON/SHA;
-- 100-run determinisztika;
+- snapshot, legal action és typed event;
+- canonical JSON és SHA;
+- 100 futásos determinisztika;
 - mutation negative proof;
-- Debug/Release;
-- headless/visual PASS;
-- nulla warning/error.
+- Debug és Release;
+- headless és visual PASS.
 
-A candidate `ACCEPTED_PROOF`, nem nevezendő át közvetlenül production motorrá.
+Canonical SHA:
+
+`650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`
+
+A RuntimeCandidate proofként megmarad; nem nevezendő át production motorrá.
 
 ---
 
-## 6. Production C# irány
+## 3. Production C# célarchitektúra
 
 Tervezett projektek:
 
@@ -159,172 +106,137 @@ State mutation csak a C# authorityn keresztül történhet.
 
 ---
 
-## 7. C.5A és C.5B
+## 4. C.5A és C.5B
 
-### C.5A – Production architecture
+### C.5A – Production architecture plan
 
-`COMPLETE_AND_ACCEPTED`
+Státusz: `COMPLETE_AND_ACCEPTED`
 
-### C.5B – Production engine foundation
+### C.5B – Production Engine Foundation
 
-`READY_FOR_IMPLEMENTATION / PAUSED_CODEX_QUOTA`
+Státusz: `READY_FOR_IMPLEMENTATION`
 
-Scope:
+A Codex újra elérhető.
 
-- pure C# engine;
+Első scope:
+
+- pure C# production engine;
 - headless host;
 - test project;
 - typed core contractok;
 - EngineSession;
 - minimum runtime package loader;
-- draw/end-turn/stale reject;
-- canonical serializer és fixture adapter;
+- draw;
+- stale rejection;
+- end-turn;
+- canonical serializer;
+- fixture adapter;
 - Godot production bridge;
-- candidate és GDScript regresszió.
+- RuntimeCandidate és Python reference regresszió.
 
-Nem tartalmaz új gameplayt.
+Nem része:
+
+- Wellspring production gameplay;
+- Beáramlás;
+- Magnitúdó;
+- Aura;
+- `play_card`;
+- Domain placement;
+- reaction;
+- combat;
+- effect engine;
+- HTTP vagy gRPC;
+- production packaging.
 
 ---
 
-## 8. C.5B utáni gameplay-sorrend
+## 5. C.5B utáni gameplay-sorrend
 
 1. Wellspring production state;
 2. player-visible Wellspring;
-3. `infusion` / Beáramlás;
+3. Beáramlás;
 4. Magnitúdó-preflight;
-5. Aura-payment;
+5. Aura-source és payment;
 6. simple Entity `play_card`;
-7. Domain placement;
-8. phase/priority;
-9. reaction;
-10. combat;
-11. ability execution;
-12. victory/defeat.
+7. Hand → Domain transition;
+8. entry-state és eventek;
+9. phase és priority;
+10. reaction;
+11. combat;
+12. ability execution;
+13. victory és defeat.
 
 ---
 
-## 9. Dokumentációs állapot
+## 6. Dokumentációs és repository-állapot
 
-A repositoryban a 2026-07-20-i docs commitok már megtalálhatók.
+A dokumentációs archív rendezés elkészült a következő commitban:
+
+`66a206c6e3bf9155fb9f71a354236fb5b6ab3b90`
 
 Elkészült:
 
-- architektúra és technológiai döntések frissítése;
-- runtime decision gate lezárása;
-- prototype/runtime package/contract status utódok;
-- Open Questions 2.0 kérdés–válasz konszolidáció;
-- specificationök és README-k első frissítési köre;
-- történeti checkpoint rövidítése;
-- projektterv v6.2 első változata.
+- régi projekttervek és projekt-térképek archiválása;
+- régi Python-backend és effect/trigger anyagok archiválása;
+- újratervezési történeti csoport archiválása;
+- 1.8v adatauditok archiválása;
+- generált exportbatch archiválása;
+- object identity / zone move terv archiválása;
+- gyökérszintű régi engine-összefoglalók archiválása;
+- véletlen adataudit-duplikáció kivezetése.
 
-A docs commitok azonban több régi elődöt nem töröltek, és egy projektterv rossz mappába került.
+A tényleges archív útvonalak dokumentálva vannak a projekt-térkép v1.7-ben.
 
----
+A dokumentációs munka nem folytatódik teljes repository-szintű tömeges frissítésként. A továbbiakban csak technikai mérföldkő esetén frissítendő:
 
-## 10. Azonosított duplikációk
-
-Kijelölt utód után törlendő:
-
-- `CURRENT_PROTOTYPE_STATUS.md` → `PROTOTYPE_STATUS.md`;
-- `CURRENT_RUNTIME_PACKAGE_STATUS.md` → `RUNTIME_PACKAGE_STATUS.md`;
-- `CURRENT_CONTRACT_STATUS.md` → `CONTRACT_STATUS.md`;
-- `CURRENT_OPEN_QUESTIONS.md` → `OPEN_QUESTIONS.md` + `OPEN_QUESTIONS_DECISIONS.md`;
-- `CURRENT_ENGINE_CHECKPOINT.md` → `ENGINE_CHECKPOINT.md`;
-- `AETERNA_CURRENT_ENGINE_CHECKPOINT_v1.1_2026-07-20.md` → `ENGINE_CHECKPOINT.md`.
-
-További cleanup:
-
-- engine docs alá került v6.2 projektterv eltávolítása;
-- v5.1/v6.0/v6.1 tervek eltávolítása a v6.2 után;
-- v1.2/v1.3/v1.4 projekt-térképek eltávolítása a v1.5 után;
-- `DOCUMENTATION_CLEANUP_CHECKPOINT_2026-07-03.md` eltávolítása;
-- két elavult gyökérszintű engine-összefoglaló eltávolítása;
-- teljesült object identity/zone move terv eltávolítása.
-
-Pontos lista:
-
-- `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.5.md`.
+- jelen checkpoint;
+- aktuális projektterv;
+- szükség esetén projekt-térkép;
+- érintett contract vagy státuszdokumentum.
 
 ---
 
-## 11. Whitespace-only kódeltérés
+## 7. Aktuális forráselsőbbség
 
-Commit:
-
-`243620df0ad393f782b292ed73f306e8ae4ceea5`
-
-Érintett fájl:
-
-- `Godot/scripts/debug/CsharpMinimalRuntimeProof.cs`.
-
-A változás kizárólag négy szóköz → tab behúzás; logikai eltérés nincs.
-
-Státusz:
-
-`NON_BLOCKING_WHITESPACE_ONLY`
-
-A végső cleanupnál:
-
-- visszaállítandó, vagy
-- külön formázási commitként kezelendő.
+1. hivatalos 1.4v szabályfőforrások;
+2. elfogadott emberi döntések;
+3. 0.0.1 termékcél;
+4. projektterv v6.4;
+5. projekt-térkép v1.7;
+6. jelen checkpoint;
+7. runtime language decision gate;
+8. architecture és technology decisions;
+9. aktuális status és contract dokumentumok;
+10. Open Questions kérdés–válasz pár;
+11. Python reference és comparison fixture;
+12. történeti archívum.
 
 ---
 
-## 12. Aktuális nem programozási munkasáv
-
-1. root README és mappaindexek frissítése;
-2. projekt-térkép v1.5 beillesztése;
-3. projektterv v6.2 végleges helyre tétele;
-4. régi elődök eltávolítása;
-5. belső hivatkozásaudit;
-6. verzió/dátum/státusz audit;
-7. Git diff és commit-scope ellenőrzés;
-8. `Aeterna dokumentációk/reference`, `archive_review` és `generated_review` mély auditja;
-9. keresztmappa-ellenőrzés.
-
----
-
-## 13. Törlés előtti kapu
-
-Minden törlés előtt:
-
-- az utód létezik;
-- az utód tartalma teljes;
-- nincs aktív hivatkozás az elődre;
-- az Open Questions tartalma nem veszett el;
-- Git diff ellenőrzött;
-- a törlés nem keveredik runtime kódmódosítással;
-- a felhasználó hagyja jóvá a stage-scope-ot.
-
-A Git-történet megőrzi az eltávolított elődöket.
-
----
-
-## 14. Biztonságos újrakezdési utasítás
+## 8. Biztonságos folytatási utasítás
 
 Új beszélgetés vagy hosszabb megszakítás után:
 
-1. olvasd el ezt az `ENGINE_CHECKPOINT.md` fájlt;
-2. ellenőrizd az aktuális repository HEAD-et;
-3. ne nyisd újra a lezárt runtime-nyelvi döntést;
-4. dokumentációs munka esetén a projekt-térkép v1.5 cleanup-listáját kövesd;
-5. kódolásnál C.5B a következő feladat;
-6. production C# engine-t ne tekints késznek;
-7. a RuntimeCandidate és sidecar proofot regressziós bizonyítékként őrizd meg;
-8. régi fájlt csak utód- és hivatkozásellenőrzés után törölj.
+1. olvasd el ezt a checkpointot;
+2. ellenőrizd a repository aktuális HEAD-jét;
+3. ne nyisd újra a runtime-nyelvi döntést;
+4. ne tekintsd késznek a production C# engine-t;
+5. a RuntimeCandidate és a Python reference maradjon regressziós bizonyíték;
+6. C.5B scope-jába ne kerüljön új gameplay;
+7. először a C.5B foundation tesztjei legyenek zöldek;
+8. csak ezután induljon a Wellspring production migráció.
 
 ---
 
-## 15. Rövid folytatási összefoglaló
+## 9. Rövid aktuális összefoglaló
 
-- Repository HEAD: `32a0cbea24c82dda440f1a053b454ef03949d8ae`.
-- C# proof-bázis: `8e5ee64e42e1657e10f3413444bb870524ee07f9`.
+- Ellenőrzött repository-bázis: `66a206c6e3bf9155fb9f71a354236fb5b6ab3b90`.
 - Python sidecar: kész és befagyasztva.
 - C# candidate: kész és elfogadva.
 - Production C# engine: még nem létezik.
 - C.5A: kész.
-- C.5B: előkészítve, Codex-korlát miatt szünetel.
-- Engine docs aktív rétegének auditja: lényegében kész.
-- Duplikációs térkép: kész.
-- Régi fájlok tényleges eltávolítása: a következő repository cleanup commit feladata.
-- Utána: `Aeterna dokumentációk/` mély almappaaudit és végső keresztellenőrzés.
+- C.5B: implementálásra kész.
+- Codex: elérhető.
+- Dokumentációs archív rendezés: kész.
+- Hátralévő dokumentáció: a négy kritikus fájl rövid ellenőrzése.
+- Következő tényleges fejlesztési feladat: C.5B Production C# Engine Foundation.
