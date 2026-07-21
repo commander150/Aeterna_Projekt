@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.0  
-**Dátum:** 2026-07-20  
+**Dokumentumverzió:** 2.1  
+**Dátum:** 2026-07-21  
 **Státusz:** aktív programegység-README  
-**Aktuális bizonyított repository-commit:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`  
-**Commitüzenet:** `Add minimal C# runtime candidate proof`
+**Aktuális repository HEAD:** `32a0cbea24c82dda440f1a053b454ef03949d8ae` – `docs update 2`  
+**Aktuális C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
 
 Az **AETERNA Game Engine** az AETERNA fizikai kártyajáték contract-first digitális programegysége.
 
@@ -47,6 +47,10 @@ Aktuális checkpoint:
 Dokumentációs index:
 
 - `docs/README.md`
+
+Projekt- és cleanup-térkép:
+
+- `../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.5.md`
 
 ---
 
@@ -340,7 +344,7 @@ Aktív kérdés–válasz pár:
 - `docs/OPEN_QUESTIONS.md`;
 - `docs/OPEN_QUESTIONS_DECISIONS.md`.
 
-A korábbi `CURRENT_OPEN_QUESTIONS.md` tartalma beolvadt, ezért a régi fájl a végső hivatkozás-ellenőrzés után eltávolítandó.
+A korábbi `CURRENT_OPEN_QUESTIONS.md` tartalma beolvadt a kanonikus kérdés–válasz párba; a régi fájl a végső hivatkozás-ellenőrzés után eltávolítandó.
 
 Aktív átnevezések:
 
@@ -403,3 +407,24 @@ A felhasználói commit előtt szükséges:
 - Git diff;
 - tiszta stage-scope;
 - TEMP/log/generated fájlok kizárása.
+
+---
+
+## 10. Dokumentációs cleanup állapota – 2026-07-21
+
+Az aktív engine-dokumentáció frissítése elkészült, de a repositoryban több felváltott előd még megtalálható.
+
+Eltávolítandó:
+
+- `docs/CURRENT_PROTOTYPE_STATUS.md`;
+- `docs/CURRENT_RUNTIME_PACKAGE_STATUS.md`;
+- `docs/CURRENT_CONTRACT_STATUS.md`;
+- `docs/CURRENT_OPEN_QUESTIONS.md`;
+- `docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`;
+- `docs/checkpoints/AETERNA_CURRENT_ENGINE_CHECKPOINT_v1.1_2026-07-20.md`;
+- `docs/ENGINE_OBJECT_IDENTITY_AND_ZONE_MOVE_PLAN_v0.1.md`;
+- `docs/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.2.md` a projektterv végleges dokumentációs mappába helyezése után.
+
+Pontos teljes lista:
+
+- `../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.5.md`.

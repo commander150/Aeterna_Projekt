@@ -3,9 +3,10 @@
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
 **Dokumentumverzió:** 6.2  
-**Dátum:** 2026-07-20  
+**Dátum:** 2026-07-21  
 **Státusz:** aktív projektirányító és prioritási dokumentum  
-**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
+**Aktuális repository HEAD:** `32a0cbea24c82dda440f1a053b454ef03949d8ae` – `docs update 2`  
+**Aktuális C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
 
 Ez a dokumentum az AETERNA projekt aktuális, élő munkatervét tartalmazza.
 
@@ -43,16 +44,16 @@ A projekt döntéseinél az alábbi sorrendet kell követni.
 3. **Aktuális projektirány és prioritások**
    - jelen dokumentum
 4. **Aktuális engine-checkpoint**
-   - `Aeterna game engine/docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
+   - `Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md`
 5. **Runtime-nyelvi és architektúradöntés**
    - `Aeterna game engine/docs/RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
    - `Aeterna game engine/docs/TECHNOLOGY_DECISIONS.md`
    - `Aeterna game engine/docs/ARCHITECTURE.md`
 6. **Aktuális technikai státuszdokumentumok**
    - `DECISION_MAP.md`
-   - `CURRENT_PROTOTYPE_STATUS.md`
-   - `CURRENT_CONTRACT_STATUS.md`
-   - `CURRENT_OPEN_QUESTIONS.md`
+   - `PROTOTYPE_STATUS.md`
+   - `RUNTIME_PACKAGE_STATUS.md`
+   - `CONTRACT_STATUS.md`
 7. **Open Questions dokumentumpár**
    - `OPEN_QUESTIONS.md`
    - `OPEN_QUESTIONS_DECISIONS.md`
@@ -383,25 +384,27 @@ További roadmap:
 
 ## 6. Aktuális prioritási sorrend
 
-### P1 – Meglévő aktív dokumentumok frissítése
+### P1 – Meglévő aktív dokumentumok frissítése és végső cleanup
 
-Elsőként a már létező aktív dokumentumokat kell aktualizálni:
+Az aktív engine-dokumentumok első frissítési köre elkészült. A végső cleanupban az alábbi fájlokat kell összehangolni:
 
-- `CURRENT_ENGINE_CHECKPOINT.md`;
+- `ENGINE_CHECKPOINT.md`;
 - jelen projektterv;
 - `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
 - `TECHNOLOGY_DECISIONS.md`;
 - `ARCHITECTURE.md`;
 - `DECISION_MAP.md`;
-- `CURRENT_PROTOTYPE_STATUS.md`;
-- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.4.md`;
+- `PROTOTYPE_STATUS.md`;
+- `RUNTIME_PACKAGE_STATUS.md`;
+- `CONTRACT_STATUS.md`;
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.5.md`;
 - kapcsolódó README-k.
 
 Új párhuzamos dokumentum csak akkor készülhet, ha nincs megfelelő meglévő célfájl.
 
-### P2 – Dokumentációs audit és konszolidáció előkészítése
+### P2 – Dokumentációs audit és konszolidáció
 
-Külön későbbi munkaszakasz szükséges, mert sok dokumentum jött létre.
+A munkaszakasz aktív. A fő engine-dokumentumok auditja, az Open Questions konszolidációja és a duplikációs térkép elkészült.
 
 A cél:
 
@@ -414,13 +417,14 @@ A cél:
 - nyitott kérdések megőrzése;
 - tartalomvesztés nélküli merge.
 
-A konszolidáció előtt semmit nem szabad automatikusan törölni.
+A kijelölt elődök csak az utódfájl, a belső hivatkozások és a Git diff ellenőrzése után törölhetők. A pontos lista a `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.5.md` fájlban található.
 
 ### P3 – Open Questions közös triázs
 
 - `OPEN_QUESTIONS.md`;
-- `OPEN_QUESTIONS_DECISIONS.md`;
-- `CURRENT_OPEN_QUESTIONS.md`.
+- `OPEN_QUESTIONS_DECISIONS.md`.
+
+A korábbi `CURRENT_OPEN_QUESTIONS.md` tartalma a két kanonikus 2.0-s fájlba beolvadt és már a repositoryban van; a régi fájl a végső hivatkozás-ellenőrzés után eltávolítandó.
 
 Cél:
 
@@ -428,6 +432,27 @@ Cél:
 - megválaszolt kérdések lezárása;
 - hivatalos főforrásból megválaszolható kérdések ellenőrzése;
 - technikai, szabályi, design- és későbbi kérdések szétválasztása.
+
+### P3.1 – Végső dokumentációs cleanup
+
+A projekt-térkép v1.5 alapján eltávolítandó:
+
+- a `CURRENT_*` státusz- és checkpointelődök;
+- a dátumozott átmeneti checkpoint;
+- az engine docs alá tévesen került v6.2 projektterv;
+- a v5.1/v6.0/v6.1 projekttervek;
+- a v1.2/v1.3/v1.4 projekt-térképek;
+- a 2026-07-03-i külön dokumentációs cleanup-checkpoint;
+- a két elavult gyökérszintű engine-összefoglaló;
+- a teljesült object identity/zone move terv.
+
+A törlés után kötelező:
+
+- Markdown-hivatkozáskeresés;
+- verzió/dátum/státusz audit;
+- `git diff --check`;
+- C# whitespace-only diff elkülönítése;
+- commit-scope ellenőrzése.
 
 ### P4 – C.5B production C# foundation
 
@@ -509,7 +534,7 @@ A projektben túl sok részben átfedő dokumentum keletkezett.
    - nincs megfelelő meglévő célfájl;
    - külön contract vagy specifikáció valóban indokolt;
    - az információ nem illeszthető biztonságosan a meglévő struktúrába.
-3. Új napi vagy feladatspecifikus checkpoint helyett a `CURRENT_ENGINE_CHECKPOINT.md` frissítendő.
+3. Új napi vagy feladatspecifikus checkpoint helyett az `ENGINE_CHECKPOINT.md` frissítendő.
 4. Történeti állapot csak szükség esetén kerüljön archív checkpointba.
 5. Azonos témájú fájlok később összevonandók.
 6. Nyitott kérdés vagy döntés nem veszhet el összevonáskor.
@@ -600,8 +625,9 @@ Csak ismétlődés esetén kell `.editorconfig` vagy formázási szabály.
 **Külső tooling és AI/batch réteg:** Python.  
 **Python-sidecar proof:** lezárt és befagyasztott.  
 **C# in-process proof:** lezárt és elfogadott.  
-**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`.  
+**Aktuális repository HEAD:** `32a0cbea24c82dda440f1a053b454ef03949d8ae`.  
+**Aktuális C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`.  
 **Következő kódolási feladat:** C.5B production C# engine foundation.  
 **Kódolási állapot:** Codex-keret miatt ideiglenesen szünetel.  
-**Codex nélküli aktív sáv:** meglévő dokumentumok frissítése, dokumentációs audit előkészítése, projekt-térkép, open questions és kártyaaudit.  
-**Dokumentumkezelési irány:** meglévő aktív fájlok frissítése, későbbi ellenőrzés és összevonás.
+**Codex nélküli aktív sáv:** dokumentációs cleanup végrehajtása, projekt-térkép v1.5, régi elődök eltávolítása, hivatkozás- és verzióaudit, majd az `Aeterna dokumentációk/` mély almappaauditja.  
+**Dokumentumkezelési irány:** egyetlen aktív utód témánként; a felváltott elődök a végső ellenőrzés után kikerülnek a working tree-ből, miközben a Git-történet megőrzi őket.

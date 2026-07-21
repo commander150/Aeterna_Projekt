@@ -1,206 +1,191 @@
-# AETERNA dokumentációk – mappaszintű rend
+# AETERNA dokumentációk – mappaszintű index
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Frissítve:** 2026-07-15  
-**Státusz:** aktív dokumentációs mappaindex
+**Dokumentumverzió:** 2.0  
+**Dátum:** 2026-07-21  
+**Státusz:** aktív dokumentációs mappaindex  
+**Aktuális repository HEAD:** `32a0cbea24c82dda440f1a053b454ef03949d8ae` – `docs update 2`
 
-Ez a mappa az AETERNA projekt fő dokumentációs és adatforrás-jellegű anyagait tartalmazza.
+Ez a mappa az AETERNA projekt hivatalos szabály-, adat-, projektirányítási és munkafolyamat-dokumentumainak elsődleges helye.
 
-A főszint célja, hogy csak aktív vagy kiemelten fontos projektirányító források maradjanak itt. Régi auditok, felváltott tervek, generált exportok és háttéranyagok külön almappákba kerülnek vagy külön státuszt kapnak.
-
----
-
-## 1. Főszinten maradhat
-
-A fő `Aeterna dokumentációk/` szinten csak ezek a dokumentumtípusok maradjanak:
-
-- hivatalos szabályforrások;
-- aktív kártyaadatbázis- és LOOKUPS-munkaforrás;
-- aktuális projektterv;
-- aktuális projekt-térkép és fájlstátusz;
-- aktív munkafolyamat- és adatkezelési szabványok;
-- aktív Excel- és kártyatábla-szabványok;
-- aktív kártyaauditálási munkarend.
+A főszinten csak aktív vagy védett dokumentum maradhat. Felváltott terv, régi projekt-térkép, generált export, átmeneti audit és történeti háttéranyag nem maradhat tartós párhuzamos aktív forrásként.
 
 ---
 
-## 2. Jelenlegi aktív és védett főszinti fájlok
+## 1. Főszinten megtartandó aktív fájlok
 
 ### Hivatalos szabályforrások
 
-- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4v.docx`
-- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`
+- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4v.docx`;
+- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`.
+
+Státusz:
+
+- `ACTIVE_CANONICAL_RULE_SOURCE`;
+- védett;
+- formátumváltás vagy tartalmi módosítás csak külön döntéssel.
 
 ### Aktív adatforrások
 
-- `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`
-- `LOOKUPS.xlsx`
+- `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
+- `LOOKUPS.xlsx`.
+
+Státusz:
+
+- `ACTIVE_EDITING_SOURCE`;
+- a fő szerkesztési háttér Google Sheets;
+- a program közvetlenül ne az XLSX-et fogyassza, hanem validált runtime package-et.
 
 ### Aktív projektirányító dokumentumok
 
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.1.md`
-- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.4.md`
+- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.2.md`;
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.5.md`;
+- jelen `README.md`.
 
 ### Aktív munkaszabványok
 
-- `AETERNA_MUNKAFOLYAMAT_ES_ADATKEZELES_1.2.md`
-- `AETERNA_EXCEL_STRUKTURA_ES_OSZLOPSZABVANY_1.2.md`
-- `AETERNA – KÁRTYAÁLLOMÁNY AUDITÁLÁSI MUNKAREND ÉS HIBAKATEGÓRIÁK 1.2v.md`
-- `kartya_tabla_szabvany v1.2.md`
+- `AETERNA_MUNKAFOLYAMAT_ES_ADATKEZELES_1.2.md`;
+- `AETERNA_EXCEL_STRUKTURA_ES_OSZLOPSZABVANY_1.2.md`;
+- `AETERNA – KÁRTYAÁLLOMÁNY AUDITÁLÁSI MUNKAREND ÉS HIBAKATEGÓRIÁK 1.2v.md`;
+- `kartya_tabla_szabvany v1.2.md`.
+
+Ezek kártyaadat- és auditmunkánál kötelező referenciák, de nem írják felül az engine- vagy szabályforrást.
 
 ---
 
-## 3. Felváltott, de még főszinten található dokumentumok
+## 2. Főszintről eltávolítandó felváltott verziók
 
-### `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.0.md`
+A v6.2 és v1.5 sikeres beillesztése, valamint a hivatkozások ellenőrzése után eltávolítandó:
 
-- státusz: `SUPERSEDED_REFERENCE`
-- felváltotta: `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.1.md`
-- a Wellspringet még közvetlen következő programozási feladatként kezeli;
-- az új runtime-nyelvi döntési kaput még nem tartalmazza.
+- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.0.md`;
+- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.1.md`;
+- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v5.1.md`;
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.2.md`;
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.3.md`;
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.4.md`;
+- `DOCUMENTATION_CLEANUP_CHECKPOINT_2026-07-03.md`.
 
-### `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v5.1.md`
+A Git-történet ezeket megőrzi. Külön archívmásolat csak akkor indokolt, ha a repositorytörténettől független offline archívum készül.
 
-- státusz: `SUPERSEDED_REFERENCE`
-- nem aktív projektirányító forrás.
+A dátumozott cleanup checkpoint külön aktív fájlként szintén nem marad szükséges: az érvényes tartalma a v1.5 projekt-térképbe, a jelen mappaindexbe és az engine-checkpointba került.
 
-### `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.3.md`
+A v1.4 különösen nem maradhat aktív, mert:
 
-- státusz: `SUPERSEDED_REFERENCE`
-- felváltotta: `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.4.md`
-- még a Python engine-t kezeli elsődleges végrehajtási útként, a C# proof-jelölt nélkül.
-
-### `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.2.md`
-
-- státusz: `SUPERSEDED_REFERENCE`
-- értékes történeti és részletes régi motoros fájlfelmérés;
-- nem tekintendő a jelenlegi repository teljes és pontos aktív térképének.
-
-A felváltott dokumentumokat ez a frissítés nem törli és nem mozgatja.
-
-Később külön dokumentációs rendezési commitban helyezhetők át `archive_review/` alá, minden hivatkozás ellenőrzése után.
+- nyitottként kezeli a már lezárt runtime-döntést;
+- v6.1-re és `CURRENT_*` fájlokra hivatkozik;
+- a fájl tartalma a Python engine-rész közepén megszakad.
 
 ---
 
-## 4. Kapcsolódó aktív engine-dokumentumok
-
-Az új rules engine technikai dokumentumai az `Aeterna game engine/docs/` alatt találhatók.
-
-### Aktuális irány és döntési kapu
-
-- `Aeterna game engine/docs/AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`
-  - hosszú távú első játszható termékmérföldkő;
-- `Aeterna game engine/docs/RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
-  - a következő elsődleges Codex-prioritás;
-  - Python sidecar és Godot .NET/C# összehasonlító proof;
-  - szükség esetén minimal GDScript proof;
-- `Aeterna game engine/docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
-  - a működő Python engine referenciaállapota;
-- `Aeterna game engine/docs/TECHNOLOGY_DECISIONS.md`
-  - technológiai jelöltek és elfogadott réteghatárok;
-- `Aeterna game engine/docs/DECISION_MAP.md`
-  - rövid aktuális döntés- és prioritástérkép;
-- `Aeterna game engine/docs/CURRENT_PROTOTYPE_STATUS.md`
-  - proofok és prototípusok státusza;
-- `Aeterna game engine/docs/CURRENT_CONTRACT_STATUS.md`
-  - a ténylegesen implementált contractok státusza;
-- `Aeterna game engine/docs/CURRENT_OPEN_QUESTIONS.md`
-  - közeli döntési kapuk és blokkolók.
-
-### Open Questions dokumentumpár
-
-- `Aeterna game engine/docs/OPEN_QUESTIONS.md`
-  - teljes történeti és hosszú távú kérdésregiszter;
-- `Aeterna game engine/docs/OPEN_QUESTIONS_DECISIONS.md`
-  - a kérdésekhez tartozó válasz- és döntési irányok.
-
-A két fájl együtt olvasandó.
-
-### Hosszú formájú háttér- és történeti dokumentumok
-
-- `Aeterna game engine/docs/checkpoints/CHECKPOINTS.md`
-- `Aeterna game engine/docs/CONTRACT_SPECIFICATION.md`
-- `Aeterna game engine/docs/RUNTIME_PACKAGE_SPECIFICATION.md`
-- `Aeterna game engine/docs/ABILITY_MODULE_SYSTEM.md`
-- `Aeterna game engine/docs/PROTOTYPE_PLANS.md`
-
-Dokumentumelsőbbség esetén:
-
-1. hivatalos 1.4v főforrások;
-2. v6.1 projektterv;
-3. v1.4 projekt-térkép;
-4. `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
-5. `CURRENT_ENGINE_CHECKPOINT.md`;
-6. `TECHNOLOGY_DECISIONS.md` és `DECISION_MAP.md`;
-7. current status dokumentumok;
-8. `OPEN_QUESTIONS.md` + `OPEN_QUESTIONS_DECISIONS.md` együtt;
-9. hosszú formájú korábbi tervezési dokumentumok.
-
----
-
-## 5. Almappák
+## 3. Almappák
 
 ### `reference/`
 
-Nem aktív, de hasznos háttér- vagy referenciaanyagok:
+Nem canonical, de hasznos háttéranyag:
 
-- designjegyzetek;
-- ötletládák;
-- régi technikai referenciaanyagok;
-- tesztelési workflow-dokumentumok;
-- névprofil-sablonok;
-- régi architektúra- vagy backend referenciaanyagok.
+- kártyatervezési katalógus;
+- ötletláda;
+- névprofil-sablon;
+- régi architektúra- és workflow-referenciák;
+- tanulságok és kutatási anyagok.
+
+A reference fájl nem írhat felül aktív főforrást.
 
 ### `archive_review/`
 
-Korábbi auditok, felváltott tervek, állapotjelentések és cleanup-nyomok.
+Felváltott auditok, régi tervek és cleanup-nyomok.
 
-Ezek nem törlendők automatikusan.
+Kezelés:
+
+- automatikusan nem törlendő;
+- tartalmi audit után összevonható vagy eltávolítható;
+- aktív hivatkozás nem mutathat ide elsődleges forrásként.
 
 ### `generated_review/`
 
-Generált, exportált vagy gépi feldolgozásból származó review-anyagok.
+Regenerálható review- és exportanyag.
 
-Ezek nem canonical források.
+Kezelés:
+
+- nem canonical;
+- kézzel nem szerkesztendő;
+- generált mappanevek, például `Új mappa`, későbbi külön cleanupot igényelnek;
+- csak szükséges fixture vagy ellenőrzési output maradjon verziókezelésben.
 
 ### `active/`
 
-Fenntartott mappa. A fő aktív forrásokat egyelőre nem mozgatjuk ide, mert több dokumentum és tooling útvonal alapján hivatkozik rájuk.
+Fenntartott mappa. A fő aktív források jelenleg főszinten maradnak, amíg a hivatkozások és tooling útvonalak rendezése be nem fejeződik.
 
 ---
 
-## 6. Munkaszabály
+## 4. Kapcsolódó engine-dokumentáció
 
-Új fájl elhelyezésekor:
+Aktív engine-index:
 
-1. el kell dönteni, hogy aktív forrás, referencia, auditnyom vagy generált output;
-2. aktív főforrás csak indokolt esetben kerüljön főszintre;
-3. átmeneti audit vagy report ne maradjon főszinten;
-4. generált export ne maradjon főszinten;
-5. felváltott projektirányító dokumentum kapjon explicit `SUPERSEDED_REFERENCE` státuszt;
-6. törlés vagy mozgatás előtt legyen külön döntés és hivatkozásellenőrzés;
-7. dokumentációs rendezés ne keveredjen runtime kódmódosítással;
-8. teljes kérdésregisztert nem szabad rövidítéskor elveszíteni;
-9. a napi aktív állapot külön current dokumentumban tartható;
-10. tanulóprogramok vagy külső forráskódok ne kerüljenek automatikusan az AETERNA repositoryba;
-11. kódátvétel előtt licenc- és attributionellenőrzés szükséges.
+- `../Aeterna game engine/README.md`;
+- `../Aeterna game engine/docs/README.md`.
+
+Aktív technikai folytatási pont:
+
+- `../Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md`.
+
+Aktív architektúra és döntések:
+
+- `../Aeterna game engine/docs/ARCHITECTURE.md`;
+- `../Aeterna game engine/docs/TECHNOLOGY_DECISIONS.md`;
+- `../Aeterna game engine/docs/RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
+- `../Aeterna game engine/docs/DECISION_MAP.md`.
+
+Aktív státuszok:
+
+- `../Aeterna game engine/docs/PROTOTYPE_STATUS.md`;
+- `../Aeterna game engine/docs/RUNTIME_PACKAGE_STATUS.md`;
+- `../Aeterna game engine/docs/CONTRACT_STATUS.md`.
+
+Open Questions:
+
+- `../Aeterna game engine/docs/OPEN_QUESTIONS.md`;
+- `../Aeterna game engine/docs/OPEN_QUESTIONS_DECISIONS.md`.
+
+A korábbi `CURRENT_*` fájlok a kijelölt utódok ellenőrzése után eltávolítandók.
 
 ---
 
-## 7. Jelenlegi státusz
+## 5. Dokumentumnév- és verziószabály
 
-A 2026-07-15-i dokumentációs frissítések eredménye:
+- Aktív, stabil szerepű engine-dokumentum lehet verziószám nélküli fájlnévvel, de a dokumentum belsejében kötelező a verzió.
+- Projektterv és projekt-térkép verziója a fájlnévben is szerepelhet, mert egymást követő projektirányítási kiadásokat jelöl.
+- `CURRENT_` előtag nem használható, ha nincs külön, indokolt párfájl.
+- A `frissitett`, `new`, `final`, `copy`, `másolat` vagy hasonló állapotjelző nem lehet tartós fájlnév része.
+- Az újabb verzió kijelöli a felváltott elődöt.
+- Felváltott verzió nem marad aktív főszinten csak azért, mert történeti értéke van; erre a Git-történet vagy az `archive_review/` szolgál.
+- Minden aktív Markdown-dokumentumban legyen verzió, dátum és státusz.
 
-- a v6.1 az aktív projektterv;
-- a v1.4 az aktív projekt-térkép;
-- a v6.0, v5.1, v1.3 és v1.2 felváltott referencia;
-- a működő Python engine checkpointként megőrzött referencia;
-- a következő Codex-prioritás a runtime-nyelvi comparison;
-- a C#/.NET egyenrangú fő jelöltként bekerült;
-- a Python sidecar továbbra is fő jelölt;
-- GDScript csak szükség esetén kap szűk proofot;
-- a Wellspring gameplay-feladat a döntési kapu után folytatandó;
-- Codex nélkül dokumentációs, audit- és döntés-előkészítő munka folytatódik;
-- a hivatalos főforrások és adatforrások változatlanul védettek;
-- nem történt fájltörlés vagy fájlmozgatás.
+---
+
+## 6. Aktuális cleanup-szakasz
+
+Elkészült:
+
+- engine-dokumentáció első konszolidációja;
+- `CURRENT_OPEN_QUESTIONS.md` beolvasztása;
+- C# runtime-döntés átvezetése;
+- új státuszdokumentumok;
+- aktív checkpoint-utód;
+- project-map v1.5 cleanup-terv.
+
+Következik:
+
+1. a projekt-térkép v1.5 és a jelen README beillesztése;
+2. régi projekttervek és projekt-térképek eltávolítása;
+3. engine `CURRENT_*` elődök eltávolítása;
+4. checkpointduplikációk megszüntetése;
+5. gyökérszintű elavult engine-összefoglalók eltávolítása;
+6. teljes hivatkozás- és verzióaudit;
+7. `reference/`, `archive_review/` és `generated_review/` külön tartalmi auditja;
+8. végső keresztmappa-ellenőrzés.
+
+A teljes fájlstátusz- és törlési térkép:
+
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.5.md`.
