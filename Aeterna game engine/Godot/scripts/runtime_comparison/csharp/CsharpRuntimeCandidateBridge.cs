@@ -27,7 +27,7 @@ public static class CsharpRuntimeCandidateBridge
         ["fixture_id"] = proof.Candidate.FixtureId,
         ["godot_pid"] = System.Environment.ProcessId,
         ["managed_process_id"] = System.Environment.ProcessId,
-        ["godot_version"] = Engine.GetVersionInfo()["string"].AsString(),
+        ["godot_version"] = Godot.Engine.GetVersionInfo()["string"].AsString(),
         ["dotnet_runtime"] = System.Environment.Version.ToString(),
         ["target_framework"] = "net8.0",
         ["architecture"] = RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant(),
