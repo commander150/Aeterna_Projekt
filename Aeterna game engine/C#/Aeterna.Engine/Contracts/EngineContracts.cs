@@ -85,6 +85,9 @@ public sealed record ActionRequest(
     [property: JsonPropertyName("action_type")] string ActionType,
     [property: JsonPropertyName("payload")] JsonElement Payload);
 
+public sealed record NormalInflowActionPayload(
+    [property: JsonPropertyName("card_instance_id")] string CardInstanceId);
+
 public sealed record EngineDiagnostic(
     [property: JsonPropertyName("schema_version")] string SchemaVersion,
     [property: JsonPropertyName("code")] string Code,
@@ -225,7 +228,8 @@ public sealed record DebugPlayerSnapshot(
     ImmutableArray<string> DeckCardInstanceIds,
     ImmutableArray<string> HandCardInstanceIds,
     ImmutableArray<string> DiscardCardInstanceIds,
-    ImmutableArray<string> WellspringCardInstanceIds);
+    ImmutableArray<string> WellspringCardInstanceIds,
+    int? NormalInflowUsedTurnNumber);
 
 public sealed record DebugCardInstanceSnapshot(
     string CardInstanceId,

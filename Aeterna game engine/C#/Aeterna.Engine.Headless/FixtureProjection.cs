@@ -18,6 +18,9 @@ internal static class FixtureProjection
         "payload",
     ];
 
+    private static readonly ImmutableHashSet<string> LegacyC5bActionTypes =
+        ImmutableHashSet.Create(StringComparer.Ordinal, "end_turn", "draw_card");
+
     public static JsonObject BuildCanonicalState(DebugSnapshot state)
     {
         var players = new JsonArray();
@@ -79,8 +82,9 @@ internal static class FixtureProjection
 
     public static JsonObject BuildActionSpace(DebugSnapshot state, LegalActionSpace actionSpace)
     {
+        var fixtureActions = ProjectLegacyC5bActions(actionSpace);
         var actionRecords = new JsonArray();
-        foreach (var action in actionSpace.Actions)
+        foreach (var action in fixtureActions)
         {
             actionRecords.Add(new JsonObject
             {
@@ -118,8 +122,8 @@ internal static class FixtureProjection
             ["priority_player_id"] = state.PriorityPlayerId,
             ["player_id"] = actionSpace.PlayerId,
             ["actions"] = actionRecords,
-            ["enabled_action_count"] = actionSpace.Actions.Count(action => action.Enabled),
-            ["disabled_action_count"] = actionSpace.Actions.Count(action => !action.Enabled),
+            ["enabled_action_count"] = fixtureActions.Count(action => action.Enabled),
+            ["disabled_action_count"] = fixtureActions.Count(action => !action.Enabled),
             ["metadata"] = new JsonObject
             {
                 ["rules_scope"] = "minimal_end_turn_smoke",
@@ -134,8 +138,9 @@ internal static class FixtureProjection
         bool stateUnchanged)
     {
         var canonicalState = BuildCanonicalState(state);
+        var fixtureActions = ProjectLegacyC5bActions(actionSpace);
         var orderingActions = new JsonArray();
-        foreach (var action in actionSpace.Actions)
+        foreach (var action in fixtureActions)
         {
             orderingActions.Add(new JsonObject
             {
@@ -174,7 +179,8 @@ internal static class FixtureProjection
             players.Add(BuildPlayerProjection(player));
         }
 
-        var actionTypes = viewerActions.Actions
+        var fixtureActions = ProjectLegacyC5bActions(viewerActions);
+        var actionTypes = fixtureActions
             .Select(action => action.ActionType)
             .Distinct(StringComparer.Ordinal)
             .OrderBy(value => value, StringComparer.Ordinal);
@@ -208,9 +214,9 @@ internal static class FixtureProjection
             ["legal_action_summary"] = new JsonObject
             {
                 ["state_version"] = snapshot.StateVersion,
-                ["action_count"] = viewerActions.Actions.Length,
-                ["enabled_count"] = viewerActions.Actions.Count(action => action.Enabled),
-                ["disabled_count"] = viewerActions.Actions.Count(action => !action.Enabled),
+                ["action_count"] = fixtureActions.Length,
+                ["enabled_count"] = fixtureActions.Count(action => action.Enabled),
+                ["disabled_count"] = fixtureActions.Count(action => !action.Enabled),
                 ["action_types"] = StringArray(actionTypes),
             },
             ["event_log_summary"] = new JsonObject
@@ -239,6 +245,11 @@ internal static class FixtureProjection
             },
         };
     }
+
+    private static ImmutableArray<LegalAction> ProjectLegacyC5bActions(
+        LegalActionSpace actionSpace) => actionSpace.Actions
+        .Where(action => LegacyC5bActionTypes.Contains(action.ActionType))
+        .ToImmutableArray();
 
     public static JsonObject BuildLegacyRequest(ActionRequest request) => new()
     {

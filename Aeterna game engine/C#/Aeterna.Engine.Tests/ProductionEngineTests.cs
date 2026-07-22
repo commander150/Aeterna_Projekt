@@ -35,6 +35,20 @@ internal static class ProductionEngineTests
         new("wellspring_null_activity_is_rejected", WellspringNullActivityIsRejected),
         new("wellspring_unknown_activity_is_rejected", WellspringUnknownActivityIsRejected),
         new("wellspring_registry_list_mismatch_is_rejected", WellspringRegistryListMismatchIsRejected),
+        new("normal_inflow_legal_action_contract", NormalInflowLegalActionContract),
+        new("normal_inflow_disabled_reasons_are_stable", NormalInflowDisabledReasonsAreStable),
+        new("normal_inflow_payload_rejections_are_immutable", NormalInflowPayloadRejectionsAreImmutable),
+        new("normal_inflow_card_reference_rejections_are_immutable", NormalInflowCardReferenceRejectionsAreImmutable),
+        new("normal_inflow_registry_list_mismatch_is_rejected", NormalInflowRegistryListMismatchIsRejected),
+        new("normal_inflow_stale_request_is_immutable", NormalInflowStaleRequestIsImmutable),
+        new("normal_inflow_transition_moves_selected_hand_card", NormalInflowTransitionMovesSelectedHandCard),
+        new("normal_inflow_reindexes_hand_and_appends_wellspring", NormalInflowReindexesHandAndAppendsWellspring),
+        new("normal_inflow_updates_resource_summary_immediately", NormalInflowUpdatesResourceSummaryImmediately),
+        new("normal_inflow_event_visibility_is_safe", NormalInflowEventVisibilityIsSafe),
+        new("normal_inflow_is_once_per_turn_and_restores_next_round", NormalInflowIsOncePerTurnAndRestoresNextRound),
+        new("end_turn_remains_enabled_without_normal_inflow", EndTurnRemainsEnabledWithoutNormalInflow),
+        new("normal_inflow_snapshots_are_defensive_and_non_mutating", NormalInflowSnapshotsAreDefensiveAndNonMutating),
+        new("normal_inflow_usage_state_invariants_are_enforced", NormalInflowUsageStateInvariantsAreEnforced),
         new("public_results_are_defensive", PublicResultsAreDefensive),
         new("canonical_fixture_matches_python_oracle", CanonicalFixtureMatchesPythonOracle),
         new("canonical_fixture_is_deterministic_for_100_runs", CanonicalFixtureIsDeterministicForOneHundredRuns),
@@ -93,8 +107,8 @@ internal static class ProductionEngineTests
         Equal(6, state.CardInstances.Length, "Initial card registry count is invalid.");
 
         var legal = session.ListLegalActions("player_1", includeDisabled: true);
-        SequenceEqual(["end_turn", "draw_card"], legal.Actions.Select(item => item.ActionType), "Legal action order is invalid.");
-        Equal(2, legal.Actions.Count(item => item.Enabled), "Initial enabled action count is invalid.");
+        SequenceEqual(["end_turn", "normal_inflow", "draw_card"], legal.Actions.Select(item => item.ActionType), "Legal action order is invalid.");
+        Equal(3, legal.Actions.Count(item => item.Enabled), "Initial enabled action count is invalid.");
         JsonSerializer.Serialize(createResponse);
         JsonSerializer.Serialize(legal);
 
@@ -512,6 +526,456 @@ internal static class ProductionEngineTests
         AssertStateInvariantRejected(state, "registry and zones disagree", "Wellspring registry/list mismatch was accepted.");
     }
 
+    private static void NormalInflowLegalActionContract()
+    {
+        var (session, state) = CreateNormalInflowSession(handCount: 1);
+        var first = Action(session, "player_1", "normal_inflow", includeDisabled: true);
+        var second = Action(session, "player_1", "normal_inflow", includeDisabled: true);
+
+        Equal(true, first.Enabled, "Normal Inflow must be enabled for the active player with a hand card.");
+        Equal(null, first.DisabledReason, "Enabled Normal Inflow has a disabled reason.");
+        Equal("normal_inflow:1:0:player_1", first.ActionId, "Normal Inflow action_id is not deterministic.");
+        Equal(first.ActionId, second.ActionId, "Repeated legal action queries changed the action_id.");
+        Equal(150, first.OrderRank, "Normal Inflow action ordering is invalid.");
+        Equal(0, state.StateVersion, "Legal action projection changed state_version.");
+        Equal(0, state.Events.Count, "Legal action projection emitted an event.");
+
+        var schema = first.PayloadSchema;
+        Equal(JsonValueKind.Object, schema.ValueKind, "Normal Inflow payload schema must be an object.");
+        SequenceEqual(
+            ["additional_properties", "properties", "required", "type"],
+            schema.EnumerateObject().Select(property => property.Name).OrderBy(name => name, StringComparer.Ordinal),
+            "Normal Inflow payload schema fields are invalid.");
+        Equal(false, schema.GetProperty("additional_properties").GetBoolean(), "Extra payload fields must be forbidden.");
+        SequenceEqual(
+            ["card_instance_id"],
+            schema.GetProperty("required").EnumerateArray().Select(item => item.GetString()!),
+            "Normal Inflow required payload fields are invalid.");
+        var properties = schema.GetProperty("properties");
+        Equal(1, properties.EnumerateObject().Count(), "Normal Inflow must expose exactly one payload property.");
+        Equal("string", properties.GetProperty("card_instance_id").GetProperty("type").GetString(), "Card selector type is invalid.");
+        Equal("hand", properties.GetProperty("card_instance_id").GetProperty("source_zone").GetString(), "Card selector source zone is invalid.");
+
+        var typedPayload = new NormalInflowActionPayload("ci_test");
+        var typedPayloadJson = JsonSerializer.Serialize(typedPayload);
+        True(typedPayloadJson.Contains("\"card_instance_id\"", StringComparison.Ordinal), "Typed payload is not snake_case.");
+        Equal(false, typedPayloadJson.Contains("CardInstanceId", StringComparison.Ordinal), "Typed payload leaked a C# property name.");
+    }
+
+    private static void NormalInflowDisabledReasonsAreStable()
+    {
+        var (session, state) = CreateNormalInflowSession(handCount: 1, playerTwoHandCount: 0);
+        var inactive = Action(session, "player_2", "normal_inflow", includeDisabled: true);
+        Equal(false, inactive.Enabled, "Inactive player Normal Inflow must be disabled.");
+        Equal("not_active_player", inactive.DisabledReason, "Inactive player disabled reason is invalid.");
+
+        var (emptyHandSession, _) = CreateNormalInflowSession(handCount: 0);
+        var emptyHand = Action(emptyHandSession, "player_1", "normal_inflow", includeDisabled: true);
+        Equal(false, emptyHand.Enabled, "Normal Inflow must be disabled for an empty hand.");
+        Equal("hand_empty", emptyHand.DisabledReason, "Empty hand disabled reason is invalid.");
+
+        state.GetPlayer("player_1").NormalInflowUsedTurnNumber = state.TurnNumber;
+        EngineSession.ValidateState(state);
+        var alreadyUsed = Action(session, "player_1", "normal_inflow", includeDisabled: true);
+        Equal(false, alreadyUsed.Enabled, "Normal Inflow must be disabled after use in the current turn.");
+        Equal("normal_inflow_already_used", alreadyUsed.DisabledReason, "Already-used disabled reason is invalid.");
+
+        state.GetPlayer("player_2").NormalInflowUsedTurnNumber = state.TurnNumber;
+        EngineSession.ValidateState(state);
+        var inactivePrecedence = Action(session, "player_2", "normal_inflow", includeDisabled: true);
+        Equal("not_active_player", inactivePrecedence.DisabledReason, "Inactive-player reason precedence is unstable.");
+    }
+
+    private static void NormalInflowPayloadRejectionsAreImmutable()
+    {
+        var (session, state) = CreateNormalInflowSession(handCount: 1);
+        var action = EnabledAction(session, "player_1", "normal_inflow");
+        var cardInstanceId = state.GetPlayer("player_1").HandCardInstanceIds.Single();
+        var invalidPayloads = new JsonElement[]
+        {
+            default,
+            JsonSerializer.SerializeToElement<object?>(null),
+            ContractJsonValue.From(new[] { cardInstanceId }),
+            ContractJsonValue.EmptyObject(),
+            ContractJsonValue.From(new Dictionary<string, object?> { ["card_instance_id"] = 42 }),
+            ContractJsonValue.From(new Dictionary<string, object?> { ["card_instance_id"] = "   " }),
+            ContractJsonValue.From(new Dictionary<string, object?>
+            {
+                ["card_instance_id"] = cardInstanceId,
+                ["unexpected"] = true,
+            }),
+        };
+
+        for (var index = 0; index < invalidPayloads.Length; index++)
+        {
+            var request = Request(
+                session,
+                action,
+                $"normal_inflow_invalid_payload_{index + 1}",
+                invalidPayloads[index],
+                expectedStateVersion: 0);
+            var requestBefore = ActionRequestFingerprint(request);
+            var stateBefore = CanonicalDebugState(session);
+            var response = session.SubmitAction(request);
+
+            Equal(false, response.Accepted, "Malformed Normal Inflow payload was accepted.");
+            Equal("action_payload_invalid", response.Reason, "Malformed payload rejection reason is invalid.");
+            Equal("ACTION_PAYLOAD_INVALID", response.Diagnostics.Single().Code, "Malformed payload diagnostic is invalid.");
+            Equal(0, response.Events.Length, "Malformed payload emitted an event.");
+            Equal(stateBefore, CanonicalDebugState(session), "Malformed payload mutated state.");
+            Equal(requestBefore, ActionRequestFingerprint(request), "Malformed payload request was mutated.");
+        }
+
+        Equal(0, state.StateVersion, "Malformed payload changed state_version.");
+        Equal(0, state.Events.Count, "Malformed payload changed event history.");
+    }
+
+    private static void NormalInflowCardReferenceRejectionsAreImmutable()
+    {
+        var (session, state) = CreateNormalInflowSession(
+            handCount: 1,
+            deckCount: 1,
+            playerTwoHandCount: 1);
+        var action = EnabledAction(session, "player_1", "normal_inflow");
+        var playerOne = state.GetPlayer("player_1");
+        var playerTwo = state.GetPlayer("player_2");
+        var cases = new[]
+        {
+            (CardInstanceId: "ci_missing", Reason: "card_instance_unknown", Code: "NORMAL_INFLOW_CARD_UNKNOWN"),
+            (CardInstanceId: playerTwo.HandCardInstanceIds.Single(), Reason: "card_not_owned_or_controlled", Code: "NORMAL_INFLOW_CARD_AUTHORITY_INVALID"),
+            (CardInstanceId: playerOne.DeckCardInstanceIds.Single(), Reason: "card_not_in_hand", Code: "NORMAL_INFLOW_CARD_ZONE_INVALID"),
+        };
+
+        for (var index = 0; index < cases.Length; index++)
+        {
+            var stateBefore = CanonicalDebugState(session);
+            var response = session.SubmitAction(Request(
+                session,
+                action,
+                $"normal_inflow_invalid_reference_{index + 1}",
+                NormalInflowPayload(cases[index].CardInstanceId),
+                expectedStateVersion: 0));
+            Equal(false, response.Accepted, "Invalid Normal Inflow card reference was accepted.");
+            Equal(cases[index].Reason, response.Reason, "Card reference rejection reason is invalid.");
+            Equal(cases[index].Code, response.Diagnostics.Single().Code, "Card reference diagnostic is invalid.");
+            Equal(stateBefore, CanonicalDebugState(session), "Invalid card reference mutated state.");
+            Equal(0, response.Events.Length, "Invalid card reference emitted an event.");
+        }
+
+        Equal(0, state.StateVersion, "Invalid card reference changed state_version.");
+        Equal(0, state.Events.Count, "Invalid card reference changed event history.");
+    }
+
+    private static void NormalInflowRegistryListMismatchIsRejected()
+    {
+        var (session, state) = CreateNormalInflowSession(handCount: 1);
+        var action = EnabledAction(session, "player_1", "normal_inflow");
+        var card = state.GetCardInstance(state.GetPlayer("player_1").HandCardInstanceIds.Single());
+        card.Zone = "deck";
+        var stateBefore = CanonicalDebugState(session);
+
+        try
+        {
+            session.SubmitAction(Request(
+                session,
+                action,
+                "normal_inflow_registry_list_mismatch",
+                NormalInflowPayload(card.CardInstanceId),
+                expectedStateVersion: 0));
+            throw new InvalidOperationException("Normal Inflow registry/list mismatch was accepted.");
+        }
+        catch (EngineStateException exception)
+        {
+            True(exception.Message.Contains("Hand card zone", StringComparison.Ordinal), "Unexpected hand invariant failure.");
+        }
+
+        Equal(stateBefore, CanonicalDebugState(session), "Registry/list mismatch path mutated state.");
+        Equal(0, state.Events.Count, "Registry/list mismatch path emitted an event.");
+    }
+
+    private static void NormalInflowStaleRequestIsImmutable()
+    {
+        var (session, state) = CreateNormalInflowSession(handCount: 2, deckCount: 1);
+        var staleAction = EnabledAction(session, "player_1", "normal_inflow");
+        var selectedCardId = state.GetPlayer("player_1").HandCardInstanceIds[0];
+        var staleRequest = Request(
+            session,
+            staleAction,
+            "normal_inflow_stale",
+            NormalInflowPayload(selectedCardId),
+            expectedStateVersion: 0);
+        var draw = EnabledAction(session, "player_1", "draw_card");
+        var drawResponse = session.SubmitAction(Request(
+            session,
+            draw,
+            "normal_inflow_stale_setup_draw",
+            ContractJsonValue.EmptyObject(),
+            expectedStateVersion: 0));
+        Equal(true, drawResponse.Accepted, "Stale request setup draw failed.");
+
+        var stateBefore = CanonicalDebugState(session);
+        var requestBefore = JsonSerializer.Serialize(staleRequest);
+        var response = session.SubmitAction(staleRequest);
+        Equal(false, response.Accepted, "Stale Normal Inflow request was accepted.");
+        Equal("stale_state_version", response.Reason, "Stale Normal Inflow reason is invalid.");
+        Equal("STALE_STATE_VERSION", response.Diagnostics.Single().Code, "Stale Normal Inflow diagnostic is invalid.");
+        Equal(stateBefore, CanonicalDebugState(session), "Stale Normal Inflow request mutated state.");
+        Equal(requestBefore, JsonSerializer.Serialize(staleRequest), "Stale Normal Inflow request object was mutated.");
+        Equal(1, state.Events.Count, "Stale Normal Inflow changed event history.");
+    }
+
+    private static void NormalInflowTransitionMovesSelectedHandCard()
+    {
+        var (session, state) = CreateNormalInflowSession(handCount: 1);
+        var player = state.GetPlayer("player_1");
+        var cardInstanceId = player.HandCardInstanceIds.Single();
+        var cardBefore = session.GetDebugSnapshot().CardInstances.Single(card => card.CardInstanceId == cardInstanceId);
+        var action = EnabledAction(session, "player_1", "normal_inflow");
+        var response = session.SubmitAction(Request(
+            session,
+            action,
+            "normal_inflow_success",
+            NormalInflowPayload(cardInstanceId),
+            expectedStateVersion: 0));
+
+        Equal(true, response.Accepted, "Normal Inflow must be accepted.");
+        Equal(0, response.StateVersionBefore, "Normal Inflow before-version is invalid.");
+        Equal(1, response.StateVersionAfter, "Normal Inflow must increment state_version exactly once.");
+        Equal(1, response.Events.Length, "Normal Inflow must emit exactly one gameplay event.");
+        Equal("zone_move", response.Events.Single().EventType, "Normal Inflow event type is invalid.");
+        Equal("normal_inflow", response.Events.Single().CauseActionType, "Normal Inflow event cause is invalid.");
+        Equal(0, player.HandCardInstanceIds.Count, "Normal Inflow did not remove the selected hand card.");
+        SequenceEqual([cardInstanceId], player.WellspringCardInstanceIds, "Normal Inflow did not append to Wellspring.");
+        Equal(1, player.NormalInflowUsedTurnNumber, "Normal Inflow turn usage state is invalid.");
+
+        var cardAfter = session.GetDebugSnapshot().CardInstances.Single(card => card.CardInstanceId == cardInstanceId);
+        Equal("wellspring", cardAfter.Zone, "Infused card zone is invalid.");
+        Equal(0, cardAfter.ZoneIndex, "Infused card zone index is invalid.");
+        Equal("owner_only", cardAfter.Visibility, "Infused card visibility is invalid.");
+        Equal("active", cardAfter.ActivityState, "Infused card must enter active.");
+        Equal(cardBefore.ZoneSequence + 1, cardAfter.ZoneSequence, "Infused card zone_sequence must increment exactly once.");
+        Equal(cardBefore.InitialZone, cardAfter.InitialZone, "Normal Inflow changed initial_zone.");
+        Equal(cardBefore.OwnerPlayerId, cardAfter.OwnerPlayerId, "Normal Inflow changed owner.");
+        Equal(cardBefore.ControllerPlayerId, cardAfter.ControllerPlayerId, "Normal Inflow changed controller.");
+        Equal(0, session.GetDebugInvariantDiagnostics().Length, "Normal Inflow produced an invalid state.");
+    }
+
+    private static void NormalInflowReindexesHandAndAppendsWellspring()
+    {
+        var (session, state) = CreateNormalInflowSession(
+            handCount: 3,
+            activeWellspringCount: 1,
+            exhaustedWellspringCount: 1);
+        var player = state.GetPlayer("player_1");
+        var initialHand = player.HandCardInstanceIds.ToArray();
+        var initialWellspring = player.WellspringCardInstanceIds.ToArray();
+        var selected = initialHand[1];
+        var response = session.SubmitAction(Request(
+            session,
+            EnabledAction(session, "player_1", "normal_inflow"),
+            "normal_inflow_middle_hand_card",
+            NormalInflowPayload(selected),
+            expectedStateVersion: 0));
+        Equal(true, response.Accepted, "Middle hand card Normal Inflow failed.");
+
+        SequenceEqual([initialHand[0], initialHand[2]], player.HandCardInstanceIds, "Remaining hand order is unstable.");
+        SequenceEqual(initialWellspring.Append(selected), player.WellspringCardInstanceIds, "Wellspring append order is unstable.");
+        var debug = session.GetDebugSnapshot();
+        SequenceEqual(
+            [0, 1],
+            player.HandCardInstanceIds.Select(id => debug.CardInstances.Single(card => card.CardInstanceId == id).ZoneIndex),
+            "Remaining hand indexes are not continuous.");
+        var infused = debug.CardInstances.Single(card => card.CardInstanceId == selected);
+        Equal(initialWellspring.Length, infused.ZoneIndex, "Infused card was not appended at Wellspring end.");
+        Equal("active", infused.ActivityState, "Appended Wellspring card is not active.");
+    }
+
+    private static void NormalInflowUpdatesResourceSummaryImmediately()
+    {
+        var (session, state) = CreateNormalInflowSession(
+            handCount: 1,
+            activeWellspringCount: 1,
+            exhaustedWellspringCount: 1);
+        var before = session.GetPlayerSnapshot("player_1");
+        AssertWellspringCounts(
+            before.Players.Single(player => player.PlayerId == "player_1").Wellspring,
+            2,
+            2,
+            1,
+            1,
+            1);
+        var selected = state.GetPlayer("player_1").HandCardInstanceIds.Single();
+        var selectedCardId = state.GetCardInstance(selected).CardId;
+        var response = session.SubmitAction(Request(
+            session,
+            EnabledAction(session, "player_1", "normal_inflow"),
+            "normal_inflow_resource_update",
+            NormalInflowPayload(selected),
+            expectedStateVersion: 0));
+        Equal(true, response.Accepted, "Normal Inflow resource update failed.");
+
+        var ownerSnapshot = session.GetPlayerSnapshot("player_1");
+        var ownWellspring = ownerSnapshot.Players.Single(player => player.PlayerId == "player_1").Wellspring;
+        AssertWellspringCounts(ownWellspring, 3, 3, 2, 1, 2);
+        Equal(selectedCardId, ownWellspring.Objects.Last().CardId, "Owner projection lost infused card identity.");
+        Equal("active", ownWellspring.Objects.Last().ActivityState, "Freshly infused source is not immediately active.");
+        Equal(false, ownWellspring.Objects.Last().ActivityState == "exhausted", "Freshly infused source entered exhausted.");
+        AssertWellspringCounts(
+            ownerSnapshot.ResourceSummary.Players.Single(player => player.PlayerId == "player_1"),
+            3,
+            3,
+            2,
+            1,
+            2);
+
+        var opponentView = session.GetPlayerSnapshot("player_2").Players
+            .Single(player => player.PlayerId == "player_1")
+            .Wellspring;
+        Equal(true, opponentView.Redacted, "Opponent Wellspring identity is not redacted after Normal Inflow.");
+        Equal(0, opponentView.Objects.Length, "Opponent saw an infused card identity.");
+        AssertWellspringCounts(opponentView, 3, 3, 2, 1, 2);
+    }
+
+    private static void NormalInflowEventVisibilityIsSafe()
+    {
+        var (session, state) = CreateNormalInflowSession(handCount: 1);
+        var selected = state.GetPlayer("player_1").HandCardInstanceIds.Single();
+        var selectedCardId = state.GetCardInstance(selected).CardId;
+        var response = session.SubmitAction(Request(
+            session,
+            EnabledAction(session, "player_1", "normal_inflow"),
+            "normal_inflow_visibility",
+            NormalInflowPayload(selected),
+            expectedStateVersion: 0));
+        Equal(true, response.Accepted, "Normal Inflow event setup failed.");
+
+        var ownerEvent = session.GetEvents("player_1").Single();
+        var opponentEvent = session.GetEvents("player_2").Single();
+        Equal(selected, ownerEvent.Payload.GetProperty("card_instance_id").GetString(), "Owner event lost card_instance_id.");
+        Equal(selectedCardId, ownerEvent.Payload.GetProperty("card_id").GetString(), "Owner event lost card_id.");
+        Equal("hand", ownerEvent.Payload.GetProperty("from_zone").GetString(), "Owner event source zone is invalid.");
+        Equal("wellspring", ownerEvent.Payload.GetProperty("to_zone").GetString(), "Owner event target zone is invalid.");
+        Equal(false, opponentEvent.Payload.TryGetProperty("card_instance_id", out _), "Opponent event leaked card_instance_id.");
+        Equal(false, opponentEvent.Payload.TryGetProperty("card_id", out _), "Opponent event leaked card_id.");
+        Equal("hand", opponentEvent.Payload.GetProperty("from_zone").GetString(), "Opponent event source zone is invalid.");
+        Equal("wellspring", opponentEvent.Payload.GetProperty("to_zone").GetString(), "Opponent event target zone is invalid.");
+        Equal(-1, opponentEvent.Payload.GetProperty("from_zone_count_delta").GetInt32(), "Opponent source delta is invalid.");
+        Equal(1, opponentEvent.Payload.GetProperty("to_zone_count_delta").GetInt32(), "Opponent target delta is invalid.");
+        Equal(true, opponentEvent.Payload.GetProperty("identity_redacted").GetBoolean(), "Opponent event lacks redaction marker.");
+    }
+
+    private static void NormalInflowIsOncePerTurnAndRestoresNextRound()
+    {
+        var (session, state) = CreateNormalInflowSession(handCount: 2, playerTwoHandCount: 1);
+        var player = state.GetPlayer("player_1");
+        var firstSelected = player.HandCardInstanceIds[0];
+        var firstResponse = session.SubmitAction(Request(
+            session,
+            EnabledAction(session, "player_1", "normal_inflow"),
+            "normal_inflow_once",
+            NormalInflowPayload(firstSelected),
+            expectedStateVersion: 0));
+        Equal(true, firstResponse.Accepted, "First Normal Inflow failed.");
+
+        var disabled = Action(session, "player_1", "normal_inflow", includeDisabled: true);
+        Equal(false, disabled.Enabled, "Second Normal Inflow remained enabled in the same turn.");
+        Equal("normal_inflow_already_used", disabled.DisabledReason, "Second Normal Inflow disabled reason is invalid.");
+        var stateBeforeSecond = CanonicalDebugState(session);
+        var secondResponse = session.SubmitAction(Request(
+            session,
+            disabled,
+            "normal_inflow_twice",
+            NormalInflowPayload(player.HandCardInstanceIds.Single()),
+            expectedStateVersion: 1));
+        Equal(false, secondResponse.Accepted, "Second Normal Inflow was accepted in the same turn.");
+        Equal("normal_inflow_already_used", secondResponse.Reason, "Second Normal Inflow rejection reason is invalid.");
+        Equal(stateBeforeSecond, CanonicalDebugState(session), "Second Normal Inflow mutated state.");
+
+        var endPlayerOne = session.SubmitAction(Request(
+            session,
+            EnabledAction(session, "player_1", "end_turn"),
+            "normal_inflow_end_player_1",
+            ContractJsonValue.EmptyObject(),
+            expectedStateVersion: 1));
+        Equal(true, endPlayerOne.Accepted, "Player one end_turn failed.");
+        var endPlayerTwo = session.SubmitAction(Request(
+            session,
+            EnabledAction(session, "player_2", "end_turn"),
+            "normal_inflow_end_player_2",
+            ContractJsonValue.EmptyObject(),
+            expectedStateVersion: 2));
+        Equal(true, endPlayerTwo.Accepted, "Player two end_turn failed.");
+        Equal(2, state.TurnNumber, "Full round did not advance turn_number.");
+        Equal(1, player.NormalInflowUsedTurnNumber, "Turn usage history was reset instead of remaining turn-scoped.");
+
+        var nextOwnTurn = EnabledAction(session, "player_1", "normal_inflow");
+        Equal("normal_inflow:2:3:player_1", nextOwnTurn.ActionId, "Next own turn action_id is invalid.");
+    }
+
+    private static void EndTurnRemainsEnabledWithoutNormalInflow()
+    {
+        var (session, state) = CreateNormalInflowSession(handCount: 1);
+        Equal(true, EnabledAction(session, "player_1", "normal_inflow").Enabled, "Normal Inflow setup is invalid.");
+        var handBefore = state.GetPlayer("player_1").HandCardInstanceIds.ToArray();
+        var response = session.SubmitAction(Request(
+            session,
+            EnabledAction(session, "player_1", "end_turn"),
+            "end_turn_without_normal_inflow",
+            ContractJsonValue.EmptyObject(),
+            expectedStateVersion: 0));
+
+        Equal(true, response.Accepted, "end_turn must remain available when Normal Inflow is unused.");
+        Equal("turn_transition", response.Events.Single().EventType, "Optional Normal Inflow changed end_turn event semantics.");
+        Equal(null, state.GetPlayer("player_1").NormalInflowUsedTurnNumber, "Skipping Normal Inflow created a usage marker.");
+        SequenceEqual(handBefore, state.GetPlayer("player_1").HandCardInstanceIds, "end_turn moved a hand card implicitly.");
+    }
+
+    private static void NormalInflowSnapshotsAreDefensiveAndNonMutating()
+    {
+        var (session, state) = CreateNormalInflowSession(handCount: 1);
+        var stateBeforeProjection = CanonicalDebugState(session);
+        var eventCountBeforeProjection = state.Events.Count;
+        var oldDebug = session.GetDebugSnapshot();
+        var oldPlayerSnapshot = session.GetPlayerSnapshot("player_1");
+        session.GetPlayerSnapshot("player_2");
+        session.ListLegalActions("player_1", includeDisabled: true);
+        Equal(stateBeforeProjection, CanonicalDebugState(session), "Projection mutated authoritative state.");
+        Equal(eventCountBeforeProjection, state.Events.Count, "Projection emitted a gameplay event.");
+
+        var selected = state.GetPlayer("player_1").HandCardInstanceIds.Single();
+        var response = session.SubmitAction(Request(
+            session,
+            EnabledAction(session, "player_1", "normal_inflow"),
+            "normal_inflow_snapshot_defensive",
+            NormalInflowPayload(selected),
+            expectedStateVersion: 0));
+        Equal(true, response.Accepted, "Normal Inflow snapshot transition failed.");
+        var newDebug = session.GetDebugSnapshot();
+        var newPlayerSnapshot = session.GetPlayerSnapshot("player_1");
+
+        Equal(0, oldDebug.Players.Single(player => player.PlayerId == "player_1").WellspringCardInstanceIds.Length, "Old debug snapshot changed.");
+        Equal(null, oldDebug.Players.Single(player => player.PlayerId == "player_1").NormalInflowUsedTurnNumber, "Old debug usage state changed.");
+        Equal(0, oldPlayerSnapshot.Players.Single(player => player.PlayerId == "player_1").Wellspring.WellspringCardCount, "Old player snapshot changed.");
+        Equal(1, newDebug.Players.Single(player => player.PlayerId == "player_1").WellspringCardInstanceIds.Length, "Fresh debug snapshot missed Normal Inflow.");
+        Equal(1, newPlayerSnapshot.Players.Single(player => player.PlayerId == "player_1").Wellspring.WellspringCardCount, "Fresh player snapshot missed Normal Inflow.");
+    }
+
+    private static void NormalInflowUsageStateInvariantsAreEnforced()
+    {
+        var state = CreateNormalInflowState(handCount: 1);
+        var player = state.GetPlayer("player_1");
+        player.NormalInflowUsedTurnNumber = 0;
+        AssertStateInvariantRejected(state, "positive", "Zero Normal Inflow usage turn was accepted.");
+
+        player.NormalInflowUsedTurnNumber = 2;
+        AssertStateInvariantRejected(state, "future", "Future Normal Inflow usage turn was accepted.");
+
+        player.NormalInflowUsedTurnNumber = 1;
+        EngineSession.ValidateState(state);
+        player.NormalInflowUsedTurnNumber = null;
+        EngineSession.ValidateState(state);
+    }
+
     private static void PublicResultsAreDefensive()
     {
         var (session, fixture, _) = CreateSession();
@@ -606,6 +1070,107 @@ internal static class ProductionEngineTests
         var session = new EngineSession();
         var response = session.CreateMatch(fixture.CreateMatchRequest());
         return (session, fixture, response);
+    }
+
+    private static (EngineSession Session, MatchState State) CreateNormalInflowSession(
+        int handCount,
+        int deckCount = 0,
+        int playerTwoHandCount = 0,
+        int activeWellspringCount = 0,
+        int exhaustedWellspringCount = 0)
+    {
+        var state = CreateNormalInflowState(
+            handCount,
+            deckCount,
+            playerTwoHandCount,
+            activeWellspringCount,
+            exhaustedWellspringCount);
+        return (new EngineSession(state), state);
+    }
+
+    private static MatchState CreateNormalInflowState(
+        int handCount,
+        int deckCount = 0,
+        int playerTwoHandCount = 0,
+        int activeWellspringCount = 0,
+        int exhaustedWellspringCount = 0)
+    {
+        var state = new MatchState
+        {
+            MatchId = "production-normal-inflow-test-match",
+            Seed = 1,
+            RuntimePackageId = "production-normal-inflow-test-package",
+            StateVersion = 0,
+            ActivePlayerId = "player_1",
+            PriorityPlayerId = "player_1",
+        };
+        var playerOne = new PlayerState
+        {
+            PlayerId = "player_1",
+            DeckId = "test-deck-player-1",
+        };
+        var playerTwo = new PlayerState
+        {
+            PlayerId = "player_2",
+            DeckId = "test-deck-player-2",
+        };
+        state.Players.Add(playerOne);
+        state.Players.Add(playerTwo);
+        for (var index = 0; index < handCount; index++)
+        {
+            AddPrivateZoneCard(state, playerOne, "hand");
+        }
+
+        for (var index = 0; index < deckCount; index++)
+        {
+            AddPrivateZoneCard(state, playerOne, "deck");
+        }
+
+        for (var index = 0; index < playerTwoHandCount; index++)
+        {
+            AddPrivateZoneCard(state, playerTwo, "hand");
+        }
+
+        for (var index = 0; index < activeWellspringCount; index++)
+        {
+            AddWellspringCard(state, playerOne, "active");
+        }
+
+        for (var index = 0; index < exhaustedWellspringCount; index++)
+        {
+            AddWellspringCard(state, playerOne, "exhausted");
+        }
+
+        EngineSession.ValidateState(state);
+        return state;
+    }
+
+    private static string AddPrivateZoneCard(MatchState state, PlayerState player, string zone)
+    {
+        var zoneList = zone switch
+        {
+            "hand" => player.HandCardInstanceIds,
+            "deck" => player.DeckCardInstanceIds,
+            _ => throw new ArgumentOutOfRangeException(nameof(zone)),
+        };
+        var zoneIndex = zoneList.Count;
+        var cardInstanceId = $"ci_{player.PlayerId}_{zone}_{zoneIndex + 1:0000}";
+        state.CardInstances.Add(cardInstanceId, new CardInstanceState
+        {
+            CardInstanceId = cardInstanceId,
+            CardId = $"{zone.ToUpperInvariant()}-CARD-{zoneIndex + 1:0000}",
+            OwnerPlayerId = player.PlayerId,
+            ControllerPlayerId = player.PlayerId,
+            Zone = zone,
+            ZoneIndex = zoneIndex,
+            Visibility = "owner_only",
+            CreatedSequence = state.CardInstances.Count + 1,
+            ZoneSequence = 1,
+            InitialZone = zone,
+            ActivityState = null,
+        });
+        zoneList.Add(cardInstanceId);
+        return cardInstanceId;
     }
 
     private static (EngineSession Session, MatchState State) CreateWellspringSession(
@@ -735,6 +1300,13 @@ internal static class ProductionEngineTests
         session.ListLegalActions(playerId).Actions.Single(item =>
             item.Enabled && string.Equals(item.ActionType, actionType, StringComparison.Ordinal));
 
+    private static LegalAction Action(
+        EngineSession session,
+        string playerId,
+        string actionType,
+        bool includeDisabled) => session.ListLegalActions(playerId, includeDisabled).Actions.Single(item =>
+            string.Equals(item.ActionType, actionType, StringComparison.Ordinal));
+
     private static ActionRequest Request(
         RuntimeComparisonFixture fixture,
         LegalAction action,
@@ -749,11 +1321,50 @@ internal static class ProductionEngineTests
             action.ActionType,
             ContractJsonValue.EmptyObject());
 
+    private static ActionRequest Request(
+        EngineSession session,
+        LegalAction action,
+        string requestId,
+        JsonElement payload,
+        int expectedStateVersion)
+    {
+        var state = session.GetDebugSnapshot();
+        return new ActionRequest(
+            ContractSchemas.ActionRequest,
+            requestId,
+            state.MatchId,
+            action.PlayerId,
+            expectedStateVersion,
+            action.ActionId,
+            action.ActionType,
+            payload);
+    }
+
+    private static JsonElement NormalInflowPayload(string cardInstanceId) =>
+        ContractJsonValue.From(new NormalInflowActionPayload(cardInstanceId));
+
     private static string CanonicalDebugState(EngineSession session)
     {
         var node = JsonSerializer.SerializeToNode(session.GetDebugSnapshot())
             ?? throw new InvalidOperationException("Debug snapshot serialization returned null.");
         return Convert.ToHexString(EngineCanonicalJson.Serialize(node));
+    }
+
+    private static string ActionRequestFingerprint(ActionRequest request)
+    {
+        var payload = request.Payload.ValueKind == JsonValueKind.Undefined
+            ? "<undefined>"
+            : request.Payload.GetRawText();
+        return string.Join(
+            '\u001f',
+            request.SchemaVersion,
+            request.RequestId,
+            request.MatchId,
+            request.PlayerId,
+            request.ExpectedStateVersion,
+            request.ActionId,
+            request.ActionType,
+            payload);
     }
 
     private static void Equal<T>(T expected, T actual, string message)

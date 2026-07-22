@@ -60,6 +60,8 @@ internal sealed class PlayerState
     public List<string> DiscardCardInstanceIds { get; } = [];
 
     public List<string> WellspringCardInstanceIds { get; } = [];
+
+    public int? NormalInflowUsedTurnNumber { get; set; }
 }
 
 internal sealed class CardInstanceState

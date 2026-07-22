@@ -105,8 +105,20 @@ public sealed class EngineSession
     public LegalActionSpace ListLegalActions(string playerId, bool includeDisabled = false)
     {
         var state = RequireState();
+        ValidateState(state);
         var player = RequireKnownPlayer(state, playerId);
         var active = string.Equals(playerId, state.ActivePlayerId, StringComparison.Ordinal);
+        var normalInflowUsed = player.NormalInflowUsedTurnNumber == state.TurnNumber;
+        var normalInflowEnabled = active
+            && !normalInflowUsed
+            && player.HandCardInstanceIds.Count > 0;
+        var normalInflowDisabledReason = !active
+            ? "not_active_player"
+            : normalInflowUsed
+                ? "normal_inflow_already_used"
+                : player.HandCardInstanceIds.Count == 0
+                    ? "hand_empty"
+                    : null;
         var actions = new[]
         {
             new LegalAction(
@@ -117,6 +129,14 @@ public sealed class EngineSession
                 100,
                 active ? null : "not_active_player",
                 ContractJsonValue.EmptyObject()),
+            new LegalAction(
+                $"normal_inflow:{state.TurnNumber}:{state.StateVersion}:{playerId}",
+                "normal_inflow",
+                playerId,
+                normalInflowEnabled,
+                150,
+                normalInflowDisabledReason,
+                BuildNormalInflowPayloadSchema()),
             new LegalAction(
                 $"draw_card:{state.TurnNumber}:{state.StateVersion}:{playerId}",
                 "draw_card",
@@ -288,6 +308,7 @@ public sealed class EngineSession
         var response = request.ActionType switch
         {
             "draw_card" => ApplyDraw(state, request, stateVersionBefore),
+            "normal_inflow" => ApplyNormalInflow(state, request, stateVersionBefore),
             "end_turn" => ApplyEndTurn(state, request, stateVersionBefore),
             _ => RejectAction(
                 state,
@@ -338,7 +359,8 @@ public sealed class EngineSession
                 player.DeckCardInstanceIds.ToImmutableArray(),
                 player.HandCardInstanceIds.ToImmutableArray(),
                 player.DiscardCardInstanceIds.ToImmutableArray(),
-                player.WellspringCardInstanceIds.ToImmutableArray())).ToImmutableArray(),
+                player.WellspringCardInstanceIds.ToImmutableArray(),
+                player.NormalInflowUsedTurnNumber)).ToImmutableArray(),
             state.CardInstances.Values
                 .OrderBy(card => card.CreatedSequence)
                 .ThenBy(card => card.CardInstanceId, StringComparer.Ordinal)
@@ -532,6 +554,113 @@ public sealed class EngineSession
             request.ActionType,
             "public",
             ContractJsonValue.From(payload));
+        state.Events.Add(engineEvent);
+        return AcceptAction(state, request, stateVersionBefore, engineEvent);
+    }
+
+    private static ActionResponse ApplyNormalInflow(
+        MatchState state,
+        ActionRequest request,
+        int stateVersionBefore)
+    {
+        var player = state.GetPlayer(request.PlayerId);
+        var payload = ReadNormalInflowPayload(request.Payload);
+        if (!state.CardInstances.TryGetValue(payload.CardInstanceId, out var card))
+        {
+            return RejectAction(
+                state,
+                request,
+                "card_instance_unknown",
+                Diagnostic(
+                    "NORMAL_INFLOW_CARD_UNKNOWN",
+                    "transition_validation",
+                    "The selected card is not available.",
+                    "The normal_inflow payload references an unknown card_instance_id.",
+                    "refresh_projection"));
+        }
+
+        if (!string.Equals(card.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal)
+            || !string.Equals(card.ControllerPlayerId, player.PlayerId, StringComparison.Ordinal))
+        {
+            return RejectAction(
+                state,
+                request,
+                "card_not_owned_or_controlled",
+                Diagnostic(
+                    "NORMAL_INFLOW_CARD_AUTHORITY_INVALID",
+                    "transition_validation",
+                    "The selected card cannot be infused by this player.",
+                    "The selected card owner/controller does not match the requesting player.",
+                    "refresh_projection"));
+        }
+
+        if (!string.Equals(card.Zone, "hand", StringComparison.Ordinal))
+        {
+            return RejectAction(
+                state,
+                request,
+                "card_not_in_hand",
+                Diagnostic(
+                    "NORMAL_INFLOW_CARD_ZONE_INVALID",
+                    "transition_validation",
+                    "The selected card is not in hand.",
+                    "The selected card registry zone is not hand.",
+                    "refresh_projection"));
+        }
+
+        var fromZoneIndex = player.HandCardInstanceIds.IndexOf(card.CardInstanceId);
+        if (fromZoneIndex < 0)
+        {
+            return RejectAction(
+                state,
+                request,
+                "hand_registry_mismatch",
+                Diagnostic(
+                    "NORMAL_INFLOW_HAND_MEMBERSHIP_INVALID",
+                    "transition_validation",
+                    "The selected card is not available in hand.",
+                    "The card registry says hand, but the requesting player's hand list does not contain it.",
+                    "refresh_projection"));
+        }
+
+        player.HandCardInstanceIds.RemoveAt(fromZoneIndex);
+        ReindexZone(state, player.HandCardInstanceIds, "hand");
+        var toZoneIndex = player.WellspringCardInstanceIds.Count;
+        player.WellspringCardInstanceIds.Add(card.CardInstanceId);
+        card.Zone = "wellspring";
+        card.ZoneIndex = toZoneIndex;
+        card.Visibility = "owner_only";
+        card.ActivityState = "active";
+        card.ZoneSequence += 1;
+        player.NormalInflowUsedTurnNumber = state.TurnNumber;
+        state.StateVersion += 1;
+
+        var eventSequence = state.Events.Count + 1;
+        var eventPayload = new ZoneMovePayload(
+            request.ActionId,
+            request.ActionType,
+            card.CardInstanceId,
+            card.CardId,
+            card.OwnerPlayerId,
+            card.ControllerPlayerId,
+            "hand",
+            "wellspring",
+            fromZoneIndex,
+            toZoneIndex,
+            "owner_only",
+            "owner_only");
+        var engineEvent = new EngineEvent(
+            ContractSchemas.EngineEvent,
+            $"event_{eventSequence:000000}",
+            eventSequence,
+            "zone_move",
+            state.MatchId,
+            state.StateVersion,
+            state.TurnNumber,
+            request.PlayerId,
+            request.ActionType,
+            "public",
+            ContractJsonValue.From(eventPayload));
         state.Events.Add(engineEvent);
         return AcceptAction(state, request, stateVersionBefore, engineEvent);
     }
@@ -834,8 +963,45 @@ public sealed class EngineSession
                 "fix_request");
         }
 
+        if (string.Equals(request.ActionType, "normal_inflow", StringComparison.Ordinal))
+        {
+            var properties = request.Payload.EnumerateObject().ToArray();
+            if (properties.Length != 1
+                || !string.Equals(properties[0].Name, "card_instance_id", StringComparison.Ordinal)
+                || properties[0].Value.ValueKind != JsonValueKind.String
+                || string.IsNullOrWhiteSpace(properties[0].Value.GetString()))
+            {
+                return Diagnostic(
+                    "ACTION_PAYLOAD_INVALID",
+                    "request_validation",
+                    "Normal Inflow requires one selected hand card.",
+                    "The normal_inflow payload must contain exactly one non-empty string field: card_instance_id.",
+                    "fix_request");
+            }
+        }
+
         return null;
     }
+
+    private static JsonElement BuildNormalInflowPayloadSchema() => ContractJsonValue.From(
+        new Dictionary<string, object?>
+        {
+            ["type"] = "object",
+            ["required"] = new[] { "card_instance_id" },
+            ["additional_properties"] = false,
+            ["properties"] = new Dictionary<string, object?>
+            {
+                ["card_instance_id"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "string",
+                    ["min_length"] = 1,
+                    ["source_zone"] = "hand",
+                },
+            },
+        });
+
+    private static NormalInflowActionPayload ReadNormalInflowPayload(JsonElement payload) => new(
+        payload.GetProperty("card_instance_id").GetString()!);
 
     private static string ReadEventPayloadString(JsonElement payload, string propertyName)
     {
@@ -880,6 +1046,13 @@ public sealed class EngineSession
         var zoneIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var player in state.Players)
         {
+            if (player.NormalInflowUsedTurnNumber is int usedTurnNumber
+                && (usedTurnNumber <= 0 || usedTurnNumber > state.TurnNumber))
+            {
+                throw new EngineStateException(
+                    "Normal Inflow used turn number must be positive and cannot be in the future.");
+            }
+
             foreach (var cardInstanceId in player.HandCardInstanceIds
                          .Concat(player.DeckCardInstanceIds)
                          .Concat(player.DiscardCardInstanceIds)
@@ -896,6 +1069,7 @@ public sealed class EngineSession
                 }
             }
 
+            ValidateHandState(state, player);
             ValidateWellspringState(state, player);
         }
 
@@ -916,6 +1090,18 @@ public sealed class EngineSession
             throw new EngineStateException("Card instance registry and Wellspring zones disagree.");
         }
 
+        var listedHandIds = state.Players
+            .SelectMany(player => player.HandCardInstanceIds)
+            .ToHashSet(StringComparer.Ordinal);
+        var registeredHandIds = state.CardInstances.Values
+            .Where(card => string.Equals(card.Zone, "hand", StringComparison.Ordinal))
+            .Select(card => card.CardInstanceId)
+            .ToHashSet(StringComparer.Ordinal);
+        if (!listedHandIds.SetEquals(registeredHandIds))
+        {
+            throw new EngineStateException("Card instance registry and Hand zones disagree.");
+        }
+
         if (state.Players.All(player =>
                 !string.Equals(player.PlayerId, state.ActivePlayerId, StringComparison.Ordinal)))
         {
@@ -933,6 +1119,39 @@ public sealed class EngineSession
             .Any())
         {
             throw new EngineStateException("Event sequence is not contiguous.");
+        }
+    }
+
+    private static void ValidateHandState(MatchState state, PlayerState player)
+    {
+        for (var zoneIndex = 0; zoneIndex < player.HandCardInstanceIds.Count; zoneIndex++)
+        {
+            var card = state.GetCardInstance(player.HandCardInstanceIds[zoneIndex]);
+            if (!string.Equals(card.Zone, "hand", StringComparison.Ordinal))
+            {
+                throw new EngineStateException("Hand card zone must be hand.");
+            }
+
+            if (card.ZoneIndex != zoneIndex)
+            {
+                throw new EngineStateException("Hand card zone index must match list order.");
+            }
+
+            if (!string.Equals(card.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal)
+                || !string.Equals(card.ControllerPlayerId, player.PlayerId, StringComparison.Ordinal))
+            {
+                throw new EngineStateException("Hand card owner and controller must match the player state.");
+            }
+
+            if (!string.Equals(card.Visibility, "owner_only", StringComparison.Ordinal))
+            {
+                throw new EngineStateException("Hand card visibility must be owner_only.");
+            }
+
+            if (card.ActivityState is not null)
+            {
+                throw new EngineStateException("Hand card activity state must be null.");
+            }
         }
     }
 
@@ -956,6 +1175,11 @@ public sealed class EngineSession
             if (!string.Equals(card.ControllerPlayerId, player.PlayerId, StringComparison.Ordinal))
             {
                 throw new EngineStateException("Wellspring card controller must match the player state.");
+            }
+
+            if (!string.Equals(card.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal))
+            {
+                throw new EngineStateException("Wellspring card owner must match the player state.");
             }
 
             if (!string.Equals(card.Visibility, "owner_only", StringComparison.Ordinal))
