@@ -2,17 +2,17 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.1  
-**Dátum:** 2026-07-20  
+**Dokumentumverzió:** 1.2\
+**Dátum:** 2026-07-22\
 **Státusz:** aktív megvalósítási contract-státusz  
 **Felváltott fájl:** `CURRENT_CONTRACT_STATUS.md`  
-**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
+**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 
 Ez a dokumentum röviden rögzíti:
 
 - mely contractok léteznek ténylegesen a Python referenciaengine-ben;
 - mely contractokat bizonyított a C# minimal runtime candidate;
-- mely contractok szükségesek a production C# engine következő szakaszában;
+- mely contractok aktívak a production C# foundationben;
 - mi aktív, izolált, tervezett, felváltott vagy csak debug-fixture;
 - hol van eltérés a hosszú contract-specifikáció és a tényleges implementáció között.
 
@@ -47,7 +47,7 @@ Kapcsolódó aktív dokumentumok:
 | `PROVEN_CSHARP_CANDIDATE` | A minimal C# candidate proofban ténylegesen működik és tesztelt. |
 | `ACTIVE_ISOLATED` | Megvalósított és tesztelt helper vagy contract, de nincs teljes runtime-integrációban. |
 | `FOUNDATION_ONLY` | Alapcontract létezik, a teljes gameplay-lánc még hiányzik. |
-| `PLANNED_C5B` | A production C# foundation része lesz. |
+| `ACTIVE_PRODUCTION_FOUNDATION` | A production C# foundationben implementált és tesztelt. |
 | `PLANNED_GAMEPLAY` | Későbbi production gameplay-szakasz része. |
 | `SUPERSEDED` | Korábbi séma vagy modell, amelyet újabb aktív változat felváltott. |
 | `DEBUG_FIXTURE` | Parser-, loader-, UI- vagy comparison-tesztadat; nem production gameplay-contract. |
@@ -57,7 +57,8 @@ Fontos elhatárolás:
 
 - a Python contract aktív lehet a referenciaengine-ben anélkül, hogy production C# contract lenne;
 - a C# candidate proofban használt fixture-specifikus contract nem válik automatikusan production API-vá;
-- a production C# contract csak a C.5B implementáció és teszt után kaphat aktív production státuszt.
+- a C.5B contractok a `931bf5571d541c752aa421a9f0626768bd8ffbe7` commit és tesztlánca alapján aktív production foundation státuszt kaptak;
+- ez nem jelenti a Wellspring, Beáramlás, payment, `play_card`, combat vagy ability contractok elkészültét.
 
 ---
 
@@ -86,16 +87,22 @@ A Python:
 
 Production state mutation csak validált C# engine transitionön keresztül történhet.
 
-Tervezett publikus belépési pontok:
+Aktív publikus belépési pontok:
 
 - `CreateMatch`;
 - `GetPlayerSnapshot`;
 - `ListLegalActions`;
 - `SubmitAction`;
-- `GetEvents`;
+- `GetEvents(string viewerPlayerId, int afterSequence = 0)`;
 - `GetMatchResult`.
 
-**Státusz:** `PLANNED_C5B`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
+
+A publikus eventfelület viewer-specifikus és redaktált. A teljes event- és debugállapot internal, kizárólag a Headless/Tests friend assemblyk számára érhető el; a Godot production bridge ezt nem exportálja.
+
+Draw eventnél a tulajdonos nézete megkaphatja a `card_instance_id` és `card_id` értéket; az ellenfél projekciója csak a megengedett zóna- és számlálóváltozást tartalmazza, rejtett kártyaazonosító nélkül.
+
+Null, hiányos vagy malformed create/action JSON stabil, strukturált rejectiont vagy diagnosticot ad. Nyers JSON-, null-reference- vagy argument-null kivétel nem hagyhatja el a production JSON-határt.
 
 ---
 
@@ -138,11 +145,11 @@ Jelenlegi Python zone/activity szabály:
 
 Production C# státusz:
 
-- a modell és jelentése átviendő;
+- a C.5B minimum modell és jelentése aktív;
 - a Python dict-schema nem kötelező C# belső objektumforma;
 - typed immutable vagy kontrollált mutable C# belső modell szükséges.
 
-**Státusz:** `PLANNED_C5B`
+**Státusz:** `FOUNDATION_ONLY`
 
 ### 3.2 ObjectReference
 
@@ -162,9 +169,9 @@ Szerep:
 
 Production C# státusz:
 
-- typed projection contractként később szükséges.
+- typed `CardReference` projection contractként aktív a player snapshotban.
 
-**Státusz:** `PLANNED_C5B`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
 ### 3.3 ZoneMove
 
@@ -191,9 +198,9 @@ C# candidate:
 
 Production C#:
 
-- generikus belső transition és typed event alapként szükséges.
+- draw transition és typed `zone_move` event alapként aktív.
 
-**Státusz:** `PLANNED_C5B`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
 ### 3.4 MatchState
 
@@ -218,10 +225,10 @@ C# candidate:
 
 Production C#:
 
-- egyetlen authoritative MatchState;
+- aktív egyetlen authoritative MatchState;
 - publikus hívó számára nem adható ki módosítható referenciaként.
 
-**Státusz:** `PLANNED_C5B`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
 ### 3.5 PlayerState zónalisták
 
@@ -355,12 +362,12 @@ C# candidate:
 
 Production C#:
 
-- viewer-specifikus typed `PlayerSnapshot`;
+- aktív viewer-specifikus typed `PlayerSnapshot`;
 - saját kéz látható;
 - ellenfél rejtett adatai csak számlálóként;
 - stabil state version és legal action kapcsolat.
 
-**Státusz:** `PLANNED_C5B`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
 ### 5.2 Player-visible Domain board
 
@@ -387,10 +394,10 @@ Python státusz:
 
 Production C#:
 
-- külön debug/diagnostics contract szükséges;
+- külön internal debug/diagnostics contract aktív;
 - nem keverhető a player-facing snapshottal.
 
-**Státusz:** `PLANNED_C5B`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
 ### 5.4 Spectator, replay és külön AI snapshot
 
@@ -420,7 +427,7 @@ C# candidate:
 
 **Státusz:** `PROVEN_CSHARP_CANDIDATE`
 
-Production C# `LegalAction` minimum:
+Aktív production C# `LegalAction` minimum:
 
 - `action_id`;
 - `action_type`;
@@ -430,7 +437,7 @@ Production C# `LegalAction` minimum:
 - `disabled_reason`;
 - `payload` vagy `payload_schema`.
 
-**Státusz:** `PLANNED_C5B`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
 ### 6.2 Structural Entity Domain placement options
 
@@ -501,7 +508,7 @@ C# candidate:
 
 **Státusz:** `PROVEN_CSHARP_CANDIDATE`
 
-Production C# minimum:
+Aktív production C# minimum:
 
 - `schema_version`;
 - `request_id`;
@@ -512,7 +519,7 @@ Production C# minimum:
 - `action_type`;
 - `payload`.
 
-**Státusz:** `PLANNED_C5B`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
 ### 7.2 Expected state version guard
 
@@ -530,12 +537,12 @@ C# candidate:
 
 Production C#:
 
-- stabil diagnostic code;
+- aktív stabil diagnostic code;
 - state version nem változik;
 - event sequence nem változik;
 - request nem módosul.
 
-**Státusz:** `PLANNED_C5B`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
 ### 7.3 ActionResponse
 
@@ -543,7 +550,7 @@ Python státusz:
 
 - `ACTIVE_REFERENCE_RUNTIME`
 
-Production C# minimum:
+Aktív production C# minimum:
 
 - `schema_version`;
 - `request_id`;
@@ -555,7 +562,7 @@ Production C# minimum:
 - `events`;
 - `diagnostics`.
 
-**Státusz:** `PLANNED_C5B`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
 ---
 
@@ -571,7 +578,7 @@ Python státusz:
 
 - `ACTIVE_REFERENCE_RUNTIME`
 
-Production C# minimum:
+Aktív production C# minimum:
 
 - event ID;
 - event sequence;
@@ -581,7 +588,7 @@ Production C# minimum:
 - public payload;
 - szükség esetén viewer-specifikus projection.
 
-**Státusz:** `PLANNED_C5B`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
 ### 8.2 Zone move event
 
@@ -642,7 +649,7 @@ C# candidate:
 - hidden-information audit;
 - player-facing és developer diagnostics elhatárolása.
 
-### 9.2 Production C# minimum
+### 9.2 Aktív production C# minimum
 
 `EngineDiagnostic` mezők:
 
@@ -653,7 +660,7 @@ C# candidate:
 - `retry_policy`;
 - strukturált `details`.
 
-**Státusz:** `PLANNED_C5B`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
 Player-facing diagnostics nem szivárogtathat hidden informationt.
 
@@ -824,7 +831,7 @@ A production C# API tervezésénél felhasználhatók bizonyítékként, de nem 
 
 ## 14. Production C# contract-lánc
 
-### C.5B
+### C.5B – implementált foundation
 
 1. runtime package descriptor vagy source;
 2. `CreateMatchRequest`;
@@ -843,6 +850,19 @@ A production C# API tervezésénél felhasználhatók bizonyítékként, de nem 
 15. canonical serializer;
 16. fixture adapter;
 17. Godot production bridge.
+
+Lezáró commit:
+
+`931bf5571d541c752aa421a9f0626768bd8ffbe7`
+
+Ellenőrzött bizonyíték:
+
+- production tesztek Debug és Release: `13/13`;
+- canonical expected és actual SHA: `650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`;
+- canonical méret: `210730` byte;
+- determinisztika: `100/100`;
+- a canonical snapshot és eventösszegzés a production player projectionből és viewer-safe event API-ból származik;
+- Godot pozitív és negatív production bridge smoke: PASS.
 
 ### C.5B után
 
@@ -918,12 +938,11 @@ Döntés:
 
 Ez a fájl a `CURRENT_CONTRACT_STATUS.md` utódja.
 
-Repository alkalmazásakor:
+A repository aktuális állapota:
 
-1. az új aktív név `CONTRACT_STATUS.md`;
-2. a régi `CURRENT_CONTRACT_STATUS.md` eltávolítandó;
-3. minden rá mutató hivatkozást frissíteni kell;
-4. a törlés csak az új fájl beillesztése és a hivatkozások ellenőrzése után történhet.
+1. az aktív név `CONTRACT_STATUS.md`;
+2. a régi `CURRENT_CONTRACT_STATUS.md` nem aktív authority;
+3. az aktív hivatkozások az utódfájlra mutatnak.
 
 ---
 
@@ -935,6 +954,6 @@ Repository alkalmazásakor:
 **Python aktív event:** zone move, turn transition  
 **Python aktív AI contract:** episode v1  
 **C# candidate proof:** draw, stale rejection, end-turn, snapshot, event és legal action  
-**Production C# contractok:** C.5B-ben implementálandók  
+**Production C# contractok:** C.5B foundationben aktívak\
 **Izolált következő gameplay-alap:** Wellspring state és resource summary  
 **Nem aktív production gameplay:** infusion, payment, play_card, combat, ability execution

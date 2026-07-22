@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.4  
+**Dokumentumverzió:** 1.5\
 **Dátum:** 2026-07-22  
 **Státusz:** aktív elsődleges technikai folytatási checkpoint  
-**Felváltott verzió:** `ENGINE_CHECKPOINT.md` 1.3  
-**Ellenőrzött repository-bázis:** `66a206c6e3bf9155fb9f71a354236fb5b6ab3b90` – `docs update 2026.07.22`  
+**Felváltott verzió:** `ENGINE_CHECKPOINT.md` 1.4\
+**Ellenőrzött repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`\
 **C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
 
 Ez a dokumentum az AETERNA Game Engine biztonságos technikai folytatási pontja. Nem hivatalos játékszabály és nem teljes production engine-specifikáció.
@@ -85,24 +85,29 @@ A RuntimeCandidate proofként megmarad; nem nevezendő át production motorrá.
 
 ---
 
-## 3. Production C# célarchitektúra
+## 3. Production C# foundation
 
-Tervezett projektek:
+Aktív projektek:
 
 - `Aeterna.Engine`;
 - `Aeterna.Engine.Headless`;
-- `Aeterna.Engine.Tests`.
+- `Aeterna.Engine.Tests`;
+- `Aeterna.Engine.sln`.
 
-Publikus EngineSession-határ:
+Publikus `EngineSession`-határ:
 
 - `CreateMatch`;
 - `GetPlayerSnapshot`;
 - `ListLegalActions`;
 - `SubmitAction`;
-- `GetEvents`;
+- `GetEvents(string viewerPlayerId, int afterSequence = 0)`;
 - `GetMatchResult`.
 
 State mutation csak a C# authorityn keresztül történhet.
+
+A teljes, nem redaktált event- és debugállapot csak internal headless/teszt felület. A Godot production bridge kizárólag a viewer-safe publikus API-t delegálja.
+
+Draw eventnél a tulajdonos nézete tartalmazhat kártyaazonosságot, az ellenfél nézete nem tartalmazhat sem `card_instance_id`, sem `card_id` értéket.
 
 ---
 
@@ -114,11 +119,13 @@ Státusz: `COMPLETE_AND_ACCEPTED`
 
 ### C.5B – Production Engine Foundation
 
-Státusz: `READY_FOR_IMPLEMENTATION`
+Státusz: `COMPLETE_AND_ACCEPTED`
 
-A Codex újra elérhető.
+Lezáró commit:
 
-Első scope:
+`931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
+
+Megvalósult scope:
 
 - pure C# production engine;
 - headless host;
@@ -133,6 +140,18 @@ Első scope:
 - fixture adapter;
 - Godot production bridge;
 - RuntimeCandidate és Python reference regresszió.
+
+Ellenőrzött bizonyíték:
+
+- production solution Debug és Release: PASS, 0 warning, 0 error;
+- production tesztek: Debug `13/13`, Release `13/13`;
+- expected és actual canonical SHA: `650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`;
+- canonical artifact: `210730` byte;
+- determinisztika: `100/100`;
+- a canonical snapshot és eventösszegzés a production player projectionből és viewer-safe event API-ból származik;
+- Godot Debug és ExportRelease: PASS;
+- pozitív és negatív production bridge smoke: PASS;
+- canonical fixture, Python reference és hivatalos szabályforrások változatlanok.
 
 Nem része:
 
@@ -220,23 +239,22 @@ A dokumentációs munka nem folytatódik teljes repository-szintű tömeges fris
 1. olvasd el ezt a checkpointot;
 2. ellenőrizd a repository aktuális HEAD-jét;
 3. ne nyisd újra a runtime-nyelvi döntést;
-4. ne tekintsd késznek a production C# engine-t;
+4. a production C# foundationt tekintsd késznek, de ne a teljes rules engine-t;
 5. a RuntimeCandidate és a Python reference maradjon regressziós bizonyíték;
-6. C.5B scope-jába ne kerüljön új gameplay;
-7. először a C.5B foundation tesztjei legyenek zöldek;
-8. csak ezután induljon a Wellspring production migráció.
+6. ne nyisd újra a lezárt C.5B foundation scope-ját általános refaktorral;
+7. a következő gameplay-szakasz kizárólag Wellspring production state-tel és player-visible Wellspringgel induljon;
+8. Beáramlás csak a Wellspring-szakasz külön elfogadása után következzen.
 
 ---
 
 ## 9. Rövid aktuális összefoglaló
 
-- Ellenőrzött repository-bázis: `66a206c6e3bf9155fb9f71a354236fb5b6ab3b90`.
+- Ellenőrzött repository-bázis: `931bf5571d541c752aa421a9f0626768bd8ffbe7`.
 - Python sidecar: kész és befagyasztva.
 - C# candidate: kész és elfogadva.
-- Production C# engine: még nem létezik.
+- Production C# engine foundation: kész és elfogadott.
 - C.5A: kész.
-- C.5B: implementálásra kész.
-- Codex: elérhető.
+- C.5B: kész és elfogadott.
 - Dokumentációs archív rendezés: kész.
-- Hátralévő dokumentáció: a négy kritikus fájl rövid ellenőrzése.
-- Következő tényleges fejlesztési feladat: C.5B Production C# Engine Foundation.
+- C.5B dokumentációs lezárás: kész.
+- Következő tényleges fejlesztési feladat: Wellspring production state és player-visible Wellspring.

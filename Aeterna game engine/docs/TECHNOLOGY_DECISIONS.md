@@ -2,10 +2,10 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.3  
-**Dátum:** 2026-07-20  
+**Dokumentumverzió:** 2.4\
+**Dátum:** 2026-07-22\
 **Státusz:** aktív technológiai döntési nyilvántartás  
-**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
+**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 
 Ez a dokumentum az AETERNA elfogadott technológiai döntéseit, azok indokait, korlátait és újranyitási feltételeit rögzíti.
 
@@ -14,11 +14,12 @@ Kapcsolódó aktív dokumentumok:
 - `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
 - `ARCHITECTURE.md`
 - `DECISION_MAP.md`
-- `CURRENT_PROTOTYPE_STATUS.md`
-- `CURRENT_CONTRACT_STATUS.md`
-- `CURRENT_OPEN_QUESTIONS.md`
-- `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.2.md`
+- `PROTOTYPE_STATUS.md`
+- `CONTRACT_STATUS.md`
+- `OPEN_QUESTIONS.md`
+- `OPEN_QUESTIONS_DECISIONS.md`
+- `checkpoints/ENGINE_CHECKPOINT.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.4.md`
 
 ---
 
@@ -340,8 +341,8 @@ Még nyitott:
 
 ## 10. TD-010 – Production C# project-határok
 
-**Státusz:** ELFOGADOTT TERV  
-**Implementáció:** C.5B-ben következik
+**Státusz:** ELFOGADVA ÉS IMPLEMENTÁLVA\
+**Implementáció:** C.5B, `931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
 Tervezett projektek:
 
@@ -349,6 +350,7 @@ Tervezett projektek:
 Aeterna.Engine
 Aeterna.Engine.Headless
 Aeterna.Engine.Tests
+Aeterna.Engine.sln
 ```
 
 ### Aeterna.Engine
@@ -382,6 +384,15 @@ A jelenlegi `Aeterna.RuntimeCandidate` státusza:
 `ACCEPTED_PROOF`
 
 Nem nevezendő át közvetlenül production motorrá.
+
+Megvalósított határ:
+
+- az `Aeterna.Engine` pure `net8.0` core;
+- a Headless és a Godot production bridge ugyanazt az `EngineSession` implementációt használja;
+- a bridge csak JSON-határ és delegáció, gameplay-logika nélkül;
+- a publikus event API viewer-azonosított és redaktált;
+- a teljes debug eventhozzáférés internal, csak Headless/Tests friend assemblyk számára;
+- malformed vagy null boundary input strukturált rejectiont/diagnosticot ad.
 
 ---
 
@@ -499,26 +510,26 @@ A későbbi dokumentumaudit feladata:
 - runtime language decision gate;
 - C.5A architecture plan.
 
-### Következő kódolási feladat
+### Lezárt production foundation
 
 **C.5B – Production C# engine foundation**
 
 Státusz:
 
-`READY_FOR_IMPLEMENTATION`
+`COMPLETE_AND_ACCEPTED`
 
-Ideiglenesen:
+Lezáró commit:
 
-`PAUSED – CODEX QUOTA`
+`931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
-### Codex nélküli aktív sáv
+### Következő kódolási feladat
 
-- meglévő dokumentumok aktualizálása;
-- dokumentumverziók és státuszok rendezése;
-- dokumentumaudit előkészítése;
-- projekt-térkép;
-- Open Questions triázs;
+**P3 – Wellspring production state és player-visible Wellspring**
+
+### Nem programozási aktív sáv
+
 - kártyaadat- és szabályaudit;
+- LOOKUPS- és ID-contract munka;
 - kártyadizájn-workflow.
 
 ---
@@ -532,6 +543,7 @@ Ideiglenesen:
 - A Python külső tooling, AI, batch és referencia.
 - A Python sidecar proof lezárt és befagyasztott.
 - A C# in-process proof elfogadott.
+- A C.5B production C# foundation elkészült és elfogadott.
 - A Godot–C# kapcsolat közvetlen in-process.
 - A Python–C# első külső kapcsolata headless JSON/JSONL lesz.
 - Embedded Python és service API csak későbbi mérés alapján vizsgálható.

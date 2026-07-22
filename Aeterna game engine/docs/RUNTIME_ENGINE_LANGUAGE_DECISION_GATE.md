@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.2  
-**Dátum:** 2026-07-20  
+**Dokumentumverzió:** 1.3\
+**Dátum:** 2026-07-22\
 **Státusz:** lezárt technológiai döntési kapu és aktív döntési referencia  
 **Döntés:** Godot/GDScript vizuális réteg + C# authoritative runtime + Python külső tooling  
-**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
+**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 
 Ez a dokumentum az AETERNA hosszú távú authoritative rules runtime nyelvi és futási modelljének lezárt döntési kapuja.
 
@@ -25,12 +25,13 @@ Kapcsolódó aktív dokumentumok:
 
 - `PRODUCT_RUNTIME_AND_INSTALLATION_REQUIREMENTS.md`
 - `RUNTIME_COMPARISON_FIXTURE_SPEC.md`
-- `CURRENT_OPEN_QUESTIONS.md`
-- `CURRENT_CONTRACT_STATUS.md`
+- `OPEN_QUESTIONS.md`
+- `OPEN_QUESTIONS_DECISIONS.md`
+- `CONTRACT_STATUS.md`
 - `TECHNOLOGY_DECISIONS.md`
 - `ARCHITECTURE.md`
-- `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.2.md`
+- `checkpoints/ENGINE_CHECKPOINT.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.4.md`
 
 ---
 
@@ -403,7 +404,7 @@ Minden migrációs egységhez szükséges:
 
 ---
 
-## 8. Következő technikai szakasz
+## 8. Production technikai szakaszok
 
 ### C.5A – C# production engine architektúraterv
 
@@ -423,9 +424,9 @@ Rögzítve:
 
 ### C.5B – Production C# engine foundation
 
-**Státusz:** `READY_FOR_IMPLEMENTATION`
+**Státusz:** `COMPLETE_AND_ACCEPTED`
 
-**Ideiglenes állapot:** `PAUSED – CODEX QUOTA`
+**Lezáró commit:** `931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
 Első scope:
 
@@ -482,10 +483,10 @@ A dokumentumszaporodás elkerülése érdekében:
 - új alfeladathoz alapértelmezetten nem készül új dokumentum;
 - új eredmény a természetes aktív fődokumentumba kerüljön;
 - külön fájl csak önálló, tartós és más dokumentumba nem illeszthető canonical témának készülhet;
-- a `CURRENT_ENGINE_CHECKPOINT.md` a fő technikai folytatási pont;
+- a `checkpoints/ENGINE_CHECKPOINT.md` a fő technikai folytatási pont;
 - történeti dokumentum nem törlendő audit nélkül;
 - azonos szerepű párhuzamos current dokumentum nem hozható létre;
-- később dokumentumaudit és tartalomvesztés nélküli összevonás szükséges;
+- minden későbbi összevonásnál tartalomvesztés-ellenőrzés szükséges;
 - nyitott kérdés vagy korábbi döntés nem veszhet el merge során.
 
 ---
@@ -499,6 +500,6 @@ A dokumentumszaporodás elkerülése érdekében:
 **Python sidecar proof:** `COMPLETE AND FROZEN`.  
 **C# in-process proof:** `COMPLETE AND ACCEPTED`.  
 **Közös canonical SHA:** `650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`.  
-**Következő kódolási szakasz:** C.5B production C# engine foundation.  
-**Kódolási állapot:** ideiglenesen szünetel a Codex használati kerete miatt.  
-**Codex nélküli aktív sáv:** meglévő dokumentumok aktualizálása, dokumentumaudit előkészítése, projekt-térkép, open questions és kártyaaudit.
+**Production C# foundation:** C.5B `COMPLETE_AND_ACCEPTED`, commit `931bf5571d541c752aa421a9f0626768bd8ffbe7`.\
+**Következő kódolási szakasz:** Wellspring production state és player-visible Wellspring.\
+**Nem programozási aktív sáv:** célzott dokumentáció, open questions, LOOKUPS-, kártyaadat- és szabályaudit.

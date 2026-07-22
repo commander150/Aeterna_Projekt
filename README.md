@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.1  
+**Dokumentumverzió:** 2.2\
 **Dátum:** 2026-07-22  
 **Státusz:** aktív repository-szintű belépési dokumentum  
-**Felváltott verzió:** `README.md` 2.0  
-**Ellenőrzött repository-bázis:** `66a206c6e3bf9155fb9f71a354236fb5b6ab3b90` – `docs update 2026.07.22`  
+**Felváltott verzió:** `README.md` 2.1\
+**Ellenőrzött repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`\
 **C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
 Az **AETERNA** saját fejlesztésű fizikai és digitális gyűjtögetős kártyajáték-projekt.
@@ -19,7 +19,7 @@ Az **AETERNA** saját fejlesztésű fizikai és digitális gyűjtögetős kárty
 - **C# / .NET:** az egyetlen tervezett production authoritative rules engine.
 - **Python:** adat-, export-, audit-, fixture-, AI-, batch- és elemzőtooling, valamint reference engine.
 
-A Godot nem szabályforrás. A Python nem marad második production authority. A production C# engine még nem létezik.
+A Godot nem szabályforrás. A Python nem marad második production authority. A production C# engine foundation elkészült; a teljes gameplay-engine még nem.
 
 Bizonyított proofok:
 
@@ -106,28 +106,27 @@ Elkészült:
 - C# in-process proof;
 - runtime-nyelvi döntés;
 - C.5A production architecture;
+- C.5B production C# engine foundation;
 - dokumentációs és archív rendezés.
+
+Aktuális production minimum:
+
+- `Aeterna.Engine.sln` és pure `net8.0` `Aeterna.Engine`;
+- headless host és production tesztprojekt;
+- minimum runtime package loader;
+- draw, stale reject és end-turn;
+- player-safe snapshot és eventprojekció;
+- canonical fixture és Godot production bridge.
+
+Lezáró commit:
+
+`931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
 Következő kódolási feladat:
 
-**C.5B – Production C# Engine Foundation**
+**P3 – Első production gameplay migráció**
 
-Státusz:
-
-`READY_FOR_IMPLEMENTATION`
-
-Első scope:
-
-- production C# engine;
-- headless host;
-- tests;
-- EngineSession;
-- minimum runtime package loader;
-- draw, stale reject és end-turn;
-- canonical fixture;
-- Godot production bridge.
-
-Új gameplay nem része ennek a szakasznak.
+Első cél: Wellspring production state és player-visible Wellspring. Beáramlás, Magnitúdó, Aura-payment és `play_card` csak ezután következik.
 
 ---
 
@@ -148,6 +147,6 @@ Nem szükséges minden technikai lépés után a teljes dokumentációs réteget
 
 ## 7. Következő lépés
 
-1. A négy kritikus dokumentum rövid visszaellenőrzése.
-2. Dokumentációs commit.
-3. C.5B Production C# Engine Foundation implementáció Codexszel.
+1. A P3 első, Wellspringre korlátozott production gameplay-szakaszának pontosítása.
+2. Wellspring production state és player-visible Wellspring implementációja és célzott ellenőrzése.
+3. Beáramlás csak a Wellspring-szakasz külön elfogadása után indulhat.

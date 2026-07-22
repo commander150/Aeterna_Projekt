@@ -2,10 +2,10 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.1  
-**Dátum:** 2026-07-21  
+**Dokumentumverzió:** 2.2\
+**Dátum:** 2026-07-22\
 **Státusz:** aktív programegység-README  
-**Aktuális repository HEAD:** `32a0cbea24c82dda440f1a053b454ef03949d8ae` – `docs update 2`  
+**Ellenőrzött C.5B kódbázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`\
 **Aktuális C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
 
 Az **AETERNA Game Engine** az AETERNA fizikai kártyajáték contract-first digitális programegysége.
@@ -32,13 +32,17 @@ Bizonyított runtime-jelöltek:
 - Python–Godot sidecar: `COMPLETE_AND_FROZEN`;
 - Godot .NET/C# in-process candidate: `COMPLETE_AND_ACCEPTED`.
 
-A production C# engine még nem létezik.
+A production C# engine foundation elkészült. Ez még nem a teljes gameplay-engine.
+
+Aktuális production mérföldkő:
+
+- **C.5B – Production C# Engine Foundation**
+- státusz: `COMPLETE_AND_ACCEPTED`;
+- commit: `931bf5571d541c752aa421a9f0626768bd8ffbe7`.
 
 Következő kódolási szakasz:
 
-- **C.5B – Production C# Engine Foundation**
-- státusz: `READY_FOR_IMPLEMENTATION`;
-- ideiglenesen: `PAUSED_CODEX_QUOTA`.
+- **P3 – Wellspring production state és player-visible Wellspring**.
 
 Aktuális checkpoint:
 
@@ -50,7 +54,7 @@ Dokumentációs index:
 
 Projekt- és cleanup-térkép:
 
-- `../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.5.md`
+- `../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.7.md`
 
 ---
 
@@ -156,16 +160,19 @@ Aktív szerepek:
 
 ### `C#/`
 
-Jelenlegi proofprojektek:
+Proofprojektek:
 
 - `Aeterna.RuntimeCandidate`;
 - `Aeterna.RuntimeCandidate.Proof`.
 
-Tervezett production projektek:
+Aktív production projektek:
 
 - `Aeterna.Engine`;
 - `Aeterna.Engine.Headless`;
-- `Aeterna.Engine.Tests`.
+- `Aeterna.Engine.Tests`;
+- `Aeterna.Engine.sln`.
+
+A `Aeterna.Engine` Godottól és Pythontól független `net8.0` core. A headless host és a Godot production bridge ugyanazt az `EngineSession` implementációt használja.
 
 ### `Godot/`
 
@@ -241,15 +248,15 @@ A package identity és production schema még nem végleges.
 
 ## 4. Authority- és contractmodell
 
-A production C# engine lesz az egyetlen authoritative state-gazda.
+A production C# engine az egyetlen authoritative state-gazda.
 
-Tervezett publikus API:
+Aktív publikus API:
 
 - `CreateMatch`;
 - `GetPlayerSnapshot`;
 - `ListLegalActions`;
 - `SubmitAction`;
-- `GetEvents`;
+- `GetEvents(string viewerPlayerId, int afterSequence = 0)`;
 - `GetMatchResult`.
 
 State mutation csak validált engine transitionön keresztül történhet.
@@ -262,6 +269,8 @@ A GDScript és a Python:
 - nem módosít MatchState-et közvetlenül.
 
 Player-facing és debug projection külön marad.
+
+A teljes event/debug hozzáférés internal, csak headless- és tesztfogyasztásra érhető el. A Godot production bridge nem fér hozzá unsafe eventfelülethez.
 
 Rejected action:
 
@@ -291,13 +300,18 @@ Rögzítve:
 
 ### C.5B – Production engine foundation
 
-**Státusz:** `READY_FOR_IMPLEMENTATION / PAUSED_CODEX_QUOTA`
+**Státusz:** `COMPLETE_AND_ACCEPTED`
+
+Lezáró commit:
+
+- `931bf5571d541c752aa421a9f0626768bd8ffbe7`.
 
 Scope:
 
 - `Aeterna.Engine`;
 - `Aeterna.Engine.Headless`;
 - `Aeterna.Engine.Tests`;
+- `Aeterna.Engine.sln`;
 - core typed contractok;
 - EngineSession;
 - minimum runtime package loader;
@@ -306,7 +320,16 @@ Scope:
 - canonical serializer;
 - comparison fixture adapter;
 - Godot production bridge;
-- candidate és GDScript regresszió.
+- RuntimeCandidate- és Python fixture-regresszió.
+
+Bizonyíték:
+
+- production Debug/Release build: PASS;
+- production tesztek: Debug és Release `13/13`;
+- canonical SHA-egyezés: `650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`;
+- canonical méret: `210730` byte;
+- determinisztika: `100/100`;
+- Godot Debug/ExportRelease és pozitív/negatív bridge smoke: PASS.
 
 Nem része:
 
@@ -320,7 +343,7 @@ Nem része:
 - HTTP/gRPC;
 - végleges packaging.
 
-### C.5B utáni gameplay-sorrend
+### Aktuális gameplay-sorrend
 
 1. Wellspring production state;
 2. player-visible Wellspring;
@@ -344,9 +367,9 @@ Aktív kérdés–válasz pár:
 - `docs/OPEN_QUESTIONS.md`;
 - `docs/OPEN_QUESTIONS_DECISIONS.md`.
 
-A korábbi `CURRENT_OPEN_QUESTIONS.md` tartalma beolvadt a kanonikus kérdés–válasz párba; a régi fájl a végső hivatkozás-ellenőrzés után eltávolítandó.
+A korábbi `CURRENT_OPEN_QUESTIONS.md` tartalma beolvadt a kanonikus kérdés–válasz párba; a felváltott fájl már nem aktív authority.
 
-Aktív átnevezések:
+Lezárt átnevezések:
 
 - `CURRENT_PROTOTYPE_STATUS.md` → `PROTOTYPE_STATUS.md`;
 - `CURRENT_RUNTIME_PACKAGE_STATUS.md` → `RUNTIME_PACKAGE_STATUS.md`;
@@ -359,9 +382,9 @@ Minden aktív dokumentumnak verzió, dátum és státusz szükséges.
 
 ## 7. Mit nem bizonyít még a rendszer?
 
-- production C# engine;
-- production C# runtime package loader;
-- teljes player-facing bridge;
+- teljes production rules engine;
+- teljes runtime package loader;
+- teljes player UI;
 - Wellspring és payment gameplay;
 - `play_card`;
 - teljes phase/priority;
@@ -377,24 +400,17 @@ Minden aktív dokumentumnak verzió, dátum és státusz szükséges.
 
 ---
 
-## 8. Codex nélküli aktív munkasáv
+## 8. Nem programozási aktív munkasáv
 
-1. engine-dokumentumok verziózása és konszolidációja;
-2. belső hivatkozások átvezetése;
-3. engine docs teljes inventory;
-4. specificationök és történeti fájlok státusza;
-5. `Aeterna dokumentációk/` külön auditja;
-6. keresztmappa-ellenőrzés;
-7. kártyaadat- és szabályaudit;
-8. kártyadizájn- és vizuális workflow.
+1. kártyaadat- és szabályaudit;
+2. LOOKUPS- és ID-contract munka;
+3. kártyadizájn- és vizuális workflow.
 
 Ellenőrizetlen production C# kód nem commitolható.
 
 ---
 
 ## 9. Commit előtti követelmény
-
-A jelen dokumentációs munkaszakasz helyi utódfájlokat készít. GitHubon nem történt módosítás.
 
 A felhasználói commit előtt szükséges:
 
@@ -410,21 +426,6 @@ A felhasználói commit előtt szükséges:
 
 ---
 
-## 10. Dokumentációs cleanup állapota – 2026-07-21
+## 10. Dokumentációs cleanup állapota – 2026-07-22
 
-Az aktív engine-dokumentáció frissítése elkészült, de a repositoryban több felváltott előd még megtalálható.
-
-Eltávolítandó:
-
-- `docs/CURRENT_PROTOTYPE_STATUS.md`;
-- `docs/CURRENT_RUNTIME_PACKAGE_STATUS.md`;
-- `docs/CURRENT_CONTRACT_STATUS.md`;
-- `docs/CURRENT_OPEN_QUESTIONS.md`;
-- `docs/checkpoints/CURRENT_ENGINE_CHECKPOINT.md`;
-- `docs/checkpoints/AETERNA_CURRENT_ENGINE_CHECKPOINT_v1.1_2026-07-20.md`;
-- `docs/ENGINE_OBJECT_IDENTITY_AND_ZONE_MOVE_PLAN_v0.1.md`;
-- `docs/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.2.md` a projektterv végleges dokumentációs mappába helyezése után.
-
-Pontos teljes lista:
-
-- `../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.5.md`.
+A nagy dokumentációs és archiválási rendezés lezárult. A további dokumentumfrissítés csak valódi technikai mérföldkő, contractváltozás, fontos döntés vagy biztonságos checkpoint esetén szükséges.

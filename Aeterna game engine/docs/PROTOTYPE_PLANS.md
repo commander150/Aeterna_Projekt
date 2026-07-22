@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.1  
-**Dátum:** 2026-07-20  
+**Dokumentumverzió:** 1.2\
+**Dátum:** 2026-07-22\
 **Státusz:** történeti prototípusterv és proof-folytonossági referencia  
 **Aktuális státuszfájl:** `PROTOTYPE_STATUS.md`  
 **Aktuális checkpoint:** `checkpoints/ENGINE_CHECKPOINT.md`  
-**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
+**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
 Ez a dokumentum a korábbi prototípuslépések célját és egymásra épülését őrzi.
 
@@ -19,7 +19,7 @@ Nem:
 - Codex-prompt;
 - következő programozási feladat.
 
-Az aktuális feladatokat az `ENGINE_CHECKPOINT.md`, az `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.2.md` és a `PROTOTYPE_STATUS.md` tartalmazza.
+Az aktuális feladatokat az `ENGINE_CHECKPOINT.md`, az `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.4.md` és a `PROTOTYPE_STATUS.md` tartalmazza.
 
 ---
 
@@ -155,21 +155,21 @@ Production C# engine foundation.
 
 Státusz:
 
-- `READY_FOR_IMPLEMENTATION`;
-- `PAUSED_CODEX_QUOTA`.
+- `COMPLETE_AND_ACCEPTED`;
+- lezáró commit: `931bf5571d541c752aa421a9f0626768bd8ffbe7`.
 
 ### Első gameplay vertical slice
 
-C.5B után:
+C.5B után, a tényleges első gameplay-migrációs sorrend szerint:
 
-1. Wellspring;
-2. infusion;
-3. Magnitúdó;
-4. Aura-payment;
-5. simple Entity `play_card`;
-6. Domain placement;
-7. event és snapshot;
-8. Godot interaction.
+1. Wellspring production state;
+2. player-visible Wellspring;
+3. Beáramlás;
+4. Magnitúdó;
+5. Aura-payment;
+6. simple Entity `play_card`;
+7. Domain placement;
+8. event, snapshot és Godot interaction.
 
 ---
 

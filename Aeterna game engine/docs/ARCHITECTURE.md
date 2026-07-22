@@ -2,10 +2,10 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.2  
-**Dátum:** 2026-07-20  
+**Dokumentumverzió:** 2.3\
+**Dátum:** 2026-07-22\
 **Státusz:** aktív kanonikus rendszerarchitektúra  
-**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
+**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 
 Ez a dokumentum az AETERNA digitális rendszerének aktív architektúráját, réteghatárait és authority-szabályait rögzíti.
 
@@ -22,11 +22,12 @@ Kapcsolódó aktív dokumentumok:
 - `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
 - `TECHNOLOGY_DECISIONS.md`
 - `DECISION_MAP.md`
-- `CURRENT_PROTOTYPE_STATUS.md`
-- `CURRENT_CONTRACT_STATUS.md`
-- `CURRENT_OPEN_QUESTIONS.md`
-- `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.2.md`
+- `PROTOTYPE_STATUS.md`
+- `CONTRACT_STATUS.md`
+- `OPEN_QUESTIONS.md`
+- `OPEN_QUESTIONS_DECISIONS.md`
+- `checkpoints/ENGINE_CHECKPOINT.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.4.md`
 
 ---
 
@@ -259,11 +260,12 @@ Nem adható ki:
 - közvetlen zónalista-referencia;
 - belső registry-referencia.
 
-### 6.3 Tervezett production projektek
+### 6.3 Aktív production projektek
 
 ```text
 Aeterna game engine/
 └── C#/
+    ├── Aeterna.Engine.sln
     ├── Aeterna.Engine/
     ├── Aeterna.Engine.Headless/
     └── Aeterna.Engine.Tests/
@@ -279,6 +281,8 @@ Pure C# class library:
 - TCP/HTTP/gRPC nélkül;
 - operációsrendszer-processz kezelés nélkül.
 
+Státusz: aktív `net8.0` production foundation. A C.5B-ben a MatchState/PlayerState minimum, typed contractok, `EngineSession`, runtime package minimum loader, draw, end-turn és stale rejection valósult meg.
+
 #### Aeterna.Engine.Headless
 
 Vékony futtató:
@@ -291,9 +295,13 @@ Vékony futtató:
 
 Nem tartalmaz saját gameplay-szabályt.
 
+Státusz: aktív, ugyanazt az `Aeterna.Engine` implementációt futtató headless host.
+
 #### Aeterna.Engine.Tests
 
 C# contract-, invariant-, transition-, determinism- és regressziós tesztek.
+
+Státusz: aktív production tesztprojekt.
 
 ---
 
@@ -535,14 +543,14 @@ A fair AI ugyanazt a player-visible observationt használja, mint az emberi ját
 
 ### Publikus engine API
 
-Tervezett minimum:
+Aktív minimum:
 
 ```text
 CreateMatch
 GetPlayerSnapshot
 ListLegalActions
 SubmitAction
-GetEvents
+GetEvents(viewerPlayerId, afterSequence)
 GetMatchResult
 ```
 
@@ -581,6 +589,8 @@ Minimum:
 - state version;
 - public payload;
 - szükség esetén projection-specific payload.
+
+A publikus event API viewer-azonosított és redaktált. A teljes event payload csak internal headless/teszt debughatáron érhető el; a Godot production bridge ezt nem exportálja.
 
 Rejected action esetén:
 
@@ -684,21 +694,32 @@ Production architecture és project-határok rögzítve.
 
 ### C.5B
 
-**Státusz:** `READY_FOR_IMPLEMENTATION`
+**Státusz:** `COMPLETE_AND_ACCEPTED`
 
-**Ideiglenesen:** `PAUSED – CODEX QUOTA`
+Lezáró commit:
+
+`931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
 Feladata:
 
 - `Aeterna.Engine`;
 - `Aeterna.Engine.Headless`;
 - `Aeterna.Engine.Tests`;
+- `Aeterna.Engine.sln`;
 - core contractok;
 - EngineSession;
 - runtime package minimum loader;
 - draw/end-turn production reprodukció;
 - Godot production bridge;
 - candidate regresszió.
+
+Ellenőrzött minimum:
+
+- Debug/Release production build és `13/13` teszt;
+- canonical SHA-egyezés és `100/100` determinisztika;
+- viewer-safe event projection;
+- strukturált JSON boundary rejection;
+- Godot pozitív és negatív production bridge smoke.
 
 ### Következő gameplay-sorrend
 
@@ -774,5 +795,6 @@ Alapszabály:
 - A Python a C# headless interfészt használhatja AI-, batch- és elemzési célra.
 - A Python-sidecar proof lezárt és befagyasztott.
 - A C# in-process proof lezárt és elfogadott.
-- A következő kódolási szakasz a C.5B production engine foundation.
-- A Codex nélküli aktív sáv dokumentáció, audit, projektirány és kártyaadatmunka.
+- A C.5B production engine foundation elkészült és elfogadott.
+- A következő kódolási szakasz a Wellspring production state és player-visible Wellspring.
+- A nem programozási aktív sáv dokumentáció, audit, projektirány, LOOKUPS- és kártyaadatmunka.

@@ -6,7 +6,7 @@
 **Dátum:** 2026-07-22  
 **Státusz:** aktív magas szintű projekt- és fájlszerep-térkép  
 **Felváltott dokumentum:** `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.6.md`  
-**Ellenőrzött repository-bázis:** `66a206c6e3bf9155fb9f71a354236fb5b6ab3b90` – `docs update 2026.07.22`  
+**Ellenőrzött repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`\
 **C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
 Ez a dokumentum csak a jelenlegi fő rétegeket, aktív forrásokat és fontos fájlszerepeket rögzíti. Nem teljes repository-inventár és nem részletes cleanup-napló.
@@ -21,7 +21,7 @@ Ez a dokumentum csak a jelenlegi fő rétegeket, aktív forrásokat és fontos f
 4. Python reference engine;
 5. Godot vizuális kliens és debugréteg;
 6. C# runtime proof;
-7. tervezett production C# authoritative engine;
+7. aktív production C# authoritative engine foundation;
 8. aktív projekt- és engine-dokumentáció;
 9. történeti archívum;
 10. regenerálható outputok és test fixture-ök.
@@ -81,13 +81,27 @@ Jelenlegi proofprojektek:
 - `Aeterna.RuntimeCandidate`;
 - `Aeterna.RuntimeCandidate.Proof`.
 
-Következő production projektek:
+Aktív production projektek:
 
 - `Aeterna.Engine`;
 - `Aeterna.Engine.Headless`;
-- `Aeterna.Engine.Tests`.
+- `Aeterna.Engine.Tests`;
+- `Aeterna.Engine.sln`.
 
-A production engine még nem létezik.
+A foundation lezáró commitja: `931bf5571d541c752aa421a9f0626768bd8ffbe7`.
+
+Jelenlegi működési scope:
+
+- minimum runtime package betöltés;
+- match bootstrap;
+- draw és end-turn;
+- stale request rejection;
+- player-visible snapshot;
+- viewer-safe event projection;
+- canonical headless fixture;
+- Godot production bridge.
+
+Wellspring, Beáramlás, Magnitúdó, Aura-payment, `play_card`, Domain placement, combat és ability execution még nem production gameplay.
 
 ### Python
 
@@ -111,7 +125,8 @@ Aktív szerepek:
 - registryk;
 - snapshot/legal action/event debug;
 - visual client foundation;
-- C# bridge proof.
+- C# bridge proof;
+- production C# engine bridge és pozitív/negatív smoke.
 
 Nem szabályforrás.
 
@@ -217,11 +232,11 @@ Generált output nem válhat canonical szerkesztési forrássá.
 
 ## 9. Fontos nyitott munkasávok
 
-### C.5B production engine
+### C.5B production engine foundation
 
-Státusz: `READY_FOR_IMPLEMENTATION`
+Státusz: `COMPLETE_AND_ACCEPTED`
 
-Ez a következő fő fejlesztési feladat.
+Lezáró commit: `931bf5571d541c752aa421a9f0626768bd8ffbe7`.
 
 ### Adat- és LOOKUPS-audit
 
@@ -234,11 +249,11 @@ Nyitva:
 - master–export parity;
 - névprofil és decklista-segédnevek.
 
-Nem blokkolja a C.5B alapozást.
+Nem blokkolja az első production gameplay-migrációt.
 
 ### Gameplay-migráció
 
-C.5B után:
+Aktuális következő fejlesztési sáv:
 
 - Wellspring;
 - Beáramlás;
@@ -260,8 +275,8 @@ A dokumentációs szakasz lezárásához csak négy fájl kritikus:
 
 1. projektterv v6.4;
 2. jelen projekt-térkép v1.7;
-3. engine-checkpoint v1.4;
-4. root README v2.1.
+3. engine-checkpoint v1.5;
+4. root README v2.2.
 
 Minden más aktív dokumentumot csak valódi technikai vagy szabályi változáskor kell frissíteni.
 
@@ -273,7 +288,7 @@ Minden más aktív dokumentumot csak valódi technikai vagy szabályi változás
 - adataudit-duplikáció megszüntetése: `COMPLETE`;
 - régi projektverziók archiválása: `COMPLETE`;
 - régi engine-terv és gyökér-összefoglalók archiválása: `COMPLETE`;
-- kritikus dokumentumok frissítése: `IN_PROGRESS`;
-- végső gyors dokumentációs ellenőrzés: `NEXT`;
-- C.5B production foundation: `READY_FOR_IMPLEMENTATION`;
-- Codex: `AVAILABLE`.
+- kritikus dokumentumok C.5B utáni frissítése: `COMPLETE`;
+- végső gyors dokumentációs ellenőrzés: `COMPLETE`;
+- C.5B production foundation: `COMPLETE_AND_ACCEPTED`;
+- első production gameplay-migráció: `NEXT`.

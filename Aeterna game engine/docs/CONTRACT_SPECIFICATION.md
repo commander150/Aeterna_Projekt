@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.5  
-**Dátum:** 2026-07-20  
+**Dokumentumverzió:** 1.6\
+**Dátum:** 2026-07-22\
 **Státusz:** aktív, technológiafüggetlen contract-specifikáció  
 **Aktuális megvalósítási státusz:** `CONTRACT_STATUS.md`  
 **Production authority:** C#/.NET  
-**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
+**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
 Ez a dokumentum az AETERNA Game Engine contract-first rétegének aktív szerkezeti specifikációja.
 
@@ -80,6 +80,7 @@ A működő kód technikai tényt bizonyíthat, de nem írhatja felül a hivatal
 | `active_reference_runtime` | A Python referenciaengine használja. |
 | `active_reference_projection` | A Python player/debug projection használja. |
 | `proven_csharp_candidate` | A C# candidate proofban működött. |
+| `active_production_foundation` | A production C# foundationben implementált és tesztelt. |
 | `active_isolated` | Megvalósított és tesztelt, de nincs teljes runtime-integrációban. |
 | `foundation_only` | Alapcontract létezik, teljes gameplay még nincs. |
 | `planned_c5b` | A production C# foundation része. |
@@ -758,6 +759,9 @@ A comparison fixture canonical SHA csak explicit contractváltozás után módos
 
 ## 24. Production C# C.5B minimum
 
+**Megvalósítási státusz:** `COMPLETE_AND_ACCEPTED`\
+**Lezáró commit:** `931bf5571d541c752aa421a9f0626768bd8ffbe7`
+
 Contractok:
 
 - runtime package source/descriptor;
@@ -783,6 +787,31 @@ Működés:
 - fixture adapter;
 - Godot bridge;
 - headless JSON/JSONL host.
+
+Aktív publikus `EngineSession`-határ:
+
+- `CreateMatch`;
+- `GetPlayerSnapshot`;
+- `ListLegalActions`;
+- `SubmitAction`;
+- `GetEvents(string viewerPlayerId, int afterSequence = 0)`;
+- `GetMatchResult`.
+
+Boundary- és visibility-követelmények:
+
+- a publikus eventprojekció viewer-specifikus és rejtett kártyaazonosságot redaktál;
+- teljes event- és debugállapot csak internal headless/teszt felületen érhető el;
+- a Godot production bridge nem exportál unsafe debughozzáférést;
+- null, hiányos vagy malformed create/action JSON strukturált rejectiont vagy diagnosticot ad;
+- rejected input nem mutálhat state-et, state versiont vagy event sequence-et.
+
+Bizonyítás:
+
+- production tesztek Debug és Release: `13/13`;
+- canonical expected és actual SHA: `650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`;
+- canonical méret: `210730` byte;
+- determinisztika: `100/100`;
+- Godot pozitív és negatív production bridge smoke: PASS.
 
 Nem része:
 

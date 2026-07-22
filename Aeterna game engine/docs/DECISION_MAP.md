@@ -2,10 +2,10 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.4  
-**Dátum:** 2026-07-20  
+**Dokumentumverzió:** 2.5\
+**Dátum:** 2026-07-22\
 **Státusz:** aktív rövid döntési és iránytérkép  
-**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
+**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 
 Ez a dokumentum röviden rögzíti:
 
@@ -22,11 +22,12 @@ Kapcsolódó aktív dokumentumok:
 - `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
 - `TECHNOLOGY_DECISIONS.md`
 - `ARCHITECTURE.md`
-- `CURRENT_PROTOTYPE_STATUS.md`
-- `CURRENT_CONTRACT_STATUS.md`
-- `CURRENT_OPEN_QUESTIONS.md`
-- `checkpoints/CURRENT_ENGINE_CHECKPOINT.md`
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.2.md`
+- `PROTOTYPE_STATUS.md`
+- `CONTRACT_STATUS.md`
+- `OPEN_QUESTIONS.md`
+- `OPEN_QUESTIONS_DECISIONS.md`
+- `checkpoints/ENGINE_CHECKPOINT.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.4.md`
 
 ---
 
@@ -180,7 +181,7 @@ Közös canonical SHA:
 
 Döntés:
 
-- a production authoritative runtime C# lesz;
+- a production authoritative runtime C#;
 - a candidate proof megmarad regressziós bizonyítékként;
 - nem nevezendő át közvetlenül production motorrá.
 
@@ -301,13 +302,13 @@ Rögzítve:
 
 ---
 
-## 7. Következő kódolási prioritás
+## 7. Production fejlesztési prioritás
 
 ### C.5B – Production C# engine foundation
 
-**Státusz:** `READY_FOR_IMPLEMENTATION`
+**Státusz:** `COMPLETE_AND_ACCEPTED`
 
-**Ideiglenesen:** `PAUSED_CODEX_QUOTA`
+**Lezáró commit:** `931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
 Első scope:
 
@@ -321,7 +322,15 @@ Első scope:
 - Godot production bridge;
 - candidate regresszió.
 
-Nem része:
+Bizonyított:
+
+- production Debug/Release build és `13/13` teszt;
+- viewer-safe event projection;
+- strukturált JSON boundary rejection;
+- canonical SHA-egyezés és `100/100` determinisztika;
+- Godot pozitív és negatív production bridge smoke.
+
+A C.5B-nek nem része:
 
 - új gameplay;
 - Wellspring;
@@ -334,6 +343,17 @@ Nem része:
 - HTTP;
 - gRPC;
 - production packaging.
+
+### Következő: P3 első production gameplay-migráció
+
+**Státusz:** `NEXT`
+
+Első scope:
+
+1. Wellspring production state;
+2. player-visible Wellspring.
+
+Beáramlás, Magnitúdó, Aura-payment és `play_card` csak a Wellspring-szakasz külön elfogadása után következik.
 
 ---
 
@@ -394,67 +414,28 @@ Nem készül addig, amíg teljesítménymérés nem igazolja.
 
 ---
 
-## 10. Codex nélküli aktív prioritás
+## 10. Nem programozási aktív prioritás
 
-1. Meglévő engine-dokumentumok aktualizálása.
-2. Verzió, dátum és státusz pótlása az aktív dokumentumokban.
-3. Dokumentumátfedések és merge-jelöltek feltérképezése.
-4. `CURRENT_OPEN_QUESTIONS.md`, `OPEN_QUESTIONS.md` és `OPEN_QUESTIONS_DECISIONS.md` triázsa.
-5. Projekt-térkép és README-k aktualizálása.
-6. Kártyaadat- és szabályaudit.
-7. Kártyadizájn-workflow tervezése.
+1. Kártyaadat- és szabályaudit.
+2. LOOKUPS- és ID-contract munka.
+3. Kártyadizájn-workflow tervezése.
 
 Nem készül új párhuzamos dokumentum, ha a tartalom meglévő aktív fájlba illeszthető.
 
 ---
 
-## 11. Dokumentációs rendrakás
+## 11. Dokumentációs állapot
 
-### Első szakasz
+A nagy dokumentációs és archiválási rendezés lezárult. A további dokumentáció nem önálló projektprioritás.
 
-`Aeterna game engine/docs/`
-
-Feladat:
-
-- minden fájl inventoryja;
-- verzióblokk;
-- dátum;
-- státusz;
-- aktív / történeti / elavult szerep;
-- átfedések;
-- merge-cél;
-- archívjelöltek;
-- törlés csak jóváhagyással.
-
-### Második szakasz
-
-A másik dokumentummappa teljes auditja.
-
-Ide tartozik különösen:
-
-`Aeterna dokumentációk/`
-
-Feladat:
-
-- projekttervek verziósora;
-- projekt-térképek;
-- főforrások és segédforrások;
-- audit- és workflow-dokumentumok;
-- ötlet- és designanyagok;
-- README-k;
-- régi és aktív verziók elkülönítése;
-- összevonási terv;
-- minden verzió nélküli aktív dokumentum verziózása.
-
-A két dokumentummappa auditját külön kell elvégezni, majd a végén közös keresztmappa-ellenőrzés szükséges.
+Frissítés csak technikai mérföldkő, contract- vagy authority-változás, fontos döntés vagy biztonságos checkpoint esetén szükséges.
 
 Tilos:
 
-- automatikus törlés;
+- új párhuzamos authority-dokumentum indokolatlan létrehozása;
 - tartalomvesztés;
 - nyitott kérdés elvesztése;
-- aktív és történeti forrás összekeverése;
-- dokumentum átnevezése forráshivatkozások ellenőrzése nélkül.
+- aktív és történeti forrás összekeverése.
 
 ---
 

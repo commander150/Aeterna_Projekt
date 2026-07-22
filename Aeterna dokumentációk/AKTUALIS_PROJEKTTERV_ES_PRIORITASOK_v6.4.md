@@ -6,7 +6,7 @@
 **Dátum:** 2026-07-22  
 **Státusz:** aktív projektirányító és prioritási dokumentum  
 **Felváltott dokumentum:** `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.3.md`  
-**Ellenőrzött repository-bázis:** `66a206c6e3bf9155fb9f71a354236fb5b6ab3b90` – `docs update 2026.07.22`  
+**Ellenőrzött repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`\
 **C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
 
 Ez a dokumentum az AETERNA projekt aktuális munkasorrendjét rögzíti. Nem teljes technikai specifikáció, nem történeti napló és nem hivatalos játékszabályforrás.
@@ -80,6 +80,24 @@ Canonical comparison SHA:
 
 A RuntimeCandidate proof, nem production engine.
 
+### Production C# engine foundation
+
+Státusz: `COMPLETE_AND_ACCEPTED`
+
+Megvalósult:
+
+- `Aeterna.Engine.sln` production solution;
+- `Aeterna.Engine` pure `net8.0` authoritative core;
+- `Aeterna.Engine.Headless` és `Aeterna.Engine.Tests`;
+- typed production contractok és `EngineSession`;
+- minimum runtime package loader;
+- draw, stale request rejection és end-turn;
+- viewer-specifikus snapshot- és eventprojekció;
+- canonical serializer és fixture adapter;
+- Godot production bridge, gameplay-logika nélkül.
+
+A production foundation és a RuntimeCandidate külön réteg marad. A foundation még nem teljes rules engine.
+
 ---
 
 ## 3. Dokumentációs rendezés állapota
@@ -135,16 +153,18 @@ A további dokumentumfrissítés nem önálló projektprioritás. Csak akkor kel
 
 ## 5. Aktuális elsődleges prioritás
 
-### P1 – Kritikus dokumentumok lezárása
+### P1 – C.5B mérföldkő dokumentációs lezárása
 
-Csak a következő négy dokumentum frissítése szükséges:
+Státusz: `COMPLETE`
+
+A C.5B kódcommit után a következő négy elsődleges dokumentum állapota összhangba került:
 
 1. jelen projektterv v6.4;
 2. projekt-térkép v1.7;
-3. engine-checkpoint v1.4;
-4. root README v2.1.
+3. engine-checkpoint v1.5;
+4. root README v2.2.
 
-Ezután egy rövid végső ellenőrzés következik:
+A lezáró ellenőrzés igazolta:
 
 - a négy célfájl létezik;
 - csak egy aktív projektterv és projekt-térkép van;
@@ -153,19 +173,22 @@ Ezután egy rövid végső ellenőrzés következik:
 - nincs runtime kód a dokumentációs commitban;
 - `git status --short` és `git diff --check` rendben van.
 
-A többi dokumentumot most nem frissítjük.
+A közvetlenül érintett engine- és contract-státuszfájlok C.5B-re vonatkozó téves állításai frissültek. Új dokumentum nem készült.
 
 ### P2 – C.5B Production C# Engine Foundation
 
-Státusz: `READY_FOR_IMPLEMENTATION`
+Státusz: `COMPLETE_AND_ACCEPTED`
 
-A Codex újra elérhető. A dokumentációs minimum lezárása után ez a következő tényleges fejlesztési feladat.
+Lezáró commit:
+
+`931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 
 Első scope:
 
 - `Aeterna.Engine`;
 - `Aeterna.Engine.Headless`;
 - `Aeterna.Engine.Tests`;
+- `Aeterna.Engine.sln`;
 - pure C# production MatchState és PlayerState alap;
 - typed core contractok;
 - EngineSession;
@@ -192,9 +215,21 @@ Nem része:
 - HTTP vagy gRPC;
 - production Windows packaging.
 
+Ellenőrzött bizonyíték:
+
+- production solution Debug és Release: PASS, 0 warning, 0 error;
+- production tesztek: Debug `13/13`, Release `13/13`;
+- canonical expected és actual SHA: `650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`;
+- canonical artifact: `210730` byte;
+- production determinisztika: `100/100`;
+- Godot Debug és ExportRelease build: PASS;
+- pozitív és negatív production bridge smoke: PASS.
+
 ### P3 – Első production gameplay migráció
 
-Csak a C.5B elfogadása után:
+Státusz: `NEXT`
+
+A C.5B elfogadása után a meglévő sorrend szerint:
 
 1. Wellspring production state;
 2. player-visible Wellspring;
@@ -209,7 +244,7 @@ Csak a C.5B elfogadása után:
 
 ## 6. Párhuzamos adat- és kártyamunka
 
-A következő tételek fontosak, de nem blokkolják a C.5B alapozást:
+A következő tételek fontosak, de nem blokkolják az első production gameplay-migrációt:
 
 - külön `LOOKUPS.xlsx` teljes auditja;
 - `Card_ID` és `Szabályi_Kártya_ID` contractdöntés;
@@ -222,7 +257,7 @@ A következő tételek fontosak, de nem blokkolják a C.5B alapozást:
 - booster poolok;
 - további kártyaaudit és balanszteszt.
 
-Ezeket külön munkasávban kell kezelni, nem a C.5B foundation scope-jában.
+Ezeket külön munkasávban kell kezelni, nem az első gameplay-migráció kódscope-jában.
 
 ---
 
@@ -234,19 +269,19 @@ Ezeket külön munkasávban kell kezelni, nem a C.5B foundation scope-jában.
 - Történeti előd archívumba kerül, nem marad párhuzamos authority.
 - Generált output nem canonical szerkesztési forrás.
 - Dokumentációs és runtime kódmódosítás ne kerüljön ugyanabba a commitba.
+- A dokumentációs szerkesztés és a kizárólag dokumentációt érintő commit nem igényel külön programozási Codex-kört; a Codexet elsősorban programkódhoz és az ahhoz szükséges futtatási ellenőrzésekhez tartjuk fenn.
 - A dokumentációt nem kell minden kisebb technikai lépés után tömegesen frissíteni.
 
 ---
 
 ## 8. Rövid folytatási állapot
 
-**Repository-bázis:** `66a206c6e3bf9155fb9f71a354236fb5b6ab3b90`  
+**Repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7`\
 **Authoritative runtime döntés:** C#/.NET  
 **Godot szerepe:** visual client  
 **Python szerepe:** external tooling és reference  
 **C# proof:** kész és elfogadott  
-**Production C# engine:** még nem létezik  
+**Production C# engine foundation:** kész és elfogadott\
 **C.5A:** kész  
-**C.5B:** implementálásra kész  
-**Codex:** újra elérhető  
-**Következő lépés:** a négy kritikus dokumentum rövid ellenőrzése, majd C.5B implementáció.
+**C.5B:** kész és elfogadott\
+**Következő lépés:** P3 első eleme: Wellspring production state és player-visible Wellspring.

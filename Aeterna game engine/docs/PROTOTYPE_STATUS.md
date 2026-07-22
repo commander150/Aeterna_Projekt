@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.3  
-**Dátum:** 2026-07-20  
+**Dokumentumverzió:** 1.4\
+**Dátum:** 2026-07-22\
 **Státusz:** aktív prototípus- és technikai bizonyíték státusztérkép  
 **Felváltott fájl:** `CURRENT_PROTOTYPE_STATUS.md`  
-**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
+**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 
 Ez a dokumentum azt rögzíti, hogy:
 
@@ -26,7 +26,7 @@ Kapcsolódó aktív dokumentumok:
 - `CONTRACT_STATUS.md`
 - `OPEN_QUESTIONS.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.2.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.4.md`
 
 ---
 
@@ -248,11 +248,11 @@ Rögzítve:
 
 ## 8. C.5B – Production C# engine foundation
 
-**Státusz:** `READY_FOR_IMPLEMENTATION`
+**Státusz:** `COMPLETE_AND_ACCEPTED`
 
-**Ideiglenes állapot:** `PAUSED_CODEX_QUOTA`
+**Lezáró commit:** `931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
-Tervezett scope:
+Megvalósult scope:
 
 - pure C# production engine;
 - headless host;
@@ -264,6 +264,14 @@ Tervezett scope:
 - production fixture adapter;
 - Godot production bridge;
 - RuntimeCandidate regresszió.
+
+Bizonyíték:
+
+- production tesztek Debug és Release: `13/13`;
+- canonical SHA-egyezés és `100/100` determinisztika;
+- viewer-safe snapshot és event projection;
+- strukturált negatív JSON-boundary viselkedés;
+- Godot pozitív és negatív production bridge smoke.
 
 Nem része:
 
@@ -373,17 +381,16 @@ Nincs azonnali javítás vagy whitespace-only commit.
 
 Ez a fájl a `CURRENT_PROTOTYPE_STATUS.md` utódja.
 
-A repositoryban történő alkalmazáskor:
+A repository aktuális állapota:
 
-1. az új aktív név `PROTOTYPE_STATUS.md`;
-2. a régi `CURRENT_PROTOTYPE_STATUS.md` eltávolítandó;
-3. minden rá mutató hivatkozást frissíteni kell;
-4. az eltávolítás csak az új fájl beillesztése és a hivatkozások ellenőrzése után történhet.
+1. az aktív név `PROTOTYPE_STATUS.md`;
+2. a régi `CURRENT_PROTOTYPE_STATUS.md` nem aktív authority;
+3. az aktív hivatkozások az utódfájlra mutatnak.
 
 Általános szabály:
 
 - `CURRENT_*` csak akkor maradhat ideiglenesen, amíg az összevonási vagy átnevezési audit tart;
-- ahol nincs párfájl, a `CURRENT_` előtag eltávolítandó;
+- ahol nincs párfájl, a `CURRENT_` előtag nem használható aktív fájlnévként;
 - ahol van párfájl, tartalmi összevetés és lehetőség szerint merge szükséges;
 - minden aktív utódfájlnak verzióblokkot, dátumot és státuszt kell kapnia.
 
@@ -395,7 +402,7 @@ A repositoryban történő alkalmazáskor:
 - A Python minimal engine referencia és comparison oracle.
 - A Python sidecar proof lezárt és befagyasztott.
 - A C# in-process proof lezárt és elfogadott.
-- A production authoritative runtime C# lesz.
-- A production C# engine még nem létezik.
-- A C.5B implementálásra előkészített, Codex-keret miatt szünetel.
-- A következő aktív munka dokumentációs audit, átnevezés, verziózás és konszolidáció.
+- A production authoritative runtime C#.
+- A production C# engine foundation elkészült, de a teljes gameplay-engine még nem.
+- A C.5B kész és elfogadott.
+- A következő kódolási munka a Wellspring production state és player-visible Wellspring.

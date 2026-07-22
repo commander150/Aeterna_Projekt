@@ -2,10 +2,10 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.2  
-**Dátum:** 2026-07-21  
+**Dokumentumverzió:** 1.3\
+**Dátum:** 2026-07-22\
 **Státusz:** aktív checkpoint-index  
-**Aktuális repository HEAD:** `32a0cbea24c82dda440f1a053b454ef03949d8ae` – `docs update 2`
+**Ellenőrzött C.5B kódbázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 
 Ez a dokumentum elválasztja az aktív technikai folytatási pontot, a történeti mérföldkőnaplót és a hosszú távú termékcélt.
 
@@ -18,17 +18,12 @@ Ez a dokumentum elválasztja az aktív technikai folytatási pontot, a történe
 Szerepe:
 
 - elsődleges folytatási pont;
-- Python reference, sidecar és C# proof állapot;
+- Python reference, sidecar, C# proof és production foundation állapot;
 - lezárt runtime-döntés;
 - C.5A/C.5B státusz;
-- dokumentációs cleanup és következő biztonságos lépés.
+- következő biztonságos gameplay-migrációs lépés.
 
-Felváltja:
-
-- `CURRENT_ENGINE_CHECKPOINT.md`;
-- `AETERNA_CURRENT_ENGINE_CHECKPOINT_v1.1_2026-07-20.md`.
-
-A két előd a hivatkozásellenőrzés után eltávolítandó.
+A korábbi checkpointelődök archív/történeti állapotban maradnak; nem aktív authority-k.
 
 ---
 
@@ -46,7 +41,7 @@ Szerepe:
 - sidecar proof;
 - C# proof;
 - runtime-döntés;
-- C.5A és későbbi mérföldkövek
+- C.5A, C.5B és későbbi mérföldkövek
 
 időrendi rövid megőrzése.
 
@@ -91,17 +86,12 @@ A hivatalos játékszabályforrás mindegyik fölött áll szabályi kérdésben
 
 ---
 
-## 6. Aktuális cleanup
+## 6. Aktuális checkpointállapot
 
-Megtartandó:
+Aktív:
 
 - `README.md`;
 - `ENGINE_CHECKPOINT.md`;
 - `CHECKPOINTS.md`.
 
-Eltávolítandó:
-
-- `CURRENT_ENGINE_CHECKPOINT.md`;
-- `AETERNA_CURRENT_ENGINE_CHECKPOINT_v1.1_2026-07-20.md`.
-
-A három megtartott fájl szerepe különböző, ezért nem tartalmi duplikáció.
+A három fájl szerepe különböző, ezért nem tartalmi duplikáció. A C.5B production foundation mérföldkő a naplóban és az aktív checkpointban is rögzített.

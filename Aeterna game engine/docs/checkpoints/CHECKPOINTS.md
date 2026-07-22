@@ -2,8 +2,8 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.1  
-**Dátum:** 2026-07-20  
+**Dokumentumverzió:** 1.2\
+**Dátum:** 2026-07-22\
 **Státusz:** történeti technikai mérföldkőnapló  
 **Aktív folytatási checkpoint:** `ENGINE_CHECKPOINT.md`
 
@@ -218,8 +218,11 @@ Rögzítve:
 
 Státusz:
 
-- `READY_FOR_IMPLEMENTATION`;
-- `PAUSED_CODEX_QUOTA`.
+- `COMPLETE_AND_ACCEPTED`.
+
+Lezáró commit:
+
+- `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`.
 
 Scope:
 
@@ -232,13 +235,24 @@ Scope:
 - canonical fixture;
 - Godot production bridge.
 
+Bizonyította:
+
+- pure `net8.0` production core;
+- ugyanazt az `EngineSession` implementációt használó headless és Godot út;
+- viewer-safe snapshot- és eventprojekció;
+- strukturált JSON boundary rejection;
+- Debug/Release `13/13` production teszt;
+- expected és actual canonical SHA-egyezés;
+- `210730` byte canonical artifact;
+- `100/100` determinisztika;
+- pozitív és negatív Godot production bridge smoke.
+
 ---
 
 ## Következő mérföldkőnapló-bejegyzés
 
 Új történeti bejegyzés akkor készül, amikor:
 
-- C.5B teljes PASS;
 - első production gameplay vertical slice;
 - jelentős packaging proof;
 - 0.0.1 fő mérföldkő.
