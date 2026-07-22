@@ -10,6 +10,17 @@ public sealed class EngineSession
 {
     private MatchState? _state;
 
+    public EngineSession()
+    {
+    }
+
+    internal EngineSession(MatchState initialState)
+    {
+        ArgumentNullException.ThrowIfNull(initialState);
+        ValidateState(initialState);
+        _state = initialState;
+    }
+
     public CreateMatchResponse CreateMatch(CreateMatchRequest? request)
     {
         if (request is null)
@@ -53,8 +64,17 @@ public sealed class EngineSession
     {
         var state = RequireState();
         RequireKnownPlayer(state, playerId);
+        var resourceSummaries = state.Players
+            .Select(player => BuildWellspringResourceSummary(state, player))
+            .ToImmutableArray();
+        var resourceSummariesByPlayerId = resourceSummaries
+            .ToDictionary(summary => summary.PlayerId, StringComparer.Ordinal);
         var players = state.Players
-            .Select(player => BuildPlayerSnapshotEntry(state, player, playerId))
+            .Select(player => BuildPlayerSnapshotEntry(
+                state,
+                player,
+                playerId,
+                resourceSummariesByPlayerId[player.PlayerId]))
             .ToImmutableArray();
         var legalActions = ListLegalActions(playerId).Actions;
         return new PlayerSnapshot(
@@ -74,10 +94,7 @@ public sealed class EngineSession
             {
                 ["status"] = "not_in_c5b_scope",
             }),
-            ContractJsonValue.From(new Dictionary<string, object?>
-            {
-                ["status"] = "not_in_c5b_scope",
-            }),
+            new ResourceSummary(ContractSchemas.ResourceSummary, resourceSummaries),
             ContractJsonValue.From(new Dictionary<string, object?>
             {
                 ["has_pending"] = false,
@@ -320,7 +337,8 @@ public sealed class EngineSession
                 player.DeckId,
                 player.DeckCardInstanceIds.ToImmutableArray(),
                 player.HandCardInstanceIds.ToImmutableArray(),
-                player.DiscardCardInstanceIds.ToImmutableArray())).ToImmutableArray(),
+                player.DiscardCardInstanceIds.ToImmutableArray(),
+                player.WellspringCardInstanceIds.ToImmutableArray())).ToImmutableArray(),
             state.CardInstances.Values
                 .OrderBy(card => card.CreatedSequence)
                 .ThenBy(card => card.CardInstanceId, StringComparer.Ordinal)
@@ -647,7 +665,8 @@ public sealed class EngineSession
     private static PlayerSnapshotEntry BuildPlayerSnapshotEntry(
         MatchState state,
         PlayerState player,
-        string viewerPlayerId)
+        string viewerPlayerId,
+        WellspringResourceSummary resourceSummary)
     {
         var isViewer = string.Equals(player.PlayerId, viewerPlayerId, StringComparison.Ordinal);
         return new PlayerSnapshotEntry(
@@ -659,7 +678,76 @@ public sealed class EngineSession
                 "hand",
                 player.HandCardInstanceIds,
                 isViewer ? "owner_visible" : "count_only"),
-            BuildZoneSnapshot(state, "discard", player.DiscardCardInstanceIds, "public"));
+            BuildZoneSnapshot(state, "discard", player.DiscardCardInstanceIds, "public"),
+            BuildWellspringProjection(state, player, isViewer, resourceSummary));
+    }
+
+    private static WellspringProjection BuildWellspringProjection(
+        MatchState state,
+        PlayerState player,
+        bool isViewer,
+        WellspringResourceSummary resourceSummary)
+    {
+        var objects = isViewer
+            ? player.WellspringCardInstanceIds.Select(cardInstanceId =>
+            {
+                var card = state.GetCardInstance(cardInstanceId);
+                return new WellspringCardProjection(
+                    card.CardId,
+                    RequireWellspringActivityState(card));
+            }).ToImmutableArray()
+            : ImmutableArray<WellspringCardProjection>.Empty;
+        return new WellspringProjection(
+            ContractSchemas.WellspringProjection,
+            "wellspring",
+            isViewer ? "owner_visible" : "summary_only",
+            Redacted: !isViewer,
+            resourceSummary.WellspringCardCount,
+            resourceSummary.Magnitude,
+            resourceSummary.ActiveSourceCount,
+            resourceSummary.ExhaustedSourceCount,
+            resourceSummary.AvailableAura,
+            objects);
+    }
+
+    private static WellspringResourceSummary BuildWellspringResourceSummary(
+        MatchState state,
+        PlayerState player)
+    {
+        var activeSourceCount = 0;
+        var exhaustedSourceCount = 0;
+        foreach (var cardInstanceId in player.WellspringCardInstanceIds)
+        {
+            var card = state.GetCardInstance(cardInstanceId);
+            if (string.Equals(RequireWellspringActivityState(card), "active", StringComparison.Ordinal))
+            {
+                activeSourceCount += 1;
+            }
+            else
+            {
+                exhaustedSourceCount += 1;
+            }
+        }
+
+        var cardCount = player.WellspringCardInstanceIds.Count;
+        return new WellspringResourceSummary(
+            ContractSchemas.WellspringResourceSummary,
+            player.PlayerId,
+            cardCount,
+            Magnitude: cardCount,
+            activeSourceCount,
+            exhaustedSourceCount,
+            AvailableAura: activeSourceCount);
+    }
+
+    private static string RequireWellspringActivityState(CardInstanceState card)
+    {
+        if (card.ActivityState is not ("active" or "exhausted"))
+        {
+            throw new EngineStateException("Wellspring card activity state must be active or exhausted.");
+        }
+
+        return card.ActivityState;
     }
 
     private static ZoneSnapshot BuildZoneSnapshot(
@@ -787,14 +875,15 @@ public sealed class EngineSession
     private MatchState RequireState() => _state
         ?? throw new InvalidOperationException("CreateMatch must succeed before using the engine session.");
 
-    private static void ValidateState(MatchState state)
+    internal static void ValidateState(MatchState state)
     {
         var zoneIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var player in state.Players)
         {
             foreach (var cardInstanceId in player.HandCardInstanceIds
                          .Concat(player.DeckCardInstanceIds)
-                         .Concat(player.DiscardCardInstanceIds))
+                         .Concat(player.DiscardCardInstanceIds)
+                         .Concat(player.WellspringCardInstanceIds))
             {
                 if (!zoneIds.Add(cardInstanceId))
                 {
@@ -806,11 +895,25 @@ public sealed class EngineSession
                     throw new EngineStateException("Zone references an unknown card instance.");
                 }
             }
+
+            ValidateWellspringState(state, player);
         }
 
         if (!zoneIds.SetEquals(state.CardInstances.Keys))
         {
             throw new EngineStateException("Card instance registry and zones disagree.");
+        }
+
+        var listedWellspringIds = state.Players
+            .SelectMany(player => player.WellspringCardInstanceIds)
+            .ToHashSet(StringComparer.Ordinal);
+        var registeredWellspringIds = state.CardInstances.Values
+            .Where(card => string.Equals(card.Zone, "wellspring", StringComparison.Ordinal))
+            .Select(card => card.CardInstanceId)
+            .ToHashSet(StringComparer.Ordinal);
+        if (!listedWellspringIds.SetEquals(registeredWellspringIds))
+        {
+            throw new EngineStateException("Card instance registry and Wellspring zones disagree.");
         }
 
         if (state.Players.All(player =>
@@ -830,6 +933,54 @@ public sealed class EngineSession
             .Any())
         {
             throw new EngineStateException("Event sequence is not contiguous.");
+        }
+    }
+
+    private static void ValidateWellspringState(MatchState state, PlayerState player)
+    {
+        var activeSourceCount = 0;
+        var exhaustedSourceCount = 0;
+        for (var zoneIndex = 0; zoneIndex < player.WellspringCardInstanceIds.Count; zoneIndex++)
+        {
+            var card = state.GetCardInstance(player.WellspringCardInstanceIds[zoneIndex]);
+            if (!string.Equals(card.Zone, "wellspring", StringComparison.Ordinal))
+            {
+                throw new EngineStateException("Wellspring card zone must be wellspring.");
+            }
+
+            if (card.ZoneIndex != zoneIndex)
+            {
+                throw new EngineStateException("Wellspring card zone index must match list order.");
+            }
+
+            if (!string.Equals(card.ControllerPlayerId, player.PlayerId, StringComparison.Ordinal))
+            {
+                throw new EngineStateException("Wellspring card controller must match the player state.");
+            }
+
+            if (!string.Equals(card.Visibility, "owner_only", StringComparison.Ordinal))
+            {
+                throw new EngineStateException("Wellspring card visibility must be owner_only.");
+            }
+
+            switch (card.ActivityState)
+            {
+                case "active":
+                    activeSourceCount += 1;
+                    break;
+                case "exhausted":
+                    exhaustedSourceCount += 1;
+                    break;
+                default:
+                    throw new EngineStateException(
+                        "Wellspring card activity state must be active or exhausted.");
+            }
+        }
+
+        if (activeSourceCount + exhaustedSourceCount != player.WellspringCardInstanceIds.Count)
+        {
+            throw new EngineStateException(
+                "Wellspring active and exhausted source counts must equal the card count.");
         }
     }
 }

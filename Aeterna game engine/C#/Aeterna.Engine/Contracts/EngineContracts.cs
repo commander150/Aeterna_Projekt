@@ -12,6 +12,9 @@ public static class ContractSchemas
     public const string ActionResponse = "minimal-action-response-v0";
     public const string LegalActionSpace = "minimal-legal-action-space-v0";
     public const string PlayerSnapshot = "engine-player-visible-snapshot-v2";
+    public const string WellspringProjection = "aeterna-player-visible-wellspring-v1";
+    public const string WellspringResourceSummary = "aeterna-wellspring-resource-summary-v1";
+    public const string ResourceSummary = "aeterna-resource-summary-v1";
     public const string DebugSnapshot = "aeterna-debug-match-snapshot-v1";
     public const string EngineEvent = "minimal-engine-event-v0";
     public const string EngineDiagnostic = "aeterna-engine-diagnostic-v1";
@@ -161,12 +164,42 @@ public sealed record ZoneSnapshot(
     [property: JsonPropertyName("redacted")] bool Redacted,
     [property: JsonPropertyName("objects")] ImmutableArray<CardReference> Objects);
 
+public sealed record WellspringCardProjection(
+    [property: JsonPropertyName("card_id")] string CardId,
+    [property: JsonPropertyName("activity_state")] string ActivityState);
+
+public sealed record WellspringResourceSummary(
+    [property: JsonPropertyName("schema_version")] string SchemaVersion,
+    [property: JsonPropertyName("player_id")] string PlayerId,
+    [property: JsonPropertyName("wellspring_card_count")] int WellspringCardCount,
+    [property: JsonPropertyName("magnitude")] int Magnitude,
+    [property: JsonPropertyName("active_source_count")] int ActiveSourceCount,
+    [property: JsonPropertyName("exhausted_source_count")] int ExhaustedSourceCount,
+    [property: JsonPropertyName("available_aura")] int AvailableAura);
+
+public sealed record WellspringProjection(
+    [property: JsonPropertyName("schema_version")] string SchemaVersion,
+    [property: JsonPropertyName("zone")] string Zone,
+    [property: JsonPropertyName("visibility_mode")] string VisibilityMode,
+    [property: JsonPropertyName("redacted")] bool Redacted,
+    [property: JsonPropertyName("wellspring_card_count")] int WellspringCardCount,
+    [property: JsonPropertyName("magnitude")] int Magnitude,
+    [property: JsonPropertyName("active_source_count")] int ActiveSourceCount,
+    [property: JsonPropertyName("exhausted_source_count")] int ExhaustedSourceCount,
+    [property: JsonPropertyName("available_aura")] int AvailableAura,
+    [property: JsonPropertyName("objects")] ImmutableArray<WellspringCardProjection> Objects);
+
+public sealed record ResourceSummary(
+    [property: JsonPropertyName("schema_version")] string SchemaVersion,
+    [property: JsonPropertyName("players")] ImmutableArray<WellspringResourceSummary> Players);
+
 public sealed record PlayerSnapshotEntry(
     [property: JsonPropertyName("player_id")] string PlayerId,
     [property: JsonPropertyName("relation")] string Relation,
     [property: JsonPropertyName("deck")] ZoneSnapshot Deck,
     [property: JsonPropertyName("hand")] ZoneSnapshot Hand,
-    [property: JsonPropertyName("discard")] ZoneSnapshot Discard);
+    [property: JsonPropertyName("discard")] ZoneSnapshot Discard,
+    [property: JsonPropertyName("wellspring")] WellspringProjection Wellspring);
 
 public sealed record PlayerSnapshot(
     [property: JsonPropertyName("schema_version")] string SchemaVersion,
@@ -182,7 +215,7 @@ public sealed record PlayerSnapshot(
     [property: JsonPropertyName("legal_actions")] ImmutableArray<LegalAction> LegalActions,
     [property: JsonPropertyName("visible_event_sequence")] int VisibleEventSequence,
     [property: JsonPropertyName("board_summary")] JsonElement BoardSummary,
-    [property: JsonPropertyName("resource_summary")] JsonElement ResourceSummary,
+    [property: JsonPropertyName("resource_summary")] ResourceSummary ResourceSummary,
     [property: JsonPropertyName("pending_decision_summary")] JsonElement PendingDecisionSummary,
     [property: JsonPropertyName("match_result")] MatchResult MatchResult);
 
@@ -191,7 +224,8 @@ public sealed record DebugPlayerSnapshot(
     string DeckId,
     ImmutableArray<string> DeckCardInstanceIds,
     ImmutableArray<string> HandCardInstanceIds,
-    ImmutableArray<string> DiscardCardInstanceIds);
+    ImmutableArray<string> DiscardCardInstanceIds,
+    ImmutableArray<string> WellspringCardInstanceIds);
 
 public sealed record DebugCardInstanceSnapshot(
     string CardInstanceId,

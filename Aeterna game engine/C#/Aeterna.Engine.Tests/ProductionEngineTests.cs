@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using Aeterna.Engine;
 using Aeterna.Engine.Contracts;
 using Aeterna.Engine.Headless;
+using Aeterna.Engine.State;
 using EngineCanonicalJson = Aeterna.Engine.Serialization.CanonicalJson;
 
 internal sealed record ProductionEngineTest(string Name, Action Body);
@@ -18,6 +19,22 @@ internal static class ProductionEngineTests
         new("stale_request_is_immutable", StaleRequestIsImmutable),
         new("end_turn_and_second_draw", EndTurnAndSecondDraw),
         new("player_snapshot_hides_private_information", PlayerSnapshotHidesPrivateInformation),
+        new("initial_wellspring_is_empty_and_summarized", InitialWellspringIsEmptyAndSummarized),
+        new("active_wellspring_summary", ActiveWellspringSummary),
+        new("exhausted_wellspring_summary", ExhaustedWellspringSummary),
+        new("mixed_wellspring_summary", MixedWellspringSummary),
+        new("wellspring_projection_respects_viewer_visibility", WellspringProjectionRespectsViewerVisibility),
+        new("wellspring_projection_is_defensive_and_non_mutating", WellspringProjectionIsDefensiveAndNonMutating),
+        new("wellspring_duplicate_instance_is_rejected", WellspringDuplicateInstanceIsRejected),
+        new("wellspring_unknown_instance_is_rejected", WellspringUnknownInstanceIsRejected),
+        new("wellspring_cross_zone_membership_is_rejected", WellspringCrossZoneMembershipIsRejected),
+        new("wellspring_wrong_zone_is_rejected", WellspringWrongZoneIsRejected),
+        new("wellspring_wrong_zone_index_is_rejected", WellspringWrongZoneIndexIsRejected),
+        new("wellspring_wrong_controller_is_rejected", WellspringWrongControllerIsRejected),
+        new("wellspring_wrong_visibility_is_rejected", WellspringWrongVisibilityIsRejected),
+        new("wellspring_null_activity_is_rejected", WellspringNullActivityIsRejected),
+        new("wellspring_unknown_activity_is_rejected", WellspringUnknownActivityIsRejected),
+        new("wellspring_registry_list_mismatch_is_rejected", WellspringRegistryListMismatchIsRejected),
         new("public_results_are_defensive", PublicResultsAreDefensive),
         new("canonical_fixture_matches_python_oracle", CanonicalFixtureMatchesPythonOracle),
         new("canonical_fixture_is_deterministic_for_100_runs", CanonicalFixtureIsDeterministicForOneHundredRuns),
@@ -247,6 +264,254 @@ internal static class ProductionEngineTests
         JsonSerializer.Serialize(snapshot);
     }
 
+    private static void InitialWellspringIsEmptyAndSummarized()
+    {
+        var (session, _, _) = CreateSession();
+        var debug = session.GetDebugSnapshot();
+        True(
+            debug.Players.All(player => player.WellspringCardInstanceIds.IsEmpty),
+            "Every player must start with an empty Wellspring.");
+
+        var snapshot = session.GetPlayerSnapshot("player_1");
+        foreach (var player in snapshot.Players)
+        {
+            AssertWellspringCounts(player.Wellspring, 0, 0, 0, 0, 0);
+        }
+
+        foreach (var summary in snapshot.ResourceSummary.Players)
+        {
+            AssertWellspringCounts(summary, 0, 0, 0, 0, 0);
+        }
+
+        Equal(
+            ContractSchemas.ResourceSummary,
+            snapshot.ResourceSummary.SchemaVersion,
+            "Resource summary schema is invalid.");
+        var resourceJson = JsonSerializer.Serialize(snapshot.ResourceSummary);
+        True(
+            resourceJson.Contains("\"wellspring_card_count\"", StringComparison.Ordinal),
+            "Resource summary does not expose the typed Wellspring count.");
+        Equal(
+            false,
+            resourceJson.Contains("not_in_c5b_scope", StringComparison.Ordinal),
+            "Resource summary still contains the C.5B placeholder.");
+    }
+
+    private static void ActiveWellspringSummary()
+    {
+        var (session, _) = CreateWellspringSession("active");
+        var snapshot = session.GetPlayerSnapshot("player_1");
+        AssertWellspringCounts(
+            snapshot.Players.Single(player => player.PlayerId == "player_1").Wellspring,
+            1,
+            1,
+            1,
+            0,
+            1);
+        AssertWellspringCounts(
+            snapshot.ResourceSummary.Players.Single(summary => summary.PlayerId == "player_1"),
+            1,
+            1,
+            1,
+            0,
+            1);
+    }
+
+    private static void ExhaustedWellspringSummary()
+    {
+        var (session, _) = CreateWellspringSession("exhausted");
+        var snapshot = session.GetPlayerSnapshot("player_1");
+        AssertWellspringCounts(
+            snapshot.Players.Single(player => player.PlayerId == "player_1").Wellspring,
+            1,
+            1,
+            0,
+            1,
+            0);
+        AssertWellspringCounts(
+            snapshot.ResourceSummary.Players.Single(summary => summary.PlayerId == "player_1"),
+            1,
+            1,
+            0,
+            1,
+            0);
+    }
+
+    private static void MixedWellspringSummary()
+    {
+        var (session, _) = CreateWellspringSession("active", "exhausted", "active");
+        var snapshot = session.GetPlayerSnapshot("player_1");
+        AssertWellspringCounts(
+            snapshot.Players.Single(player => player.PlayerId == "player_1").Wellspring,
+            3,
+            3,
+            2,
+            1,
+            2);
+        AssertWellspringCounts(
+            snapshot.ResourceSummary.Players.Single(summary => summary.PlayerId == "player_1"),
+            3,
+            3,
+            2,
+            1,
+            2);
+    }
+
+    private static void WellspringProjectionRespectsViewerVisibility()
+    {
+        var (session, _) = CreateWellspringSession("active", "exhausted");
+        var ownerSnapshot = session.GetPlayerSnapshot("player_1");
+        var ownerWellspring = ownerSnapshot.Players
+            .Single(player => player.PlayerId == "player_1")
+            .Wellspring;
+        Equal(false, ownerWellspring.Redacted, "Own Wellspring must not be redacted.");
+        Equal("owner_visible", ownerWellspring.VisibilityMode, "Own Wellspring visibility mode is invalid.");
+        SequenceEqual(
+            ["WELLSPRING-CARD-0001", "WELLSPRING-CARD-0002"],
+            ownerWellspring.Objects.Select(card => card.CardId),
+            "Own Wellspring card identities are invalid.");
+        SequenceEqual(
+            ["active", "exhausted"],
+            ownerWellspring.Objects.Select(card => card.ActivityState),
+            "Own Wellspring activity states are invalid.");
+        SequenceEqual(
+            ["ci_player_1_wellspring_0001", "ci_player_1_wellspring_0002"],
+            session.GetDebugSnapshot().Players
+                .Single(player => player.PlayerId == "player_1")
+                .WellspringCardInstanceIds,
+            "Debug snapshot lost the authoritative Wellspring instance list.");
+        var ownerJson = JsonSerializer.Serialize(ownerWellspring);
+        True(ownerJson.Contains("\"card_id\"", StringComparison.Ordinal), "Own Wellspring lost card identity.");
+        True(ownerJson.Contains("\"activity_state\"", StringComparison.Ordinal), "Own Wellspring lost activity state.");
+        Equal(
+            false,
+            ownerJson.Contains("card_instance_id", StringComparison.Ordinal),
+            "Own Wellspring leaked a technical card instance ID.");
+
+        var opponentSnapshot = session.GetPlayerSnapshot("player_2");
+        var opponentWellspring = opponentSnapshot.Players
+            .Single(player => player.PlayerId == "player_1")
+            .Wellspring;
+        Equal(true, opponentWellspring.Redacted, "Opponent Wellspring identity must be redacted.");
+        Equal("summary_only", opponentWellspring.VisibilityMode, "Opponent Wellspring visibility mode is invalid.");
+        Equal(0, opponentWellspring.Objects.Length, "Opponent Wellspring objects leaked.");
+        AssertWellspringCounts(opponentWellspring, 2, 2, 1, 1, 1);
+        var opponentJson = JsonSerializer.Serialize(opponentWellspring);
+        Equal(
+            false,
+            opponentJson.Contains("\"card_id\"", StringComparison.Ordinal),
+            "Opponent Wellspring leaked card_id.");
+        Equal(
+            false,
+            opponentJson.Contains("card_instance_id", StringComparison.Ordinal),
+            "Opponent Wellspring leaked card_instance_id.");
+    }
+
+    private static void WellspringProjectionIsDefensiveAndNonMutating()
+    {
+        var (session, state) = CreateWellspringSession("active");
+        var stateBeforeProjection = CanonicalDebugState(session);
+        var stateVersionBefore = state.StateVersion;
+        var eventCountBefore = state.Events.Count;
+        var firstSnapshot = session.GetPlayerSnapshot("player_1");
+        Equal(
+            stateBeforeProjection,
+            CanonicalDebugState(session),
+            "Wellspring projection mutated authoritative state.");
+        Equal(stateVersionBefore, state.StateVersion, "Wellspring projection changed state_version.");
+        Equal(eventCountBefore, state.Events.Count, "Wellspring projection emitted an event.");
+
+        AddWellspringCard(state, state.GetPlayer("player_1"), "exhausted");
+        EngineSession.ValidateState(state);
+        var secondSnapshot = session.GetPlayerSnapshot("player_1");
+        var firstWellspring = firstSnapshot.Players
+            .Single(player => player.PlayerId == "player_1")
+            .Wellspring;
+        var secondWellspring = secondSnapshot.Players
+            .Single(player => player.PlayerId == "player_1")
+            .Wellspring;
+        AssertWellspringCounts(firstWellspring, 1, 1, 1, 0, 1);
+        AssertWellspringCounts(secondWellspring, 2, 2, 1, 1, 1);
+        Equal(1, firstWellspring.Objects.Length, "Earlier Wellspring projection changed after internal state update.");
+        Equal(2, secondWellspring.Objects.Length, "Fresh Wellspring projection did not reflect internal state update.");
+        Equal(stateVersionBefore, state.StateVersion, "Internal test setup unexpectedly changed state_version.");
+        Equal(eventCountBefore, state.Events.Count, "Internal test setup unexpectedly emitted an event.");
+    }
+
+    private static void WellspringDuplicateInstanceIsRejected()
+    {
+        var state = CreateWellspringState("active");
+        state.GetPlayer("player_1").WellspringCardInstanceIds.Add("ci_player_1_wellspring_0001");
+        AssertStateInvariantRejected(state, "multiple zones", "Duplicate Wellspring membership was accepted.");
+    }
+
+    private static void WellspringUnknownInstanceIsRejected()
+    {
+        var state = CreateWellspringState();
+        state.GetPlayer("player_1").WellspringCardInstanceIds.Add("ci_missing");
+        AssertStateInvariantRejected(state, "unknown card instance", "Unknown Wellspring instance was accepted.");
+    }
+
+    private static void WellspringCrossZoneMembershipIsRejected()
+    {
+        var state = CreateWellspringState("active");
+        state.GetPlayer("player_1").HandCardInstanceIds.Add("ci_player_1_wellspring_0001");
+        AssertStateInvariantRejected(state, "multiple zones", "Cross-zone Wellspring membership was accepted.");
+    }
+
+    private static void WellspringWrongZoneIsRejected()
+    {
+        var state = CreateWellspringState("active");
+        state.GetCardInstance("ci_player_1_wellspring_0001").Zone = "hand";
+        AssertStateInvariantRejected(state, "zone must be wellspring", "Wrong Wellspring registry zone was accepted.");
+    }
+
+    private static void WellspringWrongZoneIndexIsRejected()
+    {
+        var state = CreateWellspringState("active");
+        state.GetCardInstance("ci_player_1_wellspring_0001").ZoneIndex = 4;
+        AssertStateInvariantRejected(state, "zone index", "Wrong Wellspring zone_index was accepted.");
+    }
+
+    private static void WellspringWrongControllerIsRejected()
+    {
+        var state = CreateWellspringState();
+        AddWellspringCard(
+            state,
+            state.GetPlayer("player_1"),
+            "active",
+            controllerPlayerId: "player_2");
+        AssertStateInvariantRejected(state, "controller", "Wrong Wellspring controller was accepted.");
+    }
+
+    private static void WellspringWrongVisibilityIsRejected()
+    {
+        var state = CreateWellspringState("active");
+        state.GetCardInstance("ci_player_1_wellspring_0001").Visibility = "public";
+        AssertStateInvariantRejected(state, "visibility", "Wrong Wellspring visibility was accepted.");
+    }
+
+    private static void WellspringNullActivityIsRejected()
+    {
+        var state = CreateWellspringState("active");
+        state.GetCardInstance("ci_player_1_wellspring_0001").ActivityState = null;
+        AssertStateInvariantRejected(state, "activity state", "Null Wellspring activity was accepted.");
+    }
+
+    private static void WellspringUnknownActivityIsRejected()
+    {
+        var state = CreateWellspringState("active");
+        state.GetCardInstance("ci_player_1_wellspring_0001").ActivityState = "ready";
+        AssertStateInvariantRejected(state, "activity state", "Unknown Wellspring activity was accepted.");
+    }
+
+    private static void WellspringRegistryListMismatchIsRejected()
+    {
+        var state = CreateWellspringState("active");
+        state.GetPlayer("player_1").WellspringCardInstanceIds.Clear();
+        AssertStateInvariantRejected(state, "registry and zones disagree", "Wellspring registry/list mismatch was accepted.");
+    }
+
     private static void PublicResultsAreDefensive()
     {
         var (session, fixture, _) = CreateSession();
@@ -341,6 +606,129 @@ internal static class ProductionEngineTests
         var session = new EngineSession();
         var response = session.CreateMatch(fixture.CreateMatchRequest());
         return (session, fixture, response);
+    }
+
+    private static (EngineSession Session, MatchState State) CreateWellspringSession(
+        params string[] activityStates)
+    {
+        var state = CreateWellspringState(activityStates);
+        return (new EngineSession(state), state);
+    }
+
+    private static MatchState CreateWellspringState(params string[] activityStates)
+    {
+        var state = new MatchState
+        {
+            MatchId = "production-wellspring-test-match",
+            Seed = 1,
+            RuntimePackageId = "production-wellspring-test-package",
+            StateVersion = 0,
+            ActivePlayerId = "player_1",
+            PriorityPlayerId = "player_1",
+        };
+        var playerOne = new PlayerState
+        {
+            PlayerId = "player_1",
+            DeckId = "test-deck-player-1",
+        };
+        var playerTwo = new PlayerState
+        {
+            PlayerId = "player_2",
+            DeckId = "test-deck-player-2",
+        };
+        state.Players.Add(playerOne);
+        state.Players.Add(playerTwo);
+        foreach (var activityState in activityStates)
+        {
+            AddWellspringCard(state, playerOne, activityState);
+        }
+
+        EngineSession.ValidateState(state);
+        return state;
+    }
+
+    private static string AddWellspringCard(
+        MatchState state,
+        PlayerState player,
+        string activityState,
+        string? controllerPlayerId = null)
+    {
+        var zoneIndex = player.WellspringCardInstanceIds.Count;
+        var cardInstanceId = $"ci_{player.PlayerId}_wellspring_{zoneIndex + 1:0000}";
+        state.CardInstances.Add(cardInstanceId, new CardInstanceState
+        {
+            CardInstanceId = cardInstanceId,
+            CardId = $"WELLSPRING-CARD-{zoneIndex + 1:0000}",
+            OwnerPlayerId = player.PlayerId,
+            ControllerPlayerId = controllerPlayerId ?? player.PlayerId,
+            Zone = "wellspring",
+            ZoneIndex = zoneIndex,
+            Visibility = "owner_only",
+            CreatedSequence = state.CardInstances.Count + 1,
+            ZoneSequence = 1,
+            InitialZone = "wellspring",
+            ActivityState = activityState,
+        });
+        player.WellspringCardInstanceIds.Add(cardInstanceId);
+        return cardInstanceId;
+    }
+
+    private static void AssertWellspringCounts(
+        WellspringProjection projection,
+        int cardCount,
+        int magnitude,
+        int activeSourceCount,
+        int exhaustedSourceCount,
+        int availableAura)
+    {
+        Equal(cardCount, projection.WellspringCardCount, "Wellspring projection card count is invalid.");
+        Equal(magnitude, projection.Magnitude, "Wellspring projection magnitude is invalid.");
+        Equal(activeSourceCount, projection.ActiveSourceCount, "Wellspring projection active count is invalid.");
+        Equal(exhaustedSourceCount, projection.ExhaustedSourceCount, "Wellspring projection exhausted count is invalid.");
+        Equal(availableAura, projection.AvailableAura, "Wellspring projection available Aura is invalid.");
+        Equal(
+            projection.WellspringCardCount,
+            projection.ActiveSourceCount + projection.ExhaustedSourceCount,
+            "Wellspring projection activity counts do not match its card count.");
+    }
+
+    private static void AssertWellspringCounts(
+        WellspringResourceSummary summary,
+        int cardCount,
+        int magnitude,
+        int activeSourceCount,
+        int exhaustedSourceCount,
+        int availableAura)
+    {
+        Equal(cardCount, summary.WellspringCardCount, "Wellspring resource card count is invalid.");
+        Equal(magnitude, summary.Magnitude, "Wellspring resource magnitude is invalid.");
+        Equal(activeSourceCount, summary.ActiveSourceCount, "Wellspring resource active count is invalid.");
+        Equal(exhaustedSourceCount, summary.ExhaustedSourceCount, "Wellspring resource exhausted count is invalid.");
+        Equal(availableAura, summary.AvailableAura, "Wellspring resource available Aura is invalid.");
+        Equal(
+            summary.WellspringCardCount,
+            summary.ActiveSourceCount + summary.ExhaustedSourceCount,
+            "Wellspring resource activity counts do not match its card count.");
+    }
+
+    private static void AssertStateInvariantRejected(
+        MatchState state,
+        string expectedMessageFragment,
+        string message)
+    {
+        try
+        {
+            EngineSession.ValidateState(state);
+        }
+        catch (EngineStateException exception)
+        {
+            True(
+                exception.Message.Contains(expectedMessageFragment, StringComparison.OrdinalIgnoreCase),
+                $"{message} Unexpected invariant: {exception.Message}");
+            return;
+        }
+
+        throw new InvalidOperationException(message);
     }
 
     private static LegalAction EnabledAction(EngineSession session, string playerId, string actionType) =>
