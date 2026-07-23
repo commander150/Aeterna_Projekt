@@ -4,13 +4,17 @@ using Aeterna.Engine.Contracts;
 
 namespace Aeterna.Engine.Runtime;
 
+public sealed record RuntimeCardDefinition(
+    string CardId,
+    int Magnitude);
+
 public sealed record RuntimeDeckDefinition(
     string DeckId,
     ImmutableArray<string> OrderedCardIds);
 
 public sealed record RuntimePackageCatalog(
     string PackageId,
-    ImmutableHashSet<string> CardIds,
+    ImmutableDictionary<string, RuntimeCardDefinition> Cards,
     ImmutableDictionary<string, RuntimeDeckDefinition> Decks);
 
 public static class RuntimePackageLoader
@@ -64,11 +68,12 @@ public static class RuntimePackageLoader
                 "Runtime package ID does not match the requested package.");
         }
 
-        var cardIds = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
+        var cards = ImmutableDictionary.CreateBuilder<string, RuntimeCardDefinition>(StringComparer.Ordinal);
         foreach (var card in ReadJsonLines(Path.Combine(packageDirectory, "cards.jsonl")))
         {
             var cardId = ReadRequiredString(card, "card_id");
-            if (!cardIds.Add(cardId))
+            var magnitude = ReadRequiredMagnitude(card);
+            if (!cards.TryAdd(cardId, new RuntimeCardDefinition(cardId, magnitude)))
             {
                 throw new EngineInputException(
                     "RUNTIME_PACKAGE_DUPLICATE_CARD",
@@ -76,7 +81,7 @@ public static class RuntimePackageLoader
             }
         }
 
-        if (cardIds.Count == 0)
+        if (cards.Count == 0)
         {
             throw new EngineInputException(
                 "RUNTIME_PACKAGE_EMPTY_CARDS",
@@ -101,7 +106,7 @@ public static class RuntimePackageLoader
                         "Deck entry count must be positive.");
                 }
 
-                if (!cardIds.Contains(cardId))
+                if (!cards.ContainsKey(cardId))
                 {
                     throw new EngineInputException(
                         "RUNTIME_PACKAGE_UNKNOWN_CARD",
@@ -124,7 +129,55 @@ public static class RuntimePackageLoader
 
         using var lookups = ParseJsonFile(Path.Combine(packageDirectory, "lookups.json"));
         RequireObject(lookups.RootElement, "Runtime lookups root must be an object.");
-        return new RuntimePackageCatalog(packageId, cardIds.ToImmutable(), decks.ToImmutable());
+        var catalog = new RuntimePackageCatalog(packageId, cards.ToImmutable(), decks.ToImmutable());
+        ValidateCatalog(catalog);
+        return catalog;
+    }
+
+    internal static void ValidateCatalog(RuntimePackageCatalog? catalog)
+    {
+        if (catalog is null
+            || string.IsNullOrWhiteSpace(catalog.PackageId)
+            || catalog.Cards is null
+            || catalog.Decks is null)
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_CATALOG_INVALID",
+                "Runtime package catalog is missing required data.");
+        }
+
+        if (catalog.Cards.Count == 0)
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_EMPTY_CARDS",
+                "Runtime package card registry is empty.");
+        }
+
+        foreach (var (cardId, definition) in catalog.Cards)
+        {
+            if (definition is null
+                || string.IsNullOrWhiteSpace(cardId)
+                || !string.Equals(cardId, definition.CardId, StringComparison.Ordinal)
+                || definition.Magnitude < 0)
+            {
+                throw new EngineInputException(
+                    "RUNTIME_PACKAGE_CATALOG_INVALID",
+                    "Runtime package card definition is invalid.");
+            }
+        }
+
+        foreach (var (deckId, deck) in catalog.Decks)
+        {
+            if (deck is null
+                || string.IsNullOrWhiteSpace(deckId)
+                || !string.Equals(deckId, deck.DeckId, StringComparison.Ordinal)
+                || deck.OrderedCardIds.Any(cardId => !catalog.Cards.ContainsKey(cardId)))
+            {
+                throw new EngineInputException(
+                    "RUNTIME_PACKAGE_CATALOG_INVALID",
+                    "Runtime package deck definition is invalid.");
+            }
+        }
     }
 
     private static JsonDocument ParseJsonFile(string path)
@@ -206,6 +259,21 @@ public static class RuntimePackageLoader
         }
 
         return result;
+    }
+
+    private static int ReadRequiredMagnitude(JsonElement root)
+    {
+        if (!root.TryGetProperty("magnitude", out var value)
+            || value.ValueKind != JsonValueKind.Number
+            || !value.TryGetInt32(out var magnitude)
+            || magnitude < 0)
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_CARD_MAGNITUDE_INVALID",
+                "Runtime card magnitude must be a non-negative Int32 JSON number.");
+        }
+
+        return magnitude;
     }
 
     private static JsonElement ReadRequiredArray(JsonElement root, string propertyName)

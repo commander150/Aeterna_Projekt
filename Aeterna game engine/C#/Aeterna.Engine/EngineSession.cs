@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using Aeterna.Engine.Contracts;
+using Aeterna.Engine.Rules;
 using Aeterna.Engine.Runtime;
 using Aeterna.Engine.State;
 
@@ -9,6 +10,7 @@ namespace Aeterna.Engine;
 public sealed class EngineSession
 {
     private MatchState? _state;
+    private RuntimePackageCatalog? _runtimePackage;
 
     public EngineSession()
     {
@@ -21,6 +23,23 @@ public sealed class EngineSession
         _state = initialState;
     }
 
+    internal EngineSession(MatchState initialState, RuntimePackageCatalog runtimePackage)
+    {
+        ArgumentNullException.ThrowIfNull(initialState);
+        ArgumentNullException.ThrowIfNull(runtimePackage);
+        ValidateState(initialState);
+        RuntimePackageLoader.ValidateCatalog(runtimePackage);
+        if (!string.Equals(initialState.RuntimePackageId, runtimePackage.PackageId, StringComparison.Ordinal))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_ID_MISMATCH",
+                "Runtime package catalog does not match the initial state.");
+        }
+
+        _state = initialState;
+        _runtimePackage = runtimePackage;
+    }
+
     public CreateMatchResponse CreateMatch(CreateMatchRequest? request)
     {
         if (request is null)
@@ -31,7 +50,7 @@ public sealed class EngineSession
                 "Create match request is missing or malformed.");
         }
 
-        if (_state is not null)
+        if (_state is not null || _runtimePackage is not null)
         {
             return RejectCreateMatch(
                 request.MatchId,
@@ -46,6 +65,7 @@ public sealed class EngineSession
             var state = BuildInitialState(request, package);
             ValidateState(state);
             _state = state;
+            _runtimePackage = package;
             return new CreateMatchResponse(
                 ContractSchemas.CreateMatchResponse,
                 Accepted: true,
@@ -406,6 +426,89 @@ public sealed class EngineSession
                 exception.Message,
                 "engine_bug"));
         }
+    }
+
+    internal MagnitudePreflightResult EvaluateMagnitudePreflight(
+        string playerId,
+        string cardInstanceId)
+    {
+        var state = RequireState();
+        ValidateMagnitudePreflightState(state, playerId, cardInstanceId);
+        var runtimePackage = _runtimePackage
+            ?? throw new MagnitudePreflightException(
+                "MAGNITUDE_PREFLIGHT_RUNTIME_PACKAGE_MISSING",
+                "Magnitude preflight requires a validated runtime package catalog.");
+        try
+        {
+            RuntimePackageLoader.ValidateCatalog(runtimePackage);
+        }
+        catch (EngineInputException exception)
+        {
+            throw new MagnitudePreflightException(
+                "MAGNITUDE_PREFLIGHT_RUNTIME_PACKAGE_INVALID",
+                "Magnitude preflight runtime package catalog is invalid.",
+                exception);
+        }
+
+        if (!string.Equals(runtimePackage.PackageId, state.RuntimePackageId, StringComparison.Ordinal))
+        {
+            throw new MagnitudePreflightException(
+                "MAGNITUDE_PREFLIGHT_RUNTIME_PACKAGE_INVALID",
+                "Magnitude preflight runtime package does not match the current state.");
+        }
+
+        var player = state.Players.SingleOrDefault(item =>
+            string.Equals(item.PlayerId, playerId, StringComparison.Ordinal))
+            ?? throw new MagnitudePreflightException(
+                "MAGNITUDE_PREFLIGHT_PLAYER_UNKNOWN",
+                "Magnitude preflight player is unknown.");
+        if (!state.CardInstances.TryGetValue(cardInstanceId, out var card))
+        {
+            throw new MagnitudePreflightException(
+                "MAGNITUDE_PREFLIGHT_CARD_UNKNOWN",
+                "Magnitude preflight card instance is unknown.");
+        }
+
+        if (!string.Equals(card.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal)
+            || !string.Equals(card.ControllerPlayerId, player.PlayerId, StringComparison.Ordinal))
+        {
+            throw new MagnitudePreflightException(
+                "MAGNITUDE_PREFLIGHT_CARD_AUTHORITY_INVALID",
+                "Magnitude preflight card owner/controller does not match the player.");
+        }
+
+        if (!string.Equals(card.Zone, "hand", StringComparison.Ordinal))
+        {
+            throw new MagnitudePreflightException(
+                "MAGNITUDE_PREFLIGHT_CARD_ZONE_INVALID",
+                "Magnitude preflight card must be in hand.");
+        }
+
+        var handIndex = player.HandCardInstanceIds.IndexOf(card.CardInstanceId);
+        if (handIndex < 0 || card.ZoneIndex != handIndex)
+        {
+            throw new MagnitudePreflightException(
+                "MAGNITUDE_PREFLIGHT_HAND_MEMBERSHIP_INVALID",
+                "Magnitude preflight card registry and hand membership disagree.");
+        }
+
+        if (!runtimePackage.Cards.TryGetValue(card.CardId, out var definition))
+        {
+            throw new MagnitudePreflightException(
+                "MAGNITUDE_PREFLIGHT_RUNTIME_CARD_MISSING",
+                "Magnitude preflight runtime card definition is missing.");
+        }
+
+        var currentMagnitude = player.WellspringCardInstanceIds.Count;
+        var requirementMet = currentMagnitude >= definition.Magnitude;
+        return new MagnitudePreflightResult(
+            player.PlayerId,
+            card.CardInstanceId,
+            card.CardId,
+            definition.Magnitude,
+            currentMagnitude,
+            requirementMet,
+            requirementMet ? null : "magnitude_requirement_not_met");
     }
 
     private static void ValidateCreateMatchRequest(CreateMatchRequest request)
@@ -1040,6 +1143,40 @@ public sealed class EngineSession
 
     private MatchState RequireState() => _state
         ?? throw new InvalidOperationException("CreateMatch must succeed before using the engine session.");
+
+    private static void ValidateMagnitudePreflightState(
+        MatchState state,
+        string playerId,
+        string cardInstanceId)
+    {
+        try
+        {
+            ValidateState(state);
+        }
+        catch (EngineStateException exception)
+        {
+            var player = state.Players.SingleOrDefault(item =>
+                string.Equals(item.PlayerId, playerId, StringComparison.Ordinal));
+            var handIndex = player?.HandCardInstanceIds.IndexOf(cardInstanceId) ?? -1;
+            if (player is not null
+                && state.CardInstances.TryGetValue(cardInstanceId, out var card)
+                && string.Equals(card.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal)
+                && string.Equals(card.ControllerPlayerId, player.PlayerId, StringComparison.Ordinal)
+                && string.Equals(card.Zone, "hand", StringComparison.Ordinal)
+                && (handIndex < 0 || card.ZoneIndex != handIndex))
+            {
+                throw new MagnitudePreflightException(
+                    "MAGNITUDE_PREFLIGHT_HAND_MEMBERSHIP_INVALID",
+                    "Magnitude preflight card registry and hand membership disagree.",
+                    exception);
+            }
+
+            throw new MagnitudePreflightException(
+                "MAGNITUDE_PREFLIGHT_STATE_INVALID",
+                "Magnitude preflight requires a valid match state.",
+                exception);
+        }
+    }
 
     internal static void ValidateState(MatchState state)
     {

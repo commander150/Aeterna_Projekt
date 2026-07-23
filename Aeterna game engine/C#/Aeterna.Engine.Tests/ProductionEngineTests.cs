@@ -1,8 +1,11 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aeterna.Engine;
 using Aeterna.Engine.Contracts;
 using Aeterna.Engine.Headless;
+using Aeterna.Engine.Rules;
+using Aeterna.Engine.Runtime;
 using Aeterna.Engine.State;
 using EngineCanonicalJson = Aeterna.Engine.Serialization.CanonicalJson;
 
@@ -49,6 +52,19 @@ internal static class ProductionEngineTests
         new("end_turn_remains_enabled_without_normal_inflow", EndTurnRemainsEnabledWithoutNormalInflow),
         new("normal_inflow_snapshots_are_defensive_and_non_mutating", NormalInflowSnapshotsAreDefensiveAndNonMutating),
         new("normal_inflow_usage_state_invariants_are_enforced", NormalInflowUsageStateInvariantsAreEnforced),
+        new("runtime_card_magnitude_loader_accepts_valid_values", RuntimeCardMagnitudeLoaderAcceptsValidValues),
+        new("runtime_card_magnitude_loader_rejects_invalid_values", RuntimeCardMagnitudeLoaderRejectsInvalidValues),
+        new("runtime_card_catalog_rejects_invalid_card_references", RuntimeCardCatalogRejectsInvalidCardReferences),
+        new("runtime_card_catalog_is_immutable", RuntimeCardCatalogIsImmutable),
+        new("runtime_package_catalog_lifecycle_is_atomic", RuntimePackageCatalogLifecycleIsAtomic),
+        new("magnitude_preflight_threshold_results", MagnitudePreflightThresholdResults),
+        new("magnitude_preflight_counts_all_wellspring_sources", MagnitudePreflightCountsAllWellspringSources),
+        new("magnitude_preflight_source_rejections_are_immutable", MagnitudePreflightSourceRejectionsAreImmutable),
+        new("magnitude_preflight_hand_mismatch_is_immutable", MagnitudePreflightHandMismatchIsImmutable),
+        new("magnitude_preflight_runtime_definition_missing_is_immutable", MagnitudePreflightRuntimeDefinitionMissingIsImmutable),
+        new("magnitude_preflight_requires_runtime_catalog", MagnitudePreflightRequiresRuntimeCatalog),
+        new("magnitude_preflight_is_pure_deterministic_and_defensive", MagnitudePreflightIsPureDeterministicAndDefensive),
+        new("normal_inflow_updates_magnitude_preflight", NormalInflowUpdatesMagnitudePreflight),
         new("public_results_are_defensive", PublicResultsAreDefensive),
         new("canonical_fixture_matches_python_oracle", CanonicalFixtureMatchesPythonOracle),
         new("canonical_fixture_is_deterministic_for_100_runs", CanonicalFixtureIsDeterministicForOneHundredRuns),
@@ -976,6 +992,361 @@ internal static class ProductionEngineTests
         EngineSession.ValidateState(state);
     }
 
+    private static void RuntimeCardMagnitudeLoaderAcceptsValidValues()
+    {
+        using var package = TemporaryRuntimePackage.Create(
+            [
+                RuntimeCardJson("CARD-ZERO", 0),
+                RuntimeCardJson("CARD-THREE", 3),
+            ],
+            ["CARD-ZERO", "CARD-THREE"]);
+
+        var catalog = RuntimePackageLoader.Load(package.Source);
+
+        Equal(2, catalog.Cards.Count, "Runtime card definition count is invalid.");
+        Equal(0, catalog.Cards["CARD-ZERO"].Magnitude, "Magnitude zero was not preserved.");
+        Equal(3, catalog.Cards["CARD-THREE"].Magnitude, "Runtime card magnitude was not preserved.");
+        Equal("CARD-THREE", catalog.Cards["CARD-THREE"].CardId, "Runtime card ID was not preserved.");
+        SequenceEqual(
+            ["CARD-ZERO", "CARD-THREE"],
+            catalog.Decks["test-deck"].OrderedCardIds,
+            "Deck validation did not use typed runtime card definitions.");
+        Equal(
+            null,
+            typeof(RuntimePackageCatalog).GetProperty("CardIds"),
+            "Runtime package catalog retained a second card-ID authority.");
+    }
+
+    private static void RuntimeCardMagnitudeLoaderRejectsInvalidValues()
+    {
+        var invalidRecords = new[]
+        {
+            RuntimeCardJson("CARD-INVALID", magnitude: null, includeMagnitude: false),
+            RuntimeCardJson("CARD-INVALID", magnitude: null),
+            RuntimeCardJson("CARD-INVALID", "1"),
+            """{"card_id":"CARD-INVALID","magnitude":1.0}""",
+            RuntimeCardJson("CARD-INVALID", 1.5),
+            RuntimeCardJson("CARD-INVALID", -1),
+            RuntimeCardJson("CARD-INVALID", (long)int.MaxValue + 1),
+        };
+
+        foreach (var invalidRecord in invalidRecords)
+        {
+            using var package = TemporaryRuntimePackage.Create([invalidRecord], ["CARD-INVALID"]);
+            AssertEngineInputRejected(
+                "RUNTIME_PACKAGE_CARD_MAGNITUDE_INVALID",
+                () => RuntimePackageLoader.Load(package.Source),
+                "Invalid runtime card magnitude was accepted.");
+        }
+    }
+
+    private static void RuntimeCardCatalogRejectsInvalidCardReferences()
+    {
+        using (var missingCardId = TemporaryRuntimePackage.Create(
+                   [RuntimeCardJson(cardId: null, magnitude: 1, includeCardId: false)],
+                   ["CARD-MISSING"]))
+        {
+            AssertEngineInputRejected(
+                "RUNTIME_PACKAGE_FIELD_INVALID",
+                () => RuntimePackageLoader.Load(missingCardId.Source),
+                "Missing card_id was accepted.");
+        }
+
+        using (var emptyCardId = TemporaryRuntimePackage.Create(
+                   [RuntimeCardJson("   ", 1)],
+                   ["CARD-EMPTY"]))
+        {
+            AssertEngineInputRejected(
+                "RUNTIME_PACKAGE_FIELD_INVALID",
+                () => RuntimePackageLoader.Load(emptyCardId.Source),
+                "Empty card_id was accepted.");
+        }
+
+        using (var duplicate = TemporaryRuntimePackage.Create(
+                   [
+                       RuntimeCardJson("CARD-DUPLICATE", 1),
+                       RuntimeCardJson("CARD-DUPLICATE", 2),
+                   ],
+                   ["CARD-DUPLICATE"]))
+        {
+            AssertEngineInputRejected(
+                "RUNTIME_PACKAGE_DUPLICATE_CARD",
+                () => RuntimePackageLoader.Load(duplicate.Source),
+                "Duplicate card_id was accepted.");
+        }
+
+        using var unknownDeckCard = TemporaryRuntimePackage.Create(
+            [RuntimeCardJson("CARD-KNOWN", 1)],
+            ["CARD-UNKNOWN"]);
+        AssertEngineInputRejected(
+            "RUNTIME_PACKAGE_UNKNOWN_CARD",
+            () => RuntimePackageLoader.Load(unknownDeckCard.Source),
+            "Unknown deck card reference was accepted.");
+    }
+
+    private static void RuntimeCardCatalogIsImmutable()
+    {
+        using var package = TemporaryRuntimePackage.Create(
+            [RuntimeCardJson("CARD-IMMUTABLE", 2)],
+            ["CARD-IMMUTABLE"]);
+        var catalog = RuntimePackageLoader.Load(package.Source);
+        var originalDefinition = catalog.Cards["CARD-IMMUTABLE"];
+        var changedDefinition = originalDefinition with { Magnitude = 9 };
+        var changedCards = catalog.Cards.SetItem(changedDefinition.CardId, changedDefinition);
+
+        NotSame(catalog.Cards, changedCards, "Immutable card registry returned the same mutated reference.");
+        Equal(2, catalog.Cards["CARD-IMMUTABLE"].Magnitude, "Runtime catalog card definition was mutated.");
+        Equal(9, changedCards["CARD-IMMUTABLE"].Magnitude, "Detached immutable card registry update failed.");
+        Equal(1, catalog.Cards.Count, "Runtime catalog card registry changed externally.");
+    }
+
+    private static void RuntimePackageCatalogLifecycleIsAtomic()
+    {
+        using var invalidPackage = TemporaryRuntimePackage.Create(
+            [RuntimeCardJson("CARD-LIFECYCLE", -1)],
+            ["CARD-LIFECYCLE"]);
+        using var validPackage = TemporaryRuntimePackage.Create(
+            [RuntimeCardJson("CARD-LIFECYCLE", 2)],
+            ["CARD-LIFECYCLE"]);
+        var session = new EngineSession();
+
+        var rejected = session.CreateMatch(CreatePackageMatchRequest(invalidPackage.Source));
+        Equal(false, rejected.Accepted, "CreateMatch accepted an invalid magnitude package.");
+        Equal(
+            "RUNTIME_PACKAGE_CARD_MAGNITUDE_INVALID",
+            rejected.Diagnostics.Single().Code,
+            "CreateMatch magnitude diagnostic is invalid.");
+
+        var accepted = session.CreateMatch(CreatePackageMatchRequest(validPackage.Source));
+        Equal(true, accepted.Accepted, "CreateMatch retained partial state or catalog after rejection.");
+        var targetId = session.GetDebugSnapshot().Players
+            .Single(player => player.PlayerId == "player_1")
+            .HandCardInstanceIds
+            .Single();
+        var result = session.EvaluateMagnitudePreflight("player_1", targetId);
+        Equal(2, result.RequiredMagnitude, "Session did not retain the validated runtime catalog.");
+    }
+
+    private static void MagnitudePreflightThresholdResults()
+    {
+        var evaluator = typeof(EngineSession).GetMethod(
+            "EvaluateMagnitudePreflight",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Internal Magnitude preflight evaluator is missing.");
+        SequenceEqual(
+            [typeof(string), typeof(string)],
+            evaluator.GetParameters().Select(parameter => parameter.ParameterType),
+            "Magnitude preflight caller can provide unsupported threshold inputs.");
+        Equal(false, typeof(MagnitudePreflightResult).IsPublic, "Magnitude preflight result became public.");
+
+        var (zeroSession, _, zeroCardId, _) = CreateMagnitudePreflightSession(
+            requiredMagnitude: 0,
+            activeWellspringCount: 0,
+            exhaustedWellspringCount: 0);
+        var zero = zeroSession.EvaluateMagnitudePreflight("player_1", zeroCardId);
+        Equal(0, zero.RequiredMagnitude, "Required magnitude zero is invalid.");
+        Equal(0, zero.CurrentMagnitude, "Current magnitude zero is invalid.");
+        Equal(true, zero.RequirementMet, "Required zero/current zero must pass.");
+        Equal(null, zero.FailureReason, "Successful zero threshold has a failure reason.");
+
+        var (belowSession, _, belowCardId, _) = CreateMagnitudePreflightSession(
+            requiredMagnitude: 2,
+            activeWellspringCount: 1,
+            exhaustedWellspringCount: 0);
+        var below = belowSession.EvaluateMagnitudePreflight("player_1", belowCardId);
+        Equal(2, below.RequiredMagnitude, "Runtime card definition magnitude was not used.");
+        Equal(1, below.CurrentMagnitude, "Below-threshold current magnitude is invalid.");
+        Equal(false, below.RequirementMet, "Below-threshold magnitude passed.");
+        Equal(
+            "magnitude_requirement_not_met",
+            below.FailureReason,
+            "Magnitude threshold failure reason is invalid.");
+
+        var (equalSession, _, equalCardId, _) = CreateMagnitudePreflightSession(
+            requiredMagnitude: 2,
+            activeWellspringCount: 1,
+            exhaustedWellspringCount: 1);
+        var equal = equalSession.EvaluateMagnitudePreflight("player_1", equalCardId);
+        Equal(true, equal.RequirementMet, "Equal magnitude threshold failed.");
+        Equal(null, equal.FailureReason, "Equal threshold has a failure reason.");
+
+        var (aboveSession, _, aboveCardId, _) = CreateMagnitudePreflightSession(
+            requiredMagnitude: 1,
+            activeWellspringCount: 2,
+            exhaustedWellspringCount: 0);
+        var above = aboveSession.EvaluateMagnitudePreflight("player_1", aboveCardId);
+        Equal(true, above.RequirementMet, "Above-threshold magnitude failed.");
+        Equal(null, above.FailureReason, "Above threshold has a failure reason.");
+    }
+
+    private static void MagnitudePreflightCountsAllWellspringSources()
+    {
+        var (mixedSession, _, mixedCardId, _) = CreateMagnitudePreflightSession(
+            requiredMagnitude: 2,
+            activeWellspringCount: 1,
+            exhaustedWellspringCount: 1);
+        var mixed = mixedSession.EvaluateMagnitudePreflight("player_1", mixedCardId);
+        Equal(2, mixed.CurrentMagnitude, "Active and exhausted Wellspring cards were not both counted.");
+        Equal(true, mixed.RequirementMet, "Mixed Wellspring magnitude threshold failed.");
+
+        var (exhaustedSession, _, exhaustedCardId, _) = CreateMagnitudePreflightSession(
+            requiredMagnitude: 1,
+            activeWellspringCount: 0,
+            exhaustedWellspringCount: 1);
+        var exhausted = exhaustedSession.EvaluateMagnitudePreflight("player_1", exhaustedCardId);
+        var resource = exhaustedSession.GetPlayerSnapshot("player_1").ResourceSummary.Players
+            .Single(summary => summary.PlayerId == "player_1");
+        Equal(1, exhausted.CurrentMagnitude, "Exhausted Wellspring card did not count toward Magnitude.");
+        Equal(0, resource.AvailableAura, "Exhausted-only Wellspring unexpectedly provides Aura.");
+        Equal(true, exhausted.RequirementMet, "Available Aura incorrectly affected Magnitude preflight.");
+    }
+
+    private static void MagnitudePreflightSourceRejectionsAreImmutable()
+    {
+        var (unknownSession, _, _, _) = CreateMagnitudePreflightSession(requiredMagnitude: 1);
+        AssertMagnitudePreflightRejected(
+            unknownSession,
+            "player_1",
+            "ci_unknown",
+            "MAGNITUDE_PREFLIGHT_CARD_UNKNOWN",
+            "Unknown card instance was accepted.");
+
+        var authorityState = CreateNormalInflowState(handCount: 1, playerTwoHandCount: 1);
+        var authorityCatalog = CreateRuntimeCatalog(authorityState);
+        var authoritySession = new EngineSession(authorityState, authorityCatalog);
+        var otherPlayerCard = authorityState.GetPlayer("player_2").HandCardInstanceIds.Single();
+        AssertMagnitudePreflightRejected(
+            authoritySession,
+            "player_1",
+            otherPlayerCard,
+            "MAGNITUDE_PREFLIGHT_CARD_AUTHORITY_INVALID",
+            "Another player's card was accepted.");
+
+        var zoneState = CreateNormalInflowState(handCount: 1, deckCount: 1);
+        var zoneCatalog = CreateRuntimeCatalog(zoneState);
+        var zoneSession = new EngineSession(zoneState, zoneCatalog);
+        var deckCard = zoneState.GetPlayer("player_1").DeckCardInstanceIds.Single();
+        AssertMagnitudePreflightRejected(
+            zoneSession,
+            "player_1",
+            deckCard,
+            "MAGNITUDE_PREFLIGHT_CARD_ZONE_INVALID",
+            "Non-hand card was accepted.");
+    }
+
+    private static void MagnitudePreflightHandMismatchIsImmutable()
+    {
+        var (session, state, cardInstanceId, _) = CreateMagnitudePreflightSession(requiredMagnitude: 1);
+        state.GetCardInstance(cardInstanceId).ZoneIndex = 9;
+
+        AssertMagnitudePreflightRejected(
+            session,
+            "player_1",
+            cardInstanceId,
+            "MAGNITUDE_PREFLIGHT_HAND_MEMBERSHIP_INVALID",
+            "Hand registry/list mismatch was accepted.");
+    }
+
+    private static void MagnitudePreflightRuntimeDefinitionMissingIsImmutable()
+    {
+        var state = CreateNormalInflowState(handCount: 2);
+        var targetId = state.GetPlayer("player_1").HandCardInstanceIds[0];
+        var targetCardId = state.GetCardInstance(targetId).CardId;
+        var catalog = CreateRuntimeCatalog(state, excludedCardIds: [targetCardId]);
+        var session = new EngineSession(state, catalog);
+
+        AssertMagnitudePreflightRejected(
+            session,
+            "player_1",
+            targetId,
+            "MAGNITUDE_PREFLIGHT_RUNTIME_CARD_MISSING",
+            "Missing runtime card definition was treated as a threshold result.");
+    }
+
+    private static void MagnitudePreflightRequiresRuntimeCatalog()
+    {
+        var state = CreateNormalInflowState(handCount: 1);
+        var session = new EngineSession(state);
+        var targetId = state.GetPlayer("player_1").HandCardInstanceIds.Single();
+
+        AssertMagnitudePreflightRejected(
+            session,
+            "player_1",
+            targetId,
+            "MAGNITUDE_PREFLIGHT_RUNTIME_PACKAGE_MISSING",
+            "Magnitude preflight ran without a runtime package catalog.");
+    }
+
+    private static void MagnitudePreflightIsPureDeterministicAndDefensive()
+    {
+        var (session, state, targetId, _) = CreateMagnitudePreflightSession(
+            requiredMagnitude: 2,
+            handCount: 2,
+            activeWellspringCount: 1);
+        var stateBefore = CanonicalDebugState(session);
+        var actionSpaceBefore = JsonSerializer.Serialize(session.ListLegalActions("player_1", includeDisabled: true));
+        var eventsBefore = session.GetDebugEvents().Length;
+        var first = session.EvaluateMagnitudePreflight("player_1", targetId);
+        var second = session.EvaluateMagnitudePreflight("player_1", targetId);
+
+        Equal(first, second, "Repeated Magnitude preflight query is not deterministic.");
+        Equal(stateBefore, CanonicalDebugState(session), "Magnitude preflight mutated MatchState.");
+        Equal(0, state.StateVersion, "Magnitude preflight changed state_version.");
+        Equal(eventsBefore, session.GetDebugEvents().Length, "Magnitude preflight emitted an event.");
+        Equal(
+            actionSpaceBefore,
+            JsonSerializer.Serialize(session.ListLegalActions("player_1", includeDisabled: true)),
+            "Magnitude preflight changed legal action space.");
+        Equal(null, state.GetPlayer("player_1").NormalInflowUsedTurnNumber, "Magnitude preflight changed Inflow state.");
+
+        var otherCardId = state.GetPlayer("player_1").HandCardInstanceIds
+            .Single(cardInstanceId => !string.Equals(cardInstanceId, targetId, StringComparison.Ordinal));
+        var inflow = session.SubmitAction(Request(
+            session,
+            EnabledAction(session, "player_1", "normal_inflow"),
+            "magnitude_preflight_defensive_transition",
+            NormalInflowPayload(otherCardId),
+            expectedStateVersion: 0));
+        Equal(true, inflow.Accepted, "Defensive-result transition setup failed.");
+        var after = session.EvaluateMagnitudePreflight("player_1", targetId);
+        Equal(1, first.CurrentMagnitude, "Previously returned result changed after transition.");
+        Equal(false, first.RequirementMet, "Previously returned threshold result changed after transition.");
+        Equal(2, after.CurrentMagnitude, "Fresh preflight did not observe the later transition.");
+        Equal(true, after.RequirementMet, "Fresh preflight did not pass after Magnitude increased.");
+    }
+
+    private static void NormalInflowUpdatesMagnitudePreflight()
+    {
+        var (session, state, targetId, _) = CreateMagnitudePreflightSession(
+            requiredMagnitude: 1,
+            handCount: 2);
+        var before = session.EvaluateMagnitudePreflight("player_1", targetId);
+        Equal(0, before.CurrentMagnitude, "Pre-Inflow Magnitude is invalid.");
+        Equal(false, before.RequirementMet, "Required one/current zero unexpectedly passed.");
+        Equal(0, session.GetDebugEvents().Length, "Preflight emitted an event before Inflow.");
+
+        var inflowCardId = state.GetPlayer("player_1").HandCardInstanceIds
+            .Single(cardInstanceId => !string.Equals(cardInstanceId, targetId, StringComparison.Ordinal));
+        var response = session.SubmitAction(Request(
+            session,
+            EnabledAction(session, "player_1", "normal_inflow"),
+            "magnitude_preflight_inflow",
+            NormalInflowPayload(inflowCardId),
+            expectedStateVersion: 0));
+        Equal(true, response.Accepted, "Normal Inflow integration setup failed.");
+        Equal(1, response.Events.Length, "Normal Inflow integration emitted an unexpected event count.");
+
+        var after = session.EvaluateMagnitudePreflight("player_1", targetId);
+        var infusedCard = state.GetCardInstance(inflowCardId);
+        var resource = session.GetPlayerSnapshot("player_1").ResourceSummary.Players
+            .Single(summary => summary.PlayerId == "player_1");
+        Equal(1, after.CurrentMagnitude, "Normal Inflow did not increase Magnitude.");
+        Equal(true, after.RequirementMet, "Normal Inflow did not satisfy the Magnitude threshold.");
+        Equal("active", infusedCard.ActivityState, "Normal Inflow integration source is not active.");
+        Equal(1, resource.AvailableAura, "Active Inflow source did not update available Aura.");
+        Equal(1, session.GetDebugEvents().Length, "Post-Inflow preflight emitted an extra event.");
+    }
+
     private static void PublicResultsAreDefensive()
     {
         var (session, fixture, _) = CreateSession();
@@ -1070,6 +1441,71 @@ internal static class ProductionEngineTests
         var session = new EngineSession();
         var response = session.CreateMatch(fixture.CreateMatchRequest());
         return (session, fixture, response);
+    }
+
+    private static CreateMatchRequest CreatePackageMatchRequest(RuntimePackageSource source) => new(
+        ContractSchemas.CreateMatchRequest,
+        "runtime-package-lifecycle-test-match",
+        Seed: 1,
+        ImmutableArray.Create(
+            new PlayerSetup("player_1", "test-deck"),
+            new PlayerSetup("player_2", "test-deck")),
+        StartingHandSize: 1,
+        source);
+
+    private static (
+        EngineSession Session,
+        MatchState State,
+        string TargetCardInstanceId,
+        RuntimePackageCatalog Catalog) CreateMagnitudePreflightSession(
+            int requiredMagnitude,
+            int handCount = 1,
+            int deckCount = 0,
+            int playerTwoHandCount = 0,
+            int activeWellspringCount = 0,
+            int exhaustedWellspringCount = 0)
+    {
+        var state = CreateNormalInflowState(
+            handCount,
+            deckCount,
+            playerTwoHandCount,
+            activeWellspringCount,
+            exhaustedWellspringCount);
+        var targetCardInstanceId = state.GetPlayer("player_1").HandCardInstanceIds.First();
+        var targetCardId = state.GetCardInstance(targetCardInstanceId).CardId;
+        var catalog = CreateRuntimeCatalog(
+            state,
+            new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                [targetCardId] = requiredMagnitude,
+            });
+        return (new EngineSession(state, catalog), state, targetCardInstanceId, catalog);
+    }
+
+    private static RuntimePackageCatalog CreateRuntimeCatalog(
+        MatchState state,
+        IReadOnlyDictionary<string, int>? magnitudes = null,
+        IReadOnlyCollection<string>? excludedCardIds = null)
+    {
+        var cards = ImmutableDictionary.CreateBuilder<string, RuntimeCardDefinition>(StringComparer.Ordinal);
+        foreach (var card in state.CardInstances.Values
+                     .OrderBy(item => item.CardId, StringComparer.Ordinal))
+        {
+            if (excludedCardIds?.Contains(card.CardId) == true || cards.ContainsKey(card.CardId))
+            {
+                continue;
+            }
+
+            var magnitude = magnitudes is not null && magnitudes.TryGetValue(card.CardId, out var required)
+                ? required
+                : 0;
+            cards.Add(card.CardId, new RuntimeCardDefinition(card.CardId, magnitude));
+        }
+
+        return new RuntimePackageCatalog(
+            state.RuntimePackageId,
+            cards.ToImmutable(),
+            ImmutableDictionary.Create<string, RuntimeDeckDefinition>(StringComparer.Ordinal));
     }
 
     private static (EngineSession Session, MatchState State) CreateNormalInflowSession(
@@ -1294,6 +1730,151 @@ internal static class ProductionEngineTests
         }
 
         throw new InvalidOperationException(message);
+    }
+
+    private static void AssertEngineInputRejected(
+        string expectedCode,
+        Action action,
+        string message)
+    {
+        try
+        {
+            action();
+        }
+        catch (EngineInputException exception)
+        {
+            Equal(expectedCode, exception.Code, $"{message} Unexpected diagnostic code.");
+            return;
+        }
+
+        throw new InvalidOperationException(message);
+    }
+
+    private static void AssertMagnitudePreflightRejected(
+        EngineSession session,
+        string playerId,
+        string cardInstanceId,
+        string expectedCode,
+        string message)
+    {
+        var stateBefore = CanonicalDebugState(session);
+        var eventCountBefore = session.GetDebugEvents().Length;
+        try
+        {
+            session.EvaluateMagnitudePreflight(playerId, cardInstanceId);
+        }
+        catch (MagnitudePreflightException exception)
+        {
+            Equal(expectedCode, exception.Code, $"{message} Unexpected preflight error code.");
+            Equal(stateBefore, CanonicalDebugState(session), $"{message} Rejection mutated state.");
+            Equal(eventCountBefore, session.GetDebugEvents().Length, $"{message} Rejection emitted an event.");
+            return;
+        }
+
+        throw new InvalidOperationException(message);
+    }
+
+    private static string RuntimeCardJson(
+        string? cardId,
+        object? magnitude,
+        bool includeCardId = true,
+        bool includeMagnitude = true)
+    {
+        var record = new Dictionary<string, object?>();
+        if (includeCardId)
+        {
+            record["card_id"] = cardId;
+        }
+
+        if (includeMagnitude)
+        {
+            record["magnitude"] = magnitude;
+        }
+
+        return JsonSerializer.Serialize(record);
+    }
+
+    private static string LocateRepositoryRoot()
+    {
+        var directory = new DirectoryInfo(
+            Path.GetDirectoryName(FixtureLocator.LocateCanonicalFixture())
+            ?? throw new InvalidOperationException("Canonical fixture directory is missing."));
+        while (directory is not null)
+        {
+            if (Directory.Exists(Path.Combine(directory.FullName, ".git")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new DirectoryNotFoundException("AETERNA repository root could not be located.");
+    }
+
+    private sealed class TemporaryRuntimePackage : IDisposable
+    {
+        private const string PackageId = "production-magnitude-loader-test-package";
+
+        private TemporaryRuntimePackage(string packageDirectory)
+        {
+            PackageDirectory = packageDirectory;
+        }
+
+        internal string PackageDirectory { get; }
+
+        internal RuntimePackageSource Source => new(PackageDirectory, PackageId);
+
+        internal static TemporaryRuntimePackage Create(
+            IReadOnlyList<string> cardRecords,
+            IReadOnlyList<string> deckCardIds)
+        {
+            var parentDirectory = Path.Combine(
+                LocateRepositoryRoot(),
+                "TEMP",
+                "production_engine_tests");
+            var packageDirectory = Path.Combine(parentDirectory, Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(packageDirectory);
+            File.WriteAllText(
+                Path.Combine(packageDirectory, "manifest.json"),
+                JsonSerializer.Serialize(new Dictionary<string, object?>
+                {
+                    ["package_id"] = PackageId,
+                }));
+            File.WriteAllLines(
+                Path.Combine(packageDirectory, "cards.jsonl"),
+                cardRecords);
+            File.WriteAllText(
+                Path.Combine(packageDirectory, "decks.jsonl"),
+                JsonSerializer.Serialize(new Dictionary<string, object?>
+                {
+                    ["deck_id"] = "test-deck",
+                    ["card_entries"] = deckCardIds.Select(cardId =>
+                        new Dictionary<string, object?>
+                        {
+                            ["card_id"] = cardId,
+                            ["count"] = 1,
+                        }).ToArray(),
+                }));
+            File.WriteAllText(Path.Combine(packageDirectory, "lookups.json"), "{}");
+            return new TemporaryRuntimePackage(packageDirectory);
+        }
+
+        public void Dispose()
+        {
+            if (Directory.Exists(PackageDirectory))
+            {
+                Directory.Delete(PackageDirectory, recursive: true);
+            }
+
+            var parentDirectory = Directory.GetParent(PackageDirectory);
+            if (parentDirectory is not null
+                && Directory.Exists(parentDirectory.FullName)
+                && !Directory.EnumerateFileSystemEntries(parentDirectory.FullName).Any())
+            {
+                Directory.Delete(parentDirectory.FullName);
+            }
+        }
     }
 
     private static LegalAction EnabledAction(EngineSession session, string playerId, string actionType) =>
