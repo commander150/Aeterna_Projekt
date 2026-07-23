@@ -9,6 +9,15 @@ namespace Aeterna.Engine;
 
 public sealed class EngineSession
 {
+    private static readonly ImmutableHashSet<string> SupportedAuraPaymentCardTypes =
+        ImmutableHashSet.Create(
+            StringComparer.Ordinal,
+            "entity",
+            "incantation",
+            "ritual",
+            "sigil",
+            "plane");
+
     private MatchState? _state;
     private RuntimePackageCatalog? _runtimePackage;
 
@@ -509,6 +518,266 @@ public sealed class EngineSession
             currentMagnitude,
             requirementMet,
             requirementMet ? null : "magnitude_requirement_not_met");
+    }
+
+    internal AuraPaymentPreflightResult EvaluateAuraPaymentPreflight(
+        string playerId,
+        string cardInstanceId)
+    {
+        var state = RequireState();
+        ValidateAuraPaymentPreflightState(state, playerId, cardInstanceId);
+        var runtimePackage = RequireAuraPaymentRuntimePackage(state);
+        var player = state.Players.SingleOrDefault(item =>
+            string.Equals(item.PlayerId, playerId, StringComparison.Ordinal))
+            ?? throw new AuraPaymentException(
+                "AURA_PAYMENT_PLAYER_UNKNOWN",
+                "Aura payment player is unknown.");
+        if (string.IsNullOrWhiteSpace(cardInstanceId)
+            || !state.CardInstances.TryGetValue(cardInstanceId, out var card))
+        {
+            throw new AuraPaymentException(
+                "AURA_PAYMENT_CARD_UNKNOWN",
+                "Aura payment target card instance is unknown.");
+        }
+
+        if (!string.Equals(card.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal)
+            || !string.Equals(card.ControllerPlayerId, player.PlayerId, StringComparison.Ordinal))
+        {
+            throw new AuraPaymentException(
+                "AURA_PAYMENT_CARD_AUTHORITY_INVALID",
+                "Aura payment target owner/controller does not match the player.");
+        }
+
+        if (!string.Equals(card.Zone, "hand", StringComparison.Ordinal))
+        {
+            throw new AuraPaymentException(
+                "AURA_PAYMENT_CARD_ZONE_INVALID",
+                "Aura payment target must be in hand.");
+        }
+
+        var handIndex = player.HandCardInstanceIds.IndexOf(card.CardInstanceId);
+        if (handIndex < 0 || card.ZoneIndex != handIndex)
+        {
+            throw new AuraPaymentException(
+                "AURA_PAYMENT_HAND_MEMBERSHIP_INVALID",
+                "Aura payment target registry and hand membership disagree.");
+        }
+
+        if (!runtimePackage.Cards.TryGetValue(card.CardId, out var definition))
+        {
+            throw new AuraPaymentException(
+                "AURA_PAYMENT_RUNTIME_CARD_MISSING",
+                "Aura payment target runtime card definition is missing.");
+        }
+
+        if (!SupportedAuraPaymentCardTypes.Contains(definition.CardType))
+        {
+            throw new AuraPaymentException(
+                "AURA_PAYMENT_CARD_TYPE_UNSUPPORTED",
+                "Aura payment policy is not defined for the target card type.");
+        }
+
+        var eligibleSources = ImmutableArray.CreateBuilder<AuraSourceCandidate>();
+        for (var zoneIndex = 0; zoneIndex < player.WellspringCardInstanceIds.Count; zoneIndex++)
+        {
+            var sourceInstanceId = player.WellspringCardInstanceIds[zoneIndex];
+            if (!state.CardInstances.TryGetValue(sourceInstanceId, out var sourceCard)
+                || !string.Equals(sourceCard.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal)
+                || !string.Equals(sourceCard.ControllerPlayerId, player.PlayerId, StringComparison.Ordinal)
+                || !string.Equals(sourceCard.Zone, "wellspring", StringComparison.Ordinal)
+                || sourceCard.ZoneIndex != zoneIndex
+                || !string.Equals(sourceCard.Visibility, "owner_only", StringComparison.Ordinal)
+                || sourceCard.ActivityState is not ("active" or "exhausted"))
+            {
+                throw new AuraPaymentException(
+                    "AURA_PAYMENT_STATE_INVALID",
+                    "Aura payment Wellspring source state is inconsistent.");
+            }
+
+            if (!runtimePackage.Cards.TryGetValue(sourceCard.CardId, out var sourceDefinition))
+            {
+                throw new AuraPaymentException(
+                    "AURA_PAYMENT_RUNTIME_CARD_MISSING",
+                    "Aura payment Wellspring source runtime card definition is missing.");
+            }
+
+            if (!string.Equals(sourceCard.ActivityState, "active", StringComparison.Ordinal)
+                || !IsAuraSourceRealmEligible(definition, sourceDefinition.Realm))
+            {
+                continue;
+            }
+
+            eligibleSources.Add(new AuraSourceCandidate(
+                sourceCard.CardInstanceId,
+                sourceDefinition.Realm,
+                sourceCard.ZoneIndex,
+                sourceCard.ActivityState));
+        }
+
+        var orderedEligibleSources = eligibleSources
+            .OrderBy(source => source.ZoneIndex)
+            .ThenBy(source => source.CardInstanceId, StringComparer.Ordinal)
+            .ToImmutableArray();
+        var normalizedPayableAuraCost = definition.PrintedAuraCost;
+        var paymentPossible = orderedEligibleSources.Length >= normalizedPayableAuraCost;
+        string? selectionMode;
+        ImmutableArray<string> forcedSourceInstanceIds;
+        if (normalizedPayableAuraCost == 0)
+        {
+            selectionMode = "none";
+            forcedSourceInstanceIds = ImmutableArray<string>.Empty;
+        }
+        else if (!paymentPossible)
+        {
+            selectionMode = null;
+            forcedSourceInstanceIds = ImmutableArray<string>.Empty;
+        }
+        else if (orderedEligibleSources.Length == normalizedPayableAuraCost)
+        {
+            selectionMode = "forced";
+            forcedSourceInstanceIds = orderedEligibleSources
+                .Select(source => source.CardInstanceId)
+                .ToImmutableArray();
+        }
+        else
+        {
+            selectionMode = "choice";
+            forcedSourceInstanceIds = ImmutableArray<string>.Empty;
+        }
+
+        return new AuraPaymentPreflightResult(
+            player.PlayerId,
+            card.CardInstanceId,
+            card.CardId,
+            definition.CardType,
+            definition.Realm,
+            definition.PrintedAuraCost,
+            normalizedPayableAuraCost,
+            orderedEligibleSources.Length,
+            paymentPossible,
+            selectionMode,
+            paymentPossible ? null : "insufficient_eligible_aura",
+            orderedEligibleSources,
+            forcedSourceInstanceIds);
+    }
+
+    internal AuraPaymentSelectionValidationResult ValidateAuraPaymentSelection(
+        string playerId,
+        string cardInstanceId,
+        IReadOnlyCollection<string>? selectedSourceInstanceIds)
+    {
+        var preflight = EvaluateAuraPaymentPreflight(playerId, cardInstanceId);
+        var selectedSources = selectedSourceInstanceIds?.ToImmutableArray()
+            ?? ImmutableArray<string>.Empty;
+        if (!preflight.PaymentPossible)
+        {
+            return BuildAuraPaymentSelectionResult(
+                preflight,
+                selectionValid: false,
+                failureReason: "payment_not_possible",
+                ImmutableArray<string>.Empty);
+        }
+
+        if (string.Equals(preflight.SelectionMode, "none", StringComparison.Ordinal))
+        {
+            return selectedSources.Length == 0
+                ? BuildAuraPaymentSelectionResult(
+                    preflight,
+                    selectionValid: true,
+                    failureReason: null,
+                    ImmutableArray<string>.Empty)
+                : BuildAuraPaymentSelectionResult(
+                    preflight,
+                    selectionValid: false,
+                    failureReason: "unexpected_source_selection",
+                    ImmutableArray<string>.Empty);
+        }
+
+        if (string.Equals(preflight.SelectionMode, "forced", StringComparison.Ordinal))
+        {
+            if (selectedSources.Length == 0)
+            {
+                return BuildAuraPaymentSelectionResult(
+                    preflight,
+                    selectionValid: true,
+                    failureReason: null,
+                    preflight.ForcedSourceInstanceIds);
+            }
+
+            var explicitSet = selectedSources.ToHashSet(StringComparer.Ordinal);
+            var forcedSet = preflight.ForcedSourceInstanceIds.ToHashSet(StringComparer.Ordinal);
+            var exactForcedSelection = explicitSet.Count == selectedSources.Length
+                && explicitSet.SetEquals(forcedSet);
+            return exactForcedSelection
+                ? BuildAuraPaymentSelectionResult(
+                    preflight,
+                    selectionValid: true,
+                    failureReason: null,
+                    preflight.ForcedSourceInstanceIds)
+                : BuildAuraPaymentSelectionResult(
+                    preflight,
+                    selectionValid: false,
+                    failureReason: "forced_source_selection_mismatch",
+                    ImmutableArray<string>.Empty);
+        }
+
+        if (!string.Equals(preflight.SelectionMode, "choice", StringComparison.Ordinal))
+        {
+            throw new AuraPaymentException(
+                "AURA_PAYMENT_RUNTIME_PACKAGE_INVALID",
+                "Aura payment preflight returned an unsupported selection mode.");
+        }
+
+        if (selectedSources.Length == 0)
+        {
+            return BuildAuraPaymentSelectionResult(
+                preflight,
+                selectionValid: false,
+                failureReason: "source_selection_required",
+                ImmutableArray<string>.Empty);
+        }
+
+        var selectedSet = selectedSources.ToHashSet(StringComparer.Ordinal);
+        if (selectedSet.Count != selectedSources.Length)
+        {
+            return BuildAuraPaymentSelectionResult(
+                preflight,
+                selectionValid: false,
+                failureReason: "duplicate_source_selection",
+                ImmutableArray<string>.Empty);
+        }
+
+        if (selectedSources.Length != preflight.NormalizedPayableAuraCost)
+        {
+            return BuildAuraPaymentSelectionResult(
+                preflight,
+                selectionValid: false,
+                failureReason: "source_count_mismatch",
+                ImmutableArray<string>.Empty);
+        }
+
+        var eligibleIds = preflight.EligibleSources
+            .Select(source => source.CardInstanceId)
+            .ToHashSet(StringComparer.Ordinal);
+        if (selectedSources.Any(sourceId =>
+                string.IsNullOrWhiteSpace(sourceId) || !eligibleIds.Contains(sourceId)))
+        {
+            return BuildAuraPaymentSelectionResult(
+                preflight,
+                selectionValid: false,
+                failureReason: "source_not_eligible",
+                ImmutableArray<string>.Empty);
+        }
+
+        var resolvedSources = preflight.EligibleSources
+            .Where(source => selectedSet.Contains(source.CardInstanceId))
+            .Select(source => source.CardInstanceId)
+            .ToImmutableArray();
+        return BuildAuraPaymentSelectionResult(
+            preflight,
+            selectionValid: true,
+            failureReason: null,
+            resolvedSources);
     }
 
     private static void ValidateCreateMatchRequest(CreateMatchRequest request)
@@ -1177,6 +1446,89 @@ public sealed class EngineSession
                 exception);
         }
     }
+
+    private RuntimePackageCatalog RequireAuraPaymentRuntimePackage(MatchState state)
+    {
+        var runtimePackage = _runtimePackage
+            ?? throw new AuraPaymentException(
+                "AURA_PAYMENT_RUNTIME_PACKAGE_MISSING",
+                "Aura payment requires a validated runtime package catalog.");
+        try
+        {
+            RuntimePackageLoader.ValidateCatalog(runtimePackage);
+        }
+        catch (EngineInputException exception)
+        {
+            throw new AuraPaymentException(
+                "AURA_PAYMENT_RUNTIME_PACKAGE_INVALID",
+                "Aura payment runtime package catalog is invalid.",
+                exception);
+        }
+
+        if (!string.Equals(runtimePackage.PackageId, state.RuntimePackageId, StringComparison.Ordinal))
+        {
+            throw new AuraPaymentException(
+                "AURA_PAYMENT_RUNTIME_PACKAGE_INVALID",
+                "Aura payment runtime package does not match the current state.");
+        }
+
+        return runtimePackage;
+    }
+
+    private static void ValidateAuraPaymentPreflightState(
+        MatchState state,
+        string playerId,
+        string cardInstanceId)
+    {
+        try
+        {
+            ValidateState(state);
+        }
+        catch (EngineStateException exception)
+        {
+            var player = state.Players.SingleOrDefault(item =>
+                string.Equals(item.PlayerId, playerId, StringComparison.Ordinal));
+            var handIndex = player?.HandCardInstanceIds.IndexOf(cardInstanceId) ?? -1;
+            if (player is not null
+                && !string.IsNullOrWhiteSpace(cardInstanceId)
+                && state.CardInstances.TryGetValue(cardInstanceId, out var card)
+                && string.Equals(card.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal)
+                && string.Equals(card.ControllerPlayerId, player.PlayerId, StringComparison.Ordinal)
+                && string.Equals(card.Zone, "hand", StringComparison.Ordinal)
+                && (handIndex < 0 || card.ZoneIndex != handIndex))
+            {
+                throw new AuraPaymentException(
+                    "AURA_PAYMENT_HAND_MEMBERSHIP_INVALID",
+                    "Aura payment target registry and hand membership disagree.",
+                    exception);
+            }
+
+            throw new AuraPaymentException(
+                "AURA_PAYMENT_STATE_INVALID",
+                "Aura payment requires a valid match state.",
+                exception);
+        }
+    }
+
+    private static bool IsAuraSourceRealmEligible(
+        RuntimeCardDefinition targetDefinition,
+        string sourceRealm) =>
+        string.Equals(sourceRealm, targetDefinition.Realm, StringComparison.Ordinal)
+        || string.Equals(targetDefinition.CardType, "entity", StringComparison.Ordinal)
+        && string.Equals(sourceRealm, "aether", StringComparison.Ordinal);
+
+    private static AuraPaymentSelectionValidationResult BuildAuraPaymentSelectionResult(
+        AuraPaymentPreflightResult preflight,
+        bool selectionValid,
+        string? failureReason,
+        ImmutableArray<string> resolvedSourceInstanceIds) => new(
+            preflight.PlayerId,
+            preflight.CardInstanceId,
+            preflight.NormalizedPayableAuraCost,
+            preflight.SelectionMode,
+            selectionValid,
+            failureReason,
+            resolvedSourceInstanceIds);
 
     internal static void ValidateState(MatchState state)
     {

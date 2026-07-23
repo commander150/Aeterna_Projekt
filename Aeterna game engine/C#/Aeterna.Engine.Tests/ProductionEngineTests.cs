@@ -11,6 +11,8 @@ using EngineCanonicalJson = Aeterna.Engine.Serialization.CanonicalJson;
 
 internal sealed record ProductionEngineTest(string Name, Action Body);
 
+internal sealed record AuraSourceSetup(string Realm, string ActivityState);
+
 internal static class ProductionEngineTests
 {
     public static IReadOnlyList<ProductionEngineTest> All { get; } =
@@ -57,6 +59,14 @@ internal static class ProductionEngineTests
         new("runtime_card_catalog_rejects_invalid_card_references", RuntimeCardCatalogRejectsInvalidCardReferences),
         new("runtime_card_catalog_is_immutable", RuntimeCardCatalogIsImmutable),
         new("runtime_package_catalog_lifecycle_is_atomic", RuntimePackageCatalogLifecycleIsAtomic),
+        new("runtime_lookup_loader_normalizes_card_definitions", RuntimeLookupLoaderNormalizesCardDefinitions),
+        new("runtime_lookup_loader_rejects_invalid_shapes", RuntimeLookupLoaderRejectsInvalidShapes),
+        new("runtime_lookup_loader_rejects_invalid_records", RuntimeLookupLoaderRejectsInvalidRecords),
+        new("runtime_lookup_loader_rejects_conflicts_and_unusable_aliases", RuntimeLookupLoaderRejectsConflictsAndUnusableAliases),
+        new("runtime_card_aura_cost_loader_accepts_valid_values", RuntimeCardAuraCostLoaderAcceptsValidValues),
+        new("runtime_card_aura_cost_loader_rejects_invalid_values", RuntimeCardAuraCostLoaderRejectsInvalidValues),
+        new("runtime_lookup_catalog_is_immutable", RuntimeLookupCatalogIsImmutable),
+        new("canonical_fixture_loads_typed_payment_data", CanonicalFixtureLoadsTypedPaymentData),
         new("magnitude_preflight_threshold_results", MagnitudePreflightThresholdResults),
         new("magnitude_preflight_counts_all_wellspring_sources", MagnitudePreflightCountsAllWellspringSources),
         new("magnitude_preflight_source_rejections_are_immutable", MagnitudePreflightSourceRejectionsAreImmutable),
@@ -65,6 +75,18 @@ internal static class ProductionEngineTests
         new("magnitude_preflight_requires_runtime_catalog", MagnitudePreflightRequiresRuntimeCatalog),
         new("magnitude_preflight_is_pure_deterministic_and_defensive", MagnitudePreflightIsPureDeterministicAndDefensive),
         new("normal_inflow_updates_magnitude_preflight", NormalInflowUpdatesMagnitudePreflight),
+        new("aura_payment_preflight_modes_and_costs", AuraPaymentPreflightModesAndCosts),
+        new("aura_payment_entity_realm_policy", AuraPaymentEntityRealmPolicy),
+        new("aura_payment_non_entity_realm_policy", AuraPaymentNonEntityRealmPolicy),
+        new("aura_payment_activity_and_ordering", AuraPaymentActivityAndOrdering),
+        new("aura_payment_target_rejections_are_immutable", AuraPaymentTargetRejectionsAreImmutable),
+        new("aura_payment_runtime_and_state_rejections_are_immutable", AuraPaymentRuntimeAndStateRejectionsAreImmutable),
+        new("aura_payment_is_pure_deterministic_and_separate_from_magnitude", AuraPaymentIsPureDeterministicAndSeparateFromMagnitude),
+        new("aura_payment_selection_none_and_forced", AuraPaymentSelectionNoneAndForced),
+        new("aura_payment_selection_choice_validation", AuraPaymentSelectionChoiceValidation),
+        new("aura_payment_selection_rechecks_current_state", AuraPaymentSelectionRechecksCurrentState),
+        new("normal_inflow_updates_aura_payment_preflight", NormalInflowUpdatesAuraPaymentPreflight),
+        new("normal_inflow_aether_payment_policy", NormalInflowAetherPaymentPolicy),
         new("public_results_are_defensive", PublicResultsAreDefensive),
         new("canonical_fixture_matches_python_oracle", CanonicalFixtureMatchesPythonOracle),
         new("canonical_fixture_is_deterministic_for_100_runs", CanonicalFixtureIsDeterministicForOneHundredRuns),
@@ -1105,6 +1127,9 @@ internal static class ProductionEngineTests
         using var invalidPackage = TemporaryRuntimePackage.Create(
             [RuntimeCardJson("CARD-LIFECYCLE", -1)],
             ["CARD-LIFECYCLE"]);
+        using var invalidAuraPackage = TemporaryRuntimePackage.Create(
+            [RuntimeCardJsonWithAuraValue("CARD-LIFECYCLE", null)],
+            ["CARD-LIFECYCLE"]);
         using var validPackage = TemporaryRuntimePackage.Create(
             [RuntimeCardJson("CARD-LIFECYCLE", 2)],
             ["CARD-LIFECYCLE"]);
@@ -1117,6 +1142,13 @@ internal static class ProductionEngineTests
             rejected.Diagnostics.Single().Code,
             "CreateMatch magnitude diagnostic is invalid.");
 
+        var rejectedAura = session.CreateMatch(CreatePackageMatchRequest(invalidAuraPackage.Source));
+        Equal(false, rejectedAura.Accepted, "CreateMatch accepted an invalid Aura package.");
+        Equal(
+            "RUNTIME_PACKAGE_CARD_AURA_COST_INVALID",
+            rejectedAura.Diagnostics.Single().Code,
+            "CreateMatch Aura diagnostic is invalid.");
+
         var accepted = session.CreateMatch(CreatePackageMatchRequest(validPackage.Source));
         Equal(true, accepted.Accepted, "CreateMatch retained partial state or catalog after rejection.");
         var targetId = session.GetDebugSnapshot().Players
@@ -1125,6 +1157,275 @@ internal static class ProductionEngineTests
             .Single();
         var result = session.EvaluateMagnitudePreflight("player_1", targetId);
         Equal(2, result.RequiredMagnitude, "Session did not retain the validated runtime catalog.");
+    }
+
+    private static void RuntimeLookupLoaderNormalizesCardDefinitions()
+    {
+        var records = new[]
+        {
+            RuntimeCardJson("CARD-ENTITY", 1, auraCost: 2, realm: "IGNIS", cardType: "Entitás"),
+            RuntimeCardJson("CARD-INCANTATION", 1, auraCost: 2, realm: "ignis", cardType: "Ige"),
+            RuntimeCardJson("CARD-RITUAL", 1, auraCost: 2, realm: "ignis", cardType: "Rituálé"),
+            RuntimeCardJson("CARD-SIGIL", 1, auraCost: 2, realm: "ignis", cardType: "Jel"),
+            RuntimeCardJson("CARD-PLANE", 1, auraCost: 2, realm: "ignis", cardType: "Sík"),
+            RuntimeCardJson("CARD-CANONICAL", 1, auraCost: 2, realm: "aether", cardType: "entity"),
+        };
+        using var package = TemporaryRuntimePackage.Create(
+            records,
+            [
+                "CARD-ENTITY",
+                "CARD-INCANTATION",
+                "CARD-RITUAL",
+                "CARD-SIGIL",
+                "CARD-PLANE",
+                "CARD-CANONICAL",
+            ]);
+
+        var catalog = RuntimePackageLoader.Load(package.Source);
+
+        Equal("ignis", catalog.Cards["CARD-ENTITY"].Realm, "Uppercase Realm alias was not normalized.");
+        Equal("entity", catalog.Cards["CARD-ENTITY"].CardType, "Hungarian Entity alias was not normalized.");
+        Equal("incantation", catalog.Cards["CARD-INCANTATION"].CardType, "Ige alias was not normalized.");
+        Equal("ritual", catalog.Cards["CARD-RITUAL"].CardType, "Ritual alias was not normalized.");
+        Equal("sigil", catalog.Cards["CARD-SIGIL"].CardType, "Sigil alias was not normalized.");
+        Equal("plane", catalog.Cards["CARD-PLANE"].CardType, "Plane alias was not normalized.");
+        Equal("aether", catalog.Cards["CARD-CANONICAL"].Realm, "Canonical Realm value was not preserved.");
+        Equal(
+            "entity",
+            catalog.Cards["CARD-CANONICAL"].CardType,
+            "Canonical card type value was not preserved.");
+        Equal(
+            "ignis",
+            catalog.Lookups.Groups["realm"].ActiveAliases["IGNIS"],
+            "Runtime Realm alias mapping is invalid.");
+        Equal(
+            "entity",
+            catalog.Lookups.Groups["card_type"].ActiveAliases["Entitás"],
+            "Runtime card-type alias mapping is invalid.");
+        True(
+            catalog.Lookups.Groups["card_type"].CanonicalValues.SetEquals(
+                ["entity", "incantation", "ritual", "sigil", "plane"]),
+            "Runtime card-type canonical values were not derived from active aliases.");
+    }
+
+    private static void RuntimeLookupLoaderRejectsInvalidShapes()
+    {
+        using (var invalidRoot = TemporaryRuntimePackage.Create(
+                   [RuntimeCardJson("CARD-LOOKUP", 1)],
+                   ["CARD-LOOKUP"],
+                   "[]"))
+        {
+            AssertEngineInputRejected(
+                "RUNTIME_PACKAGE_LOOKUPS_ROOT_INVALID",
+                () => RuntimePackageLoader.Load(invalidRoot.Source),
+                "Invalid lookup root was accepted.");
+        }
+
+        using (var missingArray = TemporaryRuntimePackage.Create(
+                   [RuntimeCardJson("CARD-LOOKUP", 1)],
+                   ["CARD-LOOKUP"],
+                   "{}"))
+        {
+            AssertEngineInputRejected(
+                "RUNTIME_PACKAGE_LOOKUPS_ARRAY_INVALID",
+                () => RuntimePackageLoader.Load(missingArray.Source),
+                "Missing lookup array was accepted.");
+        }
+
+        var defaultRecords = DefaultRuntimeLookupRecords();
+        foreach (var missingGroup in new[] { "realm", "card_type" })
+        {
+            var remaining = defaultRecords.Where(record =>
+                !string.Equals((string?)record["lookup_group"], missingGroup, StringComparison.Ordinal));
+            using var missing = TemporaryRuntimePackage.Create(
+                [RuntimeCardJson("CARD-LOOKUP", 1)],
+                ["CARD-LOOKUP"],
+                RuntimeLookupsJson(remaining));
+            AssertEngineInputRejected(
+                "RUNTIME_PACKAGE_LOOKUP_GROUP_MISSING",
+                () => RuntimePackageLoader.Load(missing.Source),
+                $"Missing {missingGroup} lookup group was accepted.");
+        }
+    }
+
+    private static void RuntimeLookupLoaderRejectsInvalidRecords()
+    {
+        var invalidLookupJson = new[]
+        {
+            """{"lookups":[1]}""",
+            """{"lookups":[{"lookup_group":"realm","value":"ignis","canonical_value":"ignis"}]}""",
+            """{"lookups":[{"lookup_group":"realm","value":" ","status":"active","canonical_value":"ignis"}]}""",
+            """{"lookups":[{"lookup_group":"realm","value":"ignis","status":"active","canonical_value":" "}]}""",
+            """{"lookups":[{"lookup_group":"realm","value":"ignis","status":"active","canonical_value":"IGNIS"}]}""",
+        };
+
+        foreach (var lookupsJson in invalidLookupJson)
+        {
+            using var package = TemporaryRuntimePackage.Create(
+                [RuntimeCardJson("CARD-LOOKUP", 1)],
+                ["CARD-LOOKUP"],
+                lookupsJson);
+            AssertEngineInputRejected(
+                "RUNTIME_PACKAGE_LOOKUP_RECORD_INVALID",
+                () => RuntimePackageLoader.Load(package.Source),
+                "Invalid runtime lookup record was accepted.");
+        }
+    }
+
+    private static void RuntimeLookupLoaderRejectsConflictsAndUnusableAliases()
+    {
+        var conflictRecords = DefaultRuntimeLookupRecords()
+            .Concat([RuntimeLookupRecord("realm", "IGNIS", "active", "aqua")]);
+        using (var conflict = TemporaryRuntimePackage.Create(
+                   [RuntimeCardJson("CARD-CONFLICT", 1)],
+                   ["CARD-CONFLICT"],
+                   RuntimeLookupsJson(conflictRecords)))
+        {
+            AssertEngineInputRejected(
+                "RUNTIME_PACKAGE_LOOKUP_ALIAS_CONFLICT",
+                () => RuntimePackageLoader.Load(conflict.Source),
+                "Conflicting active lookup aliases were accepted.");
+        }
+
+        var inactiveRecords = DefaultRuntimeLookupRecords()
+            .Concat([RuntimeLookupRecord("realm", "LEGACY_REALM", "inactive", "ignis")]);
+        using (var inactive = TemporaryRuntimePackage.Create(
+                   [RuntimeCardJson("CARD-INACTIVE", 1, realm: "LEGACY_REALM")],
+                   ["CARD-INACTIVE"],
+                   RuntimeLookupsJson(inactiveRecords)))
+        {
+            AssertEngineInputRejected(
+                "RUNTIME_PACKAGE_CARD_REALM_INVALID",
+                () => RuntimePackageLoader.Load(inactive.Source),
+                "Inactive Realm alias was used for card normalization.");
+        }
+
+        using (var unknownRealm = TemporaryRuntimePackage.Create(
+                   [RuntimeCardJson("CARD-UNKNOWN-REALM", 1, realm: "UNKNOWN")],
+                   ["CARD-UNKNOWN-REALM"]))
+        {
+            AssertEngineInputRejected(
+                "RUNTIME_PACKAGE_CARD_REALM_INVALID",
+                () => RuntimePackageLoader.Load(unknownRealm.Source),
+                "Unknown Realm alias was accepted.");
+        }
+
+        using var unknownCardType = TemporaryRuntimePackage.Create(
+            [RuntimeCardJson("CARD-UNKNOWN-TYPE", 1, cardType: "Unknown")],
+            ["CARD-UNKNOWN-TYPE"]);
+        AssertEngineInputRejected(
+            "RUNTIME_PACKAGE_CARD_TYPE_INVALID",
+            () => RuntimePackageLoader.Load(unknownCardType.Source),
+            "Unknown card-type alias was accepted.");
+
+        var invalidCardFields = new[]
+        {
+            (
+                RuntimeCardJson("CARD-FIELD", 1, includeRealm: false),
+                "RUNTIME_PACKAGE_CARD_REALM_INVALID"),
+            (
+                RuntimeCardJson("CARD-FIELD", 1, realm: " "),
+                "RUNTIME_PACKAGE_CARD_REALM_INVALID"),
+            (
+                RuntimeCardJson("CARD-FIELD", 1, includeCardType: false),
+                "RUNTIME_PACKAGE_CARD_TYPE_INVALID"),
+            (
+                RuntimeCardJson("CARD-FIELD", 1, cardType: " "),
+                "RUNTIME_PACKAGE_CARD_TYPE_INVALID"),
+        };
+        foreach (var (record, expectedCode) in invalidCardFields)
+        {
+            using var invalidField = TemporaryRuntimePackage.Create([record], ["CARD-FIELD"]);
+            AssertEngineInputRejected(
+                expectedCode,
+                () => RuntimePackageLoader.Load(invalidField.Source),
+                "Missing or empty typed runtime card field was accepted.");
+        }
+    }
+
+    private static void RuntimeCardAuraCostLoaderAcceptsValidValues()
+    {
+        using var package = TemporaryRuntimePackage.Create(
+            [
+                RuntimeCardJson("CARD-AURA-ZERO", 1, auraCost: 0),
+                RuntimeCardJson("CARD-AURA-FIVE", 1, auraCost: 5),
+            ],
+            ["CARD-AURA-ZERO", "CARD-AURA-FIVE"]);
+
+        var catalog = RuntimePackageLoader.Load(package.Source);
+
+        Equal(0, catalog.Cards["CARD-AURA-ZERO"].PrintedAuraCost, "Aura cost zero was not preserved.");
+        Equal(5, catalog.Cards["CARD-AURA-FIVE"].PrintedAuraCost, "Positive Aura cost was not preserved.");
+    }
+
+    private static void RuntimeCardAuraCostLoaderRejectsInvalidValues()
+    {
+        var invalidRecords = new[]
+        {
+            RuntimeCardJson("CARD-INVALID", 1, includeAuraCost: false),
+            RuntimeCardJsonWithAuraValue("CARD-INVALID", null),
+            RuntimeCardJsonWithAuraValue("CARD-INVALID", "1"),
+            """{"card_id":"CARD-INVALID","magnitude":1,"aura_cost":1.0,"realm":"ignis","card_type":"entity"}""",
+            RuntimeCardJsonWithAuraValue("CARD-INVALID", 1.5),
+            RuntimeCardJson("CARD-INVALID", 1, auraCost: -1),
+            RuntimeCardJsonWithAuraValue("CARD-INVALID", (long)int.MaxValue + 1),
+        };
+
+        foreach (var invalidRecord in invalidRecords)
+        {
+            using var package = TemporaryRuntimePackage.Create([invalidRecord], ["CARD-INVALID"]);
+            AssertEngineInputRejected(
+                "RUNTIME_PACKAGE_CARD_AURA_COST_INVALID",
+                () => RuntimePackageLoader.Load(package.Source),
+                "Invalid runtime card Aura cost was accepted.");
+        }
+    }
+
+    private static void RuntimeLookupCatalogIsImmutable()
+    {
+        using var package = TemporaryRuntimePackage.Create(
+            [RuntimeCardJson("CARD-IMMUTABLE-LOOKUP", 1, realm: "IGNIS", cardType: "Entitás")],
+            ["CARD-IMMUTABLE-LOOKUP"]);
+        var catalog = RuntimePackageLoader.Load(package.Source);
+        var realmGroup = catalog.Lookups.Groups["realm"];
+        var changedAliases = realmGroup.ActiveAliases.SetItem("IGNIS", "aqua");
+        var changedGroups = catalog.Lookups.Groups.SetItem(
+            "realm",
+            realmGroup with { ActiveAliases = changedAliases });
+
+        NotSame(realmGroup.ActiveAliases, changedAliases, "Immutable lookup aliases returned a mutated reference.");
+        NotSame(catalog.Lookups.Groups, changedGroups, "Immutable lookup groups returned a mutated reference.");
+        Equal("ignis", realmGroup.ActiveAliases["IGNIS"], "Runtime lookup alias was mutated externally.");
+        Equal(
+            "ignis",
+            catalog.Cards["CARD-IMMUTABLE-LOOKUP"].Realm,
+            "Typed runtime card definition changed with detached lookup data.");
+
+        var invalidDefinition = catalog.Cards["CARD-IMMUTABLE-LOOKUP"] with { Realm = "missing" };
+        var invalidCatalog = catalog with
+        {
+            Cards = catalog.Cards.SetItem(invalidDefinition.CardId, invalidDefinition),
+        };
+        AssertEngineInputRejected(
+            "RUNTIME_PACKAGE_CATALOG_INVALID",
+            () => RuntimePackageLoader.ValidateCatalog(invalidCatalog),
+            "Catalog accepted a card Realm outside canonical lookup targets.");
+    }
+
+    private static void CanonicalFixtureLoadsTypedPaymentData()
+    {
+        var fixture = RuntimeComparisonFixture.Load(FixtureLocator.LocateCanonicalFixture());
+        var catalog = RuntimePackageLoader.Load(new RuntimePackageSource(fixture.RuntimePackagePath));
+
+        Equal(6, catalog.Cards.Count, "Canonical fixture typed card count is invalid.");
+        True(
+            catalog.Cards.Values.All(card =>
+                card.PrintedAuraCost == 1
+                && string.Equals(card.Realm, "ignis", StringComparison.Ordinal)
+                && string.Equals(card.CardType, "entity", StringComparison.Ordinal)),
+            "Canonical fixture typed payment card data is invalid.");
+        Equal(2, catalog.Lookups.Groups.Count, "Canonical fixture typed lookup group count is invalid.");
+        RuntimePackageLoader.ValidateCatalog(catalog);
     }
 
     private static void MagnitudePreflightThresholdResults()
@@ -1347,6 +1648,618 @@ internal static class ProductionEngineTests
         Equal(1, session.GetDebugEvents().Length, "Post-Inflow preflight emitted an extra event.");
     }
 
+    private static void AuraPaymentPreflightModesAndCosts()
+    {
+        var evaluator = typeof(EngineSession).GetMethod(
+            "EvaluateAuraPaymentPreflight",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Internal Aura payment preflight evaluator is missing.");
+        SequenceEqual(
+            [typeof(string), typeof(string)],
+            evaluator.GetParameters().Select(parameter => parameter.ParameterType),
+            "Aura payment caller can provide non-authoritative payment inputs.");
+        Equal(false, typeof(AuraPaymentPreflightResult).IsPublic, "Aura payment preflight result became public.");
+        Equal(false, typeof(AuraSourceCandidate).IsPublic, "Aura source candidate became public.");
+        Equal(
+            false,
+            typeof(AuraPaymentSelectionValidationResult).IsPublic,
+            "Aura payment selection result became public.");
+        var selectionValidator = typeof(EngineSession).GetMethod(
+            "ValidateAuraPaymentSelection",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Internal Aura payment selection validator is missing.");
+        SequenceEqual(
+            [typeof(string), typeof(string), typeof(IReadOnlyCollection<string>)],
+            selectionValidator.GetParameters().Select(parameter => parameter.ParameterType),
+            "Aura selection validator exposes non-authoritative payment inputs.");
+
+        var (zeroSession, _, zeroCardId, _, _) = CreateAuraPaymentSession(printedAuraCost: 0);
+        var zero = zeroSession.EvaluateAuraPaymentPreflight("player_1", zeroCardId);
+        Equal(0, zero.PrintedAuraCost, "Printed zero Aura cost is invalid.");
+        Equal(0, zero.NormalizedPayableAuraCost, "Normalized zero Aura cost is invalid.");
+        Equal(true, zero.PaymentPossible, "Zero Aura cost must be payable.");
+        Equal("none", zero.SelectionMode, "Zero Aura cost must use none selection mode.");
+        Equal(0, zero.ForcedSourceInstanceIds.Length, "Zero Aura cost returned forced sources.");
+        Equal(null, zero.FailureReason, "Payable zero Aura cost has a failure reason.");
+
+        var (forcedSession, _, forcedCardId, _, forcedSources) = CreateAuraPaymentSession(
+            printedAuraCost: 2,
+            sources:
+            [
+                new AuraSourceSetup("ignis", "active"),
+                new AuraSourceSetup("aether", "active"),
+            ]);
+        var forced = forcedSession.EvaluateAuraPaymentPreflight("player_1", forcedCardId);
+        Equal(2, forced.PrintedAuraCost, "Printed Aura cost is invalid.");
+        Equal(2, forced.NormalizedPayableAuraCost, "Normalized payable Aura cost diverged from printed cost.");
+        Equal(2, forced.EligibleSourceCount, "Forced payment eligible source count is invalid.");
+        Equal(true, forced.PaymentPossible, "Exact-source payment was rejected.");
+        Equal("forced", forced.SelectionMode, "Exact-source payment must use forced mode.");
+        SequenceEqual(
+            forcedSources,
+            forced.ForcedSourceInstanceIds,
+            "Forced payment source IDs are invalid.");
+        Equal(null, forced.FailureReason, "Forced payment has a failure reason.");
+
+        var (choiceSession, _, choiceCardId, _, _) = CreateAuraPaymentSession(
+            printedAuraCost: 1,
+            sources:
+            [
+                new AuraSourceSetup("ignis", "active"),
+                new AuraSourceSetup("aether", "active"),
+            ]);
+        var choice = choiceSession.EvaluateAuraPaymentPreflight("player_1", choiceCardId);
+        Equal(true, choice.PaymentPossible, "Choice payment was rejected.");
+        Equal("choice", choice.SelectionMode, "Excess eligible sources must use choice mode.");
+        Equal(0, choice.ForcedSourceInstanceIds.Length, "Choice payment returned forced sources.");
+
+        var (insufficientSession, _, insufficientCardId, _, _) = CreateAuraPaymentSession(
+            printedAuraCost: 2,
+            sources: [new AuraSourceSetup("ignis", "active")]);
+        var insufficient = insufficientSession.EvaluateAuraPaymentPreflight(
+            "player_1",
+            insufficientCardId);
+        Equal(false, insufficient.PaymentPossible, "Insufficient Aura payment passed.");
+        Equal(null, insufficient.SelectionMode, "Impossible payment returned a selection mode.");
+        Equal(
+            "insufficient_eligible_aura",
+            insufficient.FailureReason,
+            "Impossible payment failure reason is invalid.");
+        Equal(0, insufficient.ForcedSourceInstanceIds.Length, "Impossible payment returned forced sources.");
+    }
+
+    private static void AuraPaymentEntityRealmPolicy()
+    {
+        var (session, _, targetId, _, sourceIds) = CreateAuraPaymentSession(
+            printedAuraCost: 2,
+            cardRealm: "ignis",
+            cardType: "entity",
+            sources:
+            [
+                new AuraSourceSetup("ignis", "active"),
+                new AuraSourceSetup("aether", "active"),
+                new AuraSourceSetup("aqua", "active"),
+            ]);
+        var result = session.EvaluateAuraPaymentPreflight("player_1", targetId);
+
+        SequenceEqual(
+            sourceIds.Take(2),
+            result.EligibleSources.Select(source => source.CardInstanceId),
+            "Entity payment did not combine own-Realm and AETHER sources.");
+        SequenceEqual(
+            ["ignis", "aether"],
+            result.EligibleSources.Select(source => source.Realm),
+            "Entity eligible source Realm identities are invalid.");
+        Equal("forced", result.SelectionMode, "Exact own-Realm/AETHER Entity payment is not forced.");
+
+        var (aetherSession, _, aetherTargetId, _, aetherSourceIds) = CreateAuraPaymentSession(
+            printedAuraCost: 1,
+            cardRealm: "aether",
+            cardType: "entity",
+            sources:
+            [
+                new AuraSourceSetup("aether", "active"),
+                new AuraSourceSetup("ignis", "active"),
+            ]);
+        var aetherResult = aetherSession.EvaluateAuraPaymentPreflight("player_1", aetherTargetId);
+        SequenceEqual(
+            [aetherSourceIds[0]],
+            aetherResult.EligibleSources.Select(source => source.CardInstanceId),
+            "AETHER Entity accepted a non-AETHER source.");
+    }
+
+    private static void AuraPaymentNonEntityRealmPolicy()
+    {
+        foreach (var cardType in new[] { "incantation", "ritual", "sigil", "plane" })
+        {
+            var (session, _, targetId, _, sourceIds) = CreateAuraPaymentSession(
+                printedAuraCost: 1,
+                cardRealm: "ignis",
+                cardType: cardType,
+                sources:
+                [
+                    new AuraSourceSetup("ignis", "active"),
+                    new AuraSourceSetup("aether", "active"),
+                ]);
+            var result = session.EvaluateAuraPaymentPreflight("player_1", targetId);
+
+            Equal(cardType, result.CardType, "Runtime card type was not used by payment policy.");
+            SequenceEqual(
+                [sourceIds[0]],
+                result.EligibleSources.Select(source => source.CardInstanceId),
+                $"{cardType} accepted AETHER for another Realm.");
+            Equal("forced", result.SelectionMode, $"{cardType} own-Realm payment is not forced.");
+        }
+
+        var (aetherSession, _, aetherTargetId, _, aetherSources) = CreateAuraPaymentSession(
+            printedAuraCost: 1,
+            cardRealm: "aether",
+            cardType: "incantation",
+            sources:
+            [
+                new AuraSourceSetup("aether", "active"),
+                new AuraSourceSetup("ignis", "active"),
+            ]);
+        var aetherResult = aetherSession.EvaluateAuraPaymentPreflight("player_1", aetherTargetId);
+        SequenceEqual(
+            [aetherSources[0]],
+            aetherResult.EligibleSources.Select(source => source.CardInstanceId),
+            "AETHER non-Entity accepted a non-AETHER source.");
+    }
+
+    private static void AuraPaymentActivityAndOrdering()
+    {
+        var (session, state, targetId, catalog, sourceIds) = CreateAuraPaymentSession(
+            printedAuraCost: 2,
+            cardRealm: "ignis",
+            cardType: "entity",
+            requiredMagnitude: 4,
+            sources:
+            [
+                new AuraSourceSetup("ignis", "active"),
+                new AuraSourceSetup("aether", "exhausted"),
+                new AuraSourceSetup("aether", "active"),
+                new AuraSourceSetup("aqua", "active"),
+            ]);
+        var result = session.EvaluateAuraPaymentPreflight("player_1", targetId);
+
+        SequenceEqual(
+            [sourceIds[0], sourceIds[2]],
+            result.EligibleSources.Select(source => source.CardInstanceId),
+            "Eligible Aura source ordering is not zone-index deterministic.");
+        SequenceEqual(
+            [0, 2],
+            result.EligibleSources.Select(source => source.ZoneIndex),
+            "Aura source candidate zone indexes are invalid.");
+        True(
+            result.EligibleSources.All(source => source.ActivityState == "active"),
+            "Exhausted source appeared in the eligible source result.");
+        var resource = session.GetPlayerSnapshot("player_1").ResourceSummary.Players
+            .Single(summary => summary.PlayerId == "player_1");
+        AssertWellspringCounts(resource, 4, 4, 3, 1, 3);
+        var magnitude = session.EvaluateMagnitudePreflight("player_1", targetId);
+        Equal(4, magnitude.CurrentMagnitude, "Exhausted Wellspring source did not count toward Magnitude.");
+        Equal(true, magnitude.RequirementMet, "Mixed Wellspring Magnitude threshold failed.");
+
+        var reversedCards = catalog.Cards
+            .Reverse()
+            .ToImmutableDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        var reorderedSession = new EngineSession(state, catalog with { Cards = reversedCards });
+        var reordered = reorderedSession.EvaluateAuraPaymentPreflight("player_1", targetId);
+        SequenceEqual(
+            result.EligibleSources.Select(source => source.CardInstanceId),
+            reordered.EligibleSources.Select(source => source.CardInstanceId),
+            "Card-registry dictionary order changed Aura source order.");
+    }
+
+    private static void AuraPaymentTargetRejectionsAreImmutable()
+    {
+        var (session, _, targetId, _, _) = CreateAuraPaymentSession(printedAuraCost: 1);
+        AssertAuraPaymentPreflightRejected(
+            session,
+            "unknown_player",
+            targetId,
+            "AURA_PAYMENT_PLAYER_UNKNOWN",
+            "Unknown Aura payment player was accepted.");
+        AssertAuraPaymentPreflightRejected(
+            session,
+            "player_1",
+            "ci_unknown",
+            "AURA_PAYMENT_CARD_UNKNOWN",
+            "Unknown Aura payment target was accepted.");
+
+        var authorityState = CreateNormalInflowState(handCount: 1, playerTwoHandCount: 1);
+        var authoritySession = new EngineSession(authorityState, CreateRuntimeCatalog(authorityState));
+        var otherPlayerCard = authorityState.GetPlayer("player_2").HandCardInstanceIds.Single();
+        AssertAuraPaymentPreflightRejected(
+            authoritySession,
+            "player_1",
+            otherPlayerCard,
+            "AURA_PAYMENT_CARD_AUTHORITY_INVALID",
+            "Another player's Aura payment target was accepted.");
+
+        var zoneState = CreateNormalInflowState(handCount: 1, deckCount: 1);
+        var zoneSession = new EngineSession(zoneState, CreateRuntimeCatalog(zoneState));
+        var deckCard = zoneState.GetPlayer("player_1").DeckCardInstanceIds.Single();
+        AssertAuraPaymentPreflightRejected(
+            zoneSession,
+            "player_1",
+            deckCard,
+            "AURA_PAYMENT_CARD_ZONE_INVALID",
+            "Non-hand Aura payment target was accepted.");
+
+        var (mismatchSession, mismatchState, mismatchTargetId, _, _) =
+            CreateAuraPaymentSession(printedAuraCost: 1);
+        mismatchState.GetCardInstance(mismatchTargetId).ZoneIndex = 9;
+        AssertAuraPaymentPreflightRejected(
+            mismatchSession,
+            "player_1",
+            mismatchTargetId,
+            "AURA_PAYMENT_HAND_MEMBERSHIP_INVALID",
+            "Aura payment hand registry/list mismatch was accepted.");
+    }
+
+    private static void AuraPaymentRuntimeAndStateRejectionsAreImmutable()
+    {
+        var stateWithoutCatalog = CreateNormalInflowState(handCount: 1);
+        var sessionWithoutCatalog = new EngineSession(stateWithoutCatalog);
+        var targetWithoutCatalog = stateWithoutCatalog.GetPlayer("player_1").HandCardInstanceIds.Single();
+        AssertAuraPaymentPreflightRejected(
+            sessionWithoutCatalog,
+            "player_1",
+            targetWithoutCatalog,
+            "AURA_PAYMENT_RUNTIME_PACKAGE_MISSING",
+            "Aura payment ran without a runtime catalog.");
+
+        var (_, targetState, targetId, targetCatalog, _) = CreateAuraPaymentSession(
+            printedAuraCost: 1,
+            sources: [new AuraSourceSetup("ignis", "exhausted")]);
+        var targetCardId = targetState.GetCardInstance(targetId).CardId;
+        var missingTargetSession = new EngineSession(
+            targetState,
+            targetCatalog with { Cards = targetCatalog.Cards.Remove(targetCardId) });
+        AssertAuraPaymentPreflightRejected(
+            missingTargetSession,
+            "player_1",
+            targetId,
+            "AURA_PAYMENT_RUNTIME_CARD_MISSING",
+            "Missing target runtime card definition was accepted.");
+
+        var (_, sourceState, sourceTargetId, sourceCatalog, sourceIds) = CreateAuraPaymentSession(
+            printedAuraCost: 1,
+            sources: [new AuraSourceSetup("ignis", "active")]);
+        var sourceCardId = sourceState.GetCardInstance(sourceIds.Single()).CardId;
+        var missingSourceSession = new EngineSession(
+            sourceState,
+            sourceCatalog with { Cards = sourceCatalog.Cards.Remove(sourceCardId) });
+        AssertAuraPaymentPreflightRejected(
+            missingSourceSession,
+            "player_1",
+            sourceTargetId,
+            "AURA_PAYMENT_RUNTIME_CARD_MISSING",
+            "Missing source runtime card definition was silently skipped.");
+
+        var (mismatchSession, _, mismatchTargetId, mismatchCatalog, _) =
+            CreateAuraPaymentSession(printedAuraCost: 1);
+        SetSessionRuntimePackage(
+            mismatchSession,
+            mismatchCatalog with { PackageId = "different-runtime-package" });
+        AssertAuraPaymentPreflightRejected(
+            mismatchSession,
+            "player_1",
+            mismatchTargetId,
+            "AURA_PAYMENT_RUNTIME_PACKAGE_INVALID",
+            "Mismatched Aura payment package ID was accepted.");
+
+        var (unsupportedSession, _, unsupportedTargetId, _, _) = CreateAuraPaymentSession(
+            printedAuraCost: 1,
+            cardType: "artifact");
+        AssertAuraPaymentPreflightRejected(
+            unsupportedSession,
+            "player_1",
+            unsupportedTargetId,
+            "AURA_PAYMENT_CARD_TYPE_UNSUPPORTED",
+            "Unsupported payment-policy card type was accepted.");
+
+        var (stateSession, state, stateTargetId, _, stateSourceIds) = CreateAuraPaymentSession(
+            printedAuraCost: 1,
+            sources: [new AuraSourceSetup("ignis", "active")]);
+        state.GetCardInstance(stateSourceIds.Single()).ZoneIndex = 7;
+        AssertAuraPaymentPreflightRejected(
+            stateSession,
+            "player_1",
+            stateTargetId,
+            "AURA_PAYMENT_STATE_INVALID",
+            "Corrupt Wellspring registry/list state was silently skipped.");
+
+        var (catalogSession, _, catalogTargetId, catalog, _) =
+            CreateAuraPaymentSession(printedAuraCost: 1);
+        var realmGroup = catalog.Lookups.Groups["realm"];
+        var aliasesWithoutIgnis = realmGroup.ActiveAliases
+            .Where(pair => !string.Equals(pair.Value, "ignis", StringComparison.Ordinal))
+            .ToImmutableDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        var invalidLookups = catalog.Lookups with
+        {
+            Groups = catalog.Lookups.Groups.SetItem(
+                "realm",
+                realmGroup with { ActiveAliases = aliasesWithoutIgnis }),
+        };
+        SetSessionRuntimePackage(catalogSession, catalog with { Lookups = invalidLookups });
+        AssertAuraPaymentPreflightRejected(
+            catalogSession,
+            "player_1",
+            catalogTargetId,
+            "AURA_PAYMENT_RUNTIME_PACKAGE_INVALID",
+            "Corrupt internal lookup catalog was accepted by Aura payment.");
+    }
+
+    private static void AuraPaymentIsPureDeterministicAndSeparateFromMagnitude()
+    {
+        var (session, state, targetId, catalog, _) = CreateAuraPaymentSession(
+            printedAuraCost: 1,
+            requiredMagnitude: 3,
+            sources:
+            [
+                new AuraSourceSetup("ignis", "active"),
+                new AuraSourceSetup("aether", "active"),
+            ]);
+        var stateBefore = CanonicalDebugState(session);
+        var legalBefore = JsonSerializer.Serialize(session.ListLegalActions("player_1", includeDisabled: true));
+        var snapshotBefore = JsonSerializer.Serialize(session.GetPlayerSnapshot("player_1"));
+        var eventsBefore = session.GetDebugEvents().Length;
+        var magnitudeBefore = session.EvaluateMagnitudePreflight("player_1", targetId);
+        var first = session.EvaluateAuraPaymentPreflight("player_1", targetId);
+        var second = session.EvaluateAuraPaymentPreflight("player_1", targetId);
+        var firstSelection = session.ValidateAuraPaymentSelection(
+            "player_1",
+            targetId,
+            [first.EligibleSources[0].CardInstanceId]);
+        var secondSelection = session.ValidateAuraPaymentSelection(
+            "player_1",
+            targetId,
+            [first.EligibleSources[0].CardInstanceId]);
+        var magnitudeAfter = session.EvaluateMagnitudePreflight("player_1", targetId);
+
+        Equal(
+            JsonSerializer.Serialize(first),
+            JsonSerializer.Serialize(second),
+            "Repeated Aura payment preflight is not deterministic.");
+        Equal(
+            JsonSerializer.Serialize(firstSelection),
+            JsonSerializer.Serialize(secondSelection),
+            "Repeated Aura payment selection validation is not deterministic.");
+        Equal(stateBefore, CanonicalDebugState(session), "Aura payment queries mutated MatchState.");
+        Equal(0, state.StateVersion, "Aura payment queries changed state_version.");
+        Equal(eventsBefore, session.GetDebugEvents().Length, "Aura payment queries emitted an event.");
+        Equal(
+            legalBefore,
+            JsonSerializer.Serialize(session.ListLegalActions("player_1", includeDisabled: true)),
+            "Aura payment queries changed legal action space.");
+        Equal(
+            snapshotBefore,
+            JsonSerializer.Serialize(session.GetPlayerSnapshot("player_1")),
+            "Aura payment queries changed the player snapshot.");
+        Equal(magnitudeBefore, magnitudeAfter, "Aura payment changed the separate Magnitude result.");
+        Equal(false, magnitudeAfter.RequirementMet, "Aura payment incorrectly satisfied Magnitude.");
+        Equal(null, state.GetPlayer("player_1").NormalInflowUsedTurnNumber, "Aura payment changed Inflow state.");
+        True(ReferenceEquals(catalog, GetSessionRuntimePackage(session)), "Aura payment replaced runtime catalog.");
+    }
+
+    private static void AuraPaymentSelectionNoneAndForced()
+    {
+        var (noneSession, _, noneTargetId, _, _) = CreateAuraPaymentSession(printedAuraCost: 0);
+        var noneNull = noneSession.ValidateAuraPaymentSelection("player_1", noneTargetId, null);
+        var noneEmpty = noneSession.ValidateAuraPaymentSelection("player_1", noneTargetId, []);
+        var noneUnexpected = noneSession.ValidateAuraPaymentSelection(
+            "player_1",
+            noneTargetId,
+            ["ci_unexpected"]);
+        Equal(true, noneNull.SelectionValid, "Null selection failed for none mode.");
+        Equal(true, noneEmpty.SelectionValid, "Empty selection failed for none mode.");
+        Equal(0, noneNull.ResolvedSourceInstanceIds.Length, "None mode resolved a source.");
+        Equal(false, noneUnexpected.SelectionValid, "Non-empty selection passed for none mode.");
+        Equal(
+            "unexpected_source_selection",
+            noneUnexpected.FailureReason,
+            "None-mode unexpected selection reason is invalid.");
+
+        var (forcedSession, _, forcedTargetId, _, forcedSources) = CreateAuraPaymentSession(
+            printedAuraCost: 2,
+            sources:
+            [
+                new AuraSourceSetup("ignis", "active"),
+                new AuraSourceSetup("aether", "active"),
+            ]);
+        var forcedNull = forcedSession.ValidateAuraPaymentSelection("player_1", forcedTargetId, null);
+        var forcedEmpty = forcedSession.ValidateAuraPaymentSelection("player_1", forcedTargetId, []);
+        var forcedExplicit = forcedSession.ValidateAuraPaymentSelection(
+            "player_1",
+            forcedTargetId,
+            forcedSources.Reverse().ToArray());
+        var forcedMismatch = forcedSession.ValidateAuraPaymentSelection(
+            "player_1",
+            forcedTargetId,
+            [forcedSources[0]]);
+        Equal(true, forcedNull.SelectionValid, "Null selection failed for forced mode.");
+        Equal(true, forcedEmpty.SelectionValid, "Empty selection failed for forced mode.");
+        Equal(true, forcedExplicit.SelectionValid, "Exact explicit forced source set failed.");
+        SequenceEqual(
+            forcedSources,
+            forcedExplicit.ResolvedSourceInstanceIds,
+            "Forced explicit selection was not returned in canonical order.");
+        Equal(false, forcedMismatch.SelectionValid, "Mismatched forced source set passed.");
+        Equal(
+            "forced_source_selection_mismatch",
+            forcedMismatch.FailureReason,
+            "Forced selection mismatch reason is invalid.");
+    }
+
+    private static void AuraPaymentSelectionChoiceValidation()
+    {
+        var (session, _, targetId, _, sourceIds) = CreateAuraPaymentSession(
+            printedAuraCost: 2,
+            sources:
+            [
+                new AuraSourceSetup("ignis", "active"),
+                new AuraSourceSetup("aether", "active"),
+                new AuraSourceSetup("ignis", "active"),
+                new AuraSourceSetup("ignis", "exhausted"),
+                new AuraSourceSetup("aqua", "active"),
+            ]);
+        var stateBefore = CanonicalDebugState(session);
+        var nullSelection = session.ValidateAuraPaymentSelection("player_1", targetId, null);
+        var emptySelection = session.ValidateAuraPaymentSelection("player_1", targetId, []);
+        var valid = session.ValidateAuraPaymentSelection(
+            "player_1",
+            targetId,
+            [sourceIds[2], sourceIds[0]]);
+        var underpaid = session.ValidateAuraPaymentSelection(
+            "player_1",
+            targetId,
+            [sourceIds[0]]);
+        var overpaid = session.ValidateAuraPaymentSelection(
+            "player_1",
+            targetId,
+            [sourceIds[0], sourceIds[1], sourceIds[2]]);
+        var duplicate = session.ValidateAuraPaymentSelection(
+            "player_1",
+            targetId,
+            [sourceIds[0], sourceIds[0]]);
+        var unknown = session.ValidateAuraPaymentSelection(
+            "player_1",
+            targetId,
+            [sourceIds[0], "ci_unknown"]);
+        var exhausted = session.ValidateAuraPaymentSelection(
+            "player_1",
+            targetId,
+            [sourceIds[0], sourceIds[3]]);
+        var foreignRealm = session.ValidateAuraPaymentSelection(
+            "player_1",
+            targetId,
+            [sourceIds[0], sourceIds[4]]);
+
+        Equal(false, nullSelection.SelectionValid, "Null choice selection passed.");
+        Equal("source_selection_required", nullSelection.FailureReason, "Null choice reason is invalid.");
+        Equal(false, emptySelection.SelectionValid, "Empty choice selection passed.");
+        Equal(true, valid.SelectionValid, "Exact eligible choice subset failed.");
+        SequenceEqual(
+            [sourceIds[0], sourceIds[2]],
+            valid.ResolvedSourceInstanceIds,
+            "Choice selection was not returned in canonical source order.");
+        Equal("source_count_mismatch", underpaid.FailureReason, "Underpayment reason is invalid.");
+        Equal("source_count_mismatch", overpaid.FailureReason, "Overpayment reason is invalid.");
+        Equal("duplicate_source_selection", duplicate.FailureReason, "Duplicate selection reason is invalid.");
+        Equal("source_not_eligible", unknown.FailureReason, "Unknown source reason is invalid.");
+        Equal("source_not_eligible", exhausted.FailureReason, "Exhausted source reason is invalid.");
+        Equal("source_not_eligible", foreignRealm.FailureReason, "Foreign-Realm source reason is invalid.");
+        Equal(stateBefore, CanonicalDebugState(session), "Choice selection validation mutated state.");
+        Equal(0, session.GetDebugEvents().Length, "Choice selection validation emitted an event.");
+    }
+
+    private static void AuraPaymentSelectionRechecksCurrentState()
+    {
+        var (session, state, targetId, _, sourceIds) = CreateAuraPaymentSession(
+            printedAuraCost: 1,
+            sources: [new AuraSourceSetup("ignis", "active")]);
+        var preflight = session.EvaluateAuraPaymentPreflight("player_1", targetId);
+        Equal("forced", preflight.SelectionMode, "Stale-selection setup was not forced.");
+        state.GetCardInstance(sourceIds.Single()).ActivityState = "exhausted";
+        EngineSession.ValidateState(state);
+        var stateBeforeValidation = CanonicalDebugState(session);
+
+        var first = session.ValidateAuraPaymentSelection("player_1", targetId, null);
+        var second = session.ValidateAuraPaymentSelection("player_1", targetId, sourceIds);
+
+        Equal(false, first.SelectionValid, "Stale forced selection passed after source exhaustion.");
+        Equal("payment_not_possible", first.FailureReason, "Stale payment failure reason is invalid.");
+        Equal(false, second.SelectionValid, "Explicit stale source selection passed.");
+        Equal("payment_not_possible", second.FailureReason, "Explicit stale payment reason is invalid.");
+        Equal(
+            "active",
+            preflight.EligibleSources.Single().ActivityState,
+            "Previously returned preflight result changed after state transition.");
+        Equal(stateBeforeValidation, CanonicalDebugState(session), "Stale selection validation mutated state.");
+        Equal(0, state.StateVersion, "Stale selection validation changed state_version.");
+        Equal(0, session.GetDebugEvents().Length, "Stale selection validation emitted an event.");
+    }
+
+    private static void NormalInflowUpdatesAuraPaymentPreflight()
+    {
+        var (session, state, targetId, inflowCardId, _) = CreateNormalInflowAuraPaymentSession(
+            printedAuraCost: 1,
+            targetRealm: "ignis",
+            targetCardType: "entity",
+            inflowSourceRealm: "ignis");
+        var before = session.EvaluateAuraPaymentPreflight("player_1", targetId);
+        Equal(false, before.PaymentPossible, "Pre-Inflow Aura payment unexpectedly passed.");
+        Equal(0, before.EligibleSourceCount, "Pre-Inflow Aura source count is invalid.");
+
+        var response = session.SubmitAction(Request(
+            session,
+            EnabledAction(session, "player_1", "normal_inflow"),
+            "aura_payment_inflow",
+            NormalInflowPayload(inflowCardId),
+            expectedStateVersion: 0));
+        Equal(true, response.Accepted, "Normal Inflow Aura payment setup failed.");
+        Equal("active", state.GetCardInstance(inflowCardId).ActivityState, "Inflow source is not active.");
+
+        var eventCountAfterInflow = session.GetDebugEvents().Length;
+        var stateVersionAfterInflow = state.StateVersion;
+        var after = session.EvaluateAuraPaymentPreflight("player_1", targetId);
+        Equal(true, after.PaymentPossible, "Freshly infused source was not immediately eligible.");
+        Equal("forced", after.SelectionMode, "Freshly infused exact source did not produce forced mode.");
+        SequenceEqual(
+            [inflowCardId],
+            after.EligibleSources.Select(source => source.CardInstanceId),
+            "Freshly infused source is missing from Aura preflight.");
+        Equal(stateVersionAfterInflow, state.StateVersion, "Aura preflight changed post-Inflow state_version.");
+        Equal(eventCountAfterInflow, session.GetDebugEvents().Length, "Aura preflight emitted a post-Inflow event.");
+    }
+
+    private static void NormalInflowAetherPaymentPolicy()
+    {
+        var (entitySession, entityState, entityTargetId, entityInflowId, _) =
+            CreateNormalInflowAuraPaymentSession(
+                printedAuraCost: 1,
+                targetRealm: "ignis",
+                targetCardType: "entity",
+                inflowSourceRealm: "aether");
+        var entityResponse = entitySession.SubmitAction(Request(
+            entitySession,
+            EnabledAction(entitySession, "player_1", "normal_inflow"),
+            "aether_entity_inflow",
+            NormalInflowPayload(entityInflowId),
+            expectedStateVersion: 0));
+        Equal(true, entityResponse.Accepted, "AETHER Entity Inflow setup failed.");
+        var entityPayment = entitySession.EvaluateAuraPaymentPreflight("player_1", entityTargetId);
+        Equal(true, entityPayment.PaymentPossible, "Fresh AETHER source did not support an Entity.");
+        Equal("aether", entityPayment.EligibleSources.Single().Realm, "AETHER source Realm is invalid.");
+        Equal("active", entityState.GetCardInstance(entityInflowId).ActivityState, "AETHER source is not active.");
+
+        var (incantationSession, incantationState, incantationTargetId, incantationInflowId, _) =
+            CreateNormalInflowAuraPaymentSession(
+                printedAuraCost: 1,
+                targetRealm: "ignis",
+                targetCardType: "incantation",
+                inflowSourceRealm: "aether");
+        var incantationResponse = incantationSession.SubmitAction(Request(
+            incantationSession,
+            EnabledAction(incantationSession, "player_1", "normal_inflow"),
+            "aether_incantation_inflow",
+            NormalInflowPayload(incantationInflowId),
+            expectedStateVersion: 0));
+        Equal(true, incantationResponse.Accepted, "AETHER non-Entity Inflow setup failed.");
+        var incantationPayment = incantationSession.EvaluateAuraPaymentPreflight(
+            "player_1",
+            incantationTargetId);
+        Equal(false, incantationPayment.PaymentPossible, "AETHER paid another Realm's non-Entity.");
+        Equal(0, incantationPayment.EligibleSourceCount, "AETHER became eligible for foreign non-Entity.");
+        Equal(
+            "active",
+            incantationState.GetCardInstance(incantationInflowId).ActivityState,
+            "Rejected AETHER non-Entity source was mutated.");
+    }
+
     private static void PublicResultsAreDefensive()
     {
         var (session, fixture, _) = CreateSession();
@@ -1482,10 +2395,115 @@ internal static class ProductionEngineTests
         return (new EngineSession(state, catalog), state, targetCardInstanceId, catalog);
     }
 
+    private static (
+        EngineSession Session,
+        MatchState State,
+        string TargetCardInstanceId,
+        RuntimePackageCatalog Catalog,
+        ImmutableArray<string> SourceInstanceIds) CreateAuraPaymentSession(
+            int printedAuraCost,
+            string cardRealm = "ignis",
+            string cardType = "entity",
+            int requiredMagnitude = 0,
+            IReadOnlyList<AuraSourceSetup>? sources = null)
+    {
+        var state = CreateNormalInflowState(handCount: 1);
+        var player = state.GetPlayer("player_1");
+        var targetCardInstanceId = player.HandCardInstanceIds.Single();
+        var targetCardId = state.GetCardInstance(targetCardInstanceId).CardId;
+        var sourceInstanceIds = ImmutableArray.CreateBuilder<string>();
+        var realms = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [targetCardId] = cardRealm,
+        };
+        var cardTypes = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [targetCardId] = cardType,
+        };
+        foreach (var source in sources ?? [])
+        {
+            var sourceInstanceId = AddWellspringCard(state, player, source.ActivityState);
+            var sourceCardId = state.GetCardInstance(sourceInstanceId).CardId;
+            sourceInstanceIds.Add(sourceInstanceId);
+            realms[sourceCardId] = source.Realm;
+            cardTypes[sourceCardId] = "entity";
+        }
+
+        EngineSession.ValidateState(state);
+        var catalog = CreateRuntimeCatalog(
+            state,
+            magnitudes: new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                [targetCardId] = requiredMagnitude,
+            },
+            auraCosts: new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                [targetCardId] = printedAuraCost,
+            },
+            realms: realms,
+            cardTypes: cardTypes,
+            lookups: CreateRuntimeLookupCatalog(
+                SupportedPaymentCardType(cardType) ? null : [cardType]));
+        return (
+            new EngineSession(state, catalog),
+            state,
+            targetCardInstanceId,
+            catalog,
+            sourceInstanceIds.ToImmutable());
+    }
+
+    private static (
+        EngineSession Session,
+        MatchState State,
+        string TargetCardInstanceId,
+        string InflowCardInstanceId,
+        RuntimePackageCatalog Catalog) CreateNormalInflowAuraPaymentSession(
+            int printedAuraCost,
+            string targetRealm,
+            string targetCardType,
+            string inflowSourceRealm)
+    {
+        var state = CreateNormalInflowState(handCount: 2);
+        var hand = state.GetPlayer("player_1").HandCardInstanceIds;
+        var targetCardInstanceId = hand[0];
+        var inflowCardInstanceId = hand[1];
+        var targetCardId = state.GetCardInstance(targetCardInstanceId).CardId;
+        var inflowCardId = state.GetCardInstance(inflowCardInstanceId).CardId;
+        var catalog = CreateRuntimeCatalog(
+            state,
+            auraCosts: new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                [targetCardId] = printedAuraCost,
+            },
+            realms: new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [targetCardId] = targetRealm,
+                [inflowCardId] = inflowSourceRealm,
+            },
+            cardTypes: new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [targetCardId] = targetCardType,
+                [inflowCardId] = "entity",
+            });
+        return (
+            new EngineSession(state, catalog),
+            state,
+            targetCardInstanceId,
+            inflowCardInstanceId,
+            catalog);
+    }
+
+    private static bool SupportedPaymentCardType(string cardType) =>
+        cardType is "entity" or "incantation" or "ritual" or "sigil" or "plane";
+
     private static RuntimePackageCatalog CreateRuntimeCatalog(
         MatchState state,
         IReadOnlyDictionary<string, int>? magnitudes = null,
-        IReadOnlyCollection<string>? excludedCardIds = null)
+        IReadOnlyCollection<string>? excludedCardIds = null,
+        IReadOnlyDictionary<string, int>? auraCosts = null,
+        IReadOnlyDictionary<string, string>? realms = null,
+        IReadOnlyDictionary<string, string>? cardTypes = null,
+        RuntimeLookupCatalog? lookups = null)
     {
         var cards = ImmutableDictionary.CreateBuilder<string, RuntimeCardDefinition>(StringComparer.Ordinal);
         foreach (var card in state.CardInstances.Values
@@ -1499,13 +2517,67 @@ internal static class ProductionEngineTests
             var magnitude = magnitudes is not null && magnitudes.TryGetValue(card.CardId, out var required)
                 ? required
                 : 0;
-            cards.Add(card.CardId, new RuntimeCardDefinition(card.CardId, magnitude));
+            var auraCost = auraCosts is not null && auraCosts.TryGetValue(card.CardId, out var printedAuraCost)
+                ? printedAuraCost
+                : 0;
+            var realm = realms is not null && realms.TryGetValue(card.CardId, out var cardRealm)
+                ? cardRealm
+                : "ignis";
+            var cardType = cardTypes is not null && cardTypes.TryGetValue(card.CardId, out var runtimeCardType)
+                ? runtimeCardType
+                : "entity";
+            cards.Add(card.CardId, new RuntimeCardDefinition(
+                card.CardId,
+                magnitude,
+                auraCost,
+                realm,
+                cardType));
         }
 
         return new RuntimePackageCatalog(
             state.RuntimePackageId,
             cards.ToImmutable(),
-            ImmutableDictionary.Create<string, RuntimeDeckDefinition>(StringComparer.Ordinal));
+            ImmutableDictionary.Create<string, RuntimeDeckDefinition>(StringComparer.Ordinal),
+            lookups ?? CreateRuntimeLookupCatalog());
+    }
+
+    private static RuntimeLookupCatalog CreateRuntimeLookupCatalog(
+        IEnumerable<string>? additionalCardTypes = null)
+    {
+        var realmAliases = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
+        foreach (var realm in new[] { "ignis", "aqua", "terra", "lux", "umbra", "ventus", "aether" })
+        {
+            realmAliases.Add(realm, realm);
+            realmAliases.Add(realm.ToUpperInvariant(), realm);
+        }
+
+        var cardTypeAliases = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
+        foreach (var (alias, canonical) in new[]
+                 {
+                     ("entity", "entity"),
+                     ("Entitás", "entity"),
+                     ("incantation", "incantation"),
+                     ("Ige", "incantation"),
+                     ("ritual", "ritual"),
+                     ("Rituálé", "ritual"),
+                     ("sigil", "sigil"),
+                     ("Jel", "sigil"),
+                     ("plane", "plane"),
+                     ("Sík", "plane"),
+                 })
+        {
+            cardTypeAliases.Add(alias, canonical);
+        }
+
+        foreach (var cardType in additionalCardTypes ?? [])
+        {
+            cardTypeAliases[cardType] = cardType;
+        }
+
+        var groups = ImmutableDictionary.CreateBuilder<string, RuntimeLookupGroup>(StringComparer.Ordinal);
+        groups.Add("realm", new RuntimeLookupGroup("realm", realmAliases.ToImmutable()));
+        groups.Add("card_type", new RuntimeLookupGroup("card_type", cardTypeAliases.ToImmutable()));
+        return new RuntimeLookupCatalog(groups.ToImmutable());
     }
 
     private static (EngineSession Session, MatchState State) CreateNormalInflowSession(
@@ -1774,11 +2846,97 @@ internal static class ProductionEngineTests
         throw new InvalidOperationException(message);
     }
 
+    private static void AssertAuraPaymentPreflightRejected(
+        EngineSession session,
+        string playerId,
+        string cardInstanceId,
+        string expectedCode,
+        string message)
+    {
+        var stateBefore = CanonicalDebugState(session);
+        var eventCountBefore = session.GetDebugEvents().Length;
+        try
+        {
+            session.EvaluateAuraPaymentPreflight(playerId, cardInstanceId);
+        }
+        catch (AuraPaymentException exception)
+        {
+            Equal(expectedCode, exception.Code, $"{message} Unexpected Aura payment error code.");
+            Equal(stateBefore, CanonicalDebugState(session), $"{message} Rejection mutated state.");
+            Equal(eventCountBefore, session.GetDebugEvents().Length, $"{message} Rejection emitted an event.");
+            return;
+        }
+
+        throw new InvalidOperationException(message);
+    }
+
+    private static void SetSessionRuntimePackage(
+        EngineSession session,
+        RuntimePackageCatalog runtimePackage)
+    {
+        var field = typeof(EngineSession).GetField(
+            "_runtimePackage",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("EngineSession runtime package field is missing.");
+        field.SetValue(session, runtimePackage);
+    }
+
+    private static RuntimePackageCatalog? GetSessionRuntimePackage(EngineSession session)
+    {
+        var field = typeof(EngineSession).GetField(
+            "_runtimePackage",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("EngineSession runtime package field is missing.");
+        return (RuntimePackageCatalog?)field.GetValue(session);
+    }
+
     private static string RuntimeCardJson(
         string? cardId,
         object? magnitude,
         bool includeCardId = true,
-        bool includeMagnitude = true)
+        bool includeMagnitude = true,
+        int auraCost = 1,
+        string? realm = "ignis",
+        string? cardType = "entity",
+        bool includeAuraCost = true,
+        bool includeRealm = true,
+        bool includeCardType = true) => BuildRuntimeCardJson(
+            cardId,
+            magnitude,
+            includeCardId,
+            includeMagnitude,
+            auraCost,
+            realm,
+            cardType,
+            includeAuraCost,
+            includeRealm,
+            includeCardType);
+
+    private static string RuntimeCardJsonWithAuraValue(
+        string cardId,
+        object? auraCost) => BuildRuntimeCardJson(
+            cardId,
+            magnitude: 1,
+            includeCardId: true,
+            includeMagnitude: true,
+            auraCost,
+            realm: "ignis",
+            cardType: "entity",
+            includeAuraCost: true,
+            includeRealm: true,
+            includeCardType: true);
+
+    private static string BuildRuntimeCardJson(
+        string? cardId,
+        object? magnitude,
+        bool includeCardId,
+        bool includeMagnitude,
+        object? auraCost,
+        string? realm,
+        string? cardType,
+        bool includeAuraCost,
+        bool includeRealm,
+        bool includeCardType)
     {
         var record = new Dictionary<string, object?>();
         if (includeCardId)
@@ -1791,8 +2949,66 @@ internal static class ProductionEngineTests
             record["magnitude"] = magnitude;
         }
 
+        if (includeAuraCost)
+        {
+            record["aura_cost"] = auraCost;
+        }
+
+        if (includeRealm)
+        {
+            record["realm"] = realm;
+        }
+
+        if (includeCardType)
+        {
+            record["card_type"] = cardType;
+        }
+
         return JsonSerializer.Serialize(record);
     }
+
+    private static Dictionary<string, object?> RuntimeLookupRecord(
+        string? lookupGroup,
+        string? value,
+        string? status,
+        string? canonicalValue) => new()
+        {
+            ["lookup_group"] = lookupGroup,
+            ["value"] = value,
+            ["status"] = status,
+            ["canonical_value"] = canonicalValue,
+        };
+
+    private static IReadOnlyList<Dictionary<string, object?>> DefaultRuntimeLookupRecords()
+    {
+        var records = new List<Dictionary<string, object?>>();
+        foreach (var realm in new[] { "ignis", "aqua", "terra", "lux", "umbra", "ventus", "aether" })
+        {
+            records.Add(RuntimeLookupRecord("realm", realm, "active", realm));
+            records.Add(RuntimeLookupRecord("realm", realm.ToUpperInvariant(), "active", realm));
+        }
+
+        records.AddRange(
+        [
+            RuntimeLookupRecord("card_type", "entity", "active", "entity"),
+            RuntimeLookupRecord("card_type", "Entitás", "active", "entity"),
+            RuntimeLookupRecord("card_type", "incantation", "active", "incantation"),
+            RuntimeLookupRecord("card_type", "Ige", "active", "incantation"),
+            RuntimeLookupRecord("card_type", "ritual", "active", "ritual"),
+            RuntimeLookupRecord("card_type", "Rituálé", "active", "ritual"),
+            RuntimeLookupRecord("card_type", "sigil", "active", "sigil"),
+            RuntimeLookupRecord("card_type", "Jel", "active", "sigil"),
+            RuntimeLookupRecord("card_type", "plane", "active", "plane"),
+            RuntimeLookupRecord("card_type", "Sík", "active", "plane"),
+        ]);
+        return records;
+    }
+
+    private static string RuntimeLookupsJson(IEnumerable<Dictionary<string, object?>> records) =>
+        JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["lookups"] = records.ToArray(),
+        });
 
     private static string LocateRepositoryRoot()
     {
@@ -1827,7 +3043,8 @@ internal static class ProductionEngineTests
 
         internal static TemporaryRuntimePackage Create(
             IReadOnlyList<string> cardRecords,
-            IReadOnlyList<string> deckCardIds)
+            IReadOnlyList<string> deckCardIds,
+            string? lookupsJson = null)
         {
             var parentDirectory = Path.Combine(
                 LocateRepositoryRoot(),
@@ -1856,7 +3073,9 @@ internal static class ProductionEngineTests
                             ["count"] = 1,
                         }).ToArray(),
                 }));
-            File.WriteAllText(Path.Combine(packageDirectory, "lookups.json"), "{}");
+            File.WriteAllText(
+                Path.Combine(packageDirectory, "lookups.json"),
+                lookupsJson ?? RuntimeLookupsJson(DefaultRuntimeLookupRecords()));
             return new TemporaryRuntimePackage(packageDirectory);
         }
 
