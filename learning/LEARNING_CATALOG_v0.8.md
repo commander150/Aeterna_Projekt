@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Dokumentumverzió:** 0.6
+- **Dokumentumverzió:** 0.8
 - **Dátum:** 2026-07-24
-- **Státusz:** stabil upstream-hivatkozásokkal és négy első elemzéssel pontosított munkaváltozat
+- **Státusz:** egységes, kizárólag verziózott központi dokumentummodellel pontosított munkaváltozat
 - **Szerep:** külső referencia-projektek központi nyilvántartása
-- **Forráslista:** `learning/sources list.md` (dokumentumverzió: 1.2)
+- **Forráslista:** az aktuális verziózott „AETERNA – LEARNING FORRÁSPROJEKTEK NYILVÁNTARTÁSA” dokumentum
 - **Tervezett egyedi elemzések:** `learning/analyses/<projekt-azonosító>.md`
 
 Ez a dokumentum nem AETERNA-szabályforrás és nem engine-specifikáció. A célja annak
@@ -16,6 +16,41 @@ biztosan, milyen területen lehetnek tanulságosak, és milyen mélységű vizsg
 A `learning/sources/` mappa helyi, letöltött forráskódokat tartalmazhat, de Git által
 figyelmen kívül hagyott referenciaanyag. A repositoryba elsősorban a katalógus, az elemzések,
 az idézett fájlútvonalak, a commit-azonosítók és a levont következtetések kerüljenek.
+
+## Központi dokumentumok verzió- és hivatkozási szabálya
+
+A `learning/` központi nyilvántartási dokumentumai **csak verziózott fájlnéven**
+léteznek és frissülnek:
+
+```text
+LEARNING_CATALOG_vX.Y.md
+sources list_vX.Y.md
+ANALYSIS_TEMPLATE_vX.Y.md
+ORIGIN_IDENTIFICATION_BACKLOG_vX.Y.md
+```
+
+Kötelező működési elvek:
+
+1. Nincs külön verziótlan, `CURRENT` vagy `REPLACEMENT` központi másolat.
+2. Módosításkor új verziózott fájl készül; a korábbi verzió történeti snapshot marad.
+3. A korábbi verziózott fájlt elfogadás után nem írjuk felül.
+4. Egy másik dokumentum nem konkrét fájlnévre vagy verziószámra hivatkozik, hanem a
+   dokumentum szerepére, például: **az aktuális verziózott „AETERNA – LEARNING FORRÁSPROJEKTEK NYILVÁNTARTÁSA” dokumentum**.
+5. Az aktuális változat az adott dokumentumtípus legmagasabb, elfogadott verziója a
+   `learning/` mappában.
+6. A projektenkénti fő elemzések ettől eltérően állandó fájlnevet használnak:
+   `learning/analyses/<owner>__<repository>.md`. Ezek belső dokumentumverziója frissül.
+7. A hivatkozás ezért új katalógus- vagy forráslistaverzió esetén nem igényli a
+   projektenkénti elemzések módosítását.
+
+A következő fájlnevek nem részei az aktív modellnek:
+
+```text
+LEARNING_CATALOG.md
+sources list.md
+LEARNING_CATALOG_CURRENT*.md
+sources list_REPLACEMENT*.md
+```
 
 ## 1. Státusz- és prioritásjelölések
 
@@ -40,6 +75,24 @@ az idézett fájlútvonalak, a commit-azonosítók és a levont következtetése
 4. `mélyelemzés folyamatban`;
 5. `mélyelemzés lezárva`;
 6. `AETERNA-következtetések elfogadva`.
+
+
+## Külső projektek összehasonlítási szabálya
+
+Minden learning projektet kizárólag az AETERNA aktuális, kanonikus állapotához kell
+viszonyítani:
+
+- hivatalos AETERNA szabályforrások;
+- aktív AETERNA engine-architektúra;
+- aktív contract-specifikáció;
+- production C# engine;
+- runtime package;
+- Godot bridge és klienshatár;
+- AETERNA teszt-, determinism- és projection-követelmények.
+
+Külső learning projekteket egymással nem szabad rangsorolni vagy architekturálisan
+összehasonlítani. A katalógus prioritása kizárólag azt jelzi, hogy az adott projekt
+mennyire hasznos az AETERNA következő feladataihoz.
 
 ## 2. Központi nyilvántartási mezők
 
@@ -113,14 +166,14 @@ Minden projekt rekordja legalább a következőket tartalmazza:
 | 47 | `py4godot-master` | 4 | [niklas2902/py4godot](https://github.com/niklas2902/py4godot) | megerősített | Godot Python GDExtension | Python / C++ / Godot | Python-integráció, extension boundary és build pipeline | **P3** | metaadat ellenőrizve |
 | 48 | `Godot-CardPileFramework` | 5 | [Ggross98/Godot-CardPileFramework](https://github.com/Ggross98/Godot-CardPileFramework) | megerősített | Godot/C# kártya-UI framework | Godot 4.6.2 / C# / .NET 8 | Kéz-, halom-, drag-and-drop és presentation minták | **P0** | első forráskód-audit elkészült |
 | 49 | `Arcomage` | 5 | [DarkPro1337/Arcomage](https://github.com/DarkPro1337/Arcomage) | megerősített, aktív upstream (`mono`) | teljes kétjátékos kártyajáték | Godot 4.7 / C# / .NET 10 | YAML effect DSL, typed AST, ENet multiplayer, lokalizáció és WASM modrendszer | **P0** | első forráskód-audit elkészült |
-| 50 | `C# Battle Card Game Framework (CSBCGF)` | 5 | [finkmoritz/csbcgf](https://github.com/finkmoritz/csbcgf) | megerősített | C# battle card game framework | C# | Event loop, öröklés, szerializáció és framework-határok | **P0** | letöltve; mélyelemzésre vár |
+| 50 | `C# Battle Card Game Framework (CSBCGF)` | 5 | [finkmoritz/csbcgf](https://github.com/finkmoritz/csbcgf) | megerősített upstream; vizsgált HEAD 2023-02-14 | általános C# battle card framework | C# / .NET 7 | action queue, reaction phase, card componentek, statok, serialization és NUnit CI; kizárólag AETERNA authority/contract rendszerhez mérve | **P0** | első forráskód-audit elkészült |
 | 51 | `Godot-4-Card-Game-CSharp` | 5 | [TheSchlote/Godot-4-Card-Game-CSharp](https://github.com/TheSchlote/Godot-4-Card-Game-CSharp) | megerősített | Godot/C# oktatási card battle | Godot 4.2.1 / C# | Card UI state machine, targeting és enemy intent | **P0** | első forráskód-audit elkészült; archivált |
 | 52 | `card-game-engine` | 5 | [jcbcn/card-game-engine](https://gitlab.com/jcbcn/card-game-engine) | megerősített URL; helyi mappanév ellenőrzendő | .NET kártya- és társasjáték-motor | .NET / C# | Solution, tesztek, benchmarkok, publikus API és CI | **P0** | letöltve; mélyelemzésre vár |
 | 53 | `Card Game Engine` | 5 | [DavidCorrect/card-game-engine](https://gitlab.com/DavidCorrect/card-game-engine) | megerősített URL; helyi mappanév ellenőrzendő | Godot-kártyamotor | Godot / GDScript | Zónák, Stack/Exile, rejtett kéz és multiplayer | **P1** | letöltve; mélyelemzésre vár |
 
 ### 3.1 Forráslista-egyeztetés
 
-A `sources list.md` 1.0 változata öt gyűjtési körben **53 projektet** tart nyilván.
+A a forrásnyilvántartás 1.0 változata öt gyűjtési körben **53 projektet** tart nyilván.
 Ebből **42 rekordhoz közvetlen URL** szerepel, **11 rekord eredete még megerősítésre vár**.
 
 Kiemelt eltérések:
@@ -155,7 +208,8 @@ valamint azt, hogy a tényleges implementáció megfelel-e a README állításai
 2. `TheSchlote/Godot-4-Card-Game-CSharp` – első audit elkészült
 3. `ch200c/Durak.Godot` – első audit elkészült
 4. `DarkPro1337/Arcomage` – első audit elkészült
-5. `finkmoritz/csbcgf` – következő teljes elemzés
+5. `finkmoritz/csbcgf` – első audit elkészült
+6. `jcbcn/card-game-engine` – következő engine-központú elemzési jelölt
 
 Ezek közül az első kettő elsősorban keretrendszer- és oktatási referencia, az Arcomage pedig
 egy teljes, működő alkalmazás. Együtt jól elkülöníthető belőlük:
@@ -269,19 +323,20 @@ Ellenőrzési sorrend:
 
 ```text
 learning/
-├── LEARNING_CATALOG.md
-├── sources list.md
-├── ANALYSIS_TEMPLATE.md
+├── LEARNING_CATALOG_vX.Y.md
+├── sources list_vX.Y.md
+├── ANALYSIS_TEMPLATE_vX.Y.md
+├── ORIGIN_IDENTIFICATION_BACKLOG_vX.Y.md
 ├── analyses/
-│   ├── <projekt-azonosító>.md      # állandó fő elemzés
-│   ├── <projekt-azonosító>/        # későbbi opcionális részanyagok
+│   ├── <owner>__<repository>.md     # állandó fő elemzés, belső verzióval
+│   ├── <owner>__<repository>/       # későbbi opcionális részanyagok
 │   │   ├── architecture.md
 │   │   ├── rules-engine.md
 │   │   ├── godot-ui.md
 │   │   ├── multiplayer.md
 │   │   └── evidence/
 │   └── ...
-└── sources/                 # helyi, Git által ignorált forráskód
+└── sources/                          # helyi, Git által ignorált forráskód
 ```
 
 Javasolt állandó fő elemzési fájlnév:
@@ -309,12 +364,34 @@ learning/analyses/magefree__mage.md
 
 ## 10. Változásnapló
 
+### 0.8 – 2026-07-24
+
+- megszűnt a verziózott és verziótlan központi fájlok párhuzamos kezelése;
+- a katalógus, a forráslista, az elemzési sablon és az eredetazonosítási backlog
+  kizárólag verziózott fájlnéven marad;
+- a `CURRENT` és `REPLACEMENT` másolatok kikerültek az aktív fájlstruktúrából;
+- a dokumentumok közötti hivatkozás mostantól logikai dokumentumszerepre mutat,
+  nem konkrét fájlnévre vagy verziószámra;
+- rögzítésre került, hogy az aktuális változat a legmagasabb elfogadott verzió;
+- a projektenkénti elemzések állandó fájlneve és belső verziózása változatlan marad;
+- a 0.6–0.7 változatban kipróbált stabil, verziótlan központi fájlmodell felváltásra került.
+
+### 0.7 – 2026-07-24
+
+- elkészült a `finkmoritz/csbcgf` első részletes elemzése;
+- az elkészült első elemzések száma ötre frissült;
+- rögzítésre került a kötelező összehasonlítási szabály: minden külső projektet
+  kizárólag az AETERNA-val hasonlítunk össze;
+- a CSBCGF fő tanulási területe action/reaction resolution és component model;
+- a következő engine-központú jelölt a `jcbcn/card-game-engine`;
+- a forráslista-hivatkozás 1.3 verzióra frissült.
+
 ### 0.6 – 2026-07-24
 
 - az RLCard rekord kanonikus forrása `datamllab/rlcard` lett;
 - a katalógus minden repositoryhoz stabil upstream URL-t használ;
 - a reprodukálhatóságot nem a URL verziózása, hanem az elemzésben rögzített commit SHA biztosítja;
-- az aktív katalógus stabil fájlneve `LEARNING_CATALOG.md`;
+- az aktív katalógus stabil fájlneve a verziózott learning katalógus;
 - a verziózott `LEARNING_CATALOG_v0.6.md` változat snapshotként megmarad;
 - elkészült a `DarkPro1337/Arcomage` első részletes elemzése;
 - az elkészült első elemzések száma négyre frissült;
@@ -334,7 +411,7 @@ learning/analyses/magefree__mage.md
 
 ### 0.4 – 2026-07-23
 
-- a katalógus összehangolásra került a `sources list.md` 1.0 változatával;
+- a katalógus összehangolásra került a a verziózott forráslista 1.0 változatával;
 - az ötödik gyűjtési kör hat projektje bekerült a letöltött projektek közé;
 - a projektösszesítés 53 letöltött rekordra frissült;
 - a már letöltött hat projekt kikerült a „nem letöltött jelöltek” táblából;

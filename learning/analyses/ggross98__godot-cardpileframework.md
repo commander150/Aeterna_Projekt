@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Dokumentumverzió:** 0.3
+- **Dokumentumverzió:** 0.4
 - **Dátum:** 2026-07-23
 - **Státusz:** előzetes, repository-forrásokra épülő elemzés
 - **Fő elemzési fájl:** `learning/analyses/ggross98__godot-cardpileframework.md`
@@ -522,8 +522,8 @@ Godot UI
 
 ## Katalógushivatkozás-korrekció – 2026-07-24
 
-- a kapcsolódó katalógus útvonala `learning/LEARNING_CATALOG.md` értékre frissült;
-- a korábbi üres, verziótlan katalógusfájlra való hivatkozás megszűnt.
+- a kapcsolódó katalógus útvonala az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum értékre frissült;
+- a korábbi konkrét vagy verziótlan fájlhivatkozás megszűnt.
 
 
 ## 0.1 – 2026-07-23
@@ -536,6 +536,15 @@ Godot UI
 
 ## Stabil katalógushivatkozás – 2026-07-24
 
-- a kapcsolódó katalógus stabil útvonala `learning/LEARNING_CATALOG.md`;
+- a kapcsolódó katalógus logikai dokumentumszerepe az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum;
 - a katalógus új verziója miatt ezt az elemzést a jövőben nem kell módosítani;
 - a vizsgált repository-állapotot továbbra is az elemzés saját commit SHA-ja rögzíti.
+
+## Hivatkozási modell javítása – 2026-07-24
+
+- a kapcsolódó katalógus hivatkozása mostantól: az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum;
+- az elemzés nem tartalmaz konkrét katalógusfájlnevet vagy katalógusverziót;
+- új központi katalógusverzió miatt ezt a projektdokumentumot nem kell módosítani;
+- a projekt vizsgált állapotának reprodukálhatóságát továbbra is a saját branch/tag,
+  commit SHA és vizsgálati dátum biztosítja;
+- a korábbi verziótlan központi fájlmodell felváltásra került.

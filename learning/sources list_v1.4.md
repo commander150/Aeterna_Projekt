@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Dokumentumverzió:** 1.2
+- **Dokumentumverzió:** 1.4
 - **Dátum:** 2026-07-24
-- **Státusz:** aktuális upstream-hivatkozásokkal és négy első elemzéssel pontosított munkaváltozat
+- **Státusz:** kizárólag verziózott központi dokumentummodellel és öt AETERNA-központú elemzéssel pontosított munkaváltozat
 - **Szerep:** a `learning/sources/` alatt tárolt vagy korábban letöltött külső projektek eredet-nyilvántartása
-- **Kapcsolódó katalógus:** `learning/LEARNING_CATALOG.md`
+- **Kapcsolódó katalógus:** az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum
 - **Kapcsolódó elemzések:** `learning/analyses/`
 - **A lista nem minősül AETERNA-szabályforrásnak vagy engedélynek kód átvételére.**
 
@@ -32,7 +32,7 @@ A fájl elsődleges szerepei:
 | Nyilvántartott projektek száma | 53 |
 | Közvetlenül rögzített forrás-URL | 42 |
 | Még megerősítendő vagy ismeretlen eredet | 11 |
-| Elkészült első projektszintű elemzés | 4 |
+| Elkészült első projektszintű elemzés | 5 |
 
 ## 3. Azonosítási állapotok
 
@@ -42,6 +42,20 @@ A fájl elsődleges szerepei:
   README, archive-metaadat vagy letöltési előzmény szükséges;
 - **katalógusjelölt:** korábbi kutatás alapján van valószínű repository, de azt nem szabad
   megerősített forrásként kezelni a helyi mappával való egyeztetés előtt.
+
+## 3.1 Dokumentumhivatkozási szabály
+
+Ez a forrásnyilvántartás csak verziózott fájlnéven létezik:
+
+```text
+sources list_vX.Y.md
+```
+
+- Nincs külön `sources list.md` vagy `sources list_REPLACEMENT*.md` aktív másolat.
+- Frissítéskor új verzió készül, a korábbi elfogadott változat történeti snapshot.
+- A kapcsolódó dokumentumokra nem konkrét fájlnévvel hivatkozunk.
+- A katalógus hivatkozási formája: **az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum**.
+- Az aktuális változat a `learning/` mappában található legmagasabb elfogadott verzió.
 
 ## 4. Forrásprojektek gyűjtési körönként
 
@@ -113,7 +127,7 @@ A fájl elsődleges szerepei:
 |---:|---|---|---|---|
 | 48 | `Godot-CardPileFramework` | [forrás](https://github.com/Ggross98/Godot-CardPileFramework) | forrás rögzítve | Első repository-forráskód-audit elkészült. |
 | 49 | `Arcomage` | [aktuális upstream](https://github.com/DarkPro1337/Arcomage) | forrás rögzítve | Első repository-forráskód-audit elkészült; aktív default branch: `mono`; Godot 4.7/.NET 10, YAML effect DSL, ENet és WASM modrendszer. |
-| 50 | `C# Battle Card Game Framework (CSBCGF)` | [forrás](https://github.com/finkmoritz/csbcgf) | forrás rögzítve | — |
+| 50 | `C# Battle Card Game Framework (CSBCGF)` | [aktuális upstream](https://github.com/finkmoritz/csbcgf) | forrás rögzítve | Első AETERNA-központú repository-audit elkészült; vizsgált commit: `36c4c80ca22a105fef4024c4f15a525f3cdb7e2d`; action/reaction és component framework; utolsó vizsgált commit 2023-02-14. |
 | 51 | `Godot-4-Card-Game-CSharp` | [forrás](https://github.com/TheSchlote/Godot-4-Card-Game-CSharp) | forrás rögzítve | Első repository-forráskód-audit elkészült; a repository archivált. |
 | 52 | `card-game-engine` | [forrás](https://gitlab.com/jcbcn/card-game-engine/-/tree/main) | forrás rögzítve | — |
 | 53 | `Card Game Engine` | [forrás](https://gitlab.com/DavidCorrect/card-game-engine) | forrás rögzítve | — |
@@ -221,18 +235,33 @@ Ezeket a helyi `.git/config` vagy README ellenőrzéséig külön rekordként ke
 
 ### Külön konfliktusvizsgálat
 
-1. RLCard: `mjiang9/_rlcard` vagy `datamllab/rlcard`
-2. Godot 4 framework: `kptmn/godot-card-game-framework4` vagy
+1. Godot 4 framework: `kptmn/godot-card-game-framework4` vagy
    `linyangqi/godot-card-game-framework-gd4`
 
 ## 8. Változásnapló
+
+### 1.4 – 2026-07-24
+
+- megszűnt a verziózott és verziótlan forráslisták párhuzamos kezelése;
+- a forráslista kizárólag `sources list_vX.Y.md` formában marad;
+- a `sources list.md` és `sources list_REPLACEMENT*.md` nem része az aktív modellnek;
+- a katalógusra való hivatkozás logikai dokumentumszerepre váltott;
+- az aktuális forráslista a legmagasabb elfogadott verzió;
+- az RLCard eredetkonfliktusa lezárult: a kanonikus forrás `datamllab/rlcard`.
+
+### 1.3 – 2026-07-24
+
+- elkészült a `finkmoritz/csbcgf` első részletes elemzése;
+- az elkészült elemzések száma ötre frissült;
+- rögzítésre került, hogy minden külső projektet kizárólag az AETERNA-val hasonlítunk össze;
+- a CSBCGF rekordhoz bekerült a vizsgált commit és a 2023-as aktivitási státusz.
 
 ### 1.2 – 2026-07-24
 
 - az RLCard kanonikus forrása `datamllab/rlcard` lett;
 - a `mjiang9/_rlcard` csak történeti snapshotként marad megjegyzésben;
 - bevezetésre került a stabil upstream URL + elemzésenként rögzített commit elv;
-- a kapcsolódó katalógus stabil útvonala `learning/LEARNING_CATALOG.md` lett;
+- a kapcsolódó katalógus stabil útvonala az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum lett;
 - elkészült a `DarkPro1337/Arcomage` első részletes elemzése;
 - az elkészült elemzések száma négyre frissült;
 - a problémás eredetű projektek külön backlog dokumentumba kerültek.
@@ -247,7 +276,7 @@ Ezeket a helyi `.git/config` vagy README ellenőrzéséig külön rekordként ke
 - a `kptmn/godot-card-game-framework4` külön repositoryként marad nyilvántartva;
 - elkészült a `ch200c/Durak.Godot` első projektszintű elemzése;
 - az elkészült elemzések száma háromra frissült;
-- a kapcsolódó katalógus útvonala v0.5-re frissült.
+- a kapcsolódó katalógus akkor használt konkrét verzióhivatkozása frissült.
 
 ### 1.0 – 2026-07-23
 

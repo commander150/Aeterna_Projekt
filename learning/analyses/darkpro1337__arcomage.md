@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Dokumentumverzió:** 0.1
+- **Dokumentumverzió:** 0.2
 - **Dátum:** 2026-07-24
 - **Státusz:** előzetes, repository-forrásokra épülő elemzés
 - **Fő elemzési fájl:** `learning/analyses/darkpro1337__arcomage.md`
-- **Kapcsolódó katalógus:** `learning/LEARNING_CATALOG.md`
+- **Kapcsolódó katalógus:** az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum
 - **Vizsgált branch:** `mono`
 - **Vizsgált commit:** `d816ada56ecc775a6d794a285e71e7e55d4969b6`
 - **Commit üzenete:** `chore: add UID files for Player and TableGameState scripts`
@@ -989,3 +989,12 @@ Godot Bridge
 - feldolgozásra került az arcpak/PCK/YAML/CSV/WASM modrendszer;
 - rögzítésre kerültek a determinisztikai, hidden-information és authority kockázatok;
 - elkészült az AETERNA effect compiler és runtime package javaslatlistája.
+
+## Hivatkozási modell javítása – 2026-07-24
+
+- a kapcsolódó katalógus hivatkozása mostantól: az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum;
+- az elemzés nem tartalmaz konkrét katalógusfájlnevet vagy katalógusverziót;
+- új központi katalógusverzió miatt ezt a projektdokumentumot nem kell módosítani;
+- a projekt vizsgált állapotának reprodukálhatóságát továbbra is a saját branch/tag,
+  commit SHA és vizsgálati dátum biztosítja;
+- a korábbi verziótlan központi fájlmodell felváltásra került.

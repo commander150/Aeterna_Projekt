@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Dokumentumverzió:** 0.2
+- **Dokumentumverzió:** 0.3
 - **Dátum:** 2026-07-24
 - **Státusz:** előzetes, repository-forrásokra épülő elemzés
 - **Fő elemzési fájl:** `learning/analyses/ch200c__durak-godot.md`
 - **Későbbi részanyagok:** `learning/analyses/ch200c__durak-godot/`
-- **Kapcsolódó katalógus:** `learning/LEARNING_CATALOG.md`
+- **Kapcsolódó katalógus:** az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum
 - **Vizsgált branch:** `master`
 - **Vizsgált commit:** `45852153e1619d288806526380011e757dcd8083`
 - **Commit üzenete:** `Update readme.md`
@@ -960,6 +960,15 @@ Aeterna.Godot
 
 ## Stabil katalógushivatkozás – 2026-07-24
 
-- a kapcsolódó katalógus stabil útvonala `learning/LEARNING_CATALOG.md`;
+- a kapcsolódó katalógus logikai dokumentumszerepe az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum;
 - a katalógus új verziója miatt ezt az elemzést a jövőben nem kell módosítani;
 - a vizsgált repository-állapotot továbbra is az elemzés saját commit SHA-ja rögzíti.
+
+## Hivatkozási modell javítása – 2026-07-24
+
+- a kapcsolódó katalógus hivatkozása mostantól: az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum;
+- az elemzés nem tartalmaz konkrét katalógusfájlnevet vagy katalógusverziót;
+- új központi katalógusverzió miatt ezt a projektdokumentumot nem kell módosítani;
+- a projekt vizsgált állapotának reprodukálhatóságát továbbra is a saját branch/tag,
+  commit SHA és vizsgálati dátum biztosítja;
+- a korábbi verziótlan központi fájlmodell felváltásra került.

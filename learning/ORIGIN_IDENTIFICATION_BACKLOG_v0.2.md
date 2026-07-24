@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Dokumentumverzió:** 0.1
+- **Dokumentumverzió:** 0.2
 - **Dátum:** 2026-07-24
 - **Státusz:** aktív ellenőrzési backlog
-- **Kapcsolódó forráslista:** `learning/sources list.md`
-- **Kapcsolódó katalógus:** `learning/LEARNING_CATALOG.md`
+- **Kapcsolódó forráslista:** az aktuális verziózott „AETERNA – LEARNING FORRÁSPROJEKTEK NYILVÁNTARTÁSA” dokumentum
+- **Kapcsolódó katalógus:** az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum
 - **Cél:** a bizonytalan helyi mappák eredeti repositoryjának bizonyítható azonosítása
 
 # 1. Alapelv
@@ -110,6 +110,12 @@ Egy rekord akkor zárható le, ha:
 - a katalógus és a forráslista egyezik.
 
 # 7. Változásnapló
+
+## 0.2 – 2026-07-24
+
+- a katalógus- és forráslistahivatkozások logikai dokumentumszerepre váltottak;
+- a backlog továbbra is kizárólag verziózott központi dokumentum;
+- konkrét központi fájlnév vagy verziószám nem került a hivatkozásokba.
 
 ## 0.1 – 2026-07-24
 

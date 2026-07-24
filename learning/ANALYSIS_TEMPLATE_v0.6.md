@@ -2,17 +2,56 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Sablonverzió:** 0.4
+- **Sablonverzió:** 0.6
 - **Dátum:** 2026-07-24
 - **Státusz:** első használható munkasablon
 - **Szerep:** egy külső referencia-projekt reprodukálható, bizonyítékokra épülő mélyelemzése
-- **Kapcsolódó katalógus:** `learning/LEARNING_CATALOG.md`
+- **Kapcsolódó katalógus:** az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum
 - **Célútvonal:** `learning/analyses/<owner>__<repository>.md`
 - **Megőrzési elv:** a fő `.md` elemzés későbbi részanyagok létrejötte után is megmarad
 
 > A dokumentum nem marketing-összefoglaló. Minden fontos állításhoz repository-fájl,
 > commit, dokumentáció vagy reprodukálható futtatási eredmény tartozzon. A README állítása
 > önmagában nem bizonyítja, hogy a kód valóban megvalósítja az adott funkciót.
+
+
+## KÖTELEZŐ DOKUMENTUMHIVATKOZÁSI SZABÁLY
+
+A projektenkénti elemzésben tilos konkrét katalógus- vagy forráslistafájlnevet és
+verziószámot rögzíteni.
+
+Használandó formák:
+
+- **Kapcsolódó katalógus:** az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum
+- **Kapcsolódó forráslista:** az aktuális verziózott „AETERNA – LEARNING FORRÁSPROJEKTEK NYILVÁNTARTÁSA” dokumentum
+
+A projektenkénti fő elemzés állandó fájlneve megmarad, a módosításokat a dokumentum
+belső verziója és változásnaplója követi.
+
+## KÖTELEZŐ ÖSSZEHASONLÍTÁSI HATÁR
+
+Az elemzett külső projektet kizárólag az AETERNA aktuális kanonikus rendszeréhez kell
+viszonyítani.
+
+Megengedett összehasonlítási alapok:
+
+- AETERNA hivatalos alapjáték- és kiegészítőforrás;
+- aktív AETERNA projektterv és döntések;
+- AETERNA C# authoritative engine;
+- AETERNA contract-specifikáció;
+- AETERNA runtime package és adatpipeline;
+- AETERNA Godot bridge és kliens;
+- AETERNA teszt-, determinism-, replay- és projection-követelmények.
+
+Tilos:
+
+- az elemzett projektet más learning projekthez mérni;
+- külső projektek közötti „jobb/rosszabb” rangsort készíteni;
+- egyik learning projekt hiányosságát egy másik learning projekt megoldásával igazolni;
+- AETERNA-döntést külső projekt gyakorlatával felülírni.
+
+A dokumentum minden összehasonlító mondatának egyértelmű AETERNA-vonatkozást kell
+tartalmaznia.
 
 # 1. Projektazonosítás
 
@@ -493,9 +532,24 @@ Minden tétel legyen konkrét, bizonyítékkal alátámasztott és AETERNA-felad
 
 # 23. Változásnapló
 
+## 0.6 – 2026-07-24
+
+- megszűnt a konkrét és verziótlan katalógusfájlra való hivatkozás;
+- bekerült a logikai dokumentumszerepre épülő hivatkozási szabály;
+- a központi katalógus és forráslista kizárólag verziózott fájlként kezelendő;
+- a projektenkénti fő elemzések állandó fájlneve és belső verziózása megmarad;
+- a korábbi stabilfájlnév-kísérlet felváltásra került.
+
+## 0.5 – 2026-07-24
+
+- bekerült a kötelező összehasonlítási határ;
+- minden külső projekt kizárólag az AETERNA aktuális rendszeréhez mérhető;
+- külső learning projektek egymással való összehasonlítása tiltott;
+- minden javaslatnak AETERNA-réteget és prioritást kell megneveznie.
+
 ## 0.4 – 2026-07-24
 
-- a katalógushivatkozás stabil `learning/LEARNING_CATALOG.md` útvonalra állt;
+- a katalógushivatkozás stabil az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum útvonalra állt;
 - a repository URL mindig az aktuális upstream default ágára mutat;
 - a reprodukálhatóságot az elemzésben kötelezően rögzített branch/tag és commit SHA biztosítja;
 - upstream változás miatt a korábbi elemzési dokumentumot nem kell automatikusan átírni;
