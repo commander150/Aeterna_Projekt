@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Dokumentumverzió:** 0.3
+- **Dokumentumverzió:** 0.4
 - **Dátum:** 2026-07-23
-- **Státusz:** strukturális elnevezésekkel pontosított munkaváltozat
+- **Státusz:** az ötödik gyűjtési körrel és a forráslista-audittal összehangolt munkaváltozat
 - **Szerep:** külső referencia-projektek központi nyilvántartása
-- **Forráslista:** `learning/sources list.md`
+- **Forráslista:** `learning/sources list.md` (dokumentumverzió: 1.0)
 - **Tervezett egyedi elemzések:** `learning/analyses/<projekt-azonosító>.md`
 
 Ez a dokumentum nem AETERNA-szabályforrás és nem engine-specifikáció. A célja annak
@@ -111,21 +111,38 @@ Minden projekt rekordja legalább a következőket tartalmazza:
 | 45 | `godot-python-extension-master` | 4 | [maiself/godot-python-extension](https://github.com/maiself/godot-python-extension) | valószínű | Godot Python GDExtension | Python / C++ / Godot | Nyelvi integrációs referencia; production irányhoz nem elsődleges | **P3** | eredeti repository megerősítésre vár |
 | 46 | `godot-python-master` | 4 | [touilleMan/godot-python](https://github.com/touilleMan/godot-python) | megerősített | Godot Python nyelvi kötés | Python / C++ / Godot | Történeti Godot nyelvi bridge; háttéranyag | **P3** | metaadat ellenőrizve |
 | 47 | `py4godot-master` | 4 | [niklas2902/py4godot](https://github.com/niklas2902/py4godot) | megerősített | Godot Python GDExtension | Python / C++ / Godot | Python-integráció, extension boundary és build pipeline | **P3** | metaadat ellenőrizve |
+| 48 | `Godot-CardPileFramework` | 5 | [Ggross98/Godot-CardPileFramework](https://github.com/Ggross98/Godot-CardPileFramework) | megerősített | Godot/C# kártya-UI framework | Godot 4.6.2 / C# / .NET 8 | Kéz-, halom-, drag-and-drop és presentation minták | **P0** | első forráskód-audit elkészült |
+| 49 | `Arcomage` | 5 | [DarkPro1337/Arcomage](https://github.com/DarkPro1337/Arcomage) | megerősített | Teljes kétjátékos kártyajáték | Godot 4 / C# | Teljes alkalmazás, erőforrások, effectek és UI | **P0** | letöltve; mélyelemzésre vár |
+| 50 | `C# Battle Card Game Framework (CSBCGF)` | 5 | [finkmoritz/csbcgf](https://github.com/finkmoritz/csbcgf) | megerősített | C# battle card game framework | C# | Event loop, öröklés, szerializáció és framework-határok | **P0** | letöltve; mélyelemzésre vár |
+| 51 | `Godot-4-Card-Game-CSharp` | 5 | [TheSchlote/Godot-4-Card-Game-CSharp](https://github.com/TheSchlote/Godot-4-Card-Game-CSharp) | megerősített | Godot/C# oktatási card battle | Godot 4.2.1 / C# | Card UI state machine, targeting és enemy intent | **P0** | első forráskód-audit elkészült; archivált |
+| 52 | `card-game-engine` | 5 | [jcbcn/card-game-engine](https://gitlab.com/jcbcn/card-game-engine) | megerősített URL; helyi mappanév ellenőrzendő | .NET kártya- és társasjáték-motor | .NET / C# | Solution, tesztek, benchmarkok, publikus API és CI | **P0** | letöltve; mélyelemzésre vár |
+| 53 | `Card Game Engine` | 5 | [DavidCorrect/card-game-engine](https://gitlab.com/DavidCorrect/card-game-engine) | megerősített URL; helyi mappanév ellenőrzendő | Godot-kártyamotor | Godot / GDScript | Zónák, Stack/Exile, rejtett kéz és multiplayer | **P1** | letöltve; mélyelemzésre vár |
+
+### 3.1 Forráslista-egyeztetés
+
+A `sources list.md` 1.0 változata öt gyűjtési körben **53 projektet** tart nyilván.
+Ebből **42 rekordhoz közvetlen URL** szerepel, **11 rekord eredete még megerősítésre vár**.
+
+Kiemelt eltérések:
+
+- az RLCard helyi forrásához a forráslista `mjiang9/_rlcard`, a korábbi katalógus
+  `datamllab/rlcard` repositoryt rendelt;
+- a Godot 4 framework rekordhoz a forráslista `kptmn/godot-card-game-framework4`,
+  a korábbi katalógus `linyangqi/godot-card-game-framework-gd4` repositoryt rendelt;
+- mindkét esetben a helyi `.git/config`, README vagy commitazonosító alapján kell dönteni;
+- az ötödik gyűjtési kör hat projektje átkerült a letöltött projektek közé;
+- a hasonló nevű `CardGameEngine-main`, `card-game-engine-master` és a két új GitLab
+  projekt külön rekord marad, amíg az eredetkapcsolat nem bizonyított.
+
 ## 4. Újonnan talált, még nem letöltött jelöltek
 
-Ezek a projektek nem részei a jelenlegi letöltött listának. Letöltés vagy mélyelemzés előtt
+Ezek a projektek továbbra sem részei a jelenlegi, öt körből álló letöltött listának. Letöltés vagy mélyelemzés előtt
 ellenőrizni kell a repository aktuális állapotát, licencét, buildelhetőségét, kódtisztaságát,
 valamint azt, hogy a tényleges implementáció megfelel-e a README állításainak.
 
 | Repository | Illeszkedés | Fő tanulási terület | Prioritás | Előzetes állapot | Licenc |
 |---|---|---|:---:|---|---|
-| [Ggross98/Godot-CardPileFramework](https://github.com/Ggross98/Godot-CardPileFramework) | Godot 4.6.2 + C# + .NET 8; közvetlen kártyajáték-keretrendszer | Kártyaobjektumok, hand/draw/discard pile, JSON save/load, animációk és jelek | **P0** | előzetesen ellenőrizve | MIT |
-| [DarkPro1337/Arcomage](https://github.com/DarkPro1337/Arcomage) | Godot 4 + C#/.NET; működő, teljes kétjátékos kártyajáték | Teljes alkalmazás-architektúra, erőforrások, kártyahatások, UI és build | **P0** | előzetesen ellenőrizve | repository szerint nyílt; pontos licencfájl auditálandó |
-| [TheSchlote/Godot-4-Card-Game-CSharp](https://github.com/TheSchlote/Godot-4-Card-Game-CSharp) | Godot 4.2.1 és C#; GDScript-oktatóanyag C#-os átültetése | Card UI state machine, targeting, Card–CardPile–Effect és enemy intent modellek | **P0** | első forráskód-audit elkészült; repository archivált | egyértelmű licenc nem található; kódátvétel tilos tisztázásig |
-| [finkmoritz/csbcgf](https://github.com/finkmoritz/csbcgf) | Általános C# battle card game framework | Eseményvezérelt game loop, örökölhető osztályok, szerializáció | **P0** | előzetesen ellenőrizve | MIT |
-| [jcbcn/card-game-engine](https://gitlab.com/jcbcn/card-game-engine) | Modern .NET/C# kártya- és társasjáték-motor | Solution-szerkezet, tesztek, benchmarkok, publikus API és CI | **P0** | előzetesen ellenőrizve | külön mélyellenőrzés szükséges |
 | [StefanoFiumara/harry-potter-tcg](https://github.com/StefanoFiumara/harry-potter-tcg) | Unity/C# teljes TCG; nem Godot, de szabálymotor-szempontból erős | Automatikus szabálykikényszerítés, AI, deck editor, kártyatípusok, replay/multiplayer terv | **P1** | előzetesen ellenőrizve | ellenőrzendő |
-| [DavidCorrect/card-game-engine](https://gitlab.com/DavidCorrect/card-game-engine) | Godot-kártyamotor, főként GDScript | Zone absztrakció, Stack/Exile, rejtett kéz és Godot High-Level multiplayer | **P1** | előzetesen ellenőrizve | MIT |
 | [sominator/colyseus-2d-multiplayer-card-game-templates](https://github.com/sominator/colyseus-2d-multiplayer-card-game-templates) | Többmotoros kártyajáték-multiplayer sablon | Authoritative Colyseus backend és kliens–szerver szinkronizáció | **P1** | repositorystruktúra mélyellenőrzésre vár | ellenőrzendő |
 | [JenardKin/triple-triad-godot](https://github.com/JenardKin/triple-triad-godot) | Godot + C# kártyajáték-jelölt | Kisebb, áttekinthető projekt; grid-alapú kártyaelhelyezés | **P2** | mélyellenőrzésre vár | ellenőrzendő |
 | [DapperDino/CCG-Single-Player-Learning](https://github.com/DapperDino/CCG-Single-Player-Learning) | Unity/C# oktatási CCG-projekt | Lépésenkénti oktatási minta; a theliquidfire CCG-sorozat követése | **P2** | előzetesen ellenőrizve | ellenőrzendő |
@@ -290,6 +307,16 @@ learning/analyses/magefree__mage.md
 6. Csak elfogadott következtetés kerüljön át engine- vagy projektdokumentációba.
 
 ## 10. Változásnapló
+
+### 0.4 – 2026-07-23
+
+- a katalógus összehangolásra került a `sources list.md` 1.0 változatával;
+- az ötödik gyűjtési kör hat projektje bekerült a letöltött projektek közé;
+- a projektösszesítés 53 letöltött rekordra frissült;
+- a már letöltött hat projekt kikerült a „nem letöltött jelöltek” táblából;
+- bekerültek az RLCard és Godot 4 framework forráshozzárendelési eltérései;
+- rögzítésre került a `card-game-engine` névütközések külön kezelésének elve.
+
 
 ### 0.3 – 2026-07-23
 
