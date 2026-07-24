@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Dokumentumverzió:** 0.4
-- **Dátum:** 2026-07-23
-- **Státusz:** az ötödik gyűjtési körrel és a forráslista-audittal összehangolt munkaváltozat
+- **Dokumentumverzió:** 0.6
+- **Dátum:** 2026-07-24
+- **Státusz:** stabil upstream-hivatkozásokkal és négy első elemzéssel pontosított munkaváltozat
 - **Szerep:** külső referencia-projektek központi nyilvántartása
-- **Forráslista:** `learning/sources list.md` (dokumentumverzió: 1.0)
+- **Forráslista:** `learning/sources list.md` (dokumentumverzió: 1.2)
 - **Tervezett egyedi elemzések:** `learning/analyses/<projekt-azonosító>.md`
 
 Ez a dokumentum nem AETERNA-szabályforrás és nem engine-specifikáció. A célja annak
@@ -64,14 +64,14 @@ Minden projekt rekordja legalább a következőket tartalmazza:
 > még nem mélyelemzési következtetés, hanem a további vizsgálat iránya.
 | # | Helyi mappa | Kör | Repository | Bizonyosság | Típus | Technológia | Várható tanulási érték | Prioritás | Állapot |
 |---:|---|:---:|---|---|---|---|---|:---:|---|
-| 1 | `_rlcard-master` | 1 | [datamllab/rlcard](https://github.com/datamllab/rlcard) | megerősített | RL-kártyajáték-környezet | Python | Állapottér, akciótér, több kártyajáték egységes AI-környezete | **P1** | metaadat ellenőrizve |
+| 1 | `rlcard-master` | 1 | [datamllab/rlcard](https://github.com/datamllab/rlcard) | kanonikus aktuális upstream; a helyi forrás cserélendő erre | RL-kártyajáték-környezet | Python | Állapottér, legal action, imperfect information és agent API; minden audit rögzített commiton történjen | **P1** | upstream kijelölve; mélyelemzésre vár |
 | 2 | `boardgame.io-main` | 1 | [boardgameio/boardgame.io](https://github.com/boardgameio/boardgame.io) | megerősített | Körökre osztott játékmotor | TypeScript / JavaScript | Authoritative state, turn flow, multiplayer, replay-szerű naplózás | **P1** | metaadat ellenőrizve |
 | 3 | `duelyst-main` | 1 | [open-duelyst/duelyst](https://github.com/open-duelyst/duelyst) | megerősített | Teljes online taktikai kártyajáték | JavaScript / CoffeeScript / szerverkomponensek | Nagy projektstruktúra, kliens–szerver felosztás, tartalomkezelés | **P2** | metaadat ellenőrizve |
 | 4 | `mage-master` | 1 | [magefree/mage](https://github.com/magefree/mage) | megerősített | Komplex TCG-szabálymotor és kliens | Java | Nagy szabálykészlet, ability- és eseménykezelés, szerveres játék | **P0** | metaadat ellenőrizve |
 | 5 | `deckbuilder-framework-main` | 2 | [insideout-andrew/deckbuilder-framework](https://github.com/insideout-andrew/deckbuilder-framework) | valószínű | Godot deckbuilder keretrendszer | Godot / GDScript | Kártyapaklik, húzó- és dobóhalom, deckbuilder-játékmenet | **P1** | eredeti repository megerősítésre vár |
 | 6 | `Fragment-Forge-main` | 2 | [db0/Fragment-Forge](https://github.com/db0/Fragment-Forge) | megerősített | Godot kártyajáték | Godot / GDScript | A db0 card framework valós alkalmazása, kártyaszkriptek és UI | **P1** | metaadat ellenőrizve |
 | 7 | `Godot4-Fake3D-Card-Game-UI-Demo-main` | 2 | [Fulafu-ai/Godot4-Fake3D-Card-Game-UI-Demo](https://github.com/Fulafu-ai/Godot4-Fake3D-Card-Game-UI-Demo) | valószínű | Godot kártya-UI demó | Godot | Ál-3D kéz, kártyamozgatás, vizuális bemutatás | **P1** | több tükör/fork miatt eredet ellenőrzendő |
-| 8 | `godot-card-game-framework-gd4-main` | 2 | [linyangqi/godot-card-game-framework-gd4](https://github.com/linyangqi/godot-card-game-framework-gd4) | megerősített | Godot 4 kártyajáték-keretrendszer | Godot / GDScript | Godot 4 migráció, rule scripting és prepared scene-ek | **P0** | metaadat ellenőrizve |
+| 8 | `godot-card-game-framework4` | 2 | [kptmn/godot-card-game-framework4](https://github.com/kptmn/godot-card-game-framework4) | megerősített | külön Godot 4 kártyajáték-framework | Godot / GDScript | Godot 4 rule scripting és scene-ek; külön kezelendő a [linyangqi fork-porttól](https://github.com/linyangqi/godot-card-game-framework-gd4), amely a db0 upstream forkja | **P0** | forráskapcsolatok ellenőrizve |
 | 9 | `godot-card-game-framework-main` | 2 | [db0/godot-card-game-framework](https://github.com/db0/godot-card-game-framework) | megerősített | Godot kártyajáték-keretrendszer | Godot / GDScript | Kártyaobjektumok, scriptelhető szabályok, jelenetek és UI | **P0** | metaadat ellenőrizve |
 | 10 | `hackstone-main` | 2 | [hackclub/hackstone](https://github.com/hackclub/hackstone) | megerősített | Hearthstone-jellegű kártyajáték | webes technológiák | Egyszerű digitális CCG-folyamat és oktatási megközelítés | **P2** | metaadat ellenőrizve |
 | 11 | `Pali-main` | 2 | [rametta/Pali](https://github.com/rametta/Pali) | megerősített | 3D többjátékos Godot TCG | Godot / GDScript | Dedikált szerver, rejtett kéz, 3D asztal és multiplayer kliens | **P0** | README ellenőrizve |
@@ -105,14 +105,14 @@ Minden projekt rekordja legalább a következőket tartalmazza:
 | 39 | `yugioh-duel-simulator-main` | 3 | [Nivaldo-Nilngn/yugioh-duel-simulator](https://github.com/Nivaldo-Nilngn/yugioh-duel-simulator) | megerősített | Yu-Gi-Oh szimulátor | ellenőrzendő | Kisebb szimulátorprojekt; megvalósítási minták | **P2** | metaadat ellenőrizve |
 | 40 | `Yu-Gi-Oh-Master-Duel-Draw-Simulator-main` | 3 | [struja125/Yu-Gi-Oh-Master-Duel-Draw-Simulator](https://github.com/struja125/Yu-Gi-Oh-Master-Duel-Draw-Simulator) | megerősített | Kezdőkéz/húzás szimulátor | ellenőrzendő | Pakli-valószínűség és húzásszimuláció | **P3** | metaadat ellenőrizve |
 | 41 | `yugioh-simulator-main` | 3 | [valószínűleg arthastheking113/yugioh-simulator](https://github.com/arthastheking113/yugioh-simulator) | bizonytalan | Yu-Gi-Oh szimulátor | helyi forrás ellenőrzendő | Több azonos nevű repository létezik | **P2** | helyi .git/config vagy README szükséges |
-| 42 | `Durak.Godot-master` | 4 | [ch200c/Durak.Godot](https://github.com/ch200c/Durak.Godot) | megerősített | Godot kártyajáték | Godot / C# | C#-os Godot-kártyajáték, multiplayer és kliensfelépítés vizsgálata | **P0** | metaadat ellenőrizve |
+| 42 | `Durak.Godot-master` | 4 | [ch200c/Durak.Godot](https://github.com/ch200c/Durak.Godot) | megerősített | 3D Godot kártyajáték külön gameplay libraryvel | Godot 4.3 / C# / .NET 8 | Pure C# domain, preflight validáció, unit/functional tesztek, 3D presentation és engine–Godot határ | **P0** | első forráskód-audit elkészült |
 | 43 | `godopy-main` | 4 | [godopy/godopy](https://github.com/godopy/godopy) | megerősített | Godot–Python integráció | Python / Godot | Nyelvi bridge és külső Python-integráció; jelenlegi C# irány miatt háttéranyag | **P3** | metaadat ellenőrizve |
 | 44 | `godot_rl_agents-main` | 4 | [edbeeching/godot_rl_agents](https://github.com/edbeeching/godot_rl_agents) | megerősített | Godot RL-integráció | Godot / Python | Godot-szimuláció és AI-agent kommunikáció | **P1** | metaadat ellenőrizve |
 | 45 | `godot-python-extension-master` | 4 | [maiself/godot-python-extension](https://github.com/maiself/godot-python-extension) | valószínű | Godot Python GDExtension | Python / C++ / Godot | Nyelvi integrációs referencia; production irányhoz nem elsődleges | **P3** | eredeti repository megerősítésre vár |
 | 46 | `godot-python-master` | 4 | [touilleMan/godot-python](https://github.com/touilleMan/godot-python) | megerősített | Godot Python nyelvi kötés | Python / C++ / Godot | Történeti Godot nyelvi bridge; háttéranyag | **P3** | metaadat ellenőrizve |
 | 47 | `py4godot-master` | 4 | [niklas2902/py4godot](https://github.com/niklas2902/py4godot) | megerősített | Godot Python GDExtension | Python / C++ / Godot | Python-integráció, extension boundary és build pipeline | **P3** | metaadat ellenőrizve |
 | 48 | `Godot-CardPileFramework` | 5 | [Ggross98/Godot-CardPileFramework](https://github.com/Ggross98/Godot-CardPileFramework) | megerősített | Godot/C# kártya-UI framework | Godot 4.6.2 / C# / .NET 8 | Kéz-, halom-, drag-and-drop és presentation minták | **P0** | első forráskód-audit elkészült |
-| 49 | `Arcomage` | 5 | [DarkPro1337/Arcomage](https://github.com/DarkPro1337/Arcomage) | megerősített | Teljes kétjátékos kártyajáték | Godot 4 / C# | Teljes alkalmazás, erőforrások, effectek és UI | **P0** | letöltve; mélyelemzésre vár |
+| 49 | `Arcomage` | 5 | [DarkPro1337/Arcomage](https://github.com/DarkPro1337/Arcomage) | megerősített, aktív upstream (`mono`) | teljes kétjátékos kártyajáték | Godot 4.7 / C# / .NET 10 | YAML effect DSL, typed AST, ENet multiplayer, lokalizáció és WASM modrendszer | **P0** | első forráskód-audit elkészült |
 | 50 | `C# Battle Card Game Framework (CSBCGF)` | 5 | [finkmoritz/csbcgf](https://github.com/finkmoritz/csbcgf) | megerősített | C# battle card game framework | C# | Event loop, öröklés, szerializáció és framework-határok | **P0** | letöltve; mélyelemzésre vár |
 | 51 | `Godot-4-Card-Game-CSharp` | 5 | [TheSchlote/Godot-4-Card-Game-CSharp](https://github.com/TheSchlote/Godot-4-Card-Game-CSharp) | megerősített | Godot/C# oktatási card battle | Godot 4.2.1 / C# | Card UI state machine, targeting és enemy intent | **P0** | első forráskód-audit elkészült; archivált |
 | 52 | `card-game-engine` | 5 | [jcbcn/card-game-engine](https://gitlab.com/jcbcn/card-game-engine) | megerősített URL; helyi mappanév ellenőrzendő | .NET kártya- és társasjáték-motor | .NET / C# | Solution, tesztek, benchmarkok, publikus API és CI | **P0** | letöltve; mélyelemzésre vár |
@@ -151,10 +151,11 @@ valamint azt, hogy a tényleges implementáció megfelel-e a README állításai
 
 ### 5.1 Közvetlen Godot + C# referenciák
 
-1. `Ggross98/Godot-CardPileFramework`
-2. `TheSchlote/Godot-4-Card-Game-CSharp`
-3. `DarkPro1337/Arcomage`
-4. a már letöltött `ch200c/Durak.Godot`
+1. `Ggross98/Godot-CardPileFramework` – első audit elkészült
+2. `TheSchlote/Godot-4-Card-Game-CSharp` – első audit elkészült
+3. `ch200c/Durak.Godot` – első audit elkészült
+4. `DarkPro1337/Arcomage` – első audit elkészült
+5. `finkmoritz/csbcgf` – következő teljes elemzés
 
 Ezek közül az első kettő elsősorban keretrendszer- és oktatási referencia, az Arcomage pedig
 egy teljes, működő alkalmazás. Együtt jól elkülöníthető belőlük:
@@ -307,6 +308,29 @@ learning/analyses/magefree__mage.md
 6. Csak elfogadott következtetés kerüljön át engine- vagy projektdokumentációba.
 
 ## 10. Változásnapló
+
+### 0.6 – 2026-07-24
+
+- az RLCard rekord kanonikus forrása `datamllab/rlcard` lett;
+- a katalógus minden repositoryhoz stabil upstream URL-t használ;
+- a reprodukálhatóságot nem a URL verziózása, hanem az elemzésben rögzített commit SHA biztosítja;
+- az aktív katalógus stabil fájlneve `LEARNING_CATALOG.md`;
+- a verziózott `LEARNING_CATALOG_v0.6.md` változat snapshotként megmarad;
+- elkészült a `DarkPro1337/Arcomage` első részletes elemzése;
+- az elkészült első elemzések száma négyre frissült;
+- a következő teljes elemzési cél a `finkmoritz/csbcgf`;
+- létrejött az eredetazonosítási backlog.
+
+### 0.5 – 2026-07-24
+
+- megerősítésre került a helyi `mjiang9/_rlcard` forrás;
+- a `datamllab/rlcard` aktuális upstream- és összehasonlítási alapként került rögzítésre;
+- a Godot 4 framework rekord `kptmn/godot-card-game-framework4` forrásra pontosult;
+- a `linyangqi/godot-card-game-framework-gd4` külön, db0-upstreamből származó forkként került rögzítésre;
+- elkészült a `ch200c/Durak.Godot` első részletes elemzése;
+- az elkészült első elemzések száma háromra frissült;
+- a következő teljes elemzési cél a `DarkPro1337/Arcomage`;
+- a forráslista-hivatkozás 1.1 verzióra frissült.
 
 ### 0.4 – 2026-07-23
 

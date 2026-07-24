@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Dokumentumverzió:** 0.1
+- **Dokumentumverzió:** 0.3
 - **Dátum:** 2026-07-23
 - **Státusz:** előzetes, repository-forrásokra épülő elemzés
 - **Fő elemzési fájl:** `learning/analyses/ggross98__godot-cardpileframework.md`
@@ -520,6 +520,12 @@ Godot UI
 
 # 21. Változásnapló
 
+## Katalógushivatkozás-korrekció – 2026-07-24
+
+- a kapcsolódó katalógus útvonala `learning/LEARNING_CATALOG.md` értékre frissült;
+- a korábbi üres, verziótlan katalógusfájlra való hivatkozás megszűnt.
+
+
 ## 0.1 – 2026-07-23
 
 - elkészült az első repository-forrásokra épülő projektszintű elemzés;
@@ -527,3 +533,9 @@ Godot UI
 - rögzítésre kerültek az átvehető UI-minták;
 - rögzítésre kerültek a kerülendő architekturális megoldások;
 - létrejött a helyi reprodukálási és későbbi Codex-mélyítés munkalistája.
+
+## Stabil katalógushivatkozás – 2026-07-24
+
+- a kapcsolódó katalógus stabil útvonala `learning/LEARNING_CATALOG.md`;
+- a katalógus új verziója miatt ezt az elemzést a jövőben nem kell módosítani;
+- a vizsgált repository-állapotot továbbra is az elemzés saját commit SHA-ja rögzíti.

@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Dokumentumverzió:** 0.1
+- **Dokumentumverzió:** 0.3
 - **Dátum:** 2026-07-23
 - **Státusz:** előzetes, repository-forrásokra épülő elemzés
 - **Fő elemzési fájl:** `learning/analyses/theschlote__godot-4-card-game-csharp.md`
@@ -952,6 +952,12 @@ Godot UI
 
 # 28. Változásnapló
 
+## Katalógushivatkozás-korrekció – 2026-07-24
+
+- a kapcsolódó katalógus útvonala `learning/LEARNING_CATALOG.md` értékre frissült;
+- a korábbi üres, verziótlan katalógusfájlra való hivatkozás megszűnt.
+
+
 ## 0.1 – 2026-07-23
 
 - elkészült a repository-forrásokra épülő első elemzés;
@@ -961,3 +967,9 @@ Godot UI
 - rögzítésre kerültek a signal contract eltérések;
 - rögzítésre került a determinizmus, tesztelés és licenc hiánya;
 - elkészült az AETERNA-integrációs és saját újraimplementálási javaslatlista.
+
+## Stabil katalógushivatkozás – 2026-07-24
+
+- a kapcsolódó katalógus stabil útvonala `learning/LEARNING_CATALOG.md`;
+- a katalógus új verziója miatt ezt az elemzést a jövőben nem kell módosítani;
+- a vizsgált repository-állapotot továbbra is az elemzés saját commit SHA-ja rögzíti.

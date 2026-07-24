@@ -2,8 +2,8 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Sablonverzió:** 0.2
-- **Dátum:** 2026-07-23
+- **Sablonverzió:** 0.4
+- **Dátum:** 2026-07-24
 - **Státusz:** első használható munkasablon
 - **Szerep:** egy külső referencia-projekt reprodukálható, bizonyítékokra épülő mélyelemzése
 - **Kapcsolódó katalógus:** `learning/LEARNING_CATALOG.md`
@@ -492,6 +492,20 @@ Minden tétel legyen konkrét, bizonyítékkal alátámasztott és AETERNA-felad
 - **Újravizsgálat feltétele:** 
 
 # 23. Változásnapló
+
+## 0.4 – 2026-07-24
+
+- a katalógushivatkozás stabil `learning/LEARNING_CATALOG.md` útvonalra állt;
+- a repository URL mindig az aktuális upstream default ágára mutat;
+- a reprodukálhatóságot az elemzésben kötelezően rögzített branch/tag és commit SHA biztosítja;
+- upstream változás miatt a korábbi elemzési dokumentumot nem kell automatikusan átírni;
+- újravizsgálatkor külön dátum, commit és változásnapló-bejegyzés szükséges.
+
+## 0.3 – 2026-07-24
+
+- a katalógushivatkozás az aktív verziózott `LEARNING_CATALOG_v0.5.md` fájlra frissült;
+- az üres, verziótlan `LEARNING_CATALOG.md` fájl nem szükséges;
+- a projektenkénti fő elemzés továbbra is állandó, verziótlan fájlnéven marad.
 
 ## 0.2 – 2026-07-23
 
