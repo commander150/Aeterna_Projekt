@@ -2,9 +2,9 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Dokumentumverzió:** 0.8
-- **Dátum:** 2026-07-24
-- **Státusz:** egységes, kizárólag verziózott központi dokumentummodellel pontosított munkaváltozat
+- **Dokumentumverzió:** 1.7
+- **Dátum:** 2026-07-25
+- **Státusz:** tizennégy AETERNA-központú elemzéssel és a Fake3D Card Game UI teljes presentation/shader audittal pontosított munkaváltozat
 - **Szerep:** külső referencia-projektek központi nyilvántartása
 - **Forráslista:** az aktuális verziózott „AETERNA – LEARNING FORRÁSPROJEKTEK NYILVÁNTARTÁSA” dokumentum
 - **Tervezett egyedi elemzések:** `learning/analyses/<projekt-azonosító>.md`
@@ -121,15 +121,15 @@ Minden projekt rekordja legalább a következőket tartalmazza:
 | 2 | `boardgame.io-main` | 1 | [boardgameio/boardgame.io](https://github.com/boardgameio/boardgame.io) | megerősített | Körökre osztott játékmotor | TypeScript / JavaScript | Authoritative state, turn flow, multiplayer, replay-szerű naplózás | **P1** | metaadat ellenőrizve |
 | 3 | `duelyst-main` | 1 | [open-duelyst/duelyst](https://github.com/open-duelyst/duelyst) | megerősített | Teljes online taktikai kártyajáték | JavaScript / CoffeeScript / szerverkomponensek | Nagy projektstruktúra, kliens–szerver felosztás, tartalomkezelés | **P2** | metaadat ellenőrizve |
 | 4 | `mage-master` | 1 | [magefree/mage](https://github.com/magefree/mage) | megerősített | Komplex TCG-szabálymotor és kliens | Java | Nagy szabálykészlet, ability- és eseménykezelés, szerveres játék | **P0** | metaadat ellenőrizve |
-| 5 | `deckbuilder-framework-main` | 2 | [insideout-andrew/deckbuilder-framework](https://github.com/insideout-andrew/deckbuilder-framework) | valószínű | Godot deckbuilder keretrendszer | Godot / GDScript | Kártyapaklik, húzó- és dobóhalom, deckbuilder-játékmenet | **P1** | eredeti repository megerősítésre vár |
-| 6 | `Fragment-Forge-main` | 2 | [db0/Fragment-Forge](https://github.com/db0/Fragment-Forge) | megerősített | Godot kártyajáték | Godot / GDScript | A db0 card framework valós alkalmazása, kártyaszkriptek és UI | **P1** | metaadat ellenőrizve |
-| 7 | `Godot4-Fake3D-Card-Game-UI-Demo-main` | 2 | [Fulafu-ai/Godot4-Fake3D-Card-Game-UI-Demo](https://github.com/Fulafu-ai/Godot4-Fake3D-Card-Game-UI-Demo) | valószínű | Godot kártya-UI demó | Godot | Ál-3D kéz, kártyamozgatás, vizuális bemutatás | **P1** | több tükör/fork miatt eredet ellenőrzendő |
-| 8 | `godot-card-game-framework4` | 2 | [kptmn/godot-card-game-framework4](https://github.com/kptmn/godot-card-game-framework4) | megerősített | külön Godot 4 kártyajáték-framework | Godot / GDScript | Godot 4 rule scripting és scene-ek; külön kezelendő a [linyangqi fork-porttól](https://github.com/linyangqi/godot-card-game-framework-gd4), amely a db0 upstream forkja | **P0** | forráskapcsolatok ellenőrizve |
-| 9 | `godot-card-game-framework-main` | 2 | [db0/godot-card-game-framework](https://github.com/db0/godot-card-game-framework) | megerősített | Godot kártyajáték-keretrendszer | Godot / GDScript | Kártyaobjektumok, scriptelhető szabályok, jelenetek és UI | **P0** | metaadat ellenőrizve |
+| 5 | `deckbuilder-framework-main` | 2 | [insideout-andrew/deckbuilder-framework](https://github.com/insideout-andrew/deckbuilder-framework) | megerősített upstream; vizsgált commit `41199fc02c3c9abaae1505737bd9c9080254fe15` | Godot CardData–Card–Deck presentation és interaction framework; nem kész constructed-deck editor | Godot 4.3 / GDScript | Deckszintű inputsignalok, kézlegyező, reparent animáció, drag/reorder és custom Deck; scene child order authority, stable ID/state version/determinism/hidden projection hiányzik | **P1** | első teljes source audit elkészült; MIT; csak célzott clean-room UI-inspirációként ajánlott |
+| 6 | `Fragment-Forge-main` | 2 | [db0/Fragment-Forge](https://github.com/db0/Fragment-Forge) | megerősített upstream; vizsgált commit `759100774d46fb1a30fb08f2e42947e48af90c40` | Teljes egyjátékos Godot kártyajáték, 100 lapos contenttel, effect DSL-lel és domain deckbuilderrel | Godot 3.x / GDScript | Valódi alkalmazott effect/content/deckbuilder referencia; custom opcode/predicate, Persona és affinity/inspiration rendszer. Scene-node authority, nem verziózott deck JSON, hiányos startvalidáció és konkrét state/index hibák | **P0** | első teljes application/source audit elkészült; AGPL közvetlen integráció elutasítva |
+| 7 | `Godot4-Fake3D-Card-Game-UI-Demo-main` | 2 | [Fulafu-ai/Godot4-Fake3D-Card-Game-UI-Demo](https://github.com/Fulafu-ai/Godot4-Fake3D-Card-Game-UI-Demo) | önálló repository; vizsgált commit `14c07f3983b6c22d9d8747dc3cbb9e3a870c895f`; külső shader/tutorial/asset inspirációk dokumentálva | Godot 4.5 ál-3D kártya-UI, Resource card/deck modellel és Dou Dizhu szabálydemóval | Godot 4.5 / GDScript / CanvasItem shader | Kiemelt fake-3D, front/back, shadow, selection flash, dissolve, íves kéz, box select és multi-card drag referencia. UI/model/rules összefonódás, kozmetikai shuffle, state/lock és rules hibák; stable ID/version/replay/multiplayer hiányzik | **P1** | első teljes provenance/presentation/source audit elkészült; GPL direct integration elutasítva; CC0 asset és MIT shader külön kezelendő |
+| 8 | `godot-card-game-framework4` | 2 | [kptmn/godot-card-game-framework4](https://github.com/kptmn/godot-card-game-framework4) | megerősített külön repository; vizsgált commit `18c4bb376304ac57ceb1b76bff3046b226bc054f`; implementációsan a db0 2.2 framework Godot 4 konverziója | Godot 4 portkísérlet és kártya-UI/effect framework | Godot 4.2 / GDScript | Godot 3→4 migráció, Card/Hand/Pile/Target presentation, Tween/await/scene-konverzió; az eredeti cfc/NMAP és scene-node rules authority megmaradt, a PASS tesztstátusz nem bizonyított | **P0** | első teljes source audit elkészült; AGPL közvetlen integráció elutasítva |
+| 9 | `godot-card-game-framework-main` | 2 | [db0/godot-card-game-framework](https://github.com/db0/godot-card-game-framework) | megerősített upstream; vizsgált commit `f3ca9afd9705ff895839253fad208360d2f45146` | Godot-kártyajáték-keretrendszer és dictionary effect engine | Godot 3.4.x / GDScript | Card/Hand/Pile/Target/DeckBuilder presentation, deklaratív task/filter rendszer, cost dry-run és seedelt RNG; AETERNA-ban csak clean-room effect- és UI-inspirációként használható | **P0** | első teljes source audit elkészült; AGPL közvetlen integráció elutasítva |
 | 10 | `hackstone-main` | 2 | [hackclub/hackstone](https://github.com/hackclub/hackstone) | megerősített | Hearthstone-jellegű kártyajáték | webes technológiák | Egyszerű digitális CCG-folyamat és oktatási megközelítés | **P2** | metaadat ellenőrizve |
-| 11 | `Pali-main` | 2 | [rametta/Pali](https://github.com/rametta/Pali) | megerősített | 3D többjátékos Godot TCG | Godot / GDScript | Dedikált szerver, rejtett kéz, 3D asztal és multiplayer kliens | **P0** | README ellenőrizve |
+| 11 | `Pali-main` | 2 | [rametta/Pali](https://github.com/rametta/Pali) | megerősített upstream; vizsgált commit `bcea2eb2b3c49c90a7d4616dd80e5f7570dbcd42` | 3D dedikált szerveres Godot TCG és multiplayer authority-prototípus | Godot 4.1 / GDScript / ENet | Dedicated server lifecycle, sender-ID és server-side score; ugyanakkor teljes deck/hand identity leak, scene-tree authority és hiányos ownership/RPC validáció | **P0** | első teljes multiplayer/source audit elkészült; közvetlen integráció nem javasolt |
 | 12 | `seven-card-game-godot-master` | 2 | [Valyreon/seven-card-game-godot](https://github.com/Valyreon/seven-card-game-godot) | megerősített | Godot kártyajáték | Godot / GDScript | Kis, áttekinthető Godot-kártyajáték felépítése | **P2** | metaadat ellenőrizve |
-| 13 | `simple-card-pile-ui-master` | 2 | [insideout-andrew/simple-card-pile-ui](https://github.com/insideout-andrew/simple-card-pile-ui) | megerősített | Kártyahalom- és kéz-UI | Godot / GDScript | Kártyakéz, halmok, animációk; közvetlen vizuális referencia | **P0** | metaadat ellenőrizve |
+| 13 | `simple-card-pile-ui-master` | 2 | [insideout-andrew/simple-card-pile-ui](https://github.com/insideout-andrew/simple-card-pile-ui) | megerősített upstream; vizsgált commit `e9f52b0b3485fb83dd8072fe8098e820d5b90236` | Godot kártyahalom-, kéz- és drag/drop UI addon | Godot 4.2 / GDScript / EditorPlugin | Görbe alapú kézlegyező, négyirányú pile, CardUI/CardUIData, dropzone és signal API; a draw/discard/shuffle szabályi felelősség UI-ban marad, teszt/CI és explicit licenc nem talált | **P0** | első teljes presentation/source audit elkészült; csak clean-room UI-inspirációként használható |
 | 14 | `BabelCDB-master` | 3 | [ProjectIgnis/BabelCDB](https://github.com/ProjectIgnis/BabelCDB) | megerősített | Kártyaadatbázis és lokalizáció | adatfájlok / tooling | Nagy kártyaadatbázis, többnyelvű tartalom, ID-kezelés | **P1** | metaadat ellenőrizve |
 | 15 | `CardGameEngine-main` | 3 | azonosításra vár | bizonytalan | Ismeretlen kártyajáték-motor | helyi forrás ellenőrzendő | A pontos repository nélkül nem értékelhető megbízhatóan | **P0** | helyi .git/config vagy README szükséges |
 | 16 | `card-game-engine-master` | 3 | azonosításra vár | bizonytalan | Ismeretlen kártyajáték-motor | helyi forrás ellenőrzendő | Több azonos nevű repository létezik | **P0** | helyi .git/config vagy README szükséges |
@@ -168,24 +168,27 @@ Minden projekt rekordja legalább a következőket tartalmazza:
 | 49 | `Arcomage` | 5 | [DarkPro1337/Arcomage](https://github.com/DarkPro1337/Arcomage) | megerősített, aktív upstream (`mono`) | teljes kétjátékos kártyajáték | Godot 4.7 / C# / .NET 10 | YAML effect DSL, typed AST, ENet multiplayer, lokalizáció és WASM modrendszer | **P0** | első forráskód-audit elkészült |
 | 50 | `C# Battle Card Game Framework (CSBCGF)` | 5 | [finkmoritz/csbcgf](https://github.com/finkmoritz/csbcgf) | megerősített upstream; vizsgált HEAD 2023-02-14 | általános C# battle card framework | C# / .NET 7 | action queue, reaction phase, card componentek, statok, serialization és NUnit CI; kizárólag AETERNA authority/contract rendszerhez mérve | **P0** | első forráskód-audit elkészült |
 | 51 | `Godot-4-Card-Game-CSharp` | 5 | [TheSchlote/Godot-4-Card-Game-CSharp](https://github.com/TheSchlote/Godot-4-Card-Game-CSharp) | megerősített | Godot/C# oktatási card battle | Godot 4.2.1 / C# | Card UI state machine, targeting és enemy intent | **P0** | első forráskód-audit elkészült; archivált |
-| 52 | `card-game-engine` | 5 | [jcbcn/card-game-engine](https://gitlab.com/jcbcn/card-game-engine) | megerősített URL; helyi mappanév ellenőrzendő | .NET kártya- és társasjáték-motor | .NET / C# | Solution, tesztek, benchmarkok, publikus API és CI | **P0** | letöltve; mélyelemzésre vár |
-| 53 | `Card Game Engine` | 5 | [DavidCorrect/card-game-engine](https://gitlab.com/DavidCorrect/card-game-engine) | megerősített URL; helyi mappanév ellenőrzendő | Godot-kártyamotor | Godot / GDScript | Zónák, Stack/Exile, rejtett kéz és multiplayer | **P1** | letöltve; mélyelemzésre vár |
+| 52 | `card-game-engine` | 5 | [jcbcn/card-game-engine](https://gitlab.com/jcbcn/card-game-engine) | megerősített, aktív upstream; vizsgált rövid HEAD `e5c9e468` | .NET kártya- és társasjáték-motor | C# / .NET 10 | Abstractions/Engine NuGet-határ, PublicApiAnalyzers, semantic release, tests, benchmarkok és CI; a belső authority/rules-flow helyi forrásauditja még nyitott | **P0** | első strukturális/package audit elkészült; közvetlen dependency elutasítva (.NET 10, GPL-3.0-only) |
+| 53 | `Card Game Engine` | 5 | [DavidCorrect/card-game-engine](https://gitlab.com/DavidCorrect/card-game-engine) | megerősített, aktív upstream; README snapshot `9a092bdf`, v3.1 | Godot-kártyajáték-alap és multiplayer prototípus | Godot / GDScript | Zone/CardView, Stack/Exile presentation, drag-and-drop és hidden-hand RPC-szemlélet; a teljes source/authority audit nyitott | **P1** | első README/architecture audit elkészült; rules authorityként elutasítva |
 
 ### 3.1 Forráslista-egyeztetés
 
-A a forrásnyilvántartás 1.0 változata öt gyűjtési körben **53 projektet** tart nyilván.
-Ebből **42 rekordhoz közvetlen URL** szerepel, **11 rekord eredete még megerősítésre vár**.
+Az aktuális forrásnyilvántartás öt gyűjtési körben **53 projektet** tart nyilván.
 
-Kiemelt eltérések:
+Lezárt pontosítások:
 
-- az RLCard helyi forrásához a forráslista `mjiang9/_rlcard`, a korábbi katalógus
-  `datamllab/rlcard` repositoryt rendelt;
-- a Godot 4 framework rekordhoz a forráslista `kptmn/godot-card-game-framework4`,
-  a korábbi katalógus `linyangqi/godot-card-game-framework-gd4` repositoryt rendelt;
-- mindkét esetben a helyi `.git/config`, README vagy commitazonosító alapján kell dönteni;
-- az ötödik gyűjtési kör hat projektje átkerült a letöltött projektek közé;
-- a hasonló nevű `CardGameEngine-main`, `card-game-engine-master` és a két új GitLab
-  projekt külön rekord marad, amíg az eredetkapcsolat nem bizonyított.
+- az RLCard kanonikus upstreamje `datamllab/rlcard`;
+- a korábbi `mjiang9/_rlcard` csak történeti snapshot;
+- a `kptmn/godot-card-game-framework4` külön repository, de source audit alapján a db0 framework Godot 4-es konverziója;
+- a `linyangqi/godot-card-game-framework-gd4` ettől külön Godot 4 port/fork;
+- a `jcbcn/card-game-engine` upstream aktív és a 2.6.3 csomagig ellenőrzött.
+
+Továbbra is nyitott:
+
+- a helyi `CardGameEngine-main`;
+- a helyi `card-game-engine-master`;
+- a jcbcn helyi mappa pontos originje és teljes HEAD SHA-ja;
+- a többi, eredetazonosítási backlogban szereplő projekt.
 
 ## 4. Újonnan talált, még nem letöltött jelöltek
 
@@ -209,24 +212,25 @@ valamint azt, hogy a tényleges implementáció megfelel-e a README állításai
 3. `ch200c/Durak.Godot` – első audit elkészült
 4. `DarkPro1337/Arcomage` – első audit elkészült
 5. `finkmoritz/csbcgf` – első audit elkészült
-6. `jcbcn/card-game-engine` – következő engine-központú elemzési jelölt
+6. `jcbcn/card-game-engine` – első strukturális és package-audit elkészült; belső forrásaudit nyitott
+7. `DavidCorrect/card-game-engine` – első README/architecture audit elkészült; source/RPC audit nyitott
+8. `db0/godot-card-game-framework` – első teljes source audit elkészült
+9. `kptmn/godot-card-game-framework4` – első teljes source audit elkészült
+10. `rametta/Pali` – első teljes multiplayer/source audit elkészült
+11. `insideout-andrew/simple-card-pile-ui` – első teljes presentation/source audit elkészült
+12. `insideout-andrew/deckbuilder-framework` – első teljes deck/presentation source audit elkészült
+13. `db0/Fragment-Forge` – első teljes application/content/deckbuilder source audit elkészült
+14. `Fulafu-ai/Godot4-Fake3D-Card-Game-UI-Demo` – első teljes provenance/presentation/shader source audit elkészült
+15. `Valyreon/seven-card-game-godot` – következő P2 kis Godot-kártyajáték jelölt
 
-Ezek közül az első kettő elsősorban keretrendszer- és oktatási referencia, az Arcomage pedig
-egy teljes, működő alkalmazás. Együtt jól elkülöníthető belőlük:
-
-- a Godot-scene és C#-domain réteg határa;
-- a kártya- és halomobjektumok reprezentációja;
-- a UI-jelek és rules-logika kapcsolata;
-- a mentés/betöltés és adatvezérelt kártyadefiníció;
-- a build- és exportstruktúra.
+Minden lezárt elemzés külön, kizárólag az AETERNA aktuális rendszeréhez rögzíti a használható és kerülendő mintákat.
 
 ### 5.2 C# szabálymotor és teljes TCG referenciák
 
-1. `jcbcn/card-game-engine`
-2. `finkmoritz/csbcgf`
-3. `StefanoFiumara/harry-potter-tcg`
-4. az egyelőre azonosítatlan helyi `CardGameEngine-main`
-5. az egyelőre azonosítatlan helyi `card-game-engine-master`
+1. `jcbcn/card-game-engine` – strukturális/package audit elkészült; source audit nyitott
+2. `StefanoFiumara/harry-potter-tcg`
+3. az egyelőre azonosítatlan helyi `CardGameEngine-main`
+4. az egyelőre azonosítatlan helyi `card-game-engine-master`
 
 Ezekből elsősorban a következőket kell vizsgálni:
 
@@ -363,6 +367,117 @@ learning/analyses/magefree__mage.md
 6. Csak elfogadott következtetés kerüljön át engine- vagy projektdokumentációba.
 
 ## 10. Változásnapló
+
+### 1.7 – 2026-07-25
+
+- elkészült a `Fulafu-ai/Godot4-Fake3D-Card-Game-UI-Demo` első teljes provenance/presentation/shader source auditja;
+- az elkészült projektszintű elemzések száma tizennégyre frissült;
+- bekerült a vizsgált commit és a Godot 4.5 / Forward Plus állapot;
+- tisztázásra került az önálló repository és a külső shader/tutorial/asset provenance;
+- feldolgozásra került a fake-3D, front/back, shadow, flash, dissolve és resource-local material rendszer;
+- feldolgozásra került az íves kéz, box select, multi-card drag és presentation state machine;
+- rögzítésre került a Resource model és UI/rules összefonódása;
+- rögzítésre került a kozmetikai shuffle, a lock leak, az 52/54 lapos eltérés és több szabály/state hiba;
+- rögzítésre került a GPL-3.0 repository, MIT shader és CC0 asset licencréteg;
+- rögzítésre került a hiányzó CI és automatizált test proof;
+- a következő kijelölt projekt a `Valyreon/seven-card-game-godot`.
+
+### 1.6 – 2026-07-25
+
+- elkészült a `db0/Fragment-Forge` első teljes application/content/deckbuilder source auditja;
+- az elkészült projektszintű elemzések száma tizenháromra frissült;
+- bekerült a vizsgált commit, a Godot 3.x és az AGPL licenc;
+- feldolgozásra került a 100 lapos definition/script content és a game-specific DSL-bővítés;
+- feldolgozásra került a Persona, affinity, inspiration és influence deckbuilder;
+- rögzítésre került a nem verziózott deck JSON és a hiányos startvalidáció;
+- rögzítésre került a persona-use, placement stale-state és place-index hiba;
+- rögzítésre került a scene-node authority, a hiányzó replay/multiplayer és a korlátozott test/CI proof;
+- a következő kijelölt projekt a `Fulafu-ai/Godot4-Fake3D-Card-Game-UI-Demo`, upstream-eredetellenőrzéssel kezdve.
+
+### 1.5 – 2026-07-25
+
+- elkészült az `insideout-andrew/deckbuilder-framework` első teljes source auditja;
+- az elkészült projektszintű elemzések száma tizenkettőre frissült;
+- bekerült a vizsgált commit, a Godot 4.3 és az MIT licenc;
+- pontosításra került, hogy nem kész deck editor, hanem CardData–Card–Deck interaction framework;
+- feldolgozásra került a deckszintű input, a kézlegyező, a reparent animáció és a drag/reorder;
+- rögzítésre került a scene child order authority-, stable ID-, state version- és determinism-hiány;
+- rögzítésre került a quick drag click/drop kétértelműség és a full scene-tree targetkeresés;
+- rögzítésre került a pluginmanifest Control-script ellentmondása és a hiányzó CI/test proof;
+- a következő kijelölt projekt a `db0/Fragment-Forge`.
+
+### 1.4 – 2026-07-25
+
+- elkészült az `insideout-andrew/simple-card-pile-ui` első teljes presentation/source auditja;
+- az elkészült projektszintű elemzések száma tizenegyre frissült;
+- bekerült a vizsgált commit és a Godot 4.2 / EditorPlugin állapot;
+- feldolgozásra került a CardUI/CardUIData, a kézlegyező, a pile-layout és a dropzone API;
+- rögzítésre került, hogy a draw/discard/shuffle/hand-limit szabályi felelősség a UI-ban marad;
+- rögzítésre került a programozott drop validációmegkerülése és a discard-down layout bug;
+- rögzítésre került a stable instance ID, schema, determinism és hidden projection hiánya;
+- rögzítésre került a teszt/CI és az explicit repository-licenc hiánya;
+- a következő kijelölt projekt az `insideout-andrew/deckbuilder-framework`.
+
+### 1.3 – 2026-07-25
+
+- elkészült a `rametta/Pali` első teljes multiplayer- és authority-source auditja;
+- az elkészült projektszintű elemzések száma tízre frissült;
+- bekerült a Godot 4.1 / ENet / dedicated server technológiai állapot;
+- feldolgozásra került a peer lifecycle, match creation és server-side score;
+- rögzítésre került a teljes deck order és hidden-hand identity kliensoldali szivárgása;
+- rögzítésre került a hiányos play/switch ownership és zónavalidáció;
+- rögzítésre került a player-callable turnváltó RPC és a duplicate animation ACK kockázata;
+- bekerült az AETERNA MatchHost, single action gate és viewer projection javaslat;
+- bekerült az Apache-2.0 licenc és a third-party assetaudit követelménye;
+- a következő kijelölt projekt az `insideout-andrew/simple-card-pile-ui`.
+
+### 1.2 – 2026-07-25
+
+- elkészült a `kptmn/godot-card-game-framework4` első teljes source auditja;
+- az elkészült projektszintű elemzések száma kilencre frissült;
+- pontosításra került, hogy a repository külön rekord, de a db0 framework Godot 4
+  konverzióját tartalmazza;
+- bekerült a vizsgált commit és a Godot 4.2/4.2.1 technológiai állapot;
+- bekerült a Tween-, await-, getter/setter- és scene-migráció értékelése;
+- rögzítésre került a ScriptingEngine `previous_subject` FIXME és a Card duplicate kockázat;
+- rögzítésre került, hogy a vizsgált commit PASS workflow-státusza nem bizonyított;
+- a közvetlen AGPL integráció elutasítása változatlan;
+- a következő kijelölt projekt a `rametta/Pali`.
+
+### 1.1 – 2026-07-25
+
+- elkészült a `db0/godot-card-game-framework` első teljes source auditra épülő elemzése;
+- az elkészült projektszintű elemzések száma nyolcra frissült;
+- bekerült a Godot 3.4/GDScript technológiai és CI-státusz;
+- feldolgozásra került a Card/CardContainer/Board presentation szerkezet;
+- bekerült a dictionary-alapú ScriptingEngine, cost dry-run, subject/filter és selection értékelése;
+- rögzítésre került a globális `cfc`/NMAP és scene-node mutation authority-kockázata;
+- bekerült a seedelt RNG és determinism teszt értékelése;
+- rögzítésre került az AGPL licenc miatti közvetlen integráció elutasítása;
+- a következő kijelölt projekt a `kptmn/godot-card-game-framework4`.
+
+### 1.0 – 2026-07-24
+
+- elkészült a `DavidCorrect/card-game-engine` első README- és architekturális elemzése;
+- az elkészült projektszintű elemzések száma hétre frissült;
+- bekerült a Zone/CardView, Stack/Exile, drag-and-drop és hidden-hand multiplayer értékelése;
+- rögzítésre került, hogy a projekt Godot presentation-referencia, nem AETERNA rules authority;
+- a teljes source-, RPC-, security- és hidden-information audit nyitott maradt;
+- a következő letöltött P0 jelölt a `db0/godot-card-game-framework`;
+- a GitHub push ellenőrzése kikerült a normál projektenkénti munkafolyamatból; csak különösen fontos eltérésnél szükséges.
+
+### 0.9 – 2026-07-24
+
+- elkészült a `jcbcn/card-game-engine` első strukturális és package-szintű elemzése;
+- az elkészült projektszintű elemzések száma hatra frissült;
+- rögzítésre került a 2.6.3 Engine és Abstractions NuGet-kiadás;
+- bekerült a PublicApiAnalyzers, semantic-release, tests, benchmark és coverage értékelése;
+- rögzítésre került a `.NET 10` és az AETERNA `.NET 8` közvetlen inkompatibilitása;
+- rögzítésre került a NuGet `GPL-3.0-only` licencjelölése és a közvetlen dependency elutasítása;
+- a jcbcn elemzés státusza nem teljes rules-engine audit: a helyi forráskód-audit nyitott;
+- a korábbi, külső projekteket egymással összevető katalógusbekezdés eltávolításra került;
+- az RLCard- és Godot-framework forrásegyeztetés aktuális lezárt állapotra frissült;
+- következő jelöltként a `DavidCorrect/card-game-engine` került rögzítésre.
 
 ### 0.8 – 2026-07-24
 
