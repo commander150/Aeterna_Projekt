@@ -2,9 +2,9 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Dokumentumverzió:** 1.8
+- **Dokumentumverzió:** 2.0
 - **Dátum:** 2026-07-25
-- **Státusz:** tizenöt AETERNA-központú elemzéssel és a Pokémon CSS holografikus source-family audittal pontosított munkaváltozat
+- **Státusz:** tizenhét AETERNA-központú elemzéssel és a Hearthstone.gd teljes module/multiplayer/source audittal pontosított munkaváltozat
 - **Szerep:** külső referencia-projektek központi nyilvántartása
 - **Forráslista:** az aktuális verziózott „AETERNA – LEARNING FORRÁSPROJEKTEK NYILVÁNTARTÁSA” dokumentum
 - **Tervezett egyedi elemzések:** `learning/analyses/<projekt-azonosító>.md`
@@ -128,7 +128,7 @@ Minden projekt rekordja legalább a következőket tartalmazza:
 | 9 | `godot-card-game-framework-main` | 2 | [db0/godot-card-game-framework](https://github.com/db0/godot-card-game-framework) | megerősített upstream; vizsgált commit `f3ca9afd9705ff895839253fad208360d2f45146` | Godot-kártyajáték-keretrendszer és dictionary effect engine | Godot 3.4.x / GDScript | Card/Hand/Pile/Target/DeckBuilder presentation, deklaratív task/filter rendszer, cost dry-run és seedelt RNG; AETERNA-ban csak clean-room effect- és UI-inspirációként használható | **P0** | első teljes source audit elkészült; AGPL közvetlen integráció elutasítva |
 | 10 | `hackstone-main` | 2 | [hackclub/hackstone](https://github.com/hackclub/hackstone) | megerősített | Hearthstone-jellegű kártyajáték | webes technológiák | Egyszerű digitális CCG-folyamat és oktatási megközelítés | **P2** | metaadat ellenőrizve |
 | 11 | `Pali-main` | 2 | [rametta/Pali](https://github.com/rametta/Pali) | megerősített upstream; vizsgált commit `bcea2eb2b3c49c90a7d4616dd80e5f7570dbcd42` | 3D dedikált szerveres Godot TCG és multiplayer authority-prototípus | Godot 4.1 / GDScript / ENet | Dedicated server lifecycle, sender-ID és server-side score; ugyanakkor teljes deck/hand identity leak, scene-tree authority és hiányos ownership/RPC validáció | **P0** | első teljes multiplayer/source audit elkészült; közvetlen integráció nem javasolt |
-| 12 | `seven-card-game-godot-master` | 2 | [Valyreon/seven-card-game-godot](https://github.com/Valyreon/seven-card-game-godot) | megerősített | Godot kártyajáték | Godot / GDScript | Kis, áttekinthető Godot-kártyajáték felépítése | **P2** | metaadat ellenőrizve |
+| 12 | `seven-card-game-godot-master` | 2 | [Valyreon/seven-card-game-godot](https://github.com/Valyreon/seven-card-game-godot) | megerősített upstream; vizsgált `master` commit `d5dd92d8d31395e8c2ffa62630278a74aa81d9fd`; Godot 2.1.5, négycommitos történeti snapshot | Kétjátékos Sedmice host–client kártyajáték | Godot 2.1.5 / GDScript / TCP / PacketPeerStream | Értékes szerveroldali teljes kézállapot és kliensoldali dummy opponent-hand projection. Nyers Array protokoll, részleges szervervalidáció, illegális action-skip, context nélküli take/carry, server-first draw, optimista kliensmutation, scene-node authority, seed/replay/CI és licenc hiány | **P2** | első teljes multiplayer/source audit elkészült; közvetlen kód- és assetintegráció elutasítva |
 | 13 | `simple-card-pile-ui-master` | 2 | [insideout-andrew/simple-card-pile-ui](https://github.com/insideout-andrew/simple-card-pile-ui) | megerősített upstream; vizsgált commit `e9f52b0b3485fb83dd8072fe8098e820d5b90236` | Godot kártyahalom-, kéz- és drag/drop UI addon | Godot 4.2 / GDScript / EditorPlugin | Görbe alapú kézlegyező, négyirányú pile, CardUI/CardUIData, dropzone és signal API; a draw/discard/shuffle szabályi felelősség UI-ban marad, teszt/CI és explicit licenc nem talált | **P0** | első teljes presentation/source audit elkészült; csak clean-room UI-inspirációként használható |
 | 14 | `BabelCDB-master` | 3 | [ProjectIgnis/BabelCDB](https://github.com/ProjectIgnis/BabelCDB) | megerősített | Kártyaadatbázis és lokalizáció | adatfájlok / tooling | Nagy kártyaadatbázis, többnyelvű tartalom, ID-kezelés | **P1** | metaadat ellenőrizve |
 | 15 | `CardGameEngine-main` | 3 | azonosításra vár | bizonytalan | Ismeretlen kártyajáték-motor | helyi forrás ellenőrzendő | A pontos repository nélkül nem értékelhető megbízhatóan | **P0** | helyi .git/config vagy README szükséges |
@@ -139,7 +139,7 @@ Minden projekt rekordja legalább a következőket tartalmazza:
 | 20 | `fable5-hearthstone-clone-game-demo-main` | 3 | [EnginKARATAS/fable5-hearthstone-clone-game-demo](https://github.com/EnginKARATAS/fable5-hearthstone-clone-game-demo) | megerősített | Hearthstone-klón demó | Unity / C# (ellenőrzendő mélység) | Kártyajáték UI, körfolyamat és klienslogika | **P1** | metaadat ellenőrizve |
 | 21 | `gym-locm-master` | 3 | [ronaldosvieira/gym-locm](https://github.com/ronaldosvieira/gym-locm) | megerősített | AI/RL kártyajáték-környezet | Python | Legal action, állapotkódolás, agent training és benchmark | **P1** | metaadat ellenőrizve |
 | 22 | `HearthClone-master` | 3 | [valószínűleg Fiskell/HearthClone](https://github.com/Fiskell/HearthClone) | bizonytalan | Hearthstone-klón | helyi forrás ellenőrzendő | Több azonos nevű repository miatt az eredet nem biztos | **P1** | helyi .git/config vagy README szükséges |
-| 23 | `Hearthstone.gd-main` | 3 | [LunarTides/Hearthstone.gd](https://github.com/LunarTides/Hearthstone.gd) | megerősített | Godot Hearthstone-projekt | Godot / GDScript | Godot-kártyajáték felépítés és Hearthstone-jellegű UI | **P1** | metaadat ellenőrizve |
+| 23 | `Hearthstone.gd-main` | 3 | [LunarTides/Hearthstone.gd](https://github.com/LunarTides/Hearthstone.gd) | megerősített upstream; vizsgált `main` commit `df37022101aa84c467acceaf3b6914a699ab48c9`; Godot 4.2.2, project v0.1.0, GPL-3.0 | Nagyon korai Godot Hearthstone rewrite moduláris card/type/keyword/location/rarity és ENet multiplayer réteggel | Godot 4.2 / GDScript / ENet / 3D | Kiemelt module registry, hook, anticheat, editor card authoring és 3D layout referencia. Kritikus opponent deckcode/Blueprint leak, zone-index identity, replicated peer simulation, non-atomic effect/refund, broken module queue, Type summonable bug, global RNG és teszt/CI hiány | **P1** | első teljes module/multiplayer/source audit elkészült; GPL miatt közvetlen integráció elutasítva |
 | 24 | `LorcanaJSON-main` | 3 | [LorcanaJSON/LorcanaJSON](https://github.com/LorcanaJSON/LorcanaJSON) | megerősített | TCG-adatprojekt | JSON / tooling | Kártyaadat-séma, készletek, nyomtatások és publikált adat | **P1** | metaadat ellenőrizve |
 | 25 | `mdgachasim-master` | 3 | [Mari6814/mdgachasim](https://github.com/Mari6814/mdgachasim) | megerősített | Kártyahúzás/gacha szimulátor | ellenőrzendő | Valószínűségi húzás és szimuláció; korlátozott engine-relevancia | **P3** | metaadat ellenőrizve |
 | 26 | `mighty-engine-main` | 3 | azonosításra vár | bizonytalan | Ismeretlen engine | helyi forrás ellenőrzendő | A mappanév nem azonosít egyértelmű repositoryt | **P2** | helyi .git/config vagy README szükséges |
@@ -223,7 +223,9 @@ valamint azt, hogy a tényleges implementáció megfelel-e a README állításai
 13. `db0/Fragment-Forge` – első teljes application/content/deckbuilder source audit elkészült
 14. `Fulafu-ai/Godot4-Fake3D-Card-Game-UI-Demo` – első teljes provenance/presentation/shader source audit elkészült
 15. `simeydotme/pokemon-cards-css` source family – első teljes holografikus effect/material audit elkészült
-16. `Valyreon/seven-card-game-godot` – következő P2 kis Godot-kártyajáték jelölt
+16. `Valyreon/seven-card-game-godot` – első teljes multiplayer/source audit elkészült
+17. `LunarTides/Hearthstone.gd` – első teljes module/multiplayer/source audit elkészült
+18. `ProjectIgnis/CardScripts` – következő P0 ability-script és content jelölt
 
 Minden lezárt elemzés külön, kizárólag az AETERNA aktuális rendszeréhez rögzíti a használható és kerülendő mintákat.
 
@@ -369,6 +371,36 @@ learning/analyses/magefree__mage.md
 6. Csak elfogadott következtetés kerüljön át engine- vagy projektdokumentációba.
 
 ## 10. Változásnapló
+
+### 2.0 – 2026-07-26
+
+- elkészült a `LunarTides/Hearthstone.gd` első teljes module/multiplayer/source auditja;
+- az elkészült projektszintű elemzések száma tizenhétre frissült;
+- bekerült a vizsgált commit, Godot 4.2.2, project v0.1.0 és GPL-3.0;
+- feldolgozásra került a Card/Blueprint/Player, module registry, hook, packet és anticheat;
+- rögzítésre került a teljes opponent deckcode/Blueprint leak és a visual-only hidden modell;
+- rögzítésre került a zone-index identity, state version/request ID és atomic transition hiánya;
+- rögzítésre került a broken module request queue és a Type summonable/unregister hiba;
+- rögzítésre került a non-atomic refund, ability order és animation/rules összefonódás;
+- rögzítésre került a global RNG, deck shuffle hiány és content/module mismatch kockázat;
+- rögzítésre került a Blueprint editor authoring és layout module clean-room tanulsága;
+- közvetlen integráció elutasítva;
+- a következő kijelölt projekt a `ProjectIgnis/CardScripts`.
+
+### 1.9 – 2026-07-26
+
+- elkészült a `Valyreon/seven-card-game-godot` első teljes multiplayer/source auditja;
+- az elkészült projektszintű elemzések száma tizenhatra frissült;
+- bekerült a vizsgált `master` commit és a Godot 2.1.5 technológiai állapot;
+- feldolgozásra került a kétjátékos Sedmice rules flow;
+- rögzítésre került a szerveroldali mindkét valódi kéz és a kliensoldali dummy projection;
+- rögzítésre került az illegális action-skip és a take/carry context-validáció hiánya;
+- rögzítésre került a server-first húzási sorrend és az optimista kliensmutation;
+- rögzítésre került a nyers Array packet schema, state-version/replay/reconnect hiány;
+- rögzítésre került a scene-node authority, busy loop és exportkonfigurációs kockázat;
+- rögzítésre került a hiányzó kódlicenc és a nem auditálható képi provenance;
+- közvetlen integráció elutasítva, hidden-hand projection clean-room tanulságként elfogadva;
+- a következő kijelölt projekt a `LunarTides/Hearthstone.gd`.
 
 ### 1.8 – 2026-07-25
 

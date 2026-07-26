@@ -2,9 +2,9 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-- **Dokumentumverzió:** 2.4
+- **Dokumentumverzió:** 2.6
 - **Dátum:** 2026-07-25
-- **Státusz:** kizárólag verziózott központi dokumentummodellel és tizenöt AETERNA-központú elemzéssel pontosított munkaváltozat
+- **Státusz:** kizárólag verziózott központi dokumentummodellel és tizenhét AETERNA-központú elemzéssel pontosított munkaváltozat
 - **Szerep:** a `learning/sources/` alatt tárolt vagy korábban letöltött külső projektek eredet-nyilvántartása
 - **Kapcsolódó katalógus:** az aktuális verziózott „AETERNA – LEARNING PROJECT CATALOG” dokumentum
 - **Kapcsolódó elemzések:** `learning/analyses/`
@@ -30,9 +30,9 @@ A fájl elsődleges szerepei:
 |---|---:|
 | Gyűjtési körök száma | 6 |
 | Nyilvántartott projektek száma | 54 |
-| Közvetlenül rögzített forrás-URL | 43 |
+| Közvetlenül rögzített forrás-URL | 44 |
 | Még megerősítendő vagy ismeretlen eredet | 11 |
-| Elkészült első projektszintű elemzés | 15 |
+| Elkészült első projektszintű elemzés | 17 |
 
 ## 3. Azonosítási állapotok
 
@@ -77,7 +77,7 @@ sources list_vX.Y.md
 | 9 | `godot-card-game-framework` | [aktuális upstream](https://github.com/db0/godot-card-game-framework) | forrás rögzítve | Első teljes source audit elkészült. Vizsgált commit: `f3ca9afd9705ff895839253fad208360d2f45146`; framework 2.2; Godot 3.4.x/GDScript; dictionary ScriptingEngine, Card/Hand/Pile/DeckBuilder presentation, GUT CI és seedelt RNG. Licenc: AGPL-3.0 Steamworks addendummal; közvetlen AETERNA-integráció elutasítva. |
 | 10 | `hackstone` | [forrás](https://github.com/hackclub/hackstone) | forrás rögzítve | — |
 | 11 | `Pali – 3D Multiplayer Godot Card Game` | [forrás](https://github.com/rametta/Pali) | forrás rögzítve | Első teljes multiplayer/source audit elkészült. Vizsgált commit: `bcea2eb2b3c49c90a7d4616dd80e5f7570dbcd42`; Godot 4.1, GDScript, ENet, kétpeer-es dedicated server. Hasznos lifecycle és server-side score referencia, de teljes deck/hand identity leak, scene-tree authority, player-callable turnváltó RPC és hiányos ownership/zónavalidáció található. Licenc: Apache-2.0; assetek külön auditálandók. |
-| 12 | `Seven Card Game` | [forrás](https://github.com/Valyreon/seven-card-game-godot) | forrás rögzítve | — |
+| 12 | `Seven Card Game` | [forrás](https://github.com/Valyreon/seven-card-game-godot) | forrás rögzítve | Első teljes multiplayer/source audit elkészült. Vizsgált commit: `d5dd92d8d31395e8c2ffa62630278a74aa81d9fd`; Godot 2.1.5 / GDScript / TCP. A host tárolja mindkét valódi kezet, a kliens az ellenfélről csak dummy darabszámot kap. Azonosított kockázatok: nyers Array protokoll, illegális throw action-skip, context validation nélküli take/carry, server-first draw, optimista kliensmutation, scene-node authority, seed/replay/reconnect/test/CI hiány, hiányzó kódlicenc és ismeretlen képi provenance. Közvetlen integráció elutasítva; hidden-information projection tanulságként használható. |
 | 13 | `Simple CardPileUI` | [forrás](https://github.com/insideout-andrew/simple-card-pile-ui) | forrás rögzítve | Első teljes presentation/source audit elkészült. Vizsgált commit: `e9f52b0b3485fb83dd8072fe8098e820d5b90236`; Godot 4.2 / GDScript / EditorPlugin. Hasznos HandFan, pile-layout, CardUI/CardUIData, dropzone és signal referencia. A draw/discard/shuffle/hand-limit UI-oldali, a programozott drop nem validál automatikusan; stable ID, schema, determinism, test/CI és explicit licenc nem talált. |
 
 ### 3. gyűjtési kör
@@ -92,7 +92,7 @@ sources list_vX.Y.md
 | 20 | `Hearthstone Clone App` | [forrás](https://github.com/EnginKARATAS/fable5-hearthstone-clone-game-demo) | forrás rögzítve | — |
 | 21 | `gym-locm` | [forrás](https://github.com/ronaldosvieira/gym-locm) | forrás rögzítve | — |
 | 22 | `HearthClone-master` | — | azonosításra vár | Katalógusjelölt: https://github.com/Fiskell/HearthClone — több azonos nevű projekt miatt ellenőrzendő. |
-| 23 | `Hearthstone.gd` | [forrás](https://github.com/LunarTides/Hearthstone.gd) | forrás rögzítve | — |
+| 23 | `Hearthstone.gd` | [forrás](https://github.com/LunarTides/Hearthstone.gd) | forrás rögzítve | Első teljes module/multiplayer/source audit elkészült. Vizsgált commit: `df37022101aa84c467acceaf3b6914a699ab48c9`; Godot 4.2.2 / GDScript / ENet; GPL-3.0. Erősségek: moduláris hook és dependency rendszer, server anticheat, editor card creator/ID manager, 3D Hand/Layout és rarity/type/keyword module. Kritikus kockázatok: mindkét teljes deckcode és Blueprint minden kliensen, visual-only hidden modell, location+index packet identity, replicated peer simulation, broken module queue, Type summonable bug, partial refund, global RNG és teszt/CI hiány. Közvetlen integráció elutasítva; clean-room architecture/tooling referencia. |
 | 24 | `LorcanaJSON` | [forrás](https://github.com/LorcanaJSON/LorcanaJSON) | forrás rögzítve | — |
 | 25 | `mdgachasim` | [forrás](https://github.com/Mari6814/mdgachasim) | forrás rögzítve | — |
 | 26 | `mighty-engine-main` | — | azonosításra vár | A mappanév önmagában nem azonosít egyértelmű repositoryt. |
@@ -240,6 +240,31 @@ Ezeket a helyi `.git/config` vagy README ellenőrzéséig külön rekordként ke
    `linyangqi/godot-card-game-framework-gd4`
 
 ## 8. Változásnapló
+
+### 2.6 – 2026-07-26
+
+- elkészült a `LunarTides/Hearthstone.gd` első teljes module/multiplayer/source auditja;
+- az elkészült projektszintű elemzések száma tizenhétre frissült;
+- bekerült a vizsgált commit, Godot 4.2.2 és GPL-3.0;
+- rögzítésre került a module registry, anticheat, editor authoring és 3D layout tanulási értéke;
+- rögzítésre került a teljes deckcode/Blueprint hidden-information leak;
+- rögzítésre került a zone-index identity és replicated peer simulation;
+- rögzítésre került a broken module queue, Type summonable bug és non-atomic refund;
+- rögzítésre került a global RNG, shuffle hiány és module/content mismatch;
+- a következő kijelölt forrás a `ProjectIgnis/CardScripts`.
+
+### 2.5 – 2026-07-26
+
+- elkészült a `Valyreon/seven-card-game-godot` első teljes multiplayer/source auditja;
+- az elkészült projektszintű elemzések száma tizenhatra frissült;
+- a tényleges közvetlen repository-URL számláló 44-re javult;
+- bekerült a vizsgált commit és a Godot 2.1.5 / TCP technológiai állapot;
+- rögzítésre került a hostoldali teljes kézállapot és a kliensoldali dummy hand projection;
+- rögzítésre került az illegális action-skip, a take/carry jogosultságellenőrzés hiánya,
+  a server-first draw és az optimista kliensmutation;
+- rögzítésre került a nyers packet schema, a scene-node authority és a determinism/replay hiánya;
+- rögzítésre került a hiányzó kódlicenc és a képi assetek nem auditálható eredete;
+- a következő kijelölt forrás a `LunarTides/Hearthstone.gd`.
 
 ### 2.4 – 2026-07-25
 
