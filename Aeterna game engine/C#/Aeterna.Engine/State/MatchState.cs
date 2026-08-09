@@ -27,6 +27,8 @@ internal sealed class MatchState
 
     public List<EngineEvent> Events { get; } = [];
 
+    public PendingTriggerWindowState? PendingTriggerWindow { get; set; }
+
     public MatchResult Result { get; } = new(
         ContractSchemas.MatchResult,
         Completed: false,
@@ -47,6 +49,26 @@ internal sealed class MatchState
     }
 }
 
+internal sealed class PendingTriggerWindowState
+{
+    public required string PendingWindowId { get; init; }
+
+    public required string ControllerPlayerId { get; init; }
+
+    public List<PendingTriggeredAbilityState> PendingTriggers { get; } = [];
+}
+
+internal sealed record PendingTriggeredAbilityState(
+    string PendingTriggerId,
+    string AbilityId,
+    string TriggerId,
+    string SourceCardInstanceId,
+    string SourceCardId,
+    string ControllerPlayerId,
+    string SourceEngineEventId,
+    int SourceEngineEventSequence,
+    string CanonicalEventTypeId);
+
 internal sealed class PlayerState
 {
     public required string PlayerId { get; init; }
@@ -61,7 +83,61 @@ internal sealed class PlayerState
 
     public List<string> WellspringCardInstanceIds { get; } = [];
 
+    public DomainState Domain { get; } = new();
+
     public int? NormalInflowUsedTurnNumber { get; set; }
+}
+
+internal enum DomainRow
+{
+    Horizon,
+    Zenith,
+}
+
+internal sealed class DomainState
+{
+    public const int LaneCount = 6;
+
+    public List<string?> HorizonCardInstanceIds { get; } =
+        Enumerable.Repeat<string?>(null, LaneCount).ToList();
+
+    public List<string?> ZenithCardInstanceIds { get; } =
+        Enumerable.Repeat<string?>(null, LaneCount).ToList();
+
+    public List<string?> GetSlots(DomainRow row) => row switch
+    {
+        DomainRow.Horizon => HorizonCardInstanceIds,
+        DomainRow.Zenith => ZenithCardInstanceIds,
+        _ => throw new ArgumentOutOfRangeException(nameof(row)),
+    };
+
+    public bool TryOccupy(DomainRow row, int laneIndex, string cardInstanceId)
+    {
+        if (laneIndex is < 0 or >= LaneCount)
+        {
+            throw new ArgumentOutOfRangeException(nameof(laneIndex));
+        }
+
+        if (string.IsNullOrWhiteSpace(cardInstanceId))
+        {
+            throw new ArgumentException("Card instance ID is required.", nameof(cardInstanceId));
+        }
+
+        if (HorizonCardInstanceIds.Concat(ZenithCardInstanceIds).Any(item =>
+                string.Equals(item, cardInstanceId, StringComparison.Ordinal)))
+        {
+            return false;
+        }
+
+        var slots = GetSlots(row);
+        if (slots[laneIndex] is not null)
+        {
+            return false;
+        }
+
+        slots[laneIndex] = cardInstanceId;
+        return true;
+    }
 }
 
 internal sealed class CardInstanceState
@@ -87,4 +163,10 @@ internal sealed class CardInstanceState
     public required string InitialZone { get; init; }
 
     public string? ActivityState { get; set; }
+
+    public DomainRow? DomainRow { get; set; }
+
+    public int? DomainLaneIndex { get; set; }
+
+    public int? EnteredDomainTurnNumber { get; set; }
 }

@@ -15,6 +15,7 @@ public static class ContractSchemas
     public const string WellspringProjection = "aeterna-player-visible-wellspring-v1";
     public const string WellspringResourceSummary = "aeterna-wellspring-resource-summary-v1";
     public const string ResourceSummary = "aeterna-resource-summary-v1";
+    public const string DomainBoardProjection = "aeterna-player-visible-domain-board-v1";
     public const string DebugSnapshot = "aeterna-debug-match-snapshot-v1";
     public const string EngineEvent = "minimal-engine-event-v0";
     public const string EngineDiagnostic = "aeterna-engine-diagnostic-v1";
@@ -35,6 +36,11 @@ public sealed record RuntimePackageSource(
     [property: JsonPropertyName("package_directory")] string PackageDirectory,
     [property: JsonPropertyName("expected_package_id")] string? ExpectedPackageId = null);
 
+public sealed record CanonicalRuntimeSource(
+    [property: JsonPropertyName("registry_package_directory")] string RegistryPackageDirectory,
+    [property: JsonPropertyName("carddatabase_package_directory")] string CardDatabasePackageDirectory,
+    [property: JsonPropertyName("validation_mode")] string ValidationMode = "production");
+
 public sealed record PlayerSetup(
     [property: JsonPropertyName("player_id")] string PlayerId,
     [property: JsonPropertyName("deck_id")] string DeckId);
@@ -45,7 +51,10 @@ public sealed record CreateMatchRequest(
     [property: JsonPropertyName("seed")] int Seed,
     [property: JsonPropertyName("players")] ImmutableArray<PlayerSetup> Players,
     [property: JsonPropertyName("starting_hand_size")] int StartingHandSize,
-    [property: JsonPropertyName("runtime_package")] RuntimePackageSource RuntimePackage);
+    [property: JsonPropertyName("runtime_package")] RuntimePackageSource RuntimePackage,
+    [property: JsonPropertyName("canonical_data")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    CanonicalRuntimeSource? CanonicalData = null);
 
 public sealed record CreateMatchResponse(
     [property: JsonPropertyName("schema_version")] string SchemaVersion,
@@ -88,6 +97,23 @@ public sealed record ActionRequest(
 public sealed record NormalInflowActionPayload(
     [property: JsonPropertyName("card_instance_id")] string CardInstanceId);
 
+public sealed record PlayCardActionPayload(
+    [property: JsonPropertyName("card_instance_id")] string CardInstanceId,
+    [property: JsonPropertyName("domain_row")] string DomainRow,
+    [property: JsonPropertyName("lane_index")] int LaneIndex,
+    [property: JsonPropertyName("aura_source_card_instance_ids")]
+    ImmutableArray<string> AuraSourceCardInstanceIds);
+
+public sealed record CanonicalTargetSelectionPayload(
+    [property: JsonPropertyName("target_id")] string TargetId,
+    [property: JsonPropertyName("card_instance_ids")]
+    ImmutableArray<string> CardInstanceIds);
+
+public sealed record ResolveTriggeredAbilityActionPayload(
+    [property: JsonPropertyName("pending_trigger_id")] string PendingTriggerId,
+    [property: JsonPropertyName("target_selections")]
+    ImmutableArray<CanonicalTargetSelectionPayload> TargetSelections);
+
 public sealed record EngineDiagnostic(
     [property: JsonPropertyName("schema_version")] string SchemaVersion,
     [property: JsonPropertyName("code")] string Code,
@@ -112,6 +138,76 @@ public sealed record ZoneMovePayload(
     [property: JsonPropertyName("to_zone_index")] int ToZoneIndex,
     [property: JsonPropertyName("visibility_before")] string VisibilityBefore,
     [property: JsonPropertyName("visibility_after")] string VisibilityAfter);
+
+public sealed record DomainZoneMovePayload(
+    [property: JsonPropertyName("source_action_id")] string SourceActionId,
+    [property: JsonPropertyName("source_action_type")] string SourceActionType,
+    [property: JsonPropertyName("card_instance_id")] string CardInstanceId,
+    [property: JsonPropertyName("card_id")] string CardId,
+    [property: JsonPropertyName("owner_player_id")] string OwnerPlayerId,
+    [property: JsonPropertyName("controller_player_id")] string ControllerPlayerId,
+    [property: JsonPropertyName("from_zone")] string FromZone,
+    [property: JsonPropertyName("to_zone")] string ToZone,
+    [property: JsonPropertyName("from_zone_index")] int FromZoneIndex,
+    [property: JsonPropertyName("domain_row")] string DomainRow,
+    [property: JsonPropertyName("lane_index")] int LaneIndex,
+    [property: JsonPropertyName("visibility_before")] string VisibilityBefore,
+    [property: JsonPropertyName("visibility_after")] string VisibilityAfter);
+
+public sealed record AuraSourceExhaustedPayload(
+    [property: JsonPropertyName("source_action_id")] string SourceActionId,
+    [property: JsonPropertyName("source_action_type")] string SourceActionType,
+    [property: JsonPropertyName("payment_for_card_instance_id")] string PaymentForCardInstanceId,
+    [property: JsonPropertyName("card_instance_id")] string CardInstanceId,
+    [property: JsonPropertyName("card_id")] string CardId,
+    [property: JsonPropertyName("owner_player_id")] string OwnerPlayerId,
+    [property: JsonPropertyName("controller_player_id")] string ControllerPlayerId,
+    [property: JsonPropertyName("wellspring_zone_index")] int WellspringZoneIndex,
+    [property: JsonPropertyName("activity_state_before")] string ActivityStateBefore,
+    [property: JsonPropertyName("activity_state_after")] string ActivityStateAfter,
+    [property: JsonPropertyName("aura_units")] int AuraUnits);
+
+public sealed record CardEnteredPlayPayload(
+    [property: JsonPropertyName("source_action_id")] string SourceActionId,
+    [property: JsonPropertyName("source_action_type")] string SourceActionType,
+    [property: JsonPropertyName("card_instance_id")] string CardInstanceId,
+    [property: JsonPropertyName("card_id")] string CardId,
+    [property: JsonPropertyName("owner_player_id")] string OwnerPlayerId,
+    [property: JsonPropertyName("controller_player_id")] string ControllerPlayerId,
+    [property: JsonPropertyName("domain_row")] string DomainRow,
+    [property: JsonPropertyName("lane_index")] int LaneIndex,
+    [property: JsonPropertyName("activity_state")] string ActivityState,
+    [property: JsonPropertyName("entered_domain_turn_number")] int EnteredDomainTurnNumber);
+
+public sealed record CanonicalAbilityTriggeredPayload(
+    [property: JsonPropertyName("pending_trigger_id")] string PendingTriggerId,
+    [property: JsonPropertyName("ability_id")] string AbilityId,
+    [property: JsonPropertyName("trigger_id")] string TriggerId,
+    [property: JsonPropertyName("source_card_instance_id")] string SourceCardInstanceId,
+    [property: JsonPropertyName("source_card_id")] string SourceCardId,
+    [property: JsonPropertyName("controller_player_id")] string ControllerPlayerId,
+    [property: JsonPropertyName("source_engine_event_id")] string SourceEngineEventId,
+    [property: JsonPropertyName("source_engine_event_sequence")] int SourceEngineEventSequence,
+    [property: JsonPropertyName("canonical_event_type_id")] string CanonicalEventTypeId);
+
+public sealed record CardActivityChangedPayload(
+    [property: JsonPropertyName("card_instance_id")] string CardInstanceId,
+    [property: JsonPropertyName("card_id")] string CardId,
+    [property: JsonPropertyName("from_activity_state")] string FromActivityState,
+    [property: JsonPropertyName("to_activity_state")] string ToActivityState,
+    [property: JsonPropertyName("source_ability_id")] string SourceAbilityId,
+    [property: JsonPropertyName("source_effect_id")] string SourceEffectId,
+    [property: JsonPropertyName("pending_trigger_id")] string PendingTriggerId);
+
+public sealed record CanonicalAbilityResolvedPayload(
+    [property: JsonPropertyName("pending_trigger_id")] string PendingTriggerId,
+    [property: JsonPropertyName("ability_id")] string AbilityId,
+    [property: JsonPropertyName("trigger_id")] string TriggerId,
+    [property: JsonPropertyName("source_card_instance_id")] string SourceCardInstanceId,
+    [property: JsonPropertyName("source_card_id")] string SourceCardId,
+    [property: JsonPropertyName("controller_player_id")] string ControllerPlayerId,
+    [property: JsonPropertyName("resolution_outcome")] string ResolutionOutcome,
+    [property: JsonPropertyName("applied_effect_count")] int AppliedEffectCount);
 
 public sealed record TurnTransitionPayload(
     [property: JsonPropertyName("source_action_id")] string SourceActionId,
@@ -159,6 +255,37 @@ public sealed record CardReference(
     [property: JsonPropertyName("zone_sequence")] int ZoneSequence,
     [property: JsonPropertyName("controller_player_id")] string ControllerPlayerId,
     [property: JsonPropertyName("visibility")] string Visibility);
+
+public sealed record DomainCardProjection(
+    [property: JsonPropertyName("card_instance_id")] string CardInstanceId,
+    [property: JsonPropertyName("card_id")] string CardId,
+    [property: JsonPropertyName("owner_player_id")] string OwnerPlayerId,
+    [property: JsonPropertyName("controller_player_id")] string ControllerPlayerId,
+    [property: JsonPropertyName("zone")] string Zone,
+    [property: JsonPropertyName("zone_sequence")] int ZoneSequence,
+    [property: JsonPropertyName("visibility")] string Visibility,
+    [property: JsonPropertyName("activity_state")] string ActivityState,
+    [property: JsonPropertyName("entered_domain_turn_number")] int EnteredDomainTurnNumber);
+
+public sealed record DomainSlotProjection(
+    [property: JsonPropertyName("row")] string Row,
+    [property: JsonPropertyName("lane_index")] int LaneIndex,
+    [property: JsonPropertyName("occupied")] bool Occupied,
+    [property: JsonPropertyName("occupant")] DomainCardProjection? Occupant);
+
+public sealed record PlayerDomainProjection(
+    [property: JsonPropertyName("player_id")] string PlayerId,
+    [property: JsonPropertyName("occupied_slot_count")] int OccupiedSlotCount,
+    [property: JsonPropertyName("empty_slot_count")] int EmptySlotCount,
+    [property: JsonPropertyName("horizon")] ImmutableArray<DomainSlotProjection> Horizon,
+    [property: JsonPropertyName("zenith")] ImmutableArray<DomainSlotProjection> Zenith);
+
+public sealed record DomainBoardProjection(
+    [property: JsonPropertyName("schema_version")] string SchemaVersion,
+    [property: JsonPropertyName("zone")] string Zone,
+    [property: JsonPropertyName("visibility_mode")] string VisibilityMode,
+    [property: JsonPropertyName("lane_count")] int LaneCount,
+    [property: JsonPropertyName("players")] ImmutableArray<PlayerDomainProjection> Players);
 
 public sealed record ZoneSnapshot(
     [property: JsonPropertyName("zone")] string Zone,
@@ -229,6 +356,8 @@ public sealed record DebugPlayerSnapshot(
     ImmutableArray<string> HandCardInstanceIds,
     ImmutableArray<string> DiscardCardInstanceIds,
     ImmutableArray<string> WellspringCardInstanceIds,
+    ImmutableArray<string?> HorizonCardInstanceIds,
+    ImmutableArray<string?> ZenithCardInstanceIds,
     int? NormalInflowUsedTurnNumber);
 
 public sealed record DebugCardInstanceSnapshot(
@@ -242,7 +371,10 @@ public sealed record DebugCardInstanceSnapshot(
     int CreatedSequence,
     int ZoneSequence,
     string InitialZone,
-    string? ActivityState);
+    string? ActivityState,
+    string? DomainRow,
+    int? DomainLaneIndex,
+    int? EnteredDomainTurnNumber);
 
 public sealed record DebugSnapshot(
     string SchemaVersion,
@@ -256,6 +388,7 @@ public sealed record DebugSnapshot(
     ImmutableArray<DebugPlayerSnapshot> Players,
     ImmutableArray<DebugCardInstanceSnapshot> CardInstances,
     ImmutableArray<EngineEvent> Events,
+    JsonElement PendingTriggerSummary,
     MatchResult MatchResult);
 
 public sealed record MatchResult(
