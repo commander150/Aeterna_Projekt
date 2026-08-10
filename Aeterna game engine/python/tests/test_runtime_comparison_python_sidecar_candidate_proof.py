@@ -23,8 +23,8 @@ PYTHON_DIR = Path(__file__).resolve().parents[1]
 ENGINE_DIR = PYTHON_DIR.parent
 PROJECT_ROOT = ENGINE_DIR.parent
 PROJECT_TEMP = PROJECT_ROOT / "TEMP"
-FIXTURE_DIR = ENGINE_DIR / "runtime_comparison" / "fixtures" / "minimal_draw_end_turn_v1"
-FIXTURE_REQUEST_PATH = "minimal_draw_end_turn_v1/fixture.json"
+FIXTURE_DIR = ENGINE_DIR / "runtime_comparison" / "fixtures" / "minimal_draw_end_turn_v2"
+FIXTURE_REQUEST_PATH = "minimal_draw_end_turn_v2/fixture.json"
 TRACKED_ORACLE = FIXTURE_DIR / "expected" / "python_reference_v1"
 
 
@@ -60,7 +60,7 @@ class TestPythonSidecarCandidateProof(unittest.TestCase):
         self.assertEqual(sha256_bytes(first_bytes), sha256_bytes(canonical_json_bytes(second)))
         self.assertEqual(first["schema_version"], PROOF_RESULT_SCHEMA_VERSION)
         self.assertEqual(first["contract_type"], PROOF_RESULT_CONTRACT_TYPE)
-        self.assertEqual(first["fixture_id"], "minimal_draw_end_turn_v1")
+        self.assertEqual(first["fixture_id"], "minimal_draw_end_turn_v2")
         self.assertEqual(first["runtime_candidate"], "python_sidecar_headless")
         self.assertEqual(first["transport_protocol"], "aeterna-python-sidecar-protocol-v1")
         self.assertTrue(first["success"])
@@ -80,7 +80,6 @@ class TestPythonSidecarCandidateProof(unittest.TestCase):
             set(first["comparison"]["allowed_difference_codes"]),
             {
                 "RUNTIME_CANDIDATE_DIFFERENCE",
-                "BUILD_IDENTIFIER_DIFFERENCE",
                 "IMPLEMENTATION_SPECIFIC_DIFFERENCE",
                 "DECLARED_KNOWN_DEVIATION_DIFFERENCE",
             },

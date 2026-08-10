@@ -3,7 +3,7 @@ namespace Aeterna.Engine.Headless;
 public static class FixtureLocator
 {
     private const string RelativeFixturePath =
-        "runtime_comparison/fixtures/minimal_draw_end_turn_v1/fixture.json";
+        "runtime_comparison/fixtures/minimal_draw_end_turn_v2/fixture.json";
 
     public static string LocateCanonicalFixture()
     {

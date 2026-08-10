@@ -135,11 +135,11 @@ def validate_card_instance_record(record):
             )
         )
 
-    if zone in {"deck", "hand", "discard"} and activity_state is not ACTIVITY_NOT_APPLICABLE:
+    if zone in {"deck", "hand", "void"} and activity_state is not ACTIVITY_NOT_APPLICABLE:
         errors.append(
             _error(
                 "ACTIVITY_STATE_ZONE_MISMATCH",
-                "deck, hand, and discard card instances must have null activity_state.",
+                "deck, hand, and void card instances must have null activity_state.",
                 zone=zone,
                 activity_state=activity_state,
             )

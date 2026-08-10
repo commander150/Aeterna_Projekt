@@ -1,0 +1,126 @@
+{
+  "architecture": "amd64",
+  "build_identifier": "1ac3095509a4953bee79ae2acc76623ad693d117",
+  "canonical_artifacts": [
+    {
+      "byte_size": 59818,
+      "canonicalization": "aeterna-canonical-json-v1",
+      "comparison_level": "canonical_bytes",
+      "media_type": "application/json",
+      "path": "initial_state.json",
+      "sha256": "6f22f9b55a532f0772f343d14eb417b904f5f7be18dc3ba62de610a64251f7d0"
+    },
+    {
+      "byte_size": 926,
+      "canonicalization": "aeterna-canonical-jsonl-v1",
+      "comparison_level": "canonical_bytes",
+      "media_type": "application/x-ndjson",
+      "path": "requests.jsonl",
+      "sha256": "e36706311ca9aa413c4716a7f62795619e717aff5073f0673a28ff24844e723e"
+    },
+    {
+      "byte_size": 5174,
+      "canonicalization": "aeterna-canonical-jsonl-v1",
+      "comparison_level": "canonical_bytes",
+      "media_type": "application/x-ndjson",
+      "path": "responses.jsonl",
+      "sha256": "cc7f0e9cb85c1af87c96c154f86b7f6642558ee6f730e3e02f17f397833983c2"
+    },
+    {
+      "byte_size": 7348,
+      "canonicalization": "aeterna-canonical-jsonl-v1",
+      "comparison_level": "canonical_bytes",
+      "media_type": "application/x-ndjson",
+      "path": "legal_actions.jsonl",
+      "sha256": "44aa5dac13608d626d6dd953e81c353f8d8285d15238c9a00350845c75d0acaa"
+    },
+    {
+      "byte_size": 2531,
+      "canonicalization": "aeterna-canonical-jsonl-v1",
+      "comparison_level": "canonical_bytes",
+      "media_type": "application/x-ndjson",
+      "path": "events.jsonl",
+      "sha256": "0ed952090764ad59ccb265a5964f4c2841eb7f35428d645b33e1d21e5c1a7dce"
+    },
+    {
+      "byte_size": 25501,
+      "canonicalization": "aeterna-canonical-json-v1",
+      "comparison_level": "canonical_bytes",
+      "media_type": "application/json",
+      "path": "snapshot_player_1.json",
+      "sha256": "8b7838f7941a6b9ffcbea0bd59fcf9a4fd76af53aa5ec8086a5d1e310dc74fdb"
+    },
+    {
+      "byte_size": 25501,
+      "canonicalization": "aeterna-canonical-json-v1",
+      "comparison_level": "canonical_bytes",
+      "media_type": "application/json",
+      "path": "snapshot_player_2.json",
+      "sha256": "bb34872eff4b66d4d101893667fe4228d733ec7c9fdd9a12cb84480814552f1c"
+    },
+    {
+      "byte_size": 63321,
+      "canonicalization": "aeterna-canonical-json-v1",
+      "comparison_level": "canonical_bytes",
+      "media_type": "application/json",
+      "path": "final_debug_state.json",
+      "sha256": "a8b9b1e5b79391c965eb18324075e59ef03d91ca30fa4d7576ac2b8be64c6e5f"
+    },
+    {
+      "byte_size": 1797,
+      "canonicalization": "aeterna-canonical-json-v1",
+      "comparison_level": "canonical_bytes",
+      "media_type": "application/json",
+      "path": "diagnostics.json",
+      "sha256": "2a7f713bf4ff844edae765ea7a6169fe5f33205de1bec477767f90cb4eb2b366"
+    }
+  ],
+  "canonicalization_profile": "aeterna-canonical-json-v1",
+  "comparison_profile": "minimal-draw-end-turn-canonical-v1",
+  "contract_schema_mapping": {
+    "action_request": "minimal-action-request-unversioned",
+    "action_response": "minimal-action-response-v0",
+    "action_space": "minimal-legal-action-space-v0",
+    "canonical_match_state": "aeterna-canonical-match-state-v2",
+    "card_instance": "minimal-card-instance-record-v1",
+    "engine_event": "minimal-engine-event-v0",
+    "fixture": "aeterna-runtime-comparison-fixture-v1",
+    "player_visible_snapshot": "engine-player-visible-snapshot-v3",
+    "run_manifest": "aeterna-runtime-comparison-run-manifest-v1"
+  },
+  "contract_type": "runtime_comparison_run_manifest",
+  "end_result": {
+    "active_player_id": "player_2",
+    "event_count": 3,
+    "priority_player_id": "player_2",
+    "state_version": 3,
+    "validation": "passed"
+  },
+  "fixture_id": "minimal_draw_end_turn_v2",
+  "fixture_schema_version": "aeterna-runtime-comparison-fixture-v1",
+  "implementation_language": "python",
+  "implementation_specific": {
+    "exporter_id": "python_reference_exporter_v1",
+    "fixture_result_schema_version": "aeterna-python-reference-fixture-run-v1"
+  },
+  "known_deviations": [
+    {
+      "blocking": false,
+      "code": "ACTION_REQUEST_SCHEMA_VERSION_NOT_EMBEDDED",
+      "description": "The current action request is identified by its fixed field contract; it does not yet embed schema_version."
+    }
+  ],
+  "operating_system": "windows",
+  "oracle_id": "python_reference",
+  "oracle_version": 1,
+  "runtime_candidate": "python_reference",
+  "runtime_version": "3.14.3",
+  "schema_version": "aeterna-runtime-comparison-run-manifest-v1",
+  "start_result": {
+    "active_player_id": "player_1",
+    "event_count": 0,
+    "priority_player_id": "player_1",
+    "state_version": 0,
+    "validation": "passed"
+  }
+}

@@ -1,6 +1,6 @@
 """Language-independent canonical projection of the minimal MatchState.
 
-The v1 top-level contract is a required-value object with these fields:
+The v2 top-level contract is a required-value object with these fields:
 ``schema_version``, ``contract_type``, ``match_id``, ``state_version``,
 ``turn_number``, ``phase``, ``active_player_id``, ``priority_player_id``,
 ``priority_model``, ``players``, ``card_instances``, ``domain_topologies``,
@@ -41,7 +41,7 @@ except ModuleNotFoundError:
     from tools.ai_vs_ai.state_invariants import validate_state_invariants
 
 
-CANONICAL_MATCH_STATE_SCHEMA_VERSION = "aeterna-canonical-match-state-v1"
+CANONICAL_MATCH_STATE_SCHEMA_VERSION = "aeterna-canonical-match-state-v2"
 CANONICAL_MATCH_STATE_CONTRACT_TYPE = "canonical_match_state"
 MINIMAL_PRIORITY_MODEL = "minimal_priority_model_v1"
 
@@ -74,7 +74,7 @@ FIELD_POLICIES = {
             "deck_id",
             "deck_card_instance_ids",
             "hand_card_instance_ids",
-            "discard_card_instance_ids",
+            "void_card_instance_ids",
         ),
         "required_nullable": (),
         "optional_omitted": (),
@@ -321,7 +321,7 @@ _PLAYER_FIELDS = frozenset(
         "deck_id",
         "deck_card_instance_ids",
         "hand_card_instance_ids",
-        "discard_card_instance_ids",
+        "void_card_instance_ids",
     }
 )
 _CARD_INSTANCE_FIELDS = frozenset(
@@ -586,7 +586,7 @@ def _validate_player_shape(player, index):
     for field_name in (
         "deck_card_instance_ids",
         "hand_card_instance_ids",
-        "discard_card_instance_ids",
+        "void_card_instance_ids",
     ):
         values = getattr(player, field_name, None)
         if not isinstance(values, list):
@@ -607,7 +607,7 @@ def _serialize_player(player, index):
         "deck_id": player.deck_id,
         "deck_card_instance_ids": list(player.deck_card_instance_ids),
         "hand_card_instance_ids": list(player.hand_card_instance_ids),
-        "discard_card_instance_ids": list(player.discard_card_instance_ids),
+        "void_card_instance_ids": list(player.void_card_instance_ids),
     }
 
 

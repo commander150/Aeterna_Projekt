@@ -56,7 +56,7 @@ class TestMinimalEngineSession(unittest.TestCase):
         self.assertEqual(player_snapshot["match_id"], state.match_id)
         self.assertEqual(player_snapshot["state_version"], 0)
         self.assertFalse(player_snapshot["metadata"]["debug_snapshot_source"])
-        self.assertEqual(player_snapshot["schema_version"], "engine-player-visible-snapshot-v2")
+        self.assertEqual(player_snapshot["schema_version"], "engine-player-visible-snapshot-v3")
         self.assertEqual(
             player_snapshot["metadata"]["hidden_information_model"],
             "minimal_visibility_projection_v0",

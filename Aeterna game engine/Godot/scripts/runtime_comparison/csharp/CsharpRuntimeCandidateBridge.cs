@@ -54,7 +54,7 @@ public static class CsharpRuntimeCandidateBridge
             "..",
             "runtime_comparison",
             "fixtures",
-            "minimal_draw_end_turn_v1",
+            "minimal_draw_end_turn_v2",
             "fixture.json"));
         if (!File.Exists(fixturePath))
         {

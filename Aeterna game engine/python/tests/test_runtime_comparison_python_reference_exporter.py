@@ -19,7 +19,7 @@ PYTHON_DIR = Path(__file__).resolve().parents[1]
 ENGINE_DIR = PYTHON_DIR.parent
 PROJECT_ROOT = ENGINE_DIR.parent
 PROJECT_TEMP = PROJECT_ROOT / "TEMP"
-FIXTURE_DIR = ENGINE_DIR / "runtime_comparison" / "fixtures" / "minimal_draw_end_turn_v1"
+FIXTURE_DIR = ENGINE_DIR / "runtime_comparison" / "fixtures" / "minimal_draw_end_turn_v2"
 FIXTURE_PATH = FIXTURE_DIR / "fixture.json"
 TRACKED_ORACLE = FIXTURE_DIR / "expected" / "python_reference_v1"
 
@@ -238,13 +238,13 @@ class TestPythonReferenceExporter(unittest.TestCase):
             self.assertEqual(record["comparison_level"], "canonical_bytes")
         mapping = manifest["contract_schema_mapping"]
         self.assertEqual(mapping["fixture"], "aeterna-runtime-comparison-fixture-v1")
-        self.assertEqual(mapping["canonical_match_state"], "aeterna-canonical-match-state-v1")
+        self.assertEqual(mapping["canonical_match_state"], "aeterna-canonical-match-state-v2")
         self.assertEqual(mapping["card_instance"], "minimal-card-instance-record-v1")
         self.assertEqual(mapping["action_space"], "minimal-legal-action-space-v0")
         self.assertEqual(mapping["action_request"], "minimal-action-request-unversioned")
         self.assertEqual(mapping["action_response"], "minimal-action-response-v0")
         self.assertEqual(mapping["engine_event"], "minimal-engine-event-v0")
-        self.assertEqual(mapping["player_visible_snapshot"], "engine-player-visible-snapshot-v2")
+        self.assertEqual(mapping["player_visible_snapshot"], "engine-player-visible-snapshot-v3")
         self.assertEqual(mapping["run_manifest"], exporter.RUN_MANIFEST_SCHEMA_VERSION)
         self.assertTrue(
             any(

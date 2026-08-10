@@ -70,7 +70,7 @@ class TestMinimalCardInstanceActivityState(unittest.TestCase):
         valid_cases = (
             ("deck", None),
             ("hand", None),
-            ("discard", None),
+            ("void", None),
             ("domain", "active"),
             ("domain", "exhausted"),
         )
@@ -85,7 +85,7 @@ class TestMinimalCardInstanceActivityState(unittest.TestCase):
         invalid_zone_cases = (
             ("deck", "active"),
             ("hand", "exhausted"),
-            ("discard", "active"),
+            ("void", "active"),
             ("domain", None),
         )
         for zone, activity_state in invalid_zone_cases:
@@ -324,7 +324,7 @@ class TestMinimalCardInstanceActivityState(unittest.TestCase):
         # J61-J65: player, trajectory, legal action, bot, and placement schemas stay stable.
         player_snapshot = session.get_player_snapshot("P1")
         self.assertTrue(self.player_snapshot.validate_player_visible_snapshot(player_snapshot)["valid"])
-        self.assertEqual(player_snapshot["schema_version"], "engine-player-visible-snapshot-v2")
+        self.assertEqual(player_snapshot["schema_version"], "engine-player-visible-snapshot-v3")
         self.assertFalse(_contains_key(player_snapshot, "activity_state"))
 
         environment = self.environment_module.MinimalEngineEnvironment(self.runtime_package)
@@ -462,7 +462,7 @@ class TestMinimalCardInstanceActivityState(unittest.TestCase):
     @staticmethod
     def _remove_instance_from_list_zones(state, card_instance_id):
         for player in state.players:
-            for zone_name in ("deck", "hand", "discard"):
+            for zone_name in ("deck", "hand", "void"):
                 zone = getattr(player, "%s_card_instance_ids" % zone_name)
                 while card_instance_id in zone:
                     zone.remove(card_instance_id)

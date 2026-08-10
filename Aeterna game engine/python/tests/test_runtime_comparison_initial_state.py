@@ -12,7 +12,7 @@ FIXTURE_DIR = (
     ENGINE_PYTHON_DIR.parent
     / "runtime_comparison"
     / "fixtures"
-    / "minimal_draw_end_turn_v1"
+    / "minimal_draw_end_turn_v2"
 )
 RUNTIME_PACKAGE_DIR = FIXTURE_DIR / "runtime_package"
 FIXTURE_PATH = FIXTURE_DIR / "fixture.json"
@@ -140,7 +140,7 @@ class TestRuntimeComparisonInitialState(unittest.TestCase):
             self.assertEqual(player.deck_id, player_setup["deck_id"])
             self.assertEqual(len(player.hand_card_instance_ids), 1)
             self.assertEqual(len(player.deck_card_instance_ids), 2)
-            self.assertEqual(player.discard_card_instance_ids, [])
+            self.assertEqual(player.void_card_instance_ids, [])
 
             ordered_instance_ids = player.hand_card_instance_ids + player.deck_card_instance_ids
             all_zone_instance_ids.extend(ordered_instance_ids)

@@ -27,14 +27,14 @@ except ModuleNotFoundError:
     )
 
 
-PLAYER_VISIBLE_SNAPSHOT_SCHEMA_VERSION = "engine-player-visible-snapshot-v2"
+PLAYER_VISIBLE_SNAPSHOT_SCHEMA_VERSION = "engine-player-visible-snapshot-v3"
 
 VISIBILITY_POLICY = {
     "model": "minimal_visibility_projection_v0",
     "deck": "count_only",
     "own_hand": "owner_visible",
     "opponent_hand": "count_only",
-    "discard": "public",
+    "void": "public",
     "board": "public",
 }
 
@@ -77,7 +77,7 @@ _REQUIRED_PLAYER_FIELDS = (
     "is_viewer",
     "deck_count",
     "hand_count",
-    "discard_count",
+    "void_count",
     "zones",
 )
 
@@ -90,7 +90,7 @@ _REQUIRED_ZONE_FIELDS = (
     "metadata",
 )
 
-_ZONE_NAMES = ("deck", "hand", "discard")
+_ZONE_NAMES = ("deck", "hand", "void")
 
 
 def create_player_visible_snapshot(state, player_id, legal_actions=None, diagnostics=None):
@@ -276,7 +276,7 @@ def validate_player_visible_snapshot(snapshot):
                 _error("PLAYER_RELATION_INVALID", "is_viewer must match relation.", player_index=player_index)
             )
 
-        for count_field in ("deck_count", "hand_count", "discard_count"):
+        for count_field in ("deck_count", "hand_count", "void_count"):
             if not _is_non_negative_integer(player.get(count_field)):
                 errors.append(
                     _error(
@@ -334,11 +334,11 @@ def _project_player(state, player, viewer_player_id):
         "is_viewer": is_viewer,
         "deck_count": len(player.deck_card_instance_ids),
         "hand_count": len(player.hand_card_instance_ids),
-        "discard_count": len(player.discard_card_instance_ids),
+        "void_count": len(player.void_card_instance_ids),
         "zones": {
             "deck": _project_zone(state, "deck", player.deck_card_instance_ids, "count_only"),
             "hand": _project_zone(state, "hand", player.hand_card_instance_ids, hand_visibility),
-            "discard": _project_zone(state, "discard", player.discard_card_instance_ids, "public"),
+            "void": _project_zone(state, "void", player.void_card_instance_ids, "public"),
         },
     }
 
@@ -369,7 +369,7 @@ def _validate_zones(player, player_index, visible_instance_ids, errors):
         errors.append(
             _error(
                 "ZONE_PROJECTION_INVALID",
-                "zones must contain exactly deck, hand, and discard.",
+                "zones must contain exactly deck, hand, and void.",
                 player_index=player_index,
             )
         )
@@ -596,7 +596,7 @@ def _validate_object_reference(
 def _expected_zone_visibility(relation, zone_name):
     if zone_name == "deck":
         return "count_only"
-    if zone_name == "discard":
+    if zone_name == "void":
         return "public"
     return "owner_visible" if relation == "self" else "count_only"
 

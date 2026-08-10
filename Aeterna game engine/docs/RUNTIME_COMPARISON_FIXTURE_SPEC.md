@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.1  
-**Dátum:** 2026-07-20  
-**Státusz:** elfogadott comparison fixture és aktív regressziós referencia  
-**Fixture:** `minimal_draw_end_turn_v1`  
-**Canonical SHA-256:** `650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`  
-**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
+**Dokumentumverzió:** 1.2\
+**Dátum:** 2026-08-10\
+**Státusz:** elfogadott comparison fixture és aktív regressziós referencia\
+**Fixture:** `minimal_draw_end_turn_v2`\
+**Canonical SHA-256:** `97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8`\
+**Aktuális repository-bázis:** `1ac3095509a4953bee79ae2acc76623ad693d117`
 
 Ez a dokumentum a runtime-nyelvi döntési kapuban használt közös, minimális fixture jelentését és jövőbeli regressziós szerepét rögzíti.
 
@@ -21,7 +21,7 @@ Bizonyított felhasználások:
 - pure C# RuntimeCandidate;
 - Godot .NET/C# in-process proof.
 
-A production C# engine C.5B szakaszában ugyanezt a fixture-t újra kell reprodukálni.
+A production C# engine és a RuntimeCandidate ugyanazt a v2 fixture-t reprodukálja. A v1 fixture változatlan történeti bizonyíték; a v2 a technikai `discard` zóna canonical `void` zónára migrálását rögzíti.
 
 ---
 
@@ -300,11 +300,11 @@ A dictionary természetes enumerációs sorrendje nem elegendő.
 
 Canonical SHA:
 
-`650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`
+`97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8`
 
 Rögzített canonical result méret:
 
-`210730` byte.
+`210676` byte.
 
 A konkrét artifactok repositorybeli expected/candidate mappákban találhatók.
 

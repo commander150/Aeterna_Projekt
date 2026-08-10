@@ -41,7 +41,7 @@ class TestMinimalPlayerVisibleSnapshotContract(unittest.TestCase):
         self_projection = _player(snapshot, "P1")
         opponent_projection = _player(snapshot, "P2")
 
-        self.assertEqual(snapshot["schema_version"], "engine-player-visible-snapshot-v2")
+        self.assertEqual(snapshot["schema_version"], "engine-player-visible-snapshot-v3")
         self.assertEqual(snapshot["contract_type"], "engine_player_visible_snapshot")
         self.assertEqual(snapshot["snapshot_type"], "player_visible_snapshot")
         self.assertEqual(snapshot["visibility_mode"], "player")
@@ -52,7 +52,7 @@ class TestMinimalPlayerVisibleSnapshotContract(unittest.TestCase):
                 "deck": "count_only",
                 "own_hand": "owner_visible",
                 "opponent_hand": "count_only",
-                "discard": "public",
+                "void": "public",
                 "board": "public",
             },
         )
@@ -62,13 +62,13 @@ class TestMinimalPlayerVisibleSnapshotContract(unittest.TestCase):
 
         for projection in (self_projection, opponent_projection):
             deck = projection["zones"]["deck"]
-            discard = projection["zones"]["discard"]
+            void_zone = projection["zones"]["void"]
             self.assertEqual(deck["visibility_mode"], "count_only")
             self.assertTrue(deck["redacted"])
             self.assertEqual(deck["objects"], [])
-            self.assertEqual(discard["visibility_mode"], "public")
-            self.assertFalse(discard["redacted"])
-            self.assertEqual(discard["objects"], [])
+            self.assertEqual(void_zone["visibility_mode"], "public")
+            self.assertFalse(void_zone["redacted"])
+            self.assertEqual(void_zone["objects"], [])
 
         self.assertEqual(self_projection["zones"]["hand"]["visibility_mode"], "owner_visible")
         self.assertFalse(self_projection["zones"]["hand"]["redacted"])
@@ -150,14 +150,14 @@ class TestMinimalPlayerVisibleSnapshotContract(unittest.TestCase):
         self.assertTrue(self.snapshot_module.validate_player_visible_snapshot(p2_snapshot)["valid"])
         self.assertTrue(self.snapshot_module.validate_player_visible_snapshot(p1_snapshot)["valid"])
 
-    def test_public_discard_is_visible_to_both_players(self):
-        session = self._create_session("PLAYER-SNAPSHOT-PUBLIC-DISCARD-001")
+    def test_public_void_is_visible_to_both_players(self):
+        session = self._create_session("PLAYER-SNAPSHOT-PUBLIC-VOID-001")
         state = session.state
         player = state.get_player("P1")
         card_instance_id = player.deck_card_instance_ids.pop(0)
-        player.discard_card_instance_ids.append(card_instance_id)
+        player.void_card_instance_ids.append(card_instance_id)
         record = state.get_card_instance(card_instance_id)
-        record["zone"] = "discard"
+        record["zone"] = "void"
         record["zone_index"] = 0
         record["visibility"] = "public"
         record["zone_sequence"] += 1
@@ -166,14 +166,14 @@ class TestMinimalPlayerVisibleSnapshotContract(unittest.TestCase):
 
         p1_snapshot = session.get_player_snapshot("P1")
         p2_snapshot = session.get_player_snapshot("P2")
-        p1_discard = _player(p1_snapshot, "P1")["zones"]["discard"]
-        p2_discard = _player(p2_snapshot, "P1")["zones"]["discard"]
+        p1_void = _player(p1_snapshot, "P1")["zones"]["void"]
+        p2_void = _player(p2_snapshot, "P1")["zones"]["void"]
 
-        self.assertEqual(p1_discard["objects"], p2_discard["objects"])
-        self.assertEqual(p1_discard["objects"][0]["card_instance_id"], card_instance_id)
-        self.assertEqual(p1_discard["objects"][0]["visibility"], "public")
-        self.assertEqual(p1_discard["count"], len(p1_discard["objects"]))
-        self.assertEqual(p2_discard["count"], len(p2_discard["objects"]))
+        self.assertEqual(p1_void["objects"], p2_void["objects"])
+        self.assertEqual(p1_void["objects"][0]["card_instance_id"], card_instance_id)
+        self.assertEqual(p1_void["objects"][0]["visibility"], "public")
+        self.assertEqual(p1_void["count"], len(p1_void["objects"]))
+        self.assertEqual(p2_void["count"], len(p2_void["objects"]))
         self.assertTrue(self.snapshot_module.validate_player_visible_snapshot(p1_snapshot)["valid"])
         self.assertTrue(self.snapshot_module.validate_player_visible_snapshot(p2_snapshot)["valid"])
 
@@ -190,7 +190,7 @@ class TestMinimalPlayerVisibleSnapshotContract(unittest.TestCase):
             "card_instances",
             "deck_card_instance_ids",
             "hand_card_instance_ids",
-            "discard_card_instance_ids",
+            "void_card_instance_ids",
             "debug_snapshot",
             "event_log",
             "payload",
@@ -245,16 +245,16 @@ class TestMinimalPlayerVisibleSnapshotContract(unittest.TestCase):
         cases.append(("VISIBLE_ZONE_COUNT_MISMATCH", count_mismatch))
 
         zone_mismatch = deepcopy(valid)
-        _player(zone_mismatch, "P1")["zones"]["hand"]["objects"][0]["zone"] = "discard"
+        _player(zone_mismatch, "P1")["zones"]["hand"]["objects"][0]["zone"] = "void"
         cases.append(("OBJECT_REFERENCE_ZONE_MISMATCH", zone_mismatch))
 
         duplicate_visible = deepcopy(valid)
         projection = _player(duplicate_visible, "P1")
         duplicate_reference = deepcopy(projection["zones"]["hand"]["objects"][0])
-        duplicate_reference["zone"] = "discard"
-        projection["discard_count"] = 1
-        projection["zones"]["discard"]["count"] = 1
-        projection["zones"]["discard"]["objects"] = [duplicate_reference]
+        duplicate_reference["zone"] = "void"
+        projection["void_count"] = 1
+        projection["zones"]["void"]["count"] = 1
+        projection["zones"]["void"]["objects"] = [duplicate_reference]
         cases.append(("VISIBLE_OBJECT_DUPLICATE", duplicate_visible))
 
         missing_self = deepcopy(valid)

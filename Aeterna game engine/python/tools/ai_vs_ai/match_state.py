@@ -12,7 +12,7 @@ class PlayerState:
     deck_id: str
     deck_card_instance_ids: list
     hand_card_instance_ids: list = field(default_factory=list)
-    discard_card_instance_ids: list = field(default_factory=list)
+    void_card_instance_ids: list = field(default_factory=list)
 
 
 @dataclass

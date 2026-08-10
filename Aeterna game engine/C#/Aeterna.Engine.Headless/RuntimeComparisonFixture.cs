@@ -16,7 +16,7 @@ public sealed record RuntimeComparisonFixture(
     string StepPlanId)
 {
     private const string SupportedSchema = "aeterna-runtime-comparison-fixture-v1";
-    private const string SupportedFixtureId = "minimal_draw_end_turn_v1";
+    private const string SupportedFixtureId = "minimal_draw_end_turn_v2";
 
     public static RuntimeComparisonFixture Load(string fixturePath)
     {

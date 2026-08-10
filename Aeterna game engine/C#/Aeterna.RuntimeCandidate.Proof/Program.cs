@@ -136,7 +136,7 @@ static string? GetOption(IReadOnlyList<string> arguments, string option)
 static string LocateCanonicalFixture()
 {
     const string relativePath =
-        "runtime_comparison/fixtures/minimal_draw_end_turn_v1/fixture.json";
+        "runtime_comparison/fixtures/minimal_draw_end_turn_v2/fixture.json";
     foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
     {
         var directory = new DirectoryInfo(Path.GetFullPath(start));

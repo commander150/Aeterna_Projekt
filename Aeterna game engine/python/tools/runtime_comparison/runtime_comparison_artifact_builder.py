@@ -26,7 +26,7 @@ CANONICAL_JSONL_PROFILE = "aeterna-canonical-jsonl-v1"
 COMPARISON_PROFILE = "minimal-draw-end-turn-canonical-v1"
 ORACLE_ID = "python_reference"
 ORACLE_VERSION = 1
-FIXTURE_ID = "minimal_draw_end_turn_v1"
+FIXTURE_ID = "minimal_draw_end_turn_v2"
 
 CANONICAL_ARTIFACT_PATHS = (
     "initial_state.json",

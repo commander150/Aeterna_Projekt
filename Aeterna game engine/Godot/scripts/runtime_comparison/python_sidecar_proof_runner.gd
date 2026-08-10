@@ -11,12 +11,12 @@ const SidecarClient = preload("res://scripts/runtime_comparison/python_sidecar_c
 const SidecarProcess = preload("res://scripts/runtime_comparison/python_sidecar_process.gd")
 
 const PROOF_SCHEMA_VERSION = "aeterna-godot-python-sidecar-visual-proof-v1"
-const DEFAULT_FIXTURE_PATH = "minimal_draw_end_turn_v1/fixture.json"
+const DEFAULT_FIXTURE_PATH = "minimal_draw_end_turn_v2/fixture.json"
 const LOCAL_CONFIG_PATH = "res://../../TEMP/godot_local_runtime_config.json"
 const LOCAL_CONFIG_SCHEMA_VERSION = "aeterna-local-runtime-config-v1"
 const EXPECTED_RAW_BODY_BYTES = 130_123
 const EXPECTED_RAW_BODY_SHA256 = "4ba84e68d98a629c46aeaf6f5eb5f262569233ce5acaf9652e3548038965486c"
-const EXPECTED_RESULT_SHA256 = "650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d"
+const EXPECTED_RESULT_SHA256 = "97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8"
 const CANDIDATE_SHA_METHOD = "verified through exact fixture response-body byte match"
 const EMERGENCY_WORKER_GRACE_MSEC = 1_000
 const DEFAULT_CANCELLATION_HOLD_MSEC = 30_000

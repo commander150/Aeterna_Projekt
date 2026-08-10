@@ -25,9 +25,9 @@ PYTHON_DIR = Path(__file__).resolve().parents[1]
 ENGINE_DIR = PYTHON_DIR.parent
 PROJECT_ROOT = ENGINE_DIR.parent
 PROJECT_TEMP = PROJECT_ROOT / "TEMP"
-FIXTURE_DIR = ENGINE_DIR / "runtime_comparison" / "fixtures" / "minimal_draw_end_turn_v1"
+FIXTURE_DIR = ENGINE_DIR / "runtime_comparison" / "fixtures" / "minimal_draw_end_turn_v2"
 FIXTURE_PATH = FIXTURE_DIR / "fixture.json"
-FIXTURE_REQUEST_PATH = "minimal_draw_end_turn_v1/fixture.json"
+FIXTURE_REQUEST_PATH = "minimal_draw_end_turn_v2/fixture.json"
 TRACKED_ORACLE = FIXTURE_DIR / "expected" / "python_reference_v1"
 TRACKED_CANDIDATE = FIXTURE_DIR / "candidates" / "python_sidecar_headless_v1"
 EXPECTED_DEVIATIONS = {
@@ -89,7 +89,7 @@ class TestPythonSidecarCandidateExporter(unittest.TestCase):
 
         validation = validate_runtime_comparison_artifacts(
             output,
-            expected_fixture_id="minimal_draw_end_turn_v1",
+            expected_fixture_id="minimal_draw_end_turn_v2",
         )
         self.assertTrue(validation["valid"])
         self.assertEqual(validation["errors"], [])
@@ -106,7 +106,7 @@ class TestPythonSidecarCandidateExporter(unittest.TestCase):
         comparison = compare_runtime_comparison_artifacts(
             TRACKED_ORACLE,
             output,
-            expected_fixture_id="minimal_draw_end_turn_v1",
+            expected_fixture_id="minimal_draw_end_turn_v2",
         )
         self._assert_oracle_match(comparison)
         self.assertEqual(oracle_before, _directory_snapshot(TRACKED_ORACLE))
@@ -278,12 +278,12 @@ class TestPythonSidecarCandidateExporter(unittest.TestCase):
         export_python_sidecar_candidate_artifacts(FIXTURE_REQUEST_PATH, fresh)
         validation = validate_runtime_comparison_artifacts(
             TRACKED_CANDIDATE,
-            expected_fixture_id="minimal_draw_end_turn_v1",
+            expected_fixture_id="minimal_draw_end_turn_v2",
         )
         comparison = compare_runtime_comparison_artifacts(
             TRACKED_ORACLE,
             TRACKED_CANDIDATE,
-            expected_fixture_id="minimal_draw_end_turn_v1",
+            expected_fixture_id="minimal_draw_end_turn_v2",
         )
 
         self.assertTrue(validation["valid"])
@@ -382,7 +382,6 @@ class TestPythonSidecarCandidateExporter(unittest.TestCase):
         self.assertTrue(
             {
                 "RUNTIME_CANDIDATE_DIFFERENCE",
-                "BUILD_IDENTIFIER_DIFFERENCE",
                 "IMPLEMENTATION_SPECIFIC_DIFFERENCE",
                 "DECLARED_KNOWN_DEVIATION_DIFFERENCE",
             }

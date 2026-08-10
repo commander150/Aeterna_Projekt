@@ -27,7 +27,7 @@ internal sealed class PlayerRuntimeState
 
     public List<string> HandCardInstanceIds { get; } = [];
 
-    public List<string> DiscardCardInstanceIds { get; } = [];
+    public List<string> VoidCardInstanceIds { get; } = [];
 }
 
 internal sealed class CardInstanceState

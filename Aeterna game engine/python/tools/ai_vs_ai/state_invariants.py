@@ -557,7 +557,7 @@ def _validate_player_zones(player, card_instances, zone_occurrences):
     zones = (
         ("deck", getattr(player, "deck_card_instance_ids", None)),
         ("hand", getattr(player, "hand_card_instance_ids", None)),
-        ("discard", getattr(player, "discard_card_instance_ids", None)),
+        ("void", getattr(player, "void_card_instance_ids", None)),
     )
 
     for zone_name, zone in zones:
@@ -631,7 +631,7 @@ def _validate_player_zones(player, card_instances, zone_occurrences):
                 errors.append(
                     _error(
                         "CARD_INSTANCE_ACTIVITY_ZONE_MISMATCH",
-                        "deck, hand, and discard membership requires null activity_state.",
+                        "deck, hand, and void membership requires null activity_state.",
                         player_id=player_id,
                         zone=zone_name,
                         card_instance_id=card_instance_id,
@@ -719,11 +719,11 @@ def _validate_card_instance_registry(card_instances, player_ids, runtime_package
                     activity_state=activity_state,
                 )
             )
-        elif zone in {"deck", "hand", "discard"} and activity_state is not None:
+        elif zone in {"deck", "hand", "void"} and activity_state is not None:
             errors.append(
                 _error(
                     "CARD_INSTANCE_ACTIVITY_ZONE_MISMATCH",
-                    "deck, hand, and discard card instances must have null activity_state.",
+                    "deck, hand, and void card instances must have null activity_state.",
                     card_instance_id=registry_key,
                     zone=zone,
                     activity_state=activity_state,

@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.6\
-**Dátum:** 2026-07-22\
+**Dokumentumverzió:** 1.7\
+**Dátum:** 2026-08-10\
 **Státusz:** aktív, technológiafüggetlen contract-specifikáció  
 **Aktuális megvalósítási státusz:** `CONTRACT_STATUS.md`  
 **Production authority:** C#/.NET  
-**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7`
+**Aktuális repository-bázis:** `1ac3095509a4953bee79ae2acc76623ad693d117`
 
 Ez a dokumentum az AETERNA Game Engine contract-first rétegének aktív szerkezeti specifikációja.
 
@@ -313,7 +313,7 @@ PlayerState tartalmazhat:
 - deck ID;
 - deck instance ID-k;
 - hand instance ID-k;
-- discard instance ID-k;
+- Void instance ID-k;
 - Wellspring instance ID-k;
 - resource summary;
 - player-scoped usage state.
@@ -322,7 +322,6 @@ Aktív vagy tervezett zónák:
 
 - `deck`;
 - `hand`;
-- `discard`;
 - `wellspring`;
 - `domain`;
 - `void`;
@@ -368,7 +367,7 @@ Alapértékek:
 
 Canonical elv:
 
-- deck/hand/discard: nincs active/exhausted gameplay activity;
+- deck/hand/void: nincs active/exhausted gameplay activity;
 - Domain/Wellspring: active vagy exhausted.
 
 Nem azonos:
@@ -408,7 +407,7 @@ Minimum:
 - saját kéz: owner-visible;
 - ellenfél kéz: count/redacted;
 - deck: count-only;
-- discard: public, szabály szerint;
+- Void: public, szabály szerint;
 - Domain: public;
 - saját Wellspring identity: owner-visible;
 - ellenfél Wellspring identity: redacted;
@@ -417,6 +416,8 @@ Minimum:
 - debug: külön mód.
 
 Player-facing output nem tartalmaz szükségtelen internal instance ID-t vagy debug payloadot.
+
+A `discard` művelet-, költség-, ok- és eventjelentés; nem önálló canonical zóna. Normál eldobáskor a tényleges célzóna `void`, de replacement szabály ettől eltérő célzónát is meghatározhat.
 
 ### Fair AI
 

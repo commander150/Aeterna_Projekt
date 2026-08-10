@@ -11,12 +11,12 @@ public static class ContractSchemas
     public const string ActionRequest = "aeterna-action-request-v1";
     public const string ActionResponse = "minimal-action-response-v0";
     public const string LegalActionSpace = "minimal-legal-action-space-v0";
-    public const string PlayerSnapshot = "engine-player-visible-snapshot-v2";
+    public const string PlayerSnapshot = "engine-player-visible-snapshot-v3";
     public const string WellspringProjection = "aeterna-player-visible-wellspring-v1";
     public const string WellspringResourceSummary = "aeterna-wellspring-resource-summary-v1";
     public const string ResourceSummary = "aeterna-resource-summary-v1";
     public const string DomainBoardProjection = "aeterna-player-visible-domain-board-v1";
-    public const string DebugSnapshot = "aeterna-debug-match-snapshot-v1";
+    public const string DebugSnapshot = "aeterna-debug-match-snapshot-v2";
     public const string EngineEvent = "minimal-engine-event-v0";
     public const string EngineDiagnostic = "aeterna-engine-diagnostic-v1";
     public const string MatchResult = "aeterna-match-result-v1";
@@ -328,7 +328,7 @@ public sealed record PlayerSnapshotEntry(
     [property: JsonPropertyName("relation")] string Relation,
     [property: JsonPropertyName("deck")] ZoneSnapshot Deck,
     [property: JsonPropertyName("hand")] ZoneSnapshot Hand,
-    [property: JsonPropertyName("discard")] ZoneSnapshot Discard,
+    [property: JsonPropertyName("void")] ZoneSnapshot Void,
     [property: JsonPropertyName("wellspring")] WellspringProjection Wellspring);
 
 public sealed record PlayerSnapshot(
@@ -354,7 +354,7 @@ public sealed record DebugPlayerSnapshot(
     string DeckId,
     ImmutableArray<string> DeckCardInstanceIds,
     ImmutableArray<string> HandCardInstanceIds,
-    ImmutableArray<string> DiscardCardInstanceIds,
+    ImmutableArray<string> VoidCardInstanceIds,
     ImmutableArray<string> WellspringCardInstanceIds,
     ImmutableArray<string?> HorizonCardInstanceIds,
     ImmutableArray<string?> ZenithCardInstanceIds,

@@ -7,7 +7,7 @@ const SidecarClient = preload("res://scripts/runtime_comparison/python_sidecar_c
 
 const PROOF_PREFIX = "AETERNA_GODOT_PYTHON_SIDECAR_PROOF_V1="
 const PROOF_SCHEMA_VERSION = "aeterna-godot-python-sidecar-proof-v1"
-const DEFAULT_FIXTURE_PATH = "minimal_draw_end_turn_v1/fixture.json"
+const DEFAULT_FIXTURE_PATH = "minimal_draw_end_turn_v2/fixture.json"
 
 
 func _init() -> void:

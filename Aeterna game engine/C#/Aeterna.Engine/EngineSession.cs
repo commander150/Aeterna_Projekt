@@ -614,7 +614,7 @@ public sealed class EngineSession
                 player.DeckId,
                 player.DeckCardInstanceIds.ToImmutableArray(),
                 player.HandCardInstanceIds.ToImmutableArray(),
-                player.DiscardCardInstanceIds.ToImmutableArray(),
+                player.VoidCardInstanceIds.ToImmutableArray(),
                 player.WellspringCardInstanceIds.ToImmutableArray(),
                 player.Domain.HorizonCardInstanceIds.ToImmutableArray(),
                 player.Domain.ZenithCardInstanceIds.ToImmutableArray(),
@@ -2326,7 +2326,7 @@ public sealed class EngineSession
                 "hand",
                 player.HandCardInstanceIds,
                 isViewer ? "owner_visible" : "count_only"),
-            BuildZoneSnapshot(state, "discard", player.DiscardCardInstanceIds, "public"),
+            BuildZoneSnapshot(state, "void", player.VoidCardInstanceIds, "public"),
             BuildWellspringProjection(state, player, isViewer, resourceSummary));
     }
 
@@ -2996,7 +2996,7 @@ public sealed class EngineSession
 
             foreach (var cardInstanceId in player.HandCardInstanceIds
                          .Concat(player.DeckCardInstanceIds)
-                         .Concat(player.DiscardCardInstanceIds)
+                         .Concat(player.VoidCardInstanceIds)
                          .Concat(player.WellspringCardInstanceIds))
             {
                 if (!zoneIds.Add(cardInstanceId))
@@ -3011,7 +3011,9 @@ public sealed class EngineSession
             }
 
             ValidateDomainRowLengths(player);
+            ValidateDeckState(state, player);
             ValidateHandState(state, player);
+            ValidateVoidState(state, player);
             ValidateWellspringState(state, player);
             ValidateDomainState(state, player, knownPlayerIds, zoneIds);
         }
@@ -3019,6 +3021,18 @@ public sealed class EngineSession
         if (!zoneIds.SetEquals(state.CardInstances.Keys))
         {
             throw new EngineStateException("Card instance registry and zones disagree.");
+        }
+
+        var listedDeckIds = state.Players
+            .SelectMany(player => player.DeckCardInstanceIds)
+            .ToHashSet(StringComparer.Ordinal);
+        var registeredDeckIds = state.CardInstances.Values
+            .Where(card => string.Equals(card.Zone, "deck", StringComparison.Ordinal))
+            .Select(card => card.CardInstanceId)
+            .ToHashSet(StringComparer.Ordinal);
+        if (!listedDeckIds.SetEquals(registeredDeckIds))
+        {
+            throw new EngineStateException("Card instance registry and Deck zones disagree.");
         }
 
         var listedWellspringIds = state.Players
@@ -3045,6 +3059,18 @@ public sealed class EngineSession
             throw new EngineStateException("Card instance registry and Hand zones disagree.");
         }
 
+        var listedVoidIds = state.Players
+            .SelectMany(player => player.VoidCardInstanceIds)
+            .ToHashSet(StringComparer.Ordinal);
+        var registeredVoidIds = state.CardInstances.Values
+            .Where(card => string.Equals(card.Zone, "void", StringComparison.Ordinal))
+            .Select(card => card.CardInstanceId)
+            .ToHashSet(StringComparer.Ordinal);
+        if (!listedVoidIds.SetEquals(registeredVoidIds))
+        {
+            throw new EngineStateException("Card instance registry and Void zones disagree.");
+        }
+
         var listedDomainIds = state.Players
             .SelectMany(player => player.Domain.HorizonCardInstanceIds
                 .Concat(player.Domain.ZenithCardInstanceIds))
@@ -3062,6 +3088,11 @@ public sealed class EngineSession
 
         foreach (var card in state.CardInstances.Values)
         {
+            if (card.Zone is not ("deck" or "hand" or "void" or "wellspring" or "dominion"))
+            {
+                throw new EngineStateException("Card instance zone must use an active production zone token.");
+            }
+
             if (string.Equals(card.Zone, "dominion", StringComparison.Ordinal))
             {
                 if (card.DomainRow is null
@@ -3298,6 +3329,71 @@ public sealed class EngineSession
             if (card.ActivityState is not null)
             {
                 throw new EngineStateException("Hand card activity state must be null.");
+            }
+        }
+    }
+
+    private static void ValidateDeckState(MatchState state, PlayerState player)
+    {
+        for (var zoneIndex = 0; zoneIndex < player.DeckCardInstanceIds.Count; zoneIndex++)
+        {
+            var card = state.GetCardInstance(player.DeckCardInstanceIds[zoneIndex]);
+            if (!string.Equals(card.Zone, "deck", StringComparison.Ordinal))
+            {
+                throw new EngineStateException("Deck card zone must be deck.");
+            }
+
+            if (card.ZoneIndex != zoneIndex)
+            {
+                throw new EngineStateException("Deck card zone index must match list order.");
+            }
+
+            if (!string.Equals(card.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal)
+                || !string.Equals(card.ControllerPlayerId, player.PlayerId, StringComparison.Ordinal))
+            {
+                throw new EngineStateException("Deck card owner and controller must match the player state.");
+            }
+
+            if (!string.Equals(card.Visibility, "owner_only", StringComparison.Ordinal))
+            {
+                throw new EngineStateException("Deck card visibility must be owner_only.");
+            }
+
+            if (card.ActivityState is not null)
+            {
+                throw new EngineStateException("Deck card activity state must be null.");
+            }
+        }
+    }
+
+    private static void ValidateVoidState(MatchState state, PlayerState player)
+    {
+        for (var zoneIndex = 0; zoneIndex < player.VoidCardInstanceIds.Count; zoneIndex++)
+        {
+            var card = state.GetCardInstance(player.VoidCardInstanceIds[zoneIndex]);
+            if (!string.Equals(card.Zone, "void", StringComparison.Ordinal))
+            {
+                throw new EngineStateException("Void card zone must be void.");
+            }
+
+            if (card.ZoneIndex != zoneIndex)
+            {
+                throw new EngineStateException("Void card zone index must match list order.");
+            }
+
+            if (!string.Equals(card.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal))
+            {
+                throw new EngineStateException("Void card owner must match the player state.");
+            }
+
+            if (!string.Equals(card.Visibility, "public", StringComparison.Ordinal))
+            {
+                throw new EngineStateException("Void card visibility must be public.");
+            }
+
+            if (card.ActivityState is not null)
+            {
+                throw new EngineStateException("Void card activity state must be null.");
             }
         }
     }

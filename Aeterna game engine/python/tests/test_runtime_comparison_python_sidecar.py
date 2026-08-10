@@ -32,8 +32,8 @@ from tools.runtime_comparison.sidecar_protocol import (
 
 ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[1]
 FIXTURE_ROOT = ENGINE_PYTHON_DIR.parent / "runtime_comparison" / "fixtures"
-FIXTURE_RELATIVE_PATH = "minimal_draw_end_turn_v1/fixture.json"
-FIXTURE_PATH = FIXTURE_ROOT / "minimal_draw_end_turn_v1" / "fixture.json"
+FIXTURE_RELATIVE_PATH = "minimal_draw_end_turn_v2/fixture.json"
+FIXTURE_PATH = FIXTURE_ROOT / "minimal_draw_end_turn_v2" / "fixture.json"
 CLIENT_MODULE_PATH = (
     ENGINE_PYTHON_DIR
     / "tools"

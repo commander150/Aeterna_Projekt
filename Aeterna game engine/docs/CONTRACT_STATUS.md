@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.2\
-**Dátum:** 2026-07-22\
+**Dokumentumverzió:** 1.3\
+**Dátum:** 2026-08-10\
 **Státusz:** aktív megvalósítási contract-státusz  
 **Felváltott fájl:** `CURRENT_CONTRACT_STATUS.md`  
-**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
+**Aktuális repository-bázis:** `1ac3095509a4953bee79ae2acc76623ad693d117`
 
 Ez a dokumentum röviden rögzíti:
 
@@ -140,7 +140,7 @@ Támogatott activity értékek:
 
 Jelenlegi Python zone/activity szabály:
 
-- deck, hand, discard → `None`;
+- deck, hand, void → `None`;
 - domain, wellspring → `active` vagy `exhausted`.
 
 Production C# státusz:
@@ -187,7 +187,7 @@ Későbbi használat:
 
 - hand → Wellspring;
 - hand → Domain;
-- Domain → discard;
+- Domain → Void;
 - más zónamozgások.
 
 C# candidate:
@@ -236,14 +236,14 @@ Python referencia:
 
 - deck: `ACTIVE_REFERENCE_RUNTIME`;
 - hand: `ACTIVE_REFERENCE_RUNTIME`;
-- discard: `ACTIVE_REFERENCE_RUNTIME`;
+- void: `ACTIVE_REFERENCE_RUNTIME`;
 - Wellspring: `ACTIVE_ISOLATED`.
 
 Production C# C.5B:
 
 - deck;
 - hand;
-- discard.
+- void.
 
 Későbbi gameplay:
 
@@ -328,11 +328,11 @@ Canonical kapcsolat:
 
 ## 5. Snapshot és projection contractok
 
-### 5.1 Player-visible snapshot v2
+### 5.1 Player-visible snapshot v3
 
 Schema:
 
-- `engine-player-visible-snapshot-v2`
+- `engine-player-visible-snapshot-v3`
 
 Python státusz:
 
@@ -343,7 +343,7 @@ Visibility-policy:
 - saját kéz: owner-visible;
 - ellenfél kéz: redacted, count-only;
 - deck: count-only;
-- discard: public;
+- Void: public;
 - Domain board: public.
 
 Nem tartalmazhat:
@@ -387,6 +387,10 @@ Production C#:
 **Státusz:** `PLANNED_GAMEPLAY`
 
 ### 5.3 Debug snapshot
+
+Schema:
+
+- `aeterna-debug-match-snapshot-v2`
 
 Python státusz:
 
@@ -771,7 +775,7 @@ Első gameplay-migrációs feladat a C.5B után:
 
 ## 12. Runtime comparison fixture contractok
 
-A `minimal_draw_end_turn_v1` fixture bizonyítja:
+A `minimal_draw_end_turn_v2` fixture bizonyítja:
 
 1. initial state;
 2. P1 draw;
@@ -786,7 +790,7 @@ A `minimal_draw_end_turn_v1` fixture bizonyítja:
 
 Helyes canonical SHA:
 
-`650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`
+`97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8`
 
 A fixture:
 
@@ -799,6 +803,8 @@ A fixture:
 
 A fixture-specifikus request ID-k és lépéssor nem kerülhet az általános production EngineSession contractba.
 
+A `minimal_draw_end_turn_v1` és a hozzá tartozó `650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d` hash történeti bizonyítékként változatlanul megmarad. A v2 a `discard` technikai zóna canonical `void` zónára migrálása miatt új contract-fixture.
+
 ---
 
 ## 13. Superseded és debug contractok
@@ -806,6 +812,18 @@ A fixture-specifikus request ID-k és lépéssor nem kerülhet az általános pr
 ### 13.1 Player-visible snapshot v1
 
 - schema: `engine-player-visible-snapshot-v1`;
+- státusz: `SUPERSEDED`;
+- felváltotta: v2, majd v3.
+
+### 13.1.1 Player-visible snapshot v2
+
+- schema: `engine-player-visible-snapshot-v2`;
+- státusz: `SUPERSEDED`;
+- felváltotta: v3.
+
+### 13.1.2 Canonical match state v1 és debug snapshot v1
+
+- schema: `aeterna-canonical-match-state-v1`, `aeterna-debug-match-snapshot-v1`;
 - státusz: `SUPERSEDED`;
 - felváltotta: v2.
 

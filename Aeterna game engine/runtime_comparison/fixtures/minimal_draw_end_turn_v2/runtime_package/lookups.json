@@ -1,0 +1,25 @@
+{
+  "lookups": [
+    {
+      "lookup_group": "card_type",
+      "value": "entity",
+      "label_hu": "Entitas",
+      "status": "active",
+      "canonical_value": "entity",
+      "used_for": [
+        "cards.card_type"
+      ]
+    },
+    {
+      "lookup_group": "realm",
+      "value": "ignis",
+      "label_hu": "Ignis",
+      "status": "active",
+      "canonical_value": "ignis",
+      "used_for": [
+        "cards.realm",
+        "decks.realm"
+      ]
+    }
+  ]
+}

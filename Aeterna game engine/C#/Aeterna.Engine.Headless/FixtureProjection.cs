@@ -32,7 +32,7 @@ internal static class FixtureProjection
                 ["deck_id"] = player.DeckId,
                 ["deck_card_instance_ids"] = StringArray(player.DeckCardInstanceIds),
                 ["hand_card_instance_ids"] = StringArray(player.HandCardInstanceIds),
-                ["discard_card_instance_ids"] = StringArray(player.DiscardCardInstanceIds),
+                ["void_card_instance_ids"] = StringArray(player.VoidCardInstanceIds),
             });
         }
 
@@ -62,7 +62,7 @@ internal static class FixtureProjection
 
         return new JsonObject
         {
-            ["schema_version"] = "aeterna-canonical-match-state-v1",
+            ["schema_version"] = "aeterna-canonical-match-state-v2",
             ["contract_type"] = "canonical_match_state",
             ["match_id"] = state.MatchId,
             ["state_version"] = state.StateVersion,
@@ -188,7 +188,7 @@ internal static class FixtureProjection
         var invariantErrorCount = invariantDiagnostics.Count(item => item.Severity == "error");
         return new JsonObject
         {
-            ["schema_version"] = "engine-player-visible-snapshot-v2",
+            ["schema_version"] = "engine-player-visible-snapshot-v3",
             ["contract_type"] = "engine_player_visible_snapshot",
             ["snapshot_type"] = "player_visible_snapshot",
             ["visibility_mode"] = "player",
@@ -208,7 +208,7 @@ internal static class FixtureProjection
                 ["deck"] = "count_only",
                 ["own_hand"] = "owner_visible",
                 ["opponent_hand"] = "count_only",
-                ["discard"] = "public",
+                ["void"] = "public",
                 ["board"] = "public",
             },
             ["legal_action_summary"] = new JsonObject
@@ -475,12 +475,12 @@ internal static class FixtureProjection
             ["is_viewer"] = isViewer,
             ["deck_count"] = player.Deck.Count,
             ["hand_count"] = player.Hand.Count,
-            ["discard_count"] = player.Discard.Count,
+            ["void_count"] = player.Void.Count,
             ["zones"] = new JsonObject
             {
                 ["deck"] = BuildZoneProjection(player.Deck),
                 ["hand"] = BuildZoneProjection(player.Hand),
-                ["discard"] = BuildZoneProjection(player.Discard),
+                ["void"] = BuildZoneProjection(player.Void),
             },
         };
     }

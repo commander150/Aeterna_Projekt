@@ -27,7 +27,7 @@ TRACKED_ORACLE = (
     ENGINE_DIR
     / "runtime_comparison"
     / "fixtures"
-    / "minimal_draw_end_turn_v1"
+    / "minimal_draw_end_turn_v2"
     / "expected"
     / "python_reference_v1"
 )
@@ -49,11 +49,11 @@ class TestRuntimeComparisonArtifactValidator(unittest.TestCase):
 
         first = validate_runtime_comparison_artifacts(
             TRACKED_ORACLE,
-            expected_fixture_id="minimal_draw_end_turn_v1",
+            expected_fixture_id="minimal_draw_end_turn_v2",
         )
         second = validate_runtime_comparison_artifacts(
             TRACKED_ORACLE,
-            expected_fixture_id="minimal_draw_end_turn_v1",
+            expected_fixture_id="minimal_draw_end_turn_v2",
         )
 
         self.assertTrue(first["valid"])
@@ -511,7 +511,7 @@ class TestRuntimeComparisonArtifactValidator(unittest.TestCase):
                     "--input",
                     str(TRACKED_ORACLE),
                     "--expected-fixture-id",
-                    "minimal_draw_end_turn_v1",
+                    "minimal_draw_end_turn_v2",
                 ]
             )
         self.assertEqual(exit_code, 0)

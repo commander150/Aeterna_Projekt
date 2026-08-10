@@ -15,7 +15,7 @@ FIXTURE_DIR = (
     ENGINE_PYTHON_DIR.parent
     / "runtime_comparison"
     / "fixtures"
-    / "minimal_draw_end_turn_v1"
+    / "minimal_draw_end_turn_v2"
 )
 FIXTURE_PATH = FIXTURE_DIR / "fixture.json"
 RUNTIME_PACKAGE_DIR = FIXTURE_DIR / "runtime_package"
@@ -242,7 +242,7 @@ class TestRuntimeComparisonFixtureRunner(unittest.TestCase):
         canonical_json_bytes(result)
         self.assertEqual(result["schema_version"], "aeterna-python-reference-fixture-run-v1")
         self.assertEqual(result["result_type"], "python_reference_fixture_run")
-        self.assertEqual(result["fixture_identity"]["fixture_id"], "minimal_draw_end_turn_v1")
+        self.assertEqual(result["fixture_identity"]["fixture_id"], "minimal_draw_end_turn_v2")
         self.assertEqual(result["initial_canonical_state"]["state_version"], 0)
         self.assertEqual(result["initial_canonical_state"]["event_log"], [])
         self.assertEqual(result["final_canonical_state"]["state_version"], 3)

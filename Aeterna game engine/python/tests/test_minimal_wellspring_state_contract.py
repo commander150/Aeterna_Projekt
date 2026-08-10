@@ -86,7 +86,7 @@ class TestMinimalWellspringStateContract(unittest.TestCase):
         )
 
         # A11-A12: previous list-zone and Domain activity rules remain unchanged.
-        for zone in ("deck", "hand", "discard"):
+        for zone in ("deck", "hand", "void"):
             with self.subTest(zone=zone):
                 self.assertTrue(
                     self.card_instance.validate_card_instance_record(
@@ -407,7 +407,7 @@ class TestMinimalWellspringStateContract(unittest.TestCase):
                 "deck_id",
                 "deck_card_instance_ids",
                 "hand_card_instance_ids",
-                "discard_card_instance_ids",
+                "void_card_instance_ids",
             ],
         )
         self.assertEqual(
@@ -442,7 +442,7 @@ class TestMinimalWellspringStateContract(unittest.TestCase):
 
         # K104-K108: player-facing, board, trajectory, placement, and bot contracts stay stable.
         snapshot = session.get_player_snapshot("P2")
-        self.assertEqual(snapshot["schema_version"], "engine-player-visible-snapshot-v2")
+        self.assertEqual(snapshot["schema_version"], "engine-player-visible-snapshot-v3")
         self.assertFalse(_contains_key(snapshot, "wellspring_card_instance_ids"))
         board = self.board.create_player_visible_domain_board(session.state)
         self.assertEqual(board["schema_version"], "minimal-player-visible-domain-board-v0")
@@ -612,7 +612,7 @@ class TestMinimalWellspringStateContract(unittest.TestCase):
     @staticmethod
     def _put_instance_in_hand(state, card_instance_id, player_id):
         for player in state.players:
-            for zone_name in ("deck", "hand", "discard"):
+            for zone_name in ("deck", "hand", "void"):
                 zone = getattr(player, "%s_card_instance_ids" % zone_name)
                 while card_instance_id in zone:
                     zone.remove(card_instance_id)

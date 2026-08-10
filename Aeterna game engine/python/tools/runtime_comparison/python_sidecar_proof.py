@@ -31,7 +31,7 @@ from tools.runtime_comparison.sidecar_protocol import (
 
 PROOF_RESULT_SCHEMA_VERSION = "aeterna-python-sidecar-proof-result-v1"
 PROOF_RESULT_CONTRACT_TYPE = "python_sidecar_fixture_proof_result"
-FIXTURE_REQUEST_PATH = "minimal_draw_end_turn_v1/fixture.json"
+FIXTURE_REQUEST_PATH = "minimal_draw_end_turn_v2/fixture.json"
 
 
 class PythonSidecarProofError(Exception):

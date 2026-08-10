@@ -13,7 +13,7 @@ from .canonical_json import canonical_json_bytes, sha256_bytes
 
 
 FIXTURE_SCHEMA_VERSION = "aeterna-runtime-comparison-fixture-v1"
-FIXTURE_ID = "minimal_draw_end_turn_v1"
+FIXTURE_ID = "minimal_draw_end_turn_v2"
 RESULT_SCHEMA_VERSION = "aeterna-python-reference-fixture-run-v1"
 
 REQUEST_IDS = {
@@ -660,7 +660,7 @@ class _PythonReferenceFixtureRunner:
             and opponent_zones["hand"]["objects"] == []
             and all(player["zones"]["deck"]["visibility_mode"] == "count_only" for player in players.values())
             and all(player["zones"]["deck"]["objects"] == [] for player in players.values())
-            and all(player["zones"]["discard"]["visibility_mode"] == "public" for player in players.values())
+            and all(player["zones"]["void"]["visibility_mode"] == "public" for player in players.values())
             and snapshot.get("board", {}).get("visibility_mode") == "public"
         )
         self._assert(valid, "Player-visible snapshot visibility policy is invalid.")

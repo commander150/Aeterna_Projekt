@@ -232,7 +232,7 @@ class TestMinimalDrawZoneMoveEvent(unittest.TestCase):
 
     @staticmethod
     def _set_wrong_result_zone(event):
-        event["payload"]["to_zone"] = "discard"
+        event["payload"]["to_zone"] = "void"
 
     @staticmethod
     def _set_wrong_result_index(event):

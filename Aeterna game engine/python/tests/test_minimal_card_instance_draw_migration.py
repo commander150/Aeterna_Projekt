@@ -205,7 +205,7 @@ class TestMinimalCardInstanceDrawMigration(unittest.TestCase):
         self.assertIn(drawn_instance_id, serialized_player_snapshot)
         self.assertEqual(player_snapshot["players"][0]["deck_count"], initial_p1_deck_count - 1)
         self.assertEqual(player_snapshot["players"][0]["hand_count"], 1)
-        self.assertEqual(player_snapshot["players"][0]["discard_count"], 0)
+        self.assertEqual(player_snapshot["players"][0]["void_count"], 0)
         self.assertEqual(player_snapshot["metadata"]["card_instance_model"], "minimal_registry_v0")
         self.assertFalse(player_snapshot["metadata"]["card_id_overlap_guard"])
         self.assertEqual(debug_snapshot["card_instance_count"], initial_registry_count)
@@ -252,7 +252,7 @@ def _all_zone_instance_ids(state):
     for player in state.players:
         instance_ids.extend(player.deck_card_instance_ids)
         instance_ids.extend(player.hand_card_instance_ids)
-        instance_ids.extend(player.discard_card_instance_ids)
+        instance_ids.extend(player.void_card_instance_ids)
     return instance_ids
 
 

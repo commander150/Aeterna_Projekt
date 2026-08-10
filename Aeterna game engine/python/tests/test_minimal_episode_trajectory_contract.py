@@ -301,7 +301,7 @@ class TestMinimalEpisodeTrajectoryContract(unittest.TestCase):
                 self.assertIn("disabled_action_count", observation["action_space"])
                 self.assertEqual(
                     observation["player_snapshot"]["schema_version"],
-                    "engine-player-visible-snapshot-v2",
+                    "engine-player-visible-snapshot-v3",
                 )
                 self.assertEqual(observation["player_snapshot"]["snapshot_type"], "player_visible_snapshot")
                 self.assertEqual(observation["player_snapshot"]["visibility_mode"], "player")
@@ -312,7 +312,7 @@ class TestMinimalEpisodeTrajectoryContract(unittest.TestCase):
                 for player in observation["player_snapshot"]["players"]:
                     self.assertIn("deck_count", player)
                     self.assertIn("hand_count", player)
-                    self.assertIn("discard_count", player)
+                    self.assertIn("void_count", player)
                     self.assertEqual(player["zones"]["deck"]["objects"], [])
                 self.assertFalse(_contains_key(observation, "card_instances"))
                 self.assertFalse(_contains_key(observation, "deck_card_instance_ids"))
@@ -425,8 +425,8 @@ def _observation(state_version, player_id, selected_action):
         "player_snapshot": {
             "snapshot_type": "player_visible_snapshot",
             "players": [
-                {"player_id": "P1", "deck_count": 39, "hand_count": 1, "discard_count": 0},
-                {"player_id": "P2", "deck_count": 40, "hand_count": 0, "discard_count": 0},
+                {"player_id": "P1", "deck_count": 39, "hand_count": 1, "void_count": 0},
+                {"player_id": "P2", "deck_count": 40, "hand_count": 0, "void_count": 0},
             ],
         },
         "action_space": {

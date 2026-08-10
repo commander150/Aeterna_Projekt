@@ -164,7 +164,7 @@ def _player_debug_summary(player):
         "deck_id": player.deck_id,
         "deck_count": len(player.deck_card_instance_ids),
         "hand_count": len(player.hand_card_instance_ids),
-        "discard_count": len(player.discard_card_instance_ids),
+        "void_count": len(player.void_card_instance_ids),
         "zone_summary": _player_zone_summary(player),
     }
 
@@ -174,7 +174,7 @@ def _player_zone_summary(player):
     return {
         "deck_count": len(player.deck_card_instance_ids),
         "hand_count": len(player.hand_card_instance_ids),
-        "discard_count": len(player.discard_card_instance_ids),
+        "void_count": len(player.void_card_instance_ids),
         "draw_precondition": {
             "can_draw": reason == "ok",
             "reason": reason,

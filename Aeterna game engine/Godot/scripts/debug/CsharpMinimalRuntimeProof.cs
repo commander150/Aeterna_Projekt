@@ -31,7 +31,7 @@ public partial class CsharpMinimalRuntimeProof : Control
 		_runButton.Pressed += RunProof;
 		_clearButton.Pressed += ClearLog;
 		_environmentValue.Text = $"Godot {Godot.Engine.GetVersionInfo()["string"].AsString()} | .NET {System.Environment.Version} | net8.0";
-		_fixtureValue.Text = "minimal_draw_end_turn_v1";
+		_fixtureValue.Text = "minimal_draw_end_turn_v2";
 
 		var automatedRuns = ReadPositiveIntArgument("--visual-smoke-runs", defaultValue: 0);
 		if (automatedRuns > 0)

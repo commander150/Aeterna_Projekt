@@ -280,7 +280,7 @@ class TestMinimalPlayerVisibleDomainBoard(unittest.TestCase):
         p2_snapshot = session.get_player_snapshot("P2")
 
         # I71-I76: v2 embeds one validated viewer-independent public board.
-        self.assertEqual(p1_snapshot["schema_version"], "engine-player-visible-snapshot-v2")
+        self.assertEqual(p1_snapshot["schema_version"], "engine-player-visible-snapshot-v3")
         self.assertIn("board", p1_snapshot)
         self.assertEqual(p1_snapshot["metadata"]["board_model"], "minimal-public-domain-board-v0")
         self.assertEqual(p1_snapshot["visibility_policy"]["board"], "public")
@@ -305,7 +305,7 @@ class TestMinimalPlayerVisibleDomainBoard(unittest.TestCase):
         initial_board = deepcopy(initial["player_snapshot"]["board"])
 
         # J83-J87: canonical v2 observation starts empty; draw/end_turn do not mutate board.
-        self.assertEqual(initial["player_snapshot"]["schema_version"], "engine-player-visible-snapshot-v2")
+        self.assertEqual(initial["player_snapshot"]["schema_version"], "engine-player-visible-snapshot-v3")
         self.assertEqual(sum(player["occupied_slot_count"] for player in initial_board["players"]), 0)
         draw = _enabled_action(environment.get_action_space(), "draw_card")
         draw_response = environment.step(environment.session.build_action_request(draw))
@@ -373,7 +373,7 @@ class TestMinimalPlayerVisibleDomainBoard(unittest.TestCase):
         serialized = json.dumps(board, ensure_ascii=False).lower()
 
         # L98-L108: board exports only the public projection boundary.
-        for forbidden_key in ("deck_card_instance_ids", "hand_card_instance_ids", "discard_card_instance_ids"):
+        for forbidden_key in ("deck_card_instance_ids", "hand_card_instance_ids", "void_card_instance_ids"):
             self.assertFalse(_contains_key(board, forbidden_key), forbidden_key)
         self.assertFalse(_contains_contract_type(board, "card_instance_record"))
         self.assertFalse(_contains_key(board, "match_state"))
@@ -475,7 +475,7 @@ class TestMinimalPlayerVisibleDomainBoard(unittest.TestCase):
     @staticmethod
     def _remove_instance_from_list_zones(state, card_instance_id):
         for player in state.players:
-            for zone_name in ("deck", "hand", "discard"):
+            for zone_name in ("deck", "hand", "void"):
                 zone = getattr(player, "%s_card_instance_ids" % zone_name)
                 while card_instance_id in zone:
                     zone.remove(card_instance_id)

@@ -40,10 +40,10 @@ class TestMinimalHandDeckInvariants(unittest.TestCase):
         for player in state.players:
             self.assertIsInstance(player.deck_card_instance_ids, list)
             self.assertIsInstance(player.hand_card_instance_ids, list)
-            self.assertIsInstance(player.discard_card_instance_ids, list)
+            self.assertIsInstance(player.void_card_instance_ids, list)
             self.assertGreater(len(player.deck_card_instance_ids), 0)
             self.assertEqual(len(player.hand_card_instance_ids), 0)
-            self.assertEqual(len(player.discard_card_instance_ids), 0)
+            self.assertEqual(len(player.void_card_instance_ids), 0)
             self.assertTrue(
                 all(card_instance_id in state.card_instances for card_instance_id in player.deck_card_instance_ids)
             )

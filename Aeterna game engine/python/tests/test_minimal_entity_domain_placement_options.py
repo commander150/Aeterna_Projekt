@@ -448,7 +448,7 @@ class TestMinimalEntityDomainPlacementOptions(unittest.TestCase):
             session.state, self.runtime_package, "P1", session_source
         )
         snapshot_after = session.get_player_snapshot("P1")
-        self.assertEqual(snapshot_before["schema_version"], "engine-player-visible-snapshot-v2")
+        self.assertEqual(snapshot_before["schema_version"], "engine-player-visible-snapshot-v3")
         self.assertEqual(snapshot_after, snapshot_before)
         self.assertEqual(self.trajectory.EPISODE_STEP_SCHEMA_VERSION, "minimal-episode-step-v0")
         self.assertFalse(_contains_key(result, "trajectory"))
@@ -547,7 +547,7 @@ class TestMinimalEntityDomainPlacementOptions(unittest.TestCase):
             card_instance_id
             for card_instance_id in sorted(state.card_instances)
             if card_instance_id not in set(excluded_ids or [])
-            and state.card_instances[card_instance_id]["zone"] in ("deck", "hand", "discard")
+            and state.card_instances[card_instance_id]["zone"] in ("deck", "hand", "void")
         )
         self._remove_instance_from_list_zones(state, occupant_id)
         record = state.card_instances[occupant_id]
@@ -567,7 +567,7 @@ class TestMinimalEntityDomainPlacementOptions(unittest.TestCase):
     @staticmethod
     def _remove_instance_from_list_zones(state, card_instance_id):
         for player in state.players:
-            for zone_name in ("deck", "hand", "discard"):
+            for zone_name in ("deck", "hand", "void"):
                 zone = getattr(player, "%s_card_instance_ids" % zone_name)
                 while card_instance_id in zone:
                     zone.remove(card_instance_id)

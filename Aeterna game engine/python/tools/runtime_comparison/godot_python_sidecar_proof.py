@@ -35,8 +35,8 @@ from tools.runtime_comparison.sidecar_protocol import (
 PROOF_PREFIX = "AETERNA_GODOT_PYTHON_SIDECAR_PROOF_V1="
 PROOF_SCHEMA_VERSION = "aeterna-godot-python-sidecar-proof-v1"
 RESULT_SCHEMA_VERSION = "aeterna-godot-python-sidecar-proof-result-v1"
-FIXTURE_REQUEST_PATH = "minimal_draw_end_turn_v1/fixture.json"
-EXPECTED_RESULT_SHA256 = "650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d"
+FIXTURE_REQUEST_PATH = "minimal_draw_end_turn_v2/fixture.json"
+EXPECTED_RESULT_SHA256 = "97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8"
 
 PYTHON_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ENGINE_ROOT = PYTHON_PROJECT_ROOT.parent

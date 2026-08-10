@@ -6,7 +6,7 @@ const VisualProofScene = preload(
 )
 const PROOF_PREFIX = "AETERNA_GODOT_VISUAL_SIDECAR_PROOF_V1="
 const EXPECTED_RAW_SHA = "4ba84e68d98a629c46aeaf6f5eb5f262569233ce5acaf9652e3548038965486c"
-const EXPECTED_CANONICAL_SHA = "650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d"
+const EXPECTED_CANONICAL_SHA = "97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8"
 const EXPECTED_CANDIDATE_METHOD = "verified through exact fixture response-body byte match"
 const EXPECTED_LOG_PATH = "TEMP/godot_visual_sidecar_proof_latest.log"
 

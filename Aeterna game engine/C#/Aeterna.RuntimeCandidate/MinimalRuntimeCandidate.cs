@@ -5,7 +5,7 @@ namespace Aeterna.RuntimeCandidate;
 public static class MinimalRuntimeCandidate
 {
     public const string ExpectedCanonicalSha256 =
-        "650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d";
+        "97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8";
 
     private const string ResultSchemaVersion = "aeterna-python-reference-fixture-run-v1";
 
@@ -627,7 +627,7 @@ public static class MinimalRuntimeCandidate
         {
             foreach (var cardInstanceId in player.HandCardInstanceIds
                          .Concat(player.DeckCardInstanceIds)
-                         .Concat(player.DiscardCardInstanceIds))
+                         .Concat(player.VoidCardInstanceIds))
             {
                 Require(zoneIds.Add(cardInstanceId), "STATE_INVARIANT_FAILED", "Card instance appears in multiple zones.");
                 Require(state.CardInstances.ContainsKey(cardInstanceId), "STATE_INVARIANT_FAILED", "Zone references unknown card instance.");

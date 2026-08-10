@@ -5,7 +5,7 @@ namespace Aeterna.RuntimeCandidate;
 internal static class FixtureContract
 {
     private const string FixtureSchemaVersion = "aeterna-runtime-comparison-fixture-v1";
-    private const string FixtureId = "minimal_draw_end_turn_v1";
+    private const string FixtureId = "minimal_draw_end_turn_v2";
 
     public static FixtureDefinition Load(string fixturePath)
     {

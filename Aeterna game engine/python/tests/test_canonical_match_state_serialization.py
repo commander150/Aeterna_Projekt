@@ -13,7 +13,7 @@ FIXTURE_DIR = (
     ENGINE_PYTHON_DIR.parent
     / "runtime_comparison"
     / "fixtures"
-    / "minimal_draw_end_turn_v1"
+    / "minimal_draw_end_turn_v2"
 )
 FIXTURE_PATH = FIXTURE_DIR / "fixture.json"
 RUNTIME_PACKAGE_DIR = FIXTURE_DIR / "runtime_package"
@@ -50,7 +50,7 @@ class TestCanonicalMatchStateSerialization(unittest.TestCase):
             set(dto),
             set(self.canonical.FIELD_POLICIES["canonical_match_state"]["required_value"]),
         )
-        self.assertEqual(dto["schema_version"], "aeterna-canonical-match-state-v1")
+        self.assertEqual(dto["schema_version"], "aeterna-canonical-match-state-v2")
         self.assertEqual(dto["contract_type"], "canonical_match_state")
         self.assertEqual(dto["match_id"], self.fixture["match_id"])
         self.assertEqual(dto["state_version"], 0)
@@ -70,7 +70,7 @@ class TestCanonicalMatchStateSerialization(unittest.TestCase):
                 player["deck_card_instance_ids"],
                 [prefix + "0002", prefix + "0003"],
             )
-            self.assertEqual(player["discard_card_instance_ids"], [])
+            self.assertEqual(player["void_card_instance_ids"], [])
 
         expected_instance_ids = [
             "ci_player_1_0001",

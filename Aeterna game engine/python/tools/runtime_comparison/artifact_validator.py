@@ -63,11 +63,11 @@ EXPECTED_SCHEMA_MAPPING = {
     "action_request": "minimal-action-request-unversioned",
     "action_response": "minimal-action-response-v0",
     "action_space": "minimal-legal-action-space-v0",
-    "canonical_match_state": "aeterna-canonical-match-state-v1",
+    "canonical_match_state": "aeterna-canonical-match-state-v2",
     "card_instance": "minimal-card-instance-record-v1",
     "engine_event": "minimal-engine-event-v0",
     "fixture": "aeterna-runtime-comparison-fixture-v1",
-    "player_visible_snapshot": "engine-player-visible-snapshot-v2",
+    "player_visible_snapshot": "engine-player-visible-snapshot-v3",
     "run_manifest": "aeterna-runtime-comparison-run-manifest-v1",
 }
 
@@ -854,7 +854,7 @@ def _validate_state(state, artifact, context, expected_kind):
     zone_field_map = {
         "hand": "hand_card_instance_ids",
         "deck": "deck_card_instance_ids",
-        "discard": "discard_card_instance_ids",
+        "void": "void_card_instance_ids",
     }
     for player in players:
         if not isinstance(player, dict):
@@ -1003,16 +1003,16 @@ def _validate_state(state, artifact, context, expected_kind):
         semantic_failures.append("event_count")
     if state.get("phase") != "main":
         semantic_failures.append("phase")
-    hand_count, deck_count, discard_count = expected["zone_counts"]
+    hand_count, deck_count, void_count = expected["zone_counts"]
     for player in players:
         if not isinstance(player, dict):
             continue
         actual_counts = (
             len(player.get("hand_card_instance_ids", [])),
             len(player.get("deck_card_instance_ids", [])),
-            len(player.get("discard_card_instance_ids", [])),
+            len(player.get("void_card_instance_ids", [])),
         )
-        if actual_counts != (hand_count, deck_count, discard_count):
+        if actual_counts != (hand_count, deck_count, void_count):
             semantic_failures.append("zones:%s" % player.get("player_id"))
     if semantic_failures:
         code = (
@@ -1734,18 +1734,18 @@ def _validate_snapshot(snapshot, viewer_id, final_state, context):
     )
     for player_id in ("player_1", "player_2"):
         state_player = _player_state(final_state, player_id) or {}
-        discard = projected_by_id.get(player_id, {}).get("zones", {}).get("discard", {})
+        void_zone = projected_by_id.get(player_id, {}).get("zones", {}).get("void", {})
         public_valid = public_valid and (
-            discard.get("count") == len(state_player.get("discard_card_instance_ids", []))
-            and discard.get("redacted") is False
-            and discard.get("visibility_mode") == "public"
+            void_zone.get("count") == len(state_player.get("void_card_instance_ids", []))
+            and void_zone.get("redacted") is False
+            and void_zone.get("visibility_mode") == "public"
         )
     if not public_valid:
         context.error(
             "snapshots",
             artifact,
             "SNAPSHOT_PUBLIC_STATE_INVALID",
-            "Snapshot public board or discard projection is invalid.",
+            "Snapshot public board or void projection is invalid.",
         )
     context.check(
         "hidden_information_%s" % viewer_id,

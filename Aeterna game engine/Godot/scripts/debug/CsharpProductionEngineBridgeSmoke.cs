@@ -184,7 +184,7 @@ public partial class CsharpProductionEngineBridgeSmoke : Node
             "..",
             "runtime_comparison",
             "fixtures",
-            "minimal_draw_end_turn_v1",
+            "minimal_draw_end_turn_v2",
             "runtime_package"));
         if (!Directory.Exists(path))
         {

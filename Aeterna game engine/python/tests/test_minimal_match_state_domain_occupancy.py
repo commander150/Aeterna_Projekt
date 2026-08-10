@@ -265,8 +265,8 @@ class TestMinimalMatchStateDomainOccupancy(unittest.TestCase):
         self.assertInvariantCode(seal_state, "DOMAIN_OCCUPANT_SEAL_POSITION_INVALID")
 
     def test_g_authoritative_zone_membership_includes_domain_slots(self):
-        # G54-G56: deck, hand, or discard plus Domain is a multiple-zone violation.
-        for zone_name in ("deck", "hand", "discard"):
+        # G54-G56: deck, hand, or void plus Domain is a multiple-zone violation.
+        for zone_name in ("deck", "hand", "void"):
             with self.subTest(zone_name=zone_name):
                 state = self._create_state("DOMAIN-OCCUPANCY-LIST-OVERLAP-%s" % zone_name)
                 card_instance_id = self._put_instance_in_list_zone(state, "P1", zone_name)
@@ -566,7 +566,7 @@ class TestMinimalMatchStateDomainOccupancy(unittest.TestCase):
             for field_name in (
                 "deck_card_instance_ids",
                 "hand_card_instance_ids",
-                "discard_card_instance_ids",
+                "void_card_instance_ids",
             ):
                 zone = getattr(player, field_name)
                 while card_instance_id in zone:
@@ -576,7 +576,7 @@ class TestMinimalMatchStateDomainOccupancy(unittest.TestCase):
     @staticmethod
     def _reindex_player_zones(state):
         for player in state.players:
-            for zone_name in ("deck", "hand", "discard"):
+            for zone_name in ("deck", "hand", "void"):
                 zone = getattr(player, "%s_card_instance_ids" % zone_name)
                 for zone_index, card_instance_id in enumerate(zone):
                     record = state.card_instances[card_instance_id]
@@ -589,7 +589,7 @@ class TestMinimalMatchStateDomainOccupancy(unittest.TestCase):
         for player in state.players:
             card_instance_ids.extend(player.deck_card_instance_ids)
             card_instance_ids.extend(player.hand_card_instance_ids)
-            card_instance_ids.extend(player.discard_card_instance_ids)
+            card_instance_ids.extend(player.void_card_instance_ids)
         return card_instance_ids
 
     def assertInvariantCode(self, state, code):
