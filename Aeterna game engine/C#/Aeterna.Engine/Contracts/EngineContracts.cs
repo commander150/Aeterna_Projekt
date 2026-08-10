@@ -210,6 +210,71 @@ public sealed record CardActivityChangedPayload(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? PendingTriggerId);
 
+public sealed record DamageDealtPayload(
+    [property: JsonPropertyName("damage_instance_id")] string DamageInstanceId,
+    [property: JsonPropertyName("entity_instance_id")] string EntityInstanceId,
+    [property: JsonPropertyName("source_card_instance_id")] string SourceCardInstanceId,
+    [property: JsonPropertyName("damage_kind_id")] string DamageKindId,
+    [property: JsonPropertyName("original_amount")] int OriginalAmount,
+    [property: JsonPropertyName("modified_amount")] int ModifiedAmount,
+    [property: JsonPropertyName("prevented_amount")] int PreventedAmount,
+    [property: JsonPropertyName("applied_amount")] int AppliedAmount,
+    [property: JsonPropertyName("accumulated_damage_before")] int AccumulatedDamageBefore,
+    [property: JsonPropertyName("accumulated_damage_after")] int AccumulatedDamageAfter,
+    [property: JsonPropertyName("cause_event_id")] string? CauseEventId,
+    [property: JsonPropertyName("source_card_id")] string SourceCardId,
+    [property: JsonPropertyName("target_card_id")] string TargetCardId,
+    [property: JsonPropertyName("source_ability_id")] string SourceAbilityId,
+    [property: JsonPropertyName("source_effect_id")] string SourceEffectId,
+    [property: JsonPropertyName("resolution_id")] string ResolutionId,
+    [property: JsonPropertyName("resolution_origin")] string ResolutionOrigin,
+    [property: JsonPropertyName("effective_max_hp")] int EffectiveMaxHp,
+    [property: JsonPropertyName("lethal")] bool Lethal);
+
+public sealed record EntityDestroyedPayload(
+    [property: JsonPropertyName("destruction_instance_id")] string DestructionInstanceId,
+    [property: JsonPropertyName("entity_instance_id")] string EntityInstanceId,
+    [property: JsonPropertyName("destruction_cause_kind_id")] string DestructionCauseKindId,
+    [property: JsonPropertyName("source_card_instance_id")] string SourceCardInstanceId,
+    [property: JsonPropertyName("cause_event_id")] string CauseEventId,
+    [property: JsonPropertyName("card_id")] string CardId,
+    [property: JsonPropertyName("source_ability_id")] string SourceAbilityId,
+    [property: JsonPropertyName("source_effect_id")] string SourceEffectId,
+    [property: JsonPropertyName("resolution_id")] string ResolutionId);
+
+public sealed record CardZoneChangedPayload(
+    [property: JsonPropertyName("zone_transition_instance_id")] string ZoneTransitionInstanceId,
+    [property: JsonPropertyName("card_instance_id")] string CardInstanceId,
+    [property: JsonPropertyName("from_zone_id")] string FromZoneId,
+    [property: JsonPropertyName("to_zone_id")] string ToZoneId,
+    [property: JsonPropertyName("from_zone_presence_instance_id")] string FromZonePresenceInstanceId,
+    [property: JsonPropertyName("to_zone_presence_instance_id")] string ToZonePresenceInstanceId,
+    [property: JsonPropertyName("cause_event_id")] string CauseEventId,
+    [property: JsonPropertyName("card_id")] string CardId,
+    [property: JsonPropertyName("owner_player_id")] string OwnerPlayerId,
+    [property: JsonPropertyName("controller_player_id")] string ControllerPlayerId,
+    [property: JsonPropertyName("from_domain_row_id")] string FromDomainRowId,
+    [property: JsonPropertyName("from_domain_lane_index")] int FromDomainLaneIndex,
+    [property: JsonPropertyName("to_zone_index")] int ToZoneIndex,
+    [property: JsonPropertyName("visibility_before")] string VisibilityBefore,
+    [property: JsonPropertyName("visibility_after")] string VisibilityAfter,
+    [property: JsonPropertyName("source_ability_id")] string SourceAbilityId,
+    [property: JsonPropertyName("source_effect_id")] string SourceEffectId,
+    [property: JsonPropertyName("resolution_id")] string ResolutionId);
+
+public sealed record DamageRemovedPayload(
+    [property: JsonPropertyName("damage_removal_instance_id")] string DamageRemovalInstanceId,
+    [property: JsonPropertyName("entity_instance_id")] string EntityInstanceId,
+    [property: JsonPropertyName("source_card_instance_id")] string? SourceCardInstanceId,
+    [property: JsonPropertyName("requested_amount")] int RequestedAmount,
+    [property: JsonPropertyName("removed_amount")] int RemovedAmount,
+    [property: JsonPropertyName("accumulated_damage_before")] int AccumulatedDamageBefore,
+    [property: JsonPropertyName("accumulated_damage_after")] int AccumulatedDamageAfter,
+    [property: JsonPropertyName("miasma_removed")] bool MiasmaRemoved,
+    [property: JsonPropertyName("cause_event_id")] string? CauseEventId,
+    [property: JsonPropertyName("card_id")] string CardId,
+    [property: JsonPropertyName("cleanup_boundary")] string CleanupBoundary);
+
 public sealed record CanonicalAbilityResolvedPayload(
     [property: JsonPropertyName("resolution_id")] string ResolutionId,
     [property: JsonPropertyName("resolution_origin")] string ResolutionOrigin,
@@ -285,7 +350,10 @@ public sealed record DomainCardProjection(
     [property: JsonPropertyName("zone_sequence")] int ZoneSequence,
     [property: JsonPropertyName("visibility")] string Visibility,
     [property: JsonPropertyName("activity_state")] string ActivityState,
-    [property: JsonPropertyName("entered_domain_turn_number")] int EnteredDomainTurnNumber);
+    [property: JsonPropertyName("entered_domain_turn_number")] int EnteredDomainTurnNumber,
+    [property: JsonPropertyName("effective_max_hp")] int? EffectiveMaxHp,
+    [property: JsonPropertyName("damage_marked")] int DamageMarked,
+    [property: JsonPropertyName("remaining_hp")] int? RemainingHp);
 
 public sealed record DomainSlotProjection(
     [property: JsonPropertyName("row")] string Row,
@@ -394,7 +462,8 @@ public sealed record DebugCardInstanceSnapshot(
     string? ActivityState,
     string? DomainRow,
     int? DomainLaneIndex,
-    int? EnteredDomainTurnNumber);
+    int? EnteredDomainTurnNumber,
+    int DamageMarked);
 
 public sealed record DebugSnapshot(
     string SchemaVersion,

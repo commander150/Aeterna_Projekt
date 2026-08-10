@@ -50,10 +50,19 @@ public sealed class EngineSession
         MatchState initialState,
         RuntimePackageCatalog runtimePackage,
         CanonicalAbilityCatalog? canonicalAbilities)
+        : this(initialState, runtimePackage, canonicalAbilities, canonicalCards: null)
+    {
+    }
+
+    internal EngineSession(
+        MatchState initialState,
+        RuntimePackageCatalog runtimePackage,
+        CanonicalAbilityCatalog? canonicalAbilities,
+        CanonicalCardCatalog? canonicalCards)
     {
         ArgumentNullException.ThrowIfNull(initialState);
         ArgumentNullException.ThrowIfNull(runtimePackage);
-        ValidateState(initialState);
+        ValidateState(initialState, canonicalCards);
         RuntimePackageLoader.ValidateCatalog(runtimePackage);
         if (!string.Equals(initialState.RuntimePackageId, runtimePackage.PackageId, StringComparison.Ordinal))
         {
@@ -74,6 +83,7 @@ public sealed class EngineSession
                 "0.0.0",
                 "0.0.0",
                 CanonicalPackageValidationMode.Development,
+                canonicalCards,
                 canonicalAbilities);
         }
     }
@@ -102,7 +112,8 @@ public sealed class EngineSession
             var package = RuntimePackageLoader.Load(request.RuntimePackage);
             var state = BuildInitialState(request, package);
             var canonicalRuntime = LoadCanonicalRuntime(request.CanonicalData);
-            ValidateState(state);
+            canonicalRuntime?.Cards?.ValidateRuntimeOverlap(package);
+            ValidateState(state, canonicalRuntime?.Cards);
             _state = state;
             _runtimePackage = package;
             _canonicalRuntime = canonicalRuntime;
@@ -123,7 +134,7 @@ public sealed class EngineSession
     public PlayerSnapshot GetPlayerSnapshot(string playerId)
     {
         var state = RequireState();
-        ValidateState(state);
+        ValidateState(state, _canonicalRuntime?.Cards);
         RequireKnownPlayer(state, playerId);
         var resourceSummaries = state.Players
             .Select(player => BuildWellspringResourceSummary(state, player))
@@ -160,7 +171,7 @@ public sealed class EngineSession
     public LegalActionSpace ListLegalActions(string playerId, bool includeDisabled = false)
     {
         var state = RequireState();
-        ValidateState(state);
+        ValidateState(state, _canonicalRuntime?.Cards);
         var player = RequireKnownPlayer(state, playerId);
         if (state.PendingTriggerWindow is not null)
         {
@@ -573,9 +584,9 @@ public sealed class EngineSession
                     "The action type is outside the C.5B production rules scope.",
                     "fix_request")),
         };
-        ValidateState(state);
+        ValidateState(state, _canonicalRuntime?.Cards);
         var triggerEvents = DiscoverCanonicalTriggers(state, response.Events);
-        ValidateState(state);
+        ValidateState(state, _canonicalRuntime?.Cards);
         return triggerEvents.IsDefaultOrEmpty
             ? response
             : response with { Events = response.Events.AddRange(triggerEvents) };
@@ -636,7 +647,8 @@ public sealed class EngineSession
                     card.ActivityState,
                     card.DomainRow?.ToString().ToLowerInvariant(),
                     card.DomainLaneIndex,
-                    card.EnteredDomainTurnNumber))
+                    card.EnteredDomainTurnNumber,
+                    card.DamageMarked))
                 .ToImmutableArray(),
             state.Events.Select(CloneEvent).ToImmutableArray(),
             BuildPendingTriggerSummary(state),
@@ -675,7 +687,7 @@ public sealed class EngineSession
     {
         try
         {
-            ValidateState(RequireState());
+            ValidateState(RequireState(), _canonicalRuntime?.Cards);
             return ImmutableArray<EngineDiagnostic>.Empty;
         }
         catch (EngineStateException exception)
@@ -694,7 +706,7 @@ public sealed class EngineSession
         string cardInstanceId)
     {
         var state = RequireState();
-        ValidateMagnitudePreflightState(state, playerId, cardInstanceId);
+        ValidateMagnitudePreflightState(state, playerId, cardInstanceId, _canonicalRuntime?.Cards);
         var runtimePackage = _runtimePackage
             ?? throw new MagnitudePreflightException(
                 "MAGNITUDE_PREFLIGHT_RUNTIME_PACKAGE_MISSING",
@@ -777,7 +789,7 @@ public sealed class EngineSession
         string cardInstanceId)
     {
         var state = RequireState();
-        ValidateAuraPaymentPreflightState(state, playerId, cardInstanceId);
+        ValidateAuraPaymentPreflightState(state, playerId, cardInstanceId, _canonicalRuntime?.Cards);
         var runtimePackage = RequireAuraPaymentRuntimePackage(state);
         var player = state.Players.SingleOrDefault(item =>
             string.Equals(item.PlayerId, playerId, StringComparison.Ordinal))
@@ -1275,9 +1287,11 @@ public sealed class EngineSession
                 exception);
         }
 
+        CanonicalCardCatalog cards;
         CanonicalAbilityCatalog abilities;
         try
         {
+            cards = CanonicalCardMaterializer.Materialize(cardDatabase);
             abilities = CanonicalAbilityMaterializer.Materialize(cardDatabase);
         }
         catch (EngineInputException exception)
@@ -1296,6 +1310,7 @@ public sealed class EngineSession
             cardDatabase.SchemaVersion,
             cardDatabase.DataVersion,
             validationMode,
+            cards,
             abilities);
     }
 
@@ -1596,7 +1611,7 @@ public sealed class EngineSession
                     context.SourceCardId,
                     context.ControllerPlayerId,
                     CanonicalEffectExecutor.AppliedOutcome,
-                    plan.Resolution.EffectPlan.ActivityMutations.Length,
+                    plan.Resolution.EffectPlan.AppliedMutationCount,
                     context.SourceActionId,
                     context.PendingTriggerId,
                     context.TriggerId));
@@ -1776,25 +1791,16 @@ public sealed class EngineSession
 
         state.StateVersion += 1;
         var events = ImmutableArray.CreateBuilder<EngineEvent>();
-        foreach (var mutation in plan.EffectPlan.ActivityMutations)
-        {
-            events.Add(CreateCanonicalRuntimeEvent(
+        AppendCanonicalEffectEvents(
+            events,
+            plan.EffectPlan,
+            (offset, eventType, payload) => CreateCanonicalRuntimeEvent(
                 state,
-                events.Count,
-                "card_activity_changed",
+                offset,
+                eventType,
                 request.PlayerId,
                 request.ActionType,
-                ContractJsonValue.From(new CardActivityChangedPayload(
-                    mutation.CardInstanceId,
-                    mutation.CardId,
-                    mutation.FromActivityState,
-                    mutation.ToActivityState,
-                    plan.Ability.AbilityId,
-                    mutation.EffectId,
-                    plan.PendingTrigger.PendingTriggerId,
-                    CanonicalEffectExecutor.TriggeredAbilityOriginId,
-                    plan.PendingTrigger.PendingTriggerId))));
-        }
+                payload));
 
         events.Add(CreateCanonicalRuntimeEvent(
             state,
@@ -1810,7 +1816,7 @@ public sealed class EngineSession
                 plan.PendingTrigger.SourceCardId,
                 plan.PendingTrigger.ControllerPlayerId,
                 CanonicalEffectExecutor.AppliedOutcome,
-                plan.EffectPlan.ActivityMutations.Length,
+                plan.EffectPlan.AppliedMutationCount,
                 null,
                 plan.PendingTrigger.PendingTriggerId,
                 plan.PendingTrigger.TriggerId))));
@@ -1825,7 +1831,7 @@ public sealed class EngineSession
                 plan.PendingTrigger.SourceCardId,
                 plan.PendingTrigger.ControllerPlayerId,
                 CanonicalEffectExecutor.AppliedOutcome,
-                plan.EffectPlan.ActivityMutations.Length,
+                plan.EffectPlan.AppliedMutationCount,
                 null,
                 plan.PendingTrigger.PendingTriggerId,
                 plan.PendingTrigger.TriggerId));
@@ -1919,7 +1925,8 @@ public sealed class EngineSession
         var effectPlan = CanonicalEffectExecutor.BuildPlan(
             context,
             state,
-            runtimePackage);
+            runtimePackage,
+            canonicalRuntime.Cards);
         return new TriggeredAbilityResolutionPlan(pending, ability, effectPlan);
     }
 
@@ -2270,7 +2277,8 @@ public sealed class EngineSession
             effectPlan = CanonicalEffectExecutor.BuildPlan(
                 context,
                 state,
-                runtimePackage);
+                runtimePackage,
+                canonicalRuntime.Cards);
         }
         catch (CanonicalAbilityExecutionException exception)
         {
@@ -2368,25 +2376,16 @@ public sealed class EngineSession
         {
             var context = plan.Resolution.EffectPlan.Context;
             var originId = CanonicalEffectExecutor.OriginId(context.Origin);
-            foreach (var mutation in plan.Resolution.EffectPlan.ActivityMutations)
-            {
-                events.Add(CreatePlayCardEvent(
+            AppendCanonicalEffectEvents(
+                events,
+                plan.Resolution.EffectPlan,
+                (_, eventType, payload) => CreatePlayCardEvent(
                     state,
                     request,
                     stateVersionAfter,
                     state.Events.Count + events.Count + 1,
-                    "card_activity_changed",
-                    ContractJsonValue.From(new CardActivityChangedPayload(
-                        mutation.CardInstanceId,
-                        mutation.CardId,
-                        mutation.FromActivityState,
-                        mutation.ToActivityState,
-                        context.Ability.AbilityId,
-                        mutation.EffectId,
-                        context.ResolutionId,
-                        originId,
-                        PendingTriggerId: null))));
-            }
+                    eventType,
+                    payload));
 
             events.Add(CreatePlayCardEvent(
                 state,
@@ -2402,7 +2401,7 @@ public sealed class EngineSession
                     context.SourceCardId,
                     context.ControllerPlayerId,
                     CanonicalEffectExecutor.AppliedOutcome,
-                    plan.Resolution.EffectPlan.ActivityMutations.Length,
+                    plan.Resolution.EffectPlan.AppliedMutationCount,
                     context.SourceActionId,
                     PendingTriggerId: null,
                     TriggerId: null))));
@@ -2477,6 +2476,104 @@ public sealed class EngineSession
         return events.ToImmutable();
     }
 
+    private static void AppendCanonicalEffectEvents(
+        ImmutableArray<EngineEvent>.Builder events,
+        CanonicalEffectExecutionPlan plan,
+        Func<int, string, JsonElement, EngineEvent> createEvent)
+    {
+        var context = plan.Context;
+        var originId = CanonicalEffectExecutor.OriginId(context.Origin);
+        foreach (var mutation in plan.Mutations)
+        {
+            switch (mutation)
+            {
+                case CanonicalCardActivityMutation activity:
+                    events.Add(createEvent(
+                        events.Count,
+                        "card_activity_changed",
+                        ContractJsonValue.From(new CardActivityChangedPayload(
+                            activity.CardInstanceId,
+                            activity.CardId,
+                            activity.FromActivityState,
+                            activity.ToActivityState,
+                            context.Ability.AbilityId,
+                            activity.EffectId,
+                            context.ResolutionId,
+                            originId,
+                            context.PendingTriggerId))));
+                    break;
+                case CanonicalDamageMutation damage:
+                    events.Add(createEvent(
+                        events.Count,
+                        "damage_dealt",
+                        ContractJsonValue.From(new DamageDealtPayload(
+                            damage.DamageInstanceId,
+                            damage.CardInstanceId,
+                            damage.SourceCardInstanceId,
+                            damage.DamageKindId,
+                            damage.Amount,
+                            damage.Amount,
+                            0,
+                            damage.Amount,
+                            damage.DamageBefore,
+                            damage.DamageAfter,
+                            null,
+                            damage.SourceCardId,
+                            damage.CardId,
+                            context.Ability.AbilityId,
+                            damage.EffectId,
+                            context.ResolutionId,
+                            originId,
+                            damage.EffectiveMaxHp,
+                            damage.Lethal))));
+                    if (damage.Destruction is not { } destruction)
+                    {
+                        break;
+                    }
+
+                    events.Add(createEvent(
+                        events.Count,
+                        "entity_destroyed",
+                        ContractJsonValue.From(new EntityDestroyedPayload(
+                            destruction.DestructionInstanceId,
+                            damage.CardInstanceId,
+                            destruction.DestructionCauseKindId,
+                            destruction.SourceCardInstanceId,
+                            destruction.CauseInstanceId,
+                            damage.CardId,
+                            context.Ability.AbilityId,
+                            damage.EffectId,
+                            context.ResolutionId))));
+                    var transition = destruction.ZoneTransition;
+                    events.Add(createEvent(
+                        events.Count,
+                        "card_zone_changed",
+                        ContractJsonValue.From(new CardZoneChangedPayload(
+                            transition.ZoneTransitionInstanceId,
+                            transition.CardInstanceId,
+                            transition.FromZoneId,
+                            transition.ToZoneId,
+                            transition.FromZonePresenceInstanceId,
+                            transition.ToZonePresenceInstanceId,
+                            transition.CauseInstanceId,
+                            transition.CardId,
+                            transition.OwnerPlayerId,
+                            transition.ControllerPlayerId,
+                            transition.FromDomainRow == DomainRow.Horizon ? "horizont" : "zenit",
+                            transition.FromDomainLaneIndex,
+                            transition.ToZoneIndex,
+                            "public",
+                            "public",
+                            context.Ability.AbilityId,
+                            damage.EffectId,
+                            context.ResolutionId))));
+                    break;
+                default:
+                    throw new EngineStateException("Unknown canonical effect mutation event type.");
+            }
+        }
+    }
+
     private static EngineEvent CreatePlayCardEvent(
         MatchState state,
         ActionRequest request,
@@ -2501,6 +2598,27 @@ public sealed class EngineSession
         var previousPlayerId = state.ActivePlayerId;
         var nextPlayerId = state.GetNextPlayerId(previousPlayerId);
         var turnBefore = state.TurnNumber;
+        var damagedSurvivors = state.Players
+            .SelectMany(player => new[]
+            {
+                player.Domain.HorizonCardInstanceIds,
+                player.Domain.ZenithCardInstanceIds,
+            })
+            .SelectMany(row => row)
+            .Where(cardInstanceId => cardInstanceId is not null)
+            .Select(cardInstanceId => state.GetCardInstance(cardInstanceId!))
+            .Where(card => card.DamageMarked > 0)
+            .Select(card => (Card: card, DamageBefore: card.DamageMarked))
+            .ToImmutableArray();
+
+        // Temporary until the explicit phase engine exists: today's end_turn is
+        // the end of the active player's complete turn, so it is the production
+        // proxy for the official Eloszlás survivor-damage cleanup boundary.
+        foreach (var damaged in damagedSurvivors)
+        {
+            damaged.Card.DamageMarked = 0;
+        }
+
         if (string.Equals(nextPlayerId, state.Players[0].PlayerId, StringComparison.Ordinal))
         {
             state.TurnNumber += 1;
@@ -2509,7 +2627,37 @@ public sealed class EngineSession
         state.ActivePlayerId = nextPlayerId;
         state.PriorityPlayerId = nextPlayerId;
         state.StateVersion += 1;
-        var eventSequence = state.Events.Count + 1;
+        var events = ImmutableArray.CreateBuilder<EngineEvent>();
+        foreach (var damaged in damagedSurvivors)
+        {
+            var card = damaged.Card;
+            var eventSequence = state.Events.Count + events.Count + 1;
+            events.Add(new EngineEvent(
+                ContractSchemas.EngineEvent,
+                $"event_{eventSequence:000000}",
+                eventSequence,
+                "damage_removed",
+                state.MatchId,
+                state.StateVersion,
+                turnBefore,
+                previousPlayerId,
+                request.ActionType,
+                "public",
+                ContractJsonValue.From(new DamageRemovedPayload(
+                    $"damage_removal_{eventSequence:000000}",
+                    card.CardInstanceId,
+                    null,
+                    damaged.DamageBefore,
+                    damaged.DamageBefore,
+                    damaged.DamageBefore,
+                    0,
+                    false,
+                    null,
+                    card.CardId,
+                    "temporary_end_turn_dissipation_proxy"))));
+        }
+
+        var transitionEventSequence = state.Events.Count + events.Count + 1;
         var payload = new TurnTransitionPayload(
             request.ActionId,
             request.ActionType,
@@ -2521,10 +2669,10 @@ public sealed class EngineSession
             state.TurnNumber,
             state.Phase,
             state.Phase);
-        var engineEvent = new EngineEvent(
+        events.Add(new EngineEvent(
             ContractSchemas.EngineEvent,
-            $"event_{eventSequence:000000}",
-            eventSequence,
+            $"event_{transitionEventSequence:000000}",
+            transitionEventSequence,
             "turn_transition",
             state.MatchId,
             state.StateVersion,
@@ -2532,9 +2680,10 @@ public sealed class EngineSession
             previousPlayerId,
             request.ActionType,
             "public",
-            ContractJsonValue.From(payload));
-        state.Events.Add(engineEvent);
-        return AcceptAction(state, request, stateVersionBefore, engineEvent);
+            ContractJsonValue.From(payload)));
+        var materializedEvents = events.ToImmutable();
+        state.Events.AddRange(materializedEvents);
+        return AcceptAction(state, request, stateVersionBefore, materializedEvents);
     }
 
     private static ActionResponse AcceptAction(
@@ -2680,7 +2829,7 @@ public sealed class EngineSession
             objects);
     }
 
-    private static DomainBoardProjection BuildDomainBoardProjection(MatchState state)
+    private DomainBoardProjection BuildDomainBoardProjection(MatchState state)
     {
         var players = state.Players
             .Select(player =>
@@ -2713,7 +2862,7 @@ public sealed class EngineSession
             players);
     }
 
-    private static ImmutableArray<DomainSlotProjection> BuildDomainRowProjection(
+    private ImmutableArray<DomainSlotProjection> BuildDomainRowProjection(
         MatchState state,
         PlayerState player,
         DomainRow row,
@@ -2726,6 +2875,14 @@ public sealed class EngineSession
             if (cardInstanceId is not null)
             {
                 var card = state.GetCardInstance(cardInstanceId);
+                int? effectiveMaxHp = null;
+                if (_canonicalRuntime?.Cards is { } canonicalCards
+                    && canonicalCards.DefinitionsById.TryGetValue(card.CardId, out var canonicalDefinition)
+                    && string.Equals(canonicalDefinition.CardType, "entity", StringComparison.Ordinal))
+                {
+                    effectiveMaxHp = CanonicalVitals.GetEffectiveMaxHp(card, canonicalCards);
+                }
+
                 occupant = new DomainCardProjection(
                     card.CardInstanceId,
                     card.CardId,
@@ -2737,7 +2894,10 @@ public sealed class EngineSession
                     card.ActivityState
                     ?? throw new EngineStateException("Domain card activity state is missing."),
                     card.EnteredDomainTurnNumber
-                    ?? throw new EngineStateException("Domain entry turn is missing."));
+                    ?? throw new EngineStateException("Domain entry turn is missing."),
+                    effectiveMaxHp,
+                    card.DamageMarked,
+                    effectiveMaxHp - card.DamageMarked);
             }
 
             return new DomainSlotProjection(
@@ -3365,11 +3525,12 @@ public sealed class EngineSession
     private static void ValidateMagnitudePreflightState(
         MatchState state,
         string playerId,
-        string cardInstanceId)
+        string cardInstanceId,
+        CanonicalCardCatalog? canonicalCards)
     {
         try
         {
-            ValidateState(state);
+            ValidateState(state, canonicalCards);
         }
         catch (EngineStateException exception)
         {
@@ -3427,11 +3588,12 @@ public sealed class EngineSession
     private static void ValidateAuraPaymentPreflightState(
         MatchState state,
         string playerId,
-        string cardInstanceId)
+        string cardInstanceId,
+        CanonicalCardCatalog? canonicalCards)
     {
         try
         {
-            ValidateState(state);
+            ValidateState(state, canonicalCards);
         }
         catch (EngineStateException exception)
         {
@@ -3479,7 +3641,7 @@ public sealed class EngineSession
             failureReason,
             resolvedSourceInstanceIds);
 
-    internal static void ValidateState(MatchState state)
+    internal static void ValidateState(MatchState state, CanonicalCardCatalog? canonicalCards = null)
     {
         var zoneIds = new HashSet<string>(StringComparer.Ordinal);
         var knownPlayerIds = state.Players
@@ -3588,6 +3750,11 @@ public sealed class EngineSession
 
         foreach (var card in state.CardInstances.Values)
         {
+            if (card.DamageMarked < 0)
+            {
+                throw new EngineStateException("Card damage_marked cannot be negative.");
+            }
+
             if (card.Zone is not ("deck" or "hand" or "void" or "wellspring" or "dominion"))
             {
                 throw new EngineStateException("Card instance zone must use an active production zone token.");
@@ -3603,6 +3770,22 @@ public sealed class EngineSession
                         "Domain card position and entry turn must be explicit.");
                 }
 
+
+                if (canonicalCards is not null)
+                {
+                    var effectiveMaxHp = CanonicalVitals.GetEffectiveMaxHp(card, canonicalCards);
+                    if (card.DamageMarked >= effectiveMaxHp)
+                    {
+                        throw new EngineStateException(
+                            "Committed Dominion Entity cannot have lethal accumulated damage.");
+                    }
+                }
+                else if (card.DamageMarked > 0)
+                {
+                    throw new EngineStateException(
+                        "Positive damage_marked requires canonical card-stat authority.");
+                }
+
                 continue;
             }
 
@@ -3612,6 +3795,13 @@ public sealed class EngineSession
             {
                 throw new EngineStateException(
                     "Non-Domain card cannot carry Domain position or entry state.");
+            }
+
+
+            if (card.DamageMarked != 0)
+            {
+                throw new EngineStateException(
+                    "Non-Domain card damage_marked must be zero in the current runtime slice.");
             }
         }
 

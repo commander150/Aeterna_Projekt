@@ -248,7 +248,7 @@ internal static class ResolutionCardPlayTests
                     CanonicalAbilityTableIds.Effects,
                     "effect_ign_ham_044_01_exhaust_target",
                     "effect_action_type_id",
-                    "effect_deal_damage"),
+                    "effect_apply_modifier"),
                 "CANONICAL_EFFECT_ACTION_UNSUPPORTED"),
             (
                 CanonicalAbilityCatalogTests.SetField(

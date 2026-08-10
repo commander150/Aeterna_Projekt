@@ -186,6 +186,17 @@ internal static class CanonicalAbilityCatalogTests
     {
         var registryTables = ImmutableDictionary.CreateBuilder<string, CanonicalTable>(StringComparer.Ordinal);
         registryTables.Add("schema_fields", Table("schema_fields", "field_id"));
+        registryTables.Add("value_registry", Table(
+            "value_registry",
+            "value_id",
+            Record(("value_id", "entity"), ("group_id", "card_type")),
+            Record(("value_id", "spell"), ("group_id", "card_type")),
+            Record(("value_id", "ritual"), ("group_id", "card_type")),
+            Record(("value_id", "sign"), ("group_id", "card_type")),
+            Record(("value_id", "plane"), ("group_id", "card_type")),
+            Record(("value_id", "ignis"), ("group_id", "realm")),
+            Record(("value_id", "aqua"), ("group_id", "realm")),
+            Record(("value_id", "active"), ("group_id", "record_status"))));
         registryTables.Add(CanonicalAbilityTableIds.AbilityTemplates, Table(
             CanonicalAbilityTableIds.AbilityTemplates,
             "ability_template_id",
@@ -230,11 +241,19 @@ internal static class CanonicalAbilityCatalogTests
             Card("IGN-HAM-001"),
             Card("IGN-HAM-005"),
             Card("IGN-HAM-044"),
-            Card("AQU-ART-044"),
+            Card("IGN-LAN-003", printedHp: 2, printedAtk: 2),
+            Card("IGN-LAN-031", cardType: "ritual", magnitude: 1, auraCost: 2),
+            Card("AQU-ART-044", cardType: "spell", realm: "aqua", magnitude: 5, auraCost: 4),
             Card("AQU-MOR-007"),
             Card("AQU-MOR-017"),
             Card("AQU-MOR-033"),
-            Card("LUX-FHL-034")));
+            Card("LUX-FHL-034"),
+            Card("FIXTURE-CARD-P1-001", magnitude: 1, auraCost: 1),
+            Card("FIXTURE-CARD-P1-002", magnitude: 1, auraCost: 1),
+            Card("FIXTURE-CARD-P1-003", magnitude: 1, auraCost: 1),
+            Card("FIXTURE-CARD-P2-001", magnitude: 1, auraCost: 1),
+            Card("FIXTURE-CARD-P2-002", magnitude: 1, auraCost: 1),
+            Card("FIXTURE-CARD-P2-003", magnitude: 1, auraCost: 1)));
         tables.Add(CanonicalAbilityTableIds.CardKeywords, Table(
             CanonicalAbilityTableIds.CardKeywords,
             "card_keyword_id",
@@ -250,6 +269,8 @@ internal static class CanonicalAbilityCatalogTests
             "ability_id",
             StructuredAbility("ability_ign_ham_005_01", "IGN-HAM-005", "triggered", "full_resolution_required", "dominion"),
             StructuredAbility("ability_ign_ham_044_01", "IGN-HAM-044", "resolution", "full_resolution_required", "hand"),
+            StructuredAbility("ability_ign_lan_003_01", "IGN-LAN-003", "triggered", "full_resolution_required", "dominion"),
+            StructuredAbility("ability_ign_lan_031_01", "IGN-LAN-031", "resolution", "full_resolution_required", "hand"),
             StructuredAbility("ability_aqu_art_044_01", "AQU-ART-044", "resolution", "full_resolution_required", "hand"),
             StructuredAbility("ability_aqu_mor_007_01", "AQU-MOR-007", "triggered", "full_resolution_required", "dominion"),
             StructuredAbility("ability_aqu_mor_017_01", "AQU-MOR-017", "static", null, "dominion"),
@@ -276,8 +297,18 @@ internal static class CanonicalAbilityCatalogTests
                 ("reference_type_id", "ref_selected_card_exactly_one"), ("game_object_id", "card_instance"), ("card_type_id", "entity"),
                 ("player_reference_id", "opponent_of_ability_controller"), ("zone_id", "dominion"),
                 ("domain_row_id", "zenit"), ("activity_state_id", "active")),
+            Target("target_ign_lan_003_01_enemy_entity", "ability_ign_lan_003_01", "target_choose_one_card", 1, 1, false, null,
+                ("reference_type_id", "ref_selected_card_exactly_one"), ("game_object_id", "card_instance"), ("card_type_id", "entity"),
+                ("player_reference_id", "opponent_of_ability_controller"), ("zone_id", "dominion"),
+                ("domain_row_id", null), ("activity_state_id", null)),
+            Target("target_ign_lan_031_01_enemy_entities", "ability_ign_lan_031_01", "target_choose_cards_zero_or_more", 0, 2, true, null,
+                ("reference_type_id", "ref_selected_cards_zero_or_more"), ("game_object_id", "card_instance"), ("card_type_id", "entity"),
+                ("player_reference_id", "opponent_of_ability_controller"), ("zone_id", "dominion"),
+                ("domain_row_id", null), ("activity_state_id", null)),
             Target("target_aqu_art_044_01_enemy_horizont_entities", "ability_aqu_art_044_01", "target_choose_cards_zero_or_more", 0, 2, true, null,
-                ("reference_type_id", "ref_selected_cards_zero_or_more"), ("player_reference_id", "opponent_of_ability_controller"), ("domain_row_id", "horizont")),
+                ("reference_type_id", "ref_selected_cards_zero_or_more"), ("game_object_id", "card_instance"), ("card_type_id", "entity"),
+                ("player_reference_id", "opponent_of_ability_controller"), ("zone_id", "dominion"),
+                ("domain_row_id", "horizont"), ("activity_state_id", null)),
             Target("target_aqu_mor_007_01_enemy_horizont_entity", "ability_aqu_mor_007_01", "target_choose_one_card", 1, 1, false, "condition_aqu_mor_007_01_magnitude_lte_3",
                 ("reference_type_id", "ref_selected_card_exactly_one"), ("player_reference_id", "opponent_of_ability_controller"), ("domain_row_id", "horizont")),
             Target("target_aqu_mor_017_01_source_card", "ability_aqu_mor_017_01", "target_reference_ability_source_card", 1, 1, false, null,
@@ -289,6 +320,8 @@ internal static class CanonicalAbilityCatalogTests
             "effect_id",
             Effect("effect_ign_ham_005_01_exhaust_target", "ability_ign_ham_005_01", 1, "effect_exhaust_card", "target_ign_ham_005_01_enemy_horizont_entity"),
             Effect("effect_ign_ham_044_01_exhaust_target", "ability_ign_ham_044_01", 1, "effect_exhaust_card", "target_ign_ham_044_01_enemy_zenit_entity"),
+            Effect("effect_ign_lan_003_01_deal_damage", "ability_ign_lan_003_01", 1, "effect_deal_damage", "target_ign_lan_003_01_enemy_entity"),
+            Effect("effect_ign_lan_031_01_deal_damage", "ability_ign_lan_031_01", 1, "effect_deal_damage", "target_ign_lan_031_01_enemy_entities"),
             Effect("effect_aqu_art_044_01_exhaust_selected", "ability_aqu_art_044_01", 1, "effect_exhaust_card", "target_aqu_art_044_01_enemy_horizont_entities"),
             Effect("effect_aqu_art_044_01_damage_selected", "ability_aqu_art_044_01", 2, "effect_deal_damage", "target_aqu_art_044_01_enemy_horizont_entities", ("future_field", "preserved")),
             Effect("effect_aqu_mor_007_01_exhaust_target", "ability_aqu_mor_007_01", 1, "effect_exhaust_card", "target_aqu_mor_007_01_enemy_horizont_entity"),
@@ -298,12 +331,17 @@ internal static class CanonicalAbilityCatalogTests
         tables.Add(CanonicalAbilityTableIds.EffectParameters, Table(
             CanonicalAbilityTableIds.EffectParameters,
             "effect_parameter_id",
+            Parameter("effectparam_ign_lan_003_01_damage_kind", "effect_ign_lan_003_01_deal_damage", "parameter_field_deal_damage_damage_kind", ("value_registry_value_id", "damage_kind_direct")),
+            Parameter("effectparam_ign_lan_003_01_damage_amount", "effect_ign_lan_003_01_deal_damage", "parameter_field_deal_damage_amount", ("value_integer", 1)),
+            Parameter("effectparam_ign_lan_031_01_damage_kind", "effect_ign_lan_031_01_deal_damage", "parameter_field_deal_damage_damage_kind", ("value_registry_value_id", "damage_kind_direct")),
+            Parameter("effectparam_ign_lan_031_01_damage_amount", "effect_ign_lan_031_01_deal_damage", "parameter_field_deal_damage_amount", ("value_integer", 2)),
             Parameter("effectparam_aqu_art_044_01_damage_kind", "effect_aqu_art_044_01_damage_selected", "parameter_field_deal_damage_damage_kind", ("value_registry_value_id", "damage_kind_direct")),
             Parameter("effectparam_aqu_art_044_01_damage_amount", "effect_aqu_art_044_01_damage_selected", "parameter_field_deal_damage_amount", ("value_integer", 2))));
         tables.Add(CanonicalAbilityTableIds.Triggers, Table(
             CanonicalAbilityTableIds.Triggers,
             "trigger_id",
             Trigger("trigger_ign_ham_005_01_entered_play", "ability_ign_ham_005_01"),
+            Trigger("trigger_ign_lan_003_01_entered_play", "ability_ign_lan_003_01"),
             Trigger("trigger_aqu_mor_007_01_entered_play", "ability_aqu_mor_007_01")));
         tables.Add(CanonicalAbilityTableIds.Conditions, Table(
             CanonicalAbilityTableIds.Conditions,
@@ -352,7 +390,22 @@ internal static class CanonicalAbilityCatalogTests
             registry);
     }
 
-    private static CanonicalRecord Card(string cardId) => Record(("card_id", cardId));
+    private static CanonicalRecord Card(
+        string cardId,
+        string cardType = "entity",
+        string realm = "ignis",
+        int magnitude = 0,
+        int auraCost = 0,
+        int? printedAtk = null,
+        int? printedHp = null) => Record(
+        ("card_id", cardId),
+        ("card_type_id", cardType),
+        ("realm_id", realm),
+        ("magnitude", magnitude),
+        ("aura_cost", auraCost),
+        ("atk", string.Equals(cardType, "entity", StringComparison.Ordinal) ? printedAtk ?? 1 : null),
+        ("hp", string.Equals(cardType, "entity", StringComparison.Ordinal) ? printedHp ?? 1 : null),
+        ("status", "active"));
 
     private static CanonicalRecord StructuredAbility(string abilityId, string cardId, string abilityKind, string? resolution, string zone) => Record(
         ("ability_id", abilityId),

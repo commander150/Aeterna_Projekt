@@ -69,7 +69,8 @@ internal static class CanonicalTargetResolver
             foreach (var row in new[] { DomainRow.Horizon, DomainRow.Zenith })
             {
                 var rowId = row == DomainRow.Horizon ? "horizont" : "zenit";
-                if (!string.Equals(target.DomainRowId, rowId, StringComparison.Ordinal))
+                if (target.DomainRowId is not null
+                    && !string.Equals(target.DomainRowId, rowId, StringComparison.Ordinal))
                 {
                     continue;
                 }
@@ -167,7 +168,7 @@ internal static class CanonicalTargetResolver
         var candidatesById = candidates.ToImmutableDictionary(
             candidate => candidate.CardInstanceId,
             StringComparer.Ordinal);
-        var selected = ImmutableArray.CreateBuilder<CanonicalTargetCandidate>();
+        var selectedIds = selectedCardInstanceIds.ToImmutableHashSet(StringComparer.Ordinal);
         foreach (var cardInstanceId in selectedCardInstanceIds)
         {
             if (!state.CardInstances.ContainsKey(cardInstanceId))
@@ -177,39 +178,48 @@ internal static class CanonicalTargetResolver
                     "Canonical target selection references an unknown card instance.");
             }
 
-            if (!candidatesById.TryGetValue(cardInstanceId, out var candidate))
+            if (!candidatesById.ContainsKey(cardInstanceId))
             {
                 throw new CanonicalAbilityExecutionException(
                     Code(origin, "TARGET_ILLEGAL"),
                     "Selected card instance does not currently satisfy the canonical target contract.");
             }
-
-            selected.Add(candidate);
         }
 
-        return new CanonicalResolvedTargetSelection(target, selected.ToImmutable());
+        // Selection execution follows the stable public candidate order. Request
+        // array order is not a hidden game-semantic ordering channel.
+        return new CanonicalResolvedTargetSelection(
+            target,
+            candidates.Where(candidate => selectedIds.Contains(candidate.CardInstanceId)).ToImmutableArray());
     }
 
     private static void RequireSupportedContract(CanonicalAbilityTargetDefinition target)
     {
+        var primitiveSupported =
+            string.Equals(target.TargetPrimitiveId, "target_choose_one_card", StringComparison.Ordinal)
+            && string.Equals(target.ReferenceTypeId, "ref_selected_card_exactly_one", StringComparison.Ordinal)
+            || string.Equals(target.TargetPrimitiveId, "target_choose_cards_zero_or_more", StringComparison.Ordinal)
+            && string.Equals(target.ReferenceTypeId, "ref_selected_cards_zero_or_more", StringComparison.Ordinal);
         if (!string.Equals(target.Status, ActiveStatus, StringComparison.Ordinal)
-            || !string.Equals(target.TargetPrimitiveId, "target_choose_one_card", StringComparison.Ordinal)
-            || !string.Equals(target.ReferenceTypeId, "ref_selected_card_exactly_one", StringComparison.Ordinal)
+            || !primitiveSupported
             || !string.Equals(target.GameObjectId, "card_instance", StringComparison.Ordinal)
             || !string.Equals(target.CardTypeId, "entity", StringComparison.Ordinal)
             || !string.Equals(target.PlayerReferenceId, "opponent_of_ability_controller", StringComparison.Ordinal)
             || !string.Equals(target.ZoneId, "dominion", StringComparison.Ordinal)
-            || target.DomainRowId is not ("horizont" or "zenit")
+            || target.DomainRowId is not (null or "horizont" or "zenit")
             || target.DomainLaneId is not null
             || target.ActivityStateId is not null
             && !string.Equals(target.ActivityStateId, "active", StringComparison.Ordinal)
             || !string.Equals(target.SelectionMethodId, "controller_choice", StringComparison.Ordinal)
-            || target.MinimumTargets != 1
-            || target.MaximumTargets != 1
+            || target.MinimumTargets < 0
+            || target.MaximumTargets < 1
+            || target.MinimumTargets > target.MaximumTargets
             || target.FilterConditionId is not null
-            || target.Optional)
+            || target.Optional != (target.MinimumTargets == 0)
+            || string.Equals(target.TargetPrimitiveId, "target_choose_one_card", StringComparison.Ordinal)
+            && (target.MinimumTargets != 1 || target.MaximumTargets != 1))
         {
-            throw Unsupported("Canonical target definition is outside the first choose-one exhaust-card runtime slice.");
+            throw Unsupported("Canonical target definition is outside the controlled Dominion Entity choice runtime slice.");
         }
     }
 

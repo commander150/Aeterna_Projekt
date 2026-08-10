@@ -13,6 +13,7 @@ internal sealed record CanonicalAbilityRuntimeContext(
     string CardDatabaseSchemaVersion,
     string CardDatabaseDataVersion,
     CanonicalPackageValidationMode ValidationMode,
+    CanonicalCardCatalog? Cards,
     CanonicalAbilityCatalog Abilities);
 
 internal sealed record CanonicalAbilityRuntimeStatus(

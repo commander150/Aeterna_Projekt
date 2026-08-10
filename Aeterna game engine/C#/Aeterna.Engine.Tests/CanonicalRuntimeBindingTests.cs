@@ -35,7 +35,7 @@ internal static class CanonicalRuntimeBindingTests
         Equal("aeterna_registry", status.RegistryPackageId, "Bound REGISTRY identity is invalid.");
         Equal("aeterna_carddatabase", status.CardDatabasePackageId, "Bound CARDDATABASE identity is invalid.");
         Equal(CanonicalPackageValidationMode.Production, status.ValidationMode, "Canonical validation mode is invalid.");
-        Equal(7, status.AbilityCount, "Unexpected canonical ability count was bound.");
+        Equal(9, status.AbilityCount, "Unexpected canonical ability count was bound.");
     }
 
     internal static void InvalidCanonicalPathsAreRejected()

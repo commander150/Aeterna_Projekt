@@ -267,7 +267,7 @@ internal static class CanonicalAbilityExecutionTests
             CanonicalAbilityTableIds.Effects,
             "effect_ign_ham_005_01_exhaust_target",
             "effect_action_type_id",
-            "effect_deal_damage");
+            "effect_apply_modifier");
         var fixture = CreateFixture(
             CanonicalAbilityMaterializer.Materialize(unsupportedPackage),
             Board("ci_unsupported_target", "IGN-HAM-001", "player_2", DomainRow.Horizon, 0));

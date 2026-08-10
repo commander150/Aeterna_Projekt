@@ -169,4 +169,6 @@ internal sealed class CardInstanceState
     public int? DomainLaneIndex { get; set; }
 
     public int? EnteredDomainTurnNumber { get; set; }
+
+    public int DamageMarked { get; set; }
 }
