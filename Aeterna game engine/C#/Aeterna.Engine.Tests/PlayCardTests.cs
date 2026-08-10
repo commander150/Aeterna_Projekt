@@ -24,9 +24,13 @@ internal static class PlayCardTests
         Equal(175, action.OrderRank, "play_card order rank is invalid.");
         var schema = action.PayloadSchema;
         SequenceEqual(
-            ["card_instance_id", "domain_row", "lane_index", "aura_source_card_instance_ids"],
+            ["card_instance_id", "aura_source_card_instance_ids"],
             schema.GetProperty("required").EnumerateArray().Select(item => item.GetString()!),
-            "play_card required payload fields are invalid.");
+            "play_card common required payload fields are invalid.");
+        Equal(2, schema.GetProperty("one_of").GetArrayLength(), "play_card lifecycle union is missing.");
+        var option = schema.GetProperty("play_options")[0];
+        Equal("entity", option.GetProperty("card_type").GetString(), "Entity play option type is invalid.");
+        Equal(12, option.GetProperty("entity_placements").GetArrayLength(), "Entity placement projection is incomplete.");
         SequenceEqual(
             ["horizon", "zenith"],
             schema.GetProperty("properties").GetProperty("domain_row")
@@ -51,22 +55,22 @@ internal static class PlayCardTests
             "Wrong-phase disabled reason is invalid.");
 
         var nonEntity = CreateFixture(targetCardType: "incantation", extraHandCount: 0);
-        AssertDisabled(nonEntity, "no_playable_entity", "Non-Entity enabled play_card.");
+        AssertDisabled(nonEntity, "no_playable_card", "Unsupported non-Entity enabled play_card.");
         var magnitude = CreateFixture(
             requiredMagnitude: 2,
             sources: [new("ignis", "active")],
             extraHandCount: 0);
-        AssertDisabled(magnitude, "no_playable_entity", "Insufficient Magnitude enabled play_card.");
+        AssertDisabled(magnitude, "no_playable_card", "Insufficient Magnitude enabled play_card.");
         var aura = CreateFixture(
             printedAuraCost: 2,
             sources: [new("ignis", "active")],
             extraHandCount: 0);
-        AssertDisabled(aura, "no_playable_entity", "Insufficient Aura enabled play_card.");
+        AssertDisabled(aura, "no_playable_card", "Insufficient Aura enabled play_card.");
 
         var fullDomain = CreateFixture(extraHandCount: 0);
         FillDomain(fullDomain.State.GetPlayer("player_1"), fullDomain.State);
         EngineSession.ValidateState(fullDomain.State);
-        AssertDisabled(fullDomain, "domain_full", "Full Domain enabled play_card.");
+        AssertDisabled(fullDomain, "no_playable_card", "Full Domain enabled entity-only play_card.");
     }
 
     internal static void EntityPlaysToHorizonAtomically()
@@ -317,7 +321,7 @@ internal static class PlayCardTests
             "player_1",
             PlayAction(nonEntity.Session, "player_1"),
             PlayPayload(nonEntity.TargetCardInstanceId, "horizon", 0, []),
-            "PLAY_CARD_CARD_TYPE_UNSUPPORTED");
+            "PLAY_CARD_PAYLOAD_CARD_TYPE_MISMATCH");
     }
 
     internal static void MagnitudeAndAuraInsufficiencyAreImmutable()

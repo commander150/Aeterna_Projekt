@@ -205,7 +205,7 @@ public sealed class EngineSession
                 playCardAvailability.Enabled,
                 175,
                 playCardAvailability.DisabledReason,
-                BuildPlayCardPayloadSchema()),
+                BuildPlayCardPayloadSchema(state, player)),
             new LegalAction(
                 $"draw_card:{state.TurnNumber}:{state.StateVersion}:{playerId}",
                 "draw_card",
@@ -286,7 +286,7 @@ public sealed class EngineSession
                 Enabled: false,
                 175,
                 blockedReason,
-                BuildPlayCardPayloadSchema()),
+                BuildPlayCardPayloadSchema(state, player)),
             new LegalAction(
                 $"draw_card:{state.TurnNumber}:{state.StateVersion}:{player.PlayerId}",
                 "draw_card",
@@ -1066,42 +1066,125 @@ public sealed class EngineSession
             return new PlayCardAvailability(false, "runtime_package_invalid");
         }
 
-        var hasEmptyDomainSlot = player.Domain.HorizonCardInstanceIds.Any(item => item is null)
-            || player.Domain.ZenithCardInstanceIds.Any(item => item is null);
-        if (!hasEmptyDomainSlot)
+        return BuildPlayableCardOptions(state, player).Length > 0
+            ? new PlayCardAvailability(true, null)
+            : new PlayCardAvailability(false, "no_playable_card");
+    }
+
+    private ImmutableArray<PlayCardOption> BuildPlayableCardOptions(
+        MatchState state,
+        PlayerState player)
+    {
+        var runtimePackage = _runtimePackage;
+        if (runtimePackage is null)
         {
-            return new PlayCardAvailability(false, "domain_full");
+            return ImmutableArray<PlayCardOption>.Empty;
         }
 
+        var options = ImmutableArray.CreateBuilder<PlayCardOption>();
         foreach (var cardInstanceId in player.HandCardInstanceIds)
         {
             var card = state.GetCardInstance(cardInstanceId);
-            if (!_runtimePackage.Cards.TryGetValue(card.CardId, out var definition)
-                || !string.Equals(definition.CardType, "entity", StringComparison.Ordinal))
+            if (!runtimePackage.Cards.TryGetValue(card.CardId, out var definition))
             {
                 continue;
             }
 
+            MagnitudePreflightResult magnitude;
+            AuraPaymentPreflightResult aura;
             try
             {
-                var magnitude = EvaluateMagnitudePreflight(player.PlayerId, card.CardInstanceId);
-                var aura = EvaluateAuraPaymentPreflight(player.PlayerId, card.CardInstanceId);
-                if (magnitude.RequirementMet && aura.PaymentPossible)
-                {
-                    return new PlayCardAvailability(true, null);
-                }
+                magnitude = EvaluateMagnitudePreflight(player.PlayerId, card.CardInstanceId);
+                aura = EvaluateAuraPaymentPreflight(player.PlayerId, card.CardInstanceId);
             }
             catch (MagnitudePreflightException)
             {
-                // Invalid candidates do not make the generic action available.
+                continue;
             }
             catch (AuraPaymentException)
             {
-                // Invalid candidates do not make the generic action available.
+                continue;
+            }
+
+            if (!magnitude.RequirementMet || !aura.PaymentPossible)
+            {
+                continue;
+            }
+
+            if (string.Equals(definition.CardType, "entity", StringComparison.Ordinal))
+            {
+                var placements = new[] { DomainRow.Horizon, DomainRow.Zenith }
+                    .SelectMany(row => player.Domain.GetSlots(row)
+                        .Select((occupant, laneIndex) => new { occupant, laneIndex })
+                        .Where(slot => slot.occupant is null)
+                        .Select(slot => new PlayCardPlacementOption(row, slot.laneIndex)))
+                    .ToImmutableArray();
+                if (placements.Length > 0)
+                {
+                    options.Add(new PlayCardOption(
+                        card,
+                        definition,
+                        magnitude,
+                        aura,
+                        placements,
+                        ResolutionAbility: null,
+                        ImmutableArray<PlayCardTargetContractOption>.Empty));
+                }
+
+                continue;
+            }
+
+            if (definition.CardType is not ("incantation" or "ritual")
+                || _canonicalRuntime is null
+                || !_canonicalRuntime.Abilities.AbilitiesByCardId.TryGetValue(
+                    card.CardId,
+                    out var abilities))
+            {
+                continue;
+            }
+
+            var resolutionAbilities = abilities.Where(ability =>
+                    string.Equals(ability.Status, "active", StringComparison.Ordinal)
+                    && string.Equals(ability.AbilityKindId, "resolution", StringComparison.Ordinal))
+                .ToImmutableArray();
+            if (resolutionAbilities.Length != 1)
+            {
+                continue;
+            }
+
+            var resolutionAbility = resolutionAbilities[0];
+            try
+            {
+                CanonicalEffectExecutor.ValidateSupportedPlayedCardGraph(resolutionAbility);
+                var contracts = CanonicalTargetResolver.GetSupportedTargets(resolutionAbility)
+                    .Select(target => new PlayCardTargetContractOption(
+                        target,
+                        CanonicalTargetResolver.ResolveCandidates(
+                            target,
+                            player.PlayerId,
+                            state,
+                            runtimePackage)))
+                    .ToImmutableArray();
+                if (contracts.All(contract =>
+                        contract.Candidates.Length >= contract.Definition.MinimumTargets))
+                {
+                    options.Add(new PlayCardOption(
+                        card,
+                        definition,
+                        magnitude,
+                        aura,
+                        ImmutableArray<PlayCardPlacementOption>.Empty,
+                        resolutionAbility,
+                        contracts));
+                }
+            }
+            catch (CanonicalAbilityExecutionException)
+            {
+                // Unsupported canonical candidates remain explicit unavailable edges.
             }
         }
 
-        return new PlayCardAvailability(false, "no_playable_entity");
+        return options.ToImmutable();
     }
 
     private static void ValidateCreateMatchRequest(CreateMatchRequest request)
@@ -1471,17 +1554,54 @@ public sealed class EngineSession
             source.ActivityState = "exhausted";
         }
 
-        plan.Player.HandCardInstanceIds.RemoveAt(plan.HandIndex);
-        ReindexZone(state, plan.Player.HandCardInstanceIds, "hand");
-        plan.Player.Domain.GetSlots(plan.DomainRow)[plan.LaneIndex] = plan.Card.CardInstanceId;
-        plan.Card.Zone = "dominion";
-        plan.Card.ZoneIndex = -1;
-        plan.Card.Visibility = "public";
-        plan.Card.ActivityState = "active";
-        plan.Card.DomainRow = plan.DomainRow;
-        plan.Card.DomainLaneIndex = plan.LaneIndex;
-        plan.Card.EnteredDomainTurnNumber = state.TurnNumber;
-        plan.Card.ZoneSequence += 1;
+        if (plan.Resolution is null)
+        {
+            var domainRow = plan.DomainRow
+                ?? throw new EngineStateException("Entity play plan has no Domain row.");
+            var laneIndex = plan.LaneIndex
+                ?? throw new EngineStateException("Entity play plan has no Domain lane.");
+            plan.Player.HandCardInstanceIds.RemoveAt(plan.HandIndex);
+            ReindexZone(state, plan.Player.HandCardInstanceIds, "hand");
+            plan.Player.Domain.GetSlots(domainRow)[laneIndex] = plan.Card.CardInstanceId;
+            plan.Card.Zone = "dominion";
+            plan.Card.ZoneIndex = -1;
+            plan.Card.Visibility = "public";
+            plan.Card.ActivityState = "active";
+            plan.Card.DomainRow = domainRow;
+            plan.Card.DomainLaneIndex = laneIndex;
+            plan.Card.EnteredDomainTurnNumber = state.TurnNumber;
+            plan.Card.ZoneSequence += 1;
+        }
+        else
+        {
+            CanonicalEffectExecutor.Apply(state, plan.Resolution.EffectPlan);
+            plan.Player.HandCardInstanceIds.RemoveAt(plan.HandIndex);
+            ReindexZone(state, plan.Player.HandCardInstanceIds, "hand");
+            plan.Card.Zone = "void";
+            plan.Card.ZoneIndex = plan.Player.VoidCardInstanceIds.Count;
+            plan.Card.Visibility = "public";
+            plan.Card.ActivityState = null;
+            plan.Card.DomainRow = null;
+            plan.Card.DomainLaneIndex = null;
+            plan.Card.EnteredDomainTurnNumber = null;
+            plan.Card.ZoneSequence += 1;
+            plan.Player.VoidCardInstanceIds.Add(plan.Card.CardInstanceId);
+            var context = plan.Resolution.EffectPlan.Context;
+            _canonicalAbilityResolutions = _canonicalAbilityResolutions.Add(
+                new CanonicalAbilityResolutionRecord(
+                    context.ResolutionId,
+                    CanonicalEffectExecutor.OriginId(context.Origin),
+                    context.Ability.AbilityId,
+                    context.SourceCardInstanceId,
+                    context.SourceCardId,
+                    context.ControllerPlayerId,
+                    CanonicalEffectExecutor.AppliedOutcome,
+                    plan.Resolution.EffectPlan.ActivityMutations.Length,
+                    context.SourceActionId,
+                    context.PendingTriggerId,
+                    context.TriggerId));
+        }
+
         state.StateVersion += 1;
         state.Events.AddRange(events);
         return AcceptAction(state, request, stateVersionBefore, events);
@@ -1552,22 +1672,29 @@ public sealed class EngineSession
                         engineEvent.CauseActionType,
                         ContractJsonValue.From(new CanonicalAbilityResolvedPayload(
                             pendingTriggerId,
+                            CanonicalEffectExecutor.TriggeredAbilityOriginId,
                             discovery.AbilityId,
-                            discovery.TriggerId,
                             discovery.SourceCardInstanceId,
                             discovery.SourceCardId,
                             discovery.ControllerPlayerId,
                             CanonicalEffectExecutor.NoLegalTargetOutcome,
-                            AppliedEffectCount: 0))));
+                            0,
+                            null,
+                            pendingTriggerId,
+                            discovery.TriggerId))));
                     _canonicalAbilityResolutions = _canonicalAbilityResolutions.Add(
                         new CanonicalAbilityResolutionRecord(
                             pendingTriggerId,
+                            CanonicalEffectExecutor.TriggeredAbilityOriginId,
                             discovery.AbilityId,
-                            discovery.TriggerId,
                             discovery.SourceCardInstanceId,
+                            discovery.SourceCardId,
                             discovery.ControllerPlayerId,
                             CanonicalEffectExecutor.NoLegalTargetOutcome,
-                            AppliedEffectCount: 0));
+                            0,
+                            null,
+                            pendingTriggerId,
+                            discovery.TriggerId));
                     continue;
                 }
 
@@ -1664,6 +1791,8 @@ public sealed class EngineSession
                     mutation.ToActivityState,
                     plan.Ability.AbilityId,
                     mutation.EffectId,
+                    plan.PendingTrigger.PendingTriggerId,
+                    CanonicalEffectExecutor.TriggeredAbilityOriginId,
                     plan.PendingTrigger.PendingTriggerId))));
         }
 
@@ -1675,24 +1804,31 @@ public sealed class EngineSession
             request.ActionType,
             ContractJsonValue.From(new CanonicalAbilityResolvedPayload(
                 plan.PendingTrigger.PendingTriggerId,
+                CanonicalEffectExecutor.TriggeredAbilityOriginId,
                 plan.PendingTrigger.AbilityId,
-                plan.PendingTrigger.TriggerId,
                 plan.PendingTrigger.SourceCardInstanceId,
                 plan.PendingTrigger.SourceCardId,
                 plan.PendingTrigger.ControllerPlayerId,
                 CanonicalEffectExecutor.AppliedOutcome,
-                plan.EffectPlan.ActivityMutations.Length))));
+                plan.EffectPlan.ActivityMutations.Length,
+                null,
+                plan.PendingTrigger.PendingTriggerId,
+                plan.PendingTrigger.TriggerId))));
         var materializedEvents = events.ToImmutable();
         state.Events.AddRange(materializedEvents);
         _canonicalAbilityResolutions = _canonicalAbilityResolutions.Add(
             new CanonicalAbilityResolutionRecord(
                 plan.PendingTrigger.PendingTriggerId,
+                CanonicalEffectExecutor.TriggeredAbilityOriginId,
                 plan.PendingTrigger.AbilityId,
-                plan.PendingTrigger.TriggerId,
                 plan.PendingTrigger.SourceCardInstanceId,
+                plan.PendingTrigger.SourceCardId,
                 plan.PendingTrigger.ControllerPlayerId,
                 CanonicalEffectExecutor.AppliedOutcome,
-                plan.EffectPlan.ActivityMutations.Length));
+                plan.EffectPlan.ActivityMutations.Length,
+                null,
+                plan.PendingTrigger.PendingTriggerId,
+                plan.PendingTrigger.TriggerId));
         return AcceptAction(state, request, stateVersionBefore, materializedEvents);
     }
 
@@ -1768,10 +1904,20 @@ public sealed class EngineSession
                 "Pending trigger source engine event identity is invalid.");
         }
 
-        var effectPlan = CanonicalEffectExecutor.BuildPlan(
+        var context = new CanonicalAbilityResolutionContext(
+            pending.PendingTriggerId,
+            CanonicalResolutionOrigin.TriggeredAbility,
+            null,
+            request.ActionType,
             ability,
-            payload.TargetSelections,
+            pending.SourceCardInstanceId,
+            pending.SourceCardId,
             pending.ControllerPlayerId,
+            payload.TargetSelections,
+            pending.PendingTriggerId,
+            pending.TriggerId);
+        var effectPlan = CanonicalEffectExecutor.BuildPlan(
+            context,
             state,
             runtimePackage);
         return new TriggeredAbilityResolutionPlan(pending, ability, effectPlan);
@@ -1874,13 +2020,13 @@ public sealed class EngineSession
                 "fix_runtime_package");
         }
 
-        if (!string.Equals(definition.CardType, "entity", StringComparison.Ordinal))
+        if (definition.CardType is not ("entity" or "incantation" or "ritual"))
         {
             throw PlayCardValidationException.Create(
                 "card_type_unsupported",
                 "PLAY_CARD_CARD_TYPE_UNSUPPORTED",
                 "This card type is not supported by Play Card yet.",
-                "The current production play_card slice supports only card_type=entity.",
+                "The current production play_card slice supports Entity, Incantation, and Ritual cards.",
                 "choose_another_action");
         }
 
@@ -1996,49 +2142,156 @@ public sealed class EngineSession
                 invalidSource ? "refresh_projection" : "fix_request");
         }
 
-        var domainRow = payload.DomainRow switch
-        {
-            "horizon" => DomainRow.Horizon,
-            "zenith" => DomainRow.Zenith,
-            _ => throw PlayCardValidationException.Create(
-                "destination_row_invalid",
-                "PLAY_CARD_DESTINATION_ROW_INVALID",
-                "The selected Domain row is invalid.",
-                "domain_row must be exactly horizon or zenith.",
-                "fix_request"),
-        };
-        if (payload.LaneIndex is < 0 or >= DomainState.LaneCount)
-        {
-            throw PlayCardValidationException.Create(
-                "destination_lane_invalid",
-                "PLAY_CARD_DESTINATION_LANE_INVALID",
-                "The selected Domain lane is invalid.",
-                $"lane_index must be between 0 and {DomainState.LaneCount - 1}.",
-                "fix_request");
-        }
-
-        if (player.Domain.GetSlots(domainRow)[payload.LaneIndex] is not null)
-        {
-            throw PlayCardValidationException.Create(
-                "destination_occupied",
-                "PLAY_CARD_DESTINATION_OCCUPIED",
-                "The selected Domain slot is occupied.",
-                "The requested own Domain row/lane is no longer empty.",
-                "refresh_projection");
-        }
-
         var auraSources = auraSelection.ResolvedSourceInstanceIds
             .Select(state.GetCardInstance)
             .OrderBy(source => source.ZoneIndex)
             .ThenBy(source => source.CardInstanceId, StringComparer.Ordinal)
             .ToImmutableArray();
+        if (string.Equals(definition.CardType, "entity", StringComparison.Ordinal))
+        {
+            if (payload.TargetSelections is not null
+                || payload.DomainRow is null
+                || payload.LaneIndex is null)
+            {
+                throw PlayCardValidationException.Create(
+                    "payload_card_type_mismatch",
+                    "PLAY_CARD_PAYLOAD_CARD_TYPE_MISMATCH",
+                    "Entity play requires a Domain destination and no resolution targets.",
+                    "Entity play_card payload must use domain_row/lane_index and must not contain target_selections.",
+                    "fix_request");
+            }
+
+            var domainRow = payload.DomainRow switch
+            {
+                "horizon" => DomainRow.Horizon,
+                "zenith" => DomainRow.Zenith,
+                _ => throw PlayCardValidationException.Create(
+                    "destination_row_invalid",
+                    "PLAY_CARD_DESTINATION_ROW_INVALID",
+                    "The selected Domain row is invalid.",
+                    "domain_row must be exactly horizon or zenith.",
+                    "fix_request"),
+            };
+            if (payload.LaneIndex is < 0 or >= DomainState.LaneCount)
+            {
+                throw PlayCardValidationException.Create(
+                    "destination_lane_invalid",
+                    "PLAY_CARD_DESTINATION_LANE_INVALID",
+                    "The selected Domain lane is invalid.",
+                    $"lane_index must be between 0 and {DomainState.LaneCount - 1}.",
+                    "fix_request");
+            }
+
+            var laneIndex = payload.LaneIndex.Value;
+            if (player.Domain.GetSlots(domainRow)[laneIndex] is not null)
+            {
+                throw PlayCardValidationException.Create(
+                    "destination_occupied",
+                    "PLAY_CARD_DESTINATION_OCCUPIED",
+                    "The selected Domain slot is occupied.",
+                    "The requested own Domain row/lane is no longer empty.",
+                    "refresh_projection");
+            }
+
+            return new PlayCardPlan(
+                player,
+                card,
+                handIndex,
+                auraSources,
+                domainRow,
+                laneIndex,
+                Resolution: null);
+        }
+
+        if (payload.DomainRow is not null
+            || payload.LaneIndex is not null
+            || payload.TargetSelections is null)
+        {
+            throw PlayCardValidationException.Create(
+                "payload_card_type_mismatch",
+                "PLAY_CARD_PAYLOAD_CARD_TYPE_MISMATCH",
+                "Resolution card play requires target selections and no Domain destination.",
+                "Incantation/Ritual play_card payload must use target_selections and must not contain domain_row/lane_index.",
+                "fix_request");
+        }
+
+        var canonicalRuntime = _canonicalRuntime;
+        if (canonicalRuntime is null)
+        {
+            throw PlayCardValidationException.Create(
+                "canonical_runtime_missing",
+                "PLAY_CARD_CANONICAL_RUNTIME_MISSING",
+                "This resolution card cannot be played without canonical runtime data.",
+                "The session has no canonical REGISTRY/CARDDATABASE runtime context.",
+                "fix_runtime_package");
+        }
+
+        if (!canonicalRuntime.Abilities.AbilitiesByCardId.TryGetValue(card.CardId, out var abilities))
+        {
+            throw PlayCardValidationException.Create(
+                "canonical_resolution_missing",
+                "PLAY_CARD_CANONICAL_RESOLUTION_MISSING",
+                "This resolution card has no supported canonical resolution ability.",
+                "No canonical ability graph exists for the selected card ID.",
+                "choose_another_action");
+        }
+
+        var resolutionAbilities = abilities.Where(ability =>
+                string.Equals(ability.Status, "active", StringComparison.Ordinal)
+                && string.Equals(ability.AbilityKindId, "resolution", StringComparison.Ordinal))
+            .ToImmutableArray();
+        if (resolutionAbilities.Length != 1)
+        {
+            throw PlayCardValidationException.Create(
+                "canonical_resolution_ambiguous",
+                "PLAY_CARD_CANONICAL_RESOLUTION_AMBIGUOUS",
+                "This resolution card does not have exactly one playable canonical resolution ability.",
+                $"Expected one active resolution ability; found {resolutionAbilities.Length}.",
+                "fix_runtime_package");
+        }
+
+        var ability = resolutionAbilities[0];
+        CanonicalEffectExecutionPlan effectPlan;
+        try
+        {
+            CanonicalEffectExecutor.ValidateSupportedPlayedCardGraph(ability);
+            var context = new CanonicalAbilityResolutionContext(
+                $"resolution_play_{state.Events.Count + 1:000000}_{ability.AbilityIndex:000}",
+                CanonicalResolutionOrigin.PlayedCard,
+                request.ActionId,
+                request.ActionType,
+                ability,
+                card.CardInstanceId,
+                card.CardId,
+                player.PlayerId,
+                payload.TargetSelections.Value,
+                PendingTriggerId: null,
+                TriggerId: null);
+            effectPlan = CanonicalEffectExecutor.BuildPlan(
+                context,
+                state,
+                runtimePackage);
+        }
+        catch (CanonicalAbilityExecutionException exception)
+        {
+            throw PlayCardValidationException.Create(
+                "canonical_resolution_invalid",
+                exception.Code,
+                "This resolution card cannot be resolved with the submitted canonical selection.",
+                exception.Message,
+                exception.Code.StartsWith("PLAY_CARD_TARGET_", StringComparison.Ordinal)
+                    ? "fix_request"
+                    : "fix_runtime_package");
+        }
+
         return new PlayCardPlan(
             player,
             card,
             handIndex,
-            domainRow,
-            payload.LaneIndex,
-            auraSources);
+            auraSources,
+            DomainRow: null,
+            LaneIndex: null,
+            Resolution: new PlayedCardResolutionPlan(effectPlan));
     }
 
     private RuntimePackageCatalog RequirePlayCardRuntimePackage(MatchState state)
@@ -2111,7 +2364,76 @@ public sealed class EngineSession
                 ContractJsonValue.From(payload)));
         }
 
-        var rowToken = plan.DomainRow == DomainRow.Horizon ? "horizon" : "zenith";
+        if (plan.Resolution is not null)
+        {
+            var context = plan.Resolution.EffectPlan.Context;
+            var originId = CanonicalEffectExecutor.OriginId(context.Origin);
+            foreach (var mutation in plan.Resolution.EffectPlan.ActivityMutations)
+            {
+                events.Add(CreatePlayCardEvent(
+                    state,
+                    request,
+                    stateVersionAfter,
+                    state.Events.Count + events.Count + 1,
+                    "card_activity_changed",
+                    ContractJsonValue.From(new CardActivityChangedPayload(
+                        mutation.CardInstanceId,
+                        mutation.CardId,
+                        mutation.FromActivityState,
+                        mutation.ToActivityState,
+                        context.Ability.AbilityId,
+                        mutation.EffectId,
+                        context.ResolutionId,
+                        originId,
+                        PendingTriggerId: null))));
+            }
+
+            events.Add(CreatePlayCardEvent(
+                state,
+                request,
+                stateVersionAfter,
+                state.Events.Count + events.Count + 1,
+                "canonical_ability_resolved",
+                ContractJsonValue.From(new CanonicalAbilityResolvedPayload(
+                    context.ResolutionId,
+                    originId,
+                    context.Ability.AbilityId,
+                    context.SourceCardInstanceId,
+                    context.SourceCardId,
+                    context.ControllerPlayerId,
+                    CanonicalEffectExecutor.AppliedOutcome,
+                    plan.Resolution.EffectPlan.ActivityMutations.Length,
+                    context.SourceActionId,
+                    PendingTriggerId: null,
+                    TriggerId: null))));
+            var voidMove = new ZoneMovePayload(
+                request.ActionId,
+                request.ActionType,
+                plan.Card.CardInstanceId,
+                plan.Card.CardId,
+                plan.Card.OwnerPlayerId,
+                plan.Card.ControllerPlayerId,
+                "hand",
+                "void",
+                plan.HandIndex,
+                plan.Player.VoidCardInstanceIds.Count,
+                "owner_only",
+                "public");
+            events.Add(CreatePlayCardEvent(
+                state,
+                request,
+                stateVersionAfter,
+                state.Events.Count + events.Count + 1,
+                "zone_move",
+                ContractJsonValue.From(voidMove)));
+            return events.ToImmutable();
+        }
+
+        var domainRow = plan.DomainRow
+            ?? throw new EngineStateException("Entity play event plan has no Domain row.");
+        var laneIndex = plan.LaneIndex
+            ?? throw new EngineStateException("Entity play event plan has no Domain lane.");
+        var rowToken = domainRow == DomainRow.Horizon ? "horizon" : "zenith";
         var zoneMovePayload = new DomainZoneMovePayload(
             request.ActionId,
             request.ActionType,
@@ -2123,7 +2445,7 @@ public sealed class EngineSession
             "dominion",
             plan.HandIndex,
             rowToken,
-            plan.LaneIndex,
+            laneIndex,
             "owner_only",
             "public");
         events.Add(CreatePlayCardEvent(
@@ -2142,7 +2464,7 @@ public sealed class EngineSession
             plan.Card.OwnerPlayerId,
             plan.Card.ControllerPlayerId,
             rowToken,
-            plan.LaneIndex,
+            laneIndex,
             "active",
             state.TurnNumber);
         events.Add(CreatePlayCardEvent(
@@ -2573,6 +2895,37 @@ public sealed class EngineSession
             };
         }
 
+        if (string.Equals(toZone, "void", StringComparison.Ordinal))
+        {
+            return item with
+            {
+                Payload = ContractJsonValue.From(new Dictionary<string, object?>
+                {
+                    ["source_action_id"] = ReadEventPayloadString(
+                        item.Payload,
+                        "source_action_id"),
+                    ["source_action_type"] = ReadEventPayloadString(
+                        item.Payload,
+                        "source_action_type"),
+                    ["card_instance_id"] = ReadEventPayloadString(
+                        item.Payload,
+                        "card_instance_id"),
+                    ["card_id"] = ReadEventPayloadString(item.Payload, "card_id"),
+                    ["owner_player_id"] = ownerPlayerId,
+                    ["controller_player_id"] = ReadEventPayloadString(
+                        item.Payload,
+                        "controller_player_id"),
+                    ["from_zone"] = ReadEventPayloadString(item.Payload, "from_zone"),
+                    ["to_zone"] = toZone,
+                    ["to_zone_index"] = ReadEventPayloadInt(item.Payload, "to_zone_index"),
+                    ["visibility_after"] = ReadEventPayloadString(
+                        item.Payload,
+                        "visibility_after"),
+                    ["identity_redacted"] = false,
+                }),
+            };
+        }
+
         return item with
         {
             Payload = ContractJsonValue.From(new Dictionary<string, object?>
@@ -2632,34 +2985,85 @@ public sealed class EngineSession
         {
             var properties = request.Payload.EnumerateObject().ToArray();
             var names = properties.Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
-            if (properties.Length != 4
-                || !names.SetEquals(new[]
+            var entityShape = properties.Length == 4
+                && names.SetEquals(new[]
                 {
                     "card_instance_id",
+                    "aura_source_card_instance_ids",
                     "domain_row",
                     "lane_index",
+                });
+            var resolutionShape = properties.Length == 3
+                && names.SetEquals(new[]
+                {
+                    "card_instance_id",
                     "aura_source_card_instance_ids",
-                })
-                || !request.Payload.TryGetProperty("card_instance_id", out var cardInstanceId)
-                || cardInstanceId.ValueKind != JsonValueKind.String
-                || string.IsNullOrWhiteSpace(cardInstanceId.GetString())
-                || !request.Payload.TryGetProperty("domain_row", out var domainRow)
-                || domainRow.ValueKind != JsonValueKind.String
-                || !request.Payload.TryGetProperty("lane_index", out var laneIndex)
-                || laneIndex.ValueKind != JsonValueKind.Number
-                || !laneIndex.TryGetInt32(out _)
-                || !request.Payload.TryGetProperty(
+                    "target_selections",
+                });
+            var valid = (entityShape || resolutionShape)
+                && request.Payload.TryGetProperty("card_instance_id", out var cardInstanceId)
+                && cardInstanceId.ValueKind == JsonValueKind.String
+                && !string.IsNullOrWhiteSpace(cardInstanceId.GetString())
+                && request.Payload.TryGetProperty(
                     "aura_source_card_instance_ids",
                     out var auraSourceIds)
-                || auraSourceIds.ValueKind != JsonValueKind.Array
-                || auraSourceIds.EnumerateArray().Any(item => item.ValueKind != JsonValueKind.String))
+                && auraSourceIds.ValueKind == JsonValueKind.Array
+                && !auraSourceIds.EnumerateArray().Any(item =>
+                    item.ValueKind != JsonValueKind.String
+                    || string.IsNullOrWhiteSpace(item.GetString()));
+            if (valid && entityShape)
+            {
+                valid = request.Payload.TryGetProperty("domain_row", out var domainRow)
+                    && domainRow.ValueKind == JsonValueKind.String
+                    && request.Payload.TryGetProperty("lane_index", out var laneIndex)
+                    && laneIndex.ValueKind == JsonValueKind.Number
+                    && laneIndex.TryGetInt32(out _);
+            }
+
+            if (valid && resolutionShape)
+            {
+                valid = request.Payload.TryGetProperty("target_selections", out var targetSelections)
+                    && targetSelections.ValueKind == JsonValueKind.Array;
+                if (valid)
+                {
+                    foreach (var selection in targetSelections.EnumerateArray())
+                    {
+                        if (selection.ValueKind != JsonValueKind.Object)
+                        {
+                            valid = false;
+                            break;
+                        }
+
+                        var selectionProperties = selection.EnumerateObject().ToArray();
+                        var selectionNames = selectionProperties
+                            .Select(property => property.Name)
+                            .ToHashSet(StringComparer.Ordinal);
+                        if (selectionProperties.Length != 2
+                            || !selectionNames.SetEquals(new[] { "target_id", "card_instance_ids" })
+                            || !selection.TryGetProperty("target_id", out var targetId)
+                            || targetId.ValueKind != JsonValueKind.String
+                            || string.IsNullOrWhiteSpace(targetId.GetString())
+                            || !selection.TryGetProperty("card_instance_ids", out var cardInstanceIds)
+                            || cardInstanceIds.ValueKind != JsonValueKind.Array
+                            || cardInstanceIds.EnumerateArray().Any(item =>
+                                item.ValueKind != JsonValueKind.String
+                                || string.IsNullOrWhiteSpace(item.GetString())))
+                        {
+                            valid = false;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (!valid)
             {
                 return Diagnostic(
                     "ACTION_PAYLOAD_INVALID",
                     "request_validation",
-                    "Play Card requires a card, Domain destination, and Aura source list.",
-                    "The play_card payload must contain exactly card_instance_id, domain_row, "
-                    + "lane_index, and aura_source_card_instance_ids with their required JSON types.",
+                    "Play Card payload does not match a supported card lifecycle.",
+                    "The play_card payload must be exactly the Entity destination shape or the "
+                    + "Incantation/Ritual target-selection shape with their required JSON types.",
                     "fix_request");
             }
         }
@@ -2739,17 +3143,58 @@ public sealed class EngineSession
             },
         });
 
-    private static JsonElement BuildPlayCardPayloadSchema() => ContractJsonValue.From(
-        new Dictionary<string, object?>
+    private JsonElement BuildPlayCardPayloadSchema(MatchState state, PlayerState player)
+    {
+        var options = BuildPlayableCardOptions(state, player).Select(option =>
+        {
+            var value = new Dictionary<string, object?>
+            {
+                ["card_instance_id"] = option.Card.CardInstanceId,
+                ["card_id"] = option.Card.CardId,
+                ["card_type"] = option.Definition.CardType,
+                ["required_magnitude"] = option.Magnitude.RequiredMagnitude,
+                ["current_magnitude"] = option.Magnitude.CurrentMagnitude,
+                ["printed_aura_cost"] = option.Aura.PrintedAuraCost,
+                ["payable_aura_cost"] = option.Aura.NormalizedPayableAuraCost,
+                ["aura_selection_mode"] = option.Aura.SelectionMode,
+                ["eligible_aura_source_card_instance_ids"] = option.Aura.EligibleSources
+                    .Select(source => source.CardInstanceId)
+                    .ToArray(),
+                ["forced_aura_source_card_instance_ids"] = option.Aura.ForcedSourceInstanceIds.ToArray(),
+            };
+            if (string.Equals(option.Definition.CardType, "entity", StringComparison.Ordinal))
+            {
+                value["entity_placements"] = option.Placements.Select(placement =>
+                    new Dictionary<string, object?>
+                    {
+                        ["domain_row"] = placement.DomainRow == DomainRow.Horizon
+                            ? "horizon"
+                            : "zenith",
+                        ["lane_index"] = placement.LaneIndex,
+                    }).ToArray();
+            }
+            else
+            {
+                value["ability_id"] = option.ResolutionAbility!.AbilityId;
+                value["resolution_target_contracts"] = option.TargetContracts.Select(contract =>
+                    new Dictionary<string, object?>
+                    {
+                        ["target_id"] = contract.Definition.TargetId,
+                        ["minimum_targets"] = contract.Definition.MinimumTargets,
+                        ["maximum_targets"] = contract.Definition.MaximumTargets,
+                        ["selection_method_id"] = contract.Definition.SelectionMethodId,
+                        ["candidate_card_instance_ids"] = contract.Candidates
+                            .Select(candidate => candidate.CardInstanceId)
+                            .ToArray(),
+                    }).ToArray();
+            }
+
+            return value;
+        }).ToArray();
+        return ContractJsonValue.From(new Dictionary<string, object?>
         {
             ["type"] = "object",
-            ["required"] = new[]
-            {
-                "card_instance_id",
-                "domain_row",
-                "lane_index",
-                "aura_source_card_instance_ids",
-            },
+            ["required"] = new[] { "card_instance_id", "aura_source_card_instance_ids" },
             ["additional_properties"] = false,
             ["properties"] = new Dictionary<string, object?>
             {
@@ -2758,19 +3203,7 @@ public sealed class EngineSession
                     ["type"] = "string",
                     ["min_length"] = 1,
                     ["source_zone"] = "hand",
-                    ["supported_card_type"] = "entity",
-                },
-                ["domain_row"] = new Dictionary<string, object?>
-                {
-                    ["type"] = "string",
-                    ["enum"] = new[] { "horizon", "zenith" },
-                    ["destination_zone"] = "dominion",
-                },
-                ["lane_index"] = new Dictionary<string, object?>
-                {
-                    ["type"] = "integer",
-                    ["minimum"] = 0,
-                    ["maximum"] = DomainState.LaneCount - 1,
+                    ["supported_card_types"] = new[] { "entity", "incantation", "ritual" },
                 },
                 ["aura_source_card_instance_ids"] = new Dictionary<string, object?>
                 {
@@ -2783,20 +3216,87 @@ public sealed class EngineSession
                         ["source_zone"] = "wellspring",
                     },
                 },
+                ["domain_row"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "string",
+                    ["enum"] = new[] { "horizon", "zenith" },
+                    ["destination_zone"] = "dominion",
+                    ["applies_to_card_type"] = "entity",
+                },
+                ["lane_index"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "integer",
+                    ["minimum"] = 0,
+                    ["maximum"] = DomainState.LaneCount - 1,
+                    ["applies_to_card_type"] = "entity",
+                },
+                ["target_selections"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "array",
+                    ["applies_to_card_types"] = new[] { "incantation", "ritual" },
+                    ["items"] = new Dictionary<string, object?>
+                    {
+                        ["type"] = "object",
+                        ["required"] = new[] { "target_id", "card_instance_ids" },
+                        ["additional_properties"] = false,
+                    },
+                },
             },
+            ["one_of"] = new object[]
+            {
+                new Dictionary<string, object?>
+                {
+                    ["card_type"] = "entity",
+                    ["required"] = new[]
+                    {
+                        "card_instance_id",
+                        "aura_source_card_instance_ids",
+                        "domain_row",
+                        "lane_index",
+                    },
+                    ["forbidden"] = new[] { "target_selections" },
+                },
+                new Dictionary<string, object?>
+                {
+                    ["card_types"] = new[] { "incantation", "ritual" },
+                    ["required"] = new[]
+                    {
+                        "card_instance_id",
+                        "aura_source_card_instance_ids",
+                        "target_selections",
+                    },
+                    ["forbidden"] = new[] { "domain_row", "lane_index" },
+                },
+            },
+            ["play_options"] = options,
         });
+    }
 
     private static NormalInflowActionPayload ReadNormalInflowPayload(JsonElement payload) => new(
         payload.GetProperty("card_instance_id").GetString()!);
 
     private static PlayCardActionPayload ReadPlayCardPayload(JsonElement payload) => new(
         payload.GetProperty("card_instance_id").GetString()!,
-        payload.GetProperty("domain_row").GetString()!,
-        payload.GetProperty("lane_index").GetInt32(),
+        payload.TryGetProperty("domain_row", out var domainRow)
+            ? domainRow.GetString()
+            : null,
+        payload.TryGetProperty("lane_index", out var laneIndex)
+            ? laneIndex.GetInt32()
+            : null,
         payload.GetProperty("aura_source_card_instance_ids")
             .EnumerateArray()
             .Select(item => item.GetString()!)
-            .ToImmutableArray());
+            .ToImmutableArray(),
+        payload.TryGetProperty("target_selections", out var targetSelections)
+            ? targetSelections.EnumerateArray()
+                .Select(selection => new CanonicalTargetSelectionPayload(
+                    selection.GetProperty("target_id").GetString()!,
+                    selection.GetProperty("card_instance_ids")
+                        .EnumerateArray()
+                        .Select(item => item.GetString()!)
+                        .ToImmutableArray()))
+                .ToImmutableArray()
+            : null);
 
     private static ResolveTriggeredAbilityActionPayload ReadResolveTriggeredAbilityPayload(
         JsonElement payload) => new(
@@ -3453,13 +3953,31 @@ public sealed class EngineSession
 
     private sealed record PlayCardAvailability(bool Enabled, string? DisabledReason);
 
+    private sealed record PlayCardPlacementOption(DomainRow DomainRow, int LaneIndex);
+
+    private sealed record PlayCardTargetContractOption(
+        CanonicalAbilityTargetDefinition Definition,
+        ImmutableArray<CanonicalTargetCandidate> Candidates);
+
+    private sealed record PlayCardOption(
+        CardInstanceState Card,
+        RuntimeCardDefinition Definition,
+        MagnitudePreflightResult Magnitude,
+        AuraPaymentPreflightResult Aura,
+        ImmutableArray<PlayCardPlacementOption> Placements,
+        CanonicalAbilityDefinition? ResolutionAbility,
+        ImmutableArray<PlayCardTargetContractOption> TargetContracts);
+
     private sealed record PlayCardPlan(
         PlayerState Player,
         CardInstanceState Card,
         int HandIndex,
-        DomainRow DomainRow,
-        int LaneIndex,
-        ImmutableArray<CardInstanceState> AuraSources);
+        ImmutableArray<CardInstanceState> AuraSources,
+        DomainRow? DomainRow,
+        int? LaneIndex,
+        PlayedCardResolutionPlan? Resolution);
+
+    private sealed record PlayedCardResolutionPlan(CanonicalEffectExecutionPlan EffectPlan);
 
     private sealed record TriggeredAbilityResolutionPlan(
         PendingTriggeredAbilityState PendingTrigger,

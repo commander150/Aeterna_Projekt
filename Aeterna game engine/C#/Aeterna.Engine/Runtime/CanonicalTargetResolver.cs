@@ -11,7 +11,7 @@ internal sealed record CanonicalTargetCandidate(
     string ZoneId,
     string DomainRowId,
     int LaneIndex,
-    string ActivityStateId);
+    string? ActivityStateId);
 
 internal sealed record CanonicalResolvedTargetSelection(
     CanonicalAbilityTargetDefinition Definition,
@@ -59,44 +59,57 @@ internal static class CanonicalTargetResolver
         }
 
         var candidates = ImmutableArray.CreateBuilder<CanonicalTargetCandidate>();
-        foreach (var player in state.Players.Where(player => !string.Equals(
-                     player.PlayerId,
-                     abilityControllerPlayerId,
-                     StringComparison.Ordinal)))
+        foreach (var player in state.Players)
         {
-            for (var laneIndex = 0; laneIndex < DomainState.LaneCount; laneIndex += 1)
+            if (string.Equals(player.PlayerId, abilityControllerPlayerId, StringComparison.Ordinal))
             {
-                var cardInstanceId = player.Domain.HorizonCardInstanceIds[laneIndex];
-                if (cardInstanceId is null)
+                continue;
+            }
+
+            foreach (var row in new[] { DomainRow.Horizon, DomainRow.Zenith })
+            {
+                var rowId = row == DomainRow.Horizon ? "horizont" : "zenit";
+                if (!string.Equals(target.DomainRowId, rowId, StringComparison.Ordinal))
                 {
                     continue;
                 }
 
-                var card = state.GetCardInstance(cardInstanceId);
-                if (!runtimePackage.Cards.TryGetValue(card.CardId, out var cardDefinition))
+                var slots = player.Domain.GetSlots(row);
+                for (var laneIndex = 0; laneIndex < DomainState.LaneCount; laneIndex += 1)
                 {
-                    throw new EngineStateException(
-                        "CANONICAL_TARGET_CARD_DEFINITION_MISSING",
-                        "A Domain card has no validated gameplay runtime definition.");
-                }
+                    var cardInstanceId = slots[laneIndex];
+                    if (cardInstanceId is null)
+                    {
+                        continue;
+                    }
 
-                if (!string.Equals(cardDefinition.CardType, target.CardTypeId, StringComparison.Ordinal)
-                    || !string.Equals(card.Zone, target.ZoneId, StringComparison.Ordinal)
-                    || card.DomainRow != DomainRow.Horizon
-                    || !string.Equals(card.ActivityState, target.ActivityStateId, StringComparison.Ordinal))
-                {
-                    continue;
-                }
+                    var card = state.GetCardInstance(cardInstanceId);
+                    if (!runtimePackage.Cards.TryGetValue(card.CardId, out var cardDefinition))
+                    {
+                        throw new EngineStateException(
+                            "CANONICAL_TARGET_CARD_DEFINITION_MISSING",
+                            "A Domain card has no validated gameplay runtime definition.");
+                    }
 
-                candidates.Add(new CanonicalTargetCandidate(
-                    target.TargetId,
-                    card.CardInstanceId,
-                    card.CardId,
-                    card.ControllerPlayerId,
-                    card.Zone,
-                    "horizont",
-                    laneIndex,
-                    card.ActivityState!));
+                    if (!string.Equals(cardDefinition.CardType, target.CardTypeId, StringComparison.Ordinal)
+                        || !string.Equals(card.Zone, target.ZoneId, StringComparison.Ordinal)
+                        || card.DomainRow != row
+                        || target.ActivityStateId is not null
+                        && !string.Equals(card.ActivityState, target.ActivityStateId, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    candidates.Add(new CanonicalTargetCandidate(
+                        target.TargetId,
+                        card.CardInstanceId,
+                        card.CardId,
+                        card.ControllerPlayerId,
+                        card.Zone,
+                        rowId,
+                        laneIndex,
+                        card.ActivityState));
+                }
             }
         }
 
@@ -106,6 +119,7 @@ internal static class CanonicalTargetResolver
                 player.PlayerId,
                 candidate.ControllerPlayerId,
                 StringComparison.Ordinal)))
+            .ThenBy(candidate => string.Equals(candidate.DomainRowId, "horizont", StringComparison.Ordinal) ? 0 : 1)
             .ThenBy(candidate => candidate.LaneIndex)
             .ThenBy(candidate => candidate.CardInstanceId, StringComparer.Ordinal)
             .ToImmutableArray();
@@ -116,27 +130,28 @@ internal static class CanonicalTargetResolver
         ImmutableArray<string> selectedCardInstanceIds,
         string abilityControllerPlayerId,
         MatchState state,
-        RuntimePackageCatalog runtimePackage)
+        RuntimePackageCatalog runtimePackage,
+        CanonicalResolutionOrigin origin)
     {
         RequireSupportedContract(target);
         if (selectedCardInstanceIds.IsDefault)
         {
             throw new CanonicalAbilityExecutionException(
-                "RESOLVE_TRIGGER_TARGET_SELECTION_INVALID",
+                Code(origin, "TARGET_SELECTION_INVALID"),
                 "Canonical target selection is missing.");
         }
 
         if (selectedCardInstanceIds.Any(string.IsNullOrWhiteSpace))
         {
             throw new CanonicalAbilityExecutionException(
-                "RESOLVE_TRIGGER_TARGET_UNKNOWN",
+                Code(origin, "TARGET_UNKNOWN"),
                 "Canonical target selection contains an empty card instance ID.");
         }
 
         if (selectedCardInstanceIds.Distinct(StringComparer.Ordinal).Count() != selectedCardInstanceIds.Length)
         {
             throw new CanonicalAbilityExecutionException(
-                "RESOLVE_TRIGGER_TARGET_DUPLICATE",
+                Code(origin, "TARGET_DUPLICATE"),
                 "Canonical target selection contains a duplicate card instance ID.");
         }
 
@@ -144,7 +159,7 @@ internal static class CanonicalTargetResolver
             || selectedCardInstanceIds.Length > target.MaximumTargets)
         {
             throw new CanonicalAbilityExecutionException(
-                "RESOLVE_TRIGGER_TARGET_COUNT_INVALID",
+                Code(origin, "TARGET_COUNT_INVALID"),
                 "Canonical target selection count is outside the declared minimum/maximum range.");
         }
 
@@ -158,14 +173,14 @@ internal static class CanonicalTargetResolver
             if (!state.CardInstances.ContainsKey(cardInstanceId))
             {
                 throw new CanonicalAbilityExecutionException(
-                    "RESOLVE_TRIGGER_TARGET_UNKNOWN",
+                    Code(origin, "TARGET_UNKNOWN"),
                     "Canonical target selection references an unknown card instance.");
             }
 
             if (!candidatesById.TryGetValue(cardInstanceId, out var candidate))
             {
                 throw new CanonicalAbilityExecutionException(
-                    "RESOLVE_TRIGGER_TARGET_ILLEGAL",
+                    Code(origin, "TARGET_ILLEGAL"),
                     "Selected card instance does not currently satisfy the canonical target contract.");
             }
 
@@ -184,9 +199,10 @@ internal static class CanonicalTargetResolver
             || !string.Equals(target.CardTypeId, "entity", StringComparison.Ordinal)
             || !string.Equals(target.PlayerReferenceId, "opponent_of_ability_controller", StringComparison.Ordinal)
             || !string.Equals(target.ZoneId, "dominion", StringComparison.Ordinal)
-            || !string.Equals(target.DomainRowId, "horizont", StringComparison.Ordinal)
+            || target.DomainRowId is not ("horizont" or "zenit")
             || target.DomainLaneId is not null
-            || !string.Equals(target.ActivityStateId, "active", StringComparison.Ordinal)
+            || target.ActivityStateId is not null
+            && !string.Equals(target.ActivityStateId, "active", StringComparison.Ordinal)
             || !string.Equals(target.SelectionMethodId, "controller_choice", StringComparison.Ordinal)
             || target.MinimumTargets != 1
             || target.MaximumTargets != 1
@@ -200,4 +216,9 @@ internal static class CanonicalTargetResolver
     private static CanonicalAbilityExecutionException Unsupported(string message) => new(
         "CANONICAL_TARGET_CONTRACT_UNSUPPORTED",
         message);
+
+    private static string Code(CanonicalResolutionOrigin origin, string suffix) =>
+        origin == CanonicalResolutionOrigin.TriggeredAbility
+            ? $"RESOLVE_TRIGGER_{suffix}"
+            : $"PLAY_CARD_{suffix}";
 }

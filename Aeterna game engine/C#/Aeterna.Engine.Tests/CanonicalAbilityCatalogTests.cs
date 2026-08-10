@@ -29,6 +29,25 @@ internal static class CanonicalAbilityCatalogTests
         Equal(target.TargetId, effect.TargetId, "Effect-to-target relationship was not preserved.");
     }
 
+    public static void IgnHam044ResolutionGraphMaterializes()
+    {
+        var ability = Single(Materialize().AbilitiesByCardId["IGN-HAM-044"]);
+
+        Equal("resolution", ability.AbilityKindId, "IGN-HAM-044 ability kind is invalid.");
+        Equal("full_resolution_required", ability.ResolutionRequirementId, "IGN-HAM-044 resolution requirement is invalid.");
+        Equal("hand", ability.ActiveZoneId, "IGN-HAM-044 active zone is invalid.");
+        True(ability.IsStructuredGraphAuthority, "IGN-HAM-044 is not direct structured authority.");
+        Equal(null, ability.AbilityTemplateId, "IGN-HAM-044 unexpectedly uses a template.");
+        var target = Single(ability.Targets);
+        Equal("opponent_of_ability_controller", target.PlayerReferenceId, "IGN-HAM-044 target player is invalid.");
+        Equal("zenit", target.DomainRowId, "IGN-HAM-044 target row is invalid.");
+        Equal("active", target.ActivityStateId, "IGN-HAM-044 target activity is invalid.");
+        Equal("effect_exhaust_card", Single(ability.Effects).EffectActionTypeId, "IGN-HAM-044 effect is invalid.");
+        Equal(0, ability.Conditions.Length, "IGN-HAM-044 unexpectedly has a condition.");
+        Equal(0, ability.Expressions.Length, "IGN-HAM-044 unexpectedly has an expression.");
+        Equal(0, Single(ability.Effects).Durations.Length, "IGN-HAM-044 unexpectedly has a duration.");
+    }
+
     public static void SequentialMultiEffectGraphMaterializes()
     {
         var ability = Single(Materialize().AbilitiesByCardId["AQU-ART-044"]);
@@ -210,6 +229,7 @@ internal static class CanonicalAbilityCatalogTests
             "card_id",
             Card("IGN-HAM-001"),
             Card("IGN-HAM-005"),
+            Card("IGN-HAM-044"),
             Card("AQU-ART-044"),
             Card("AQU-MOR-007"),
             Card("AQU-MOR-017"),
@@ -229,6 +249,7 @@ internal static class CanonicalAbilityCatalogTests
             CanonicalAbilityTableIds.Abilities,
             "ability_id",
             StructuredAbility("ability_ign_ham_005_01", "IGN-HAM-005", "triggered", "full_resolution_required", "dominion"),
+            StructuredAbility("ability_ign_ham_044_01", "IGN-HAM-044", "resolution", "full_resolution_required", "hand"),
             StructuredAbility("ability_aqu_art_044_01", "AQU-ART-044", "resolution", "full_resolution_required", "hand"),
             StructuredAbility("ability_aqu_mor_007_01", "AQU-MOR-007", "triggered", "full_resolution_required", "dominion"),
             StructuredAbility("ability_aqu_mor_017_01", "AQU-MOR-017", "static", null, "dominion"),
@@ -251,6 +272,10 @@ internal static class CanonicalAbilityCatalogTests
                 ("reference_type_id", "ref_selected_card_exactly_one"), ("game_object_id", "card_instance"), ("card_type_id", "entity"),
                 ("player_reference_id", "opponent_of_ability_controller"), ("zone_id", "dominion"),
                 ("domain_row_id", "horizont"), ("activity_state_id", "active")),
+            Target("target_ign_ham_044_01_enemy_zenit_entity", "ability_ign_ham_044_01", "target_choose_one_card", 1, 1, false, null,
+                ("reference_type_id", "ref_selected_card_exactly_one"), ("game_object_id", "card_instance"), ("card_type_id", "entity"),
+                ("player_reference_id", "opponent_of_ability_controller"), ("zone_id", "dominion"),
+                ("domain_row_id", "zenit"), ("activity_state_id", "active")),
             Target("target_aqu_art_044_01_enemy_horizont_entities", "ability_aqu_art_044_01", "target_choose_cards_zero_or_more", 0, 2, true, null,
                 ("reference_type_id", "ref_selected_cards_zero_or_more"), ("player_reference_id", "opponent_of_ability_controller"), ("domain_row_id", "horizont")),
             Target("target_aqu_mor_007_01_enemy_horizont_entity", "ability_aqu_mor_007_01", "target_choose_one_card", 1, 1, false, "condition_aqu_mor_007_01_magnitude_lte_3",
@@ -263,6 +288,7 @@ internal static class CanonicalAbilityCatalogTests
             CanonicalAbilityTableIds.Effects,
             "effect_id",
             Effect("effect_ign_ham_005_01_exhaust_target", "ability_ign_ham_005_01", 1, "effect_exhaust_card", "target_ign_ham_005_01_enemy_horizont_entity"),
+            Effect("effect_ign_ham_044_01_exhaust_target", "ability_ign_ham_044_01", 1, "effect_exhaust_card", "target_ign_ham_044_01_enemy_zenit_entity"),
             Effect("effect_aqu_art_044_01_exhaust_selected", "ability_aqu_art_044_01", 1, "effect_exhaust_card", "target_aqu_art_044_01_enemy_horizont_entities"),
             Effect("effect_aqu_art_044_01_damage_selected", "ability_aqu_art_044_01", 2, "effect_deal_damage", "target_aqu_art_044_01_enemy_horizont_entities", ("future_field", "preserved")),
             Effect("effect_aqu_mor_007_01_exhaust_target", "ability_aqu_mor_007_01", 1, "effect_exhaust_card", "target_aqu_mor_007_01_enemy_horizont_entity"),
@@ -376,6 +402,7 @@ internal static class CanonicalAbilityCatalogTests
             ("sequence", sequence),
             ("branch_key", null),
             ("effect_action_type_id", action),
+            ("source_reference_type_id", "ref_ability_source_card"),
             ("target_id", targetId),
         ], overrides));
 

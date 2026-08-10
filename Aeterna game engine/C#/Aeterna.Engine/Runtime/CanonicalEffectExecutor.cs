@@ -4,6 +4,25 @@ using Aeterna.Engine.State;
 
 namespace Aeterna.Engine.Runtime;
 
+internal enum CanonicalResolutionOrigin
+{
+    TriggeredAbility,
+    PlayedCard,
+}
+
+internal sealed record CanonicalAbilityResolutionContext(
+    string ResolutionId,
+    CanonicalResolutionOrigin Origin,
+    string? SourceActionId,
+    string SourceActionType,
+    CanonicalAbilityDefinition Ability,
+    string SourceCardInstanceId,
+    string SourceCardId,
+    string ControllerPlayerId,
+    ImmutableArray<CanonicalTargetSelectionPayload> TargetSelections,
+    string? PendingTriggerId,
+    string? TriggerId);
+
 internal sealed record CanonicalCardActivityMutation(
     string EffectId,
     int EffectSequence,
@@ -13,18 +32,22 @@ internal sealed record CanonicalCardActivityMutation(
     string ToActivityState);
 
 internal sealed record CanonicalEffectExecutionPlan(
-    string AbilityId,
+    CanonicalAbilityResolutionContext Context,
     ImmutableArray<CanonicalResolvedTargetSelection> TargetSelections,
     ImmutableArray<CanonicalCardActivityMutation> ActivityMutations);
 
 internal sealed record CanonicalAbilityResolutionRecord(
-    string PendingTriggerId,
+    string ResolutionId,
+    string ResolutionOrigin,
     string AbilityId,
-    string TriggerId,
     string SourceCardInstanceId,
+    string SourceCardId,
     string ControllerPlayerId,
     string ResolutionOutcome,
-    int AppliedEffectCount);
+    int AppliedEffectCount,
+    string? SourceActionId,
+    string? PendingTriggerId,
+    string? TriggerId);
 
 internal sealed class CanonicalAbilityExecutionException : Exception
 {
@@ -42,6 +65,8 @@ internal static class CanonicalEffectExecutor
     internal const string ExhaustCardEffectActionTypeId = "effect_exhaust_card";
     internal const string AppliedOutcome = "resolved_effect_applied";
     internal const string NoLegalTargetOutcome = "resolved_no_effect_no_legal_target";
+    internal const string PlayedCardOriginId = "played_card";
+    internal const string TriggeredAbilityOriginId = "triggered_ability";
 
     private const string ActiveStatus = "active";
 
@@ -94,9 +119,21 @@ internal static class CanonicalEffectExecutor
 
             if (effect.TargetId is null
                 || !supportedTargetIds.Contains(effect.TargetId)
+                || !string.Equals(effect.SourceReferenceTypeId, "ref_ability_source_card", StringComparison.Ordinal)
                 || effect.ParentEffectId is not null
                 || effect.BranchKey is not null
                 || effect.ConditionId is not null
+                || effect.ValueTypeId is not null
+                || effect.ValueNumber is not null
+                || effect.ValueText is not null
+                || effect.ValueRegistryValueId is not null
+                || effect.ValueExpressionId is not null
+                || effect.FieldId is not null
+                || effect.FromZoneId is not null
+                || effect.ToZoneId is not null
+                || effect.DestinationPositionId is not null
+                || effect.ModifierTypeId is not null
+                || effect.RestrictionTypeId is not null
                 || effect.Parameters.Length != 0
                 || effect.Durations.Length != 0)
             {
@@ -107,32 +144,58 @@ internal static class CanonicalEffectExecutor
         }
     }
 
+    internal static void ValidateSupportedPlayedCardGraph(CanonicalAbilityDefinition ability)
+    {
+        ArgumentNullException.ThrowIfNull(ability);
+        if (!string.Equals(ability.Status, ActiveStatus, StringComparison.Ordinal)
+            || !string.Equals(ability.AbilityKindId, "resolution", StringComparison.Ordinal)
+            || !string.Equals(ability.ResolutionRequirementId, "full_resolution_required", StringComparison.Ordinal)
+            || !string.Equals(ability.ActiveZoneId, "hand", StringComparison.Ordinal)
+            || !ability.IsStructuredGraphAuthority
+            || ability.AbilityTemplateId is not null
+            || ability.Template is not null
+            || ability.ModuleKey is not null
+            || ability.ParentAbilityId is not null
+            || ability.Triggers.Length != 0
+            || ability.Conditions.Length != 0
+            || ability.Expressions.Length != 0
+            || ability.TemplateArguments.Length != 0)
+        {
+            throw new CanonicalAbilityExecutionException(
+                "CANONICAL_PLAYED_CARD_GRAPH_UNSUPPORTED",
+                "Played resolution card ability is outside the first structured full-resolution runtime slice.");
+        }
+
+        ValidateSupportedGraph(ability);
+    }
+
     internal static CanonicalEffectExecutionPlan BuildPlan(
-        CanonicalAbilityDefinition ability,
-        ImmutableArray<CanonicalTargetSelectionPayload> selections,
-        string abilityControllerPlayerId,
+        CanonicalAbilityResolutionContext context,
         MatchState state,
         RuntimePackageCatalog runtimePackage)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var ability = context.Ability;
+        var selections = context.TargetSelections;
         ValidateSupportedGraph(ability);
         if (selections.IsDefault)
         {
             throw new CanonicalAbilityExecutionException(
-                "RESOLVE_TRIGGER_TARGET_SELECTION_INVALID",
+                Code(context.Origin, "TARGET_SELECTION_INVALID"),
                 "Target selections are missing.");
         }
 
         if (selections.Any(selection => selection is null || string.IsNullOrWhiteSpace(selection.TargetId)))
         {
             throw new CanonicalAbilityExecutionException(
-                "RESOLVE_TRIGGER_TARGET_SELECTION_INVALID",
+                Code(context.Origin, "TARGET_SELECTION_INVALID"),
                 "Target selection contains an invalid target identity.");
         }
 
         if (selections.Select(selection => selection.TargetId).Distinct(StringComparer.Ordinal).Count() != selections.Length)
         {
             throw new CanonicalAbilityExecutionException(
-                "RESOLVE_TRIGGER_TARGET_SELECTION_INVALID",
+                Code(context.Origin, "TARGET_SELECTION_INVALID"),
                 "Target selection contains a duplicate target_id entry.");
         }
 
@@ -149,7 +212,7 @@ internal static class CanonicalEffectExecutor
                 throw new CanonicalAbilityExecutionException(
                     belongsToAbility
                         ? "CANONICAL_TARGET_CONTRACT_UNSUPPORTED"
-                        : "RESOLVE_TRIGGER_TARGET_ID_INVALID",
+                        : Code(context.Origin, "TARGET_ID_INVALID"),
                     "Target selection references an unknown or unsupported target definition.");
             }
         }
@@ -157,7 +220,7 @@ internal static class CanonicalEffectExecutor
         if (selections.Length != definitions.Length)
         {
             throw new CanonicalAbilityExecutionException(
-                "RESOLVE_TRIGGER_TARGET_SELECTION_INVALID",
+                Code(context.Origin, "TARGET_SELECTION_INVALID"),
                 "Target selection does not cover every active canonical target definition.");
         }
 
@@ -170,9 +233,10 @@ internal static class CanonicalEffectExecutor
             return CanonicalTargetResolver.ValidateSelection(
                 definition,
                 selection.CardInstanceIds,
-                abilityControllerPlayerId,
+                context.ControllerPlayerId,
                 state,
-                runtimePackage);
+                runtimePackage,
+                context.Origin);
         }).ToImmutableArray();
         var selectedByTargetId = resolved.ToImmutableDictionary(
             selection => selection.Definition.TargetId,
@@ -190,10 +254,15 @@ internal static class CanonicalEffectExecutor
         {
             foreach (var selectedCard in selectedByTargetId[effect.TargetId!].SelectedCards)
             {
-                if (!string.Equals(
-                        simulatedActivity[selectedCard.CardInstanceId],
-                        "active",
-                        StringComparison.Ordinal))
+                var activity = simulatedActivity[selectedCard.CardInstanceId];
+                if (string.Equals(activity, "exhausted", StringComparison.Ordinal))
+                {
+                    // Canonical effect_exhaust_card is idempotent for an already
+                    // exhausted target and emits no activity mutation.
+                    continue;
+                }
+
+                if (!string.Equals(activity, "active", StringComparison.Ordinal))
                 {
                     throw new CanonicalAbilityExecutionException(
                         "CANONICAL_EFFECT_TARGET_STATE_INVALID",
@@ -211,7 +280,7 @@ internal static class CanonicalEffectExecutor
             }
         }
 
-        return new CanonicalEffectExecutionPlan(ability.AbilityId, resolved, mutations.ToImmutable());
+        return new CanonicalEffectExecutionPlan(context, resolved, mutations.ToImmutable());
     }
 
     internal static void Apply(MatchState state, CanonicalEffectExecutionPlan plan)
@@ -223,4 +292,16 @@ internal static class CanonicalEffectExecutor
             state.GetCardInstance(mutation.CardInstanceId).ActivityState = mutation.ToActivityState;
         }
     }
+
+    internal static string OriginId(CanonicalResolutionOrigin origin) => origin switch
+    {
+        CanonicalResolutionOrigin.TriggeredAbility => TriggeredAbilityOriginId,
+        CanonicalResolutionOrigin.PlayedCard => PlayedCardOriginId,
+        _ => throw new ArgumentOutOfRangeException(nameof(origin)),
+    };
+
+    private static string Code(CanonicalResolutionOrigin origin, string suffix) =>
+        origin == CanonicalResolutionOrigin.TriggeredAbility
+            ? $"RESOLVE_TRIGGER_{suffix}"
+            : $"PLAY_CARD_{suffix}";
 }

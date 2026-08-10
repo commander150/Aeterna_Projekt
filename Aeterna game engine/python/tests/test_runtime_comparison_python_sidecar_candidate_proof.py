@@ -80,6 +80,7 @@ class TestPythonSidecarCandidateProof(unittest.TestCase):
             set(first["comparison"]["allowed_difference_codes"]),
             {
                 "RUNTIME_CANDIDATE_DIFFERENCE",
+                "BUILD_IDENTIFIER_DIFFERENCE",
                 "IMPLEMENTATION_SPECIFIC_DIFFERENCE",
                 "DECLARED_KNOWN_DEVIATION_DIFFERENCE",
             },

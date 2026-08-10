@@ -99,10 +99,17 @@ public sealed record NormalInflowActionPayload(
 
 public sealed record PlayCardActionPayload(
     [property: JsonPropertyName("card_instance_id")] string CardInstanceId,
-    [property: JsonPropertyName("domain_row")] string DomainRow,
-    [property: JsonPropertyName("lane_index")] int LaneIndex,
+    [property: JsonPropertyName("domain_row")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? DomainRow,
+    [property: JsonPropertyName("lane_index")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    int? LaneIndex,
     [property: JsonPropertyName("aura_source_card_instance_ids")]
-    ImmutableArray<string> AuraSourceCardInstanceIds);
+    ImmutableArray<string> AuraSourceCardInstanceIds,
+    [property: JsonPropertyName("target_selections")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    ImmutableArray<CanonicalTargetSelectionPayload>? TargetSelections = null);
 
 public sealed record CanonicalTargetSelectionPayload(
     [property: JsonPropertyName("target_id")] string TargetId,
@@ -197,17 +204,30 @@ public sealed record CardActivityChangedPayload(
     [property: JsonPropertyName("to_activity_state")] string ToActivityState,
     [property: JsonPropertyName("source_ability_id")] string SourceAbilityId,
     [property: JsonPropertyName("source_effect_id")] string SourceEffectId,
-    [property: JsonPropertyName("pending_trigger_id")] string PendingTriggerId);
+    [property: JsonPropertyName("resolution_id")] string ResolutionId,
+    [property: JsonPropertyName("resolution_origin")] string ResolutionOrigin,
+    [property: JsonPropertyName("pending_trigger_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? PendingTriggerId);
 
 public sealed record CanonicalAbilityResolvedPayload(
-    [property: JsonPropertyName("pending_trigger_id")] string PendingTriggerId,
+    [property: JsonPropertyName("resolution_id")] string ResolutionId,
+    [property: JsonPropertyName("resolution_origin")] string ResolutionOrigin,
     [property: JsonPropertyName("ability_id")] string AbilityId,
-    [property: JsonPropertyName("trigger_id")] string TriggerId,
     [property: JsonPropertyName("source_card_instance_id")] string SourceCardInstanceId,
     [property: JsonPropertyName("source_card_id")] string SourceCardId,
     [property: JsonPropertyName("controller_player_id")] string ControllerPlayerId,
     [property: JsonPropertyName("resolution_outcome")] string ResolutionOutcome,
-    [property: JsonPropertyName("applied_effect_count")] int AppliedEffectCount);
+    [property: JsonPropertyName("applied_effect_count")] int AppliedEffectCount,
+    [property: JsonPropertyName("source_action_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SourceActionId,
+    [property: JsonPropertyName("pending_trigger_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? PendingTriggerId,
+    [property: JsonPropertyName("trigger_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? TriggerId);
 
 public sealed record TurnTransitionPayload(
     [property: JsonPropertyName("source_action_id")] string SourceActionId,
