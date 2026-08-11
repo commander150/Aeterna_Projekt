@@ -36,12 +36,24 @@ internal sealed record CanonicalTriggeredAbilityDiscovery(
     string EngineEventType,
     string AbilityKindId,
     string ActiveZoneId,
-    string? TriggerFilterConditionId);
+    string? TriggerFilterConditionId,
+    string? SourceFromZoneId,
+    string? SourceToZoneId,
+    string? SourceZoneTransitionInstanceId);
+
+internal sealed record CanonicalTriggerEventSource(
+    CardInstanceState Card,
+    string ActivationZoneId,
+    string? FromZoneId,
+    string? ToZoneId,
+    string? ZoneTransitionInstanceId);
 
 internal static class CanonicalTriggerResolver
 {
     internal const string EnteredPlayEngineEventType = "card_entered_play";
     internal const string EnteredPlayCanonicalEventTypeId = "event_card_entered_play";
+    internal const string ZoneChangedEngineEventType = "card_zone_changed";
+    internal const string ZoneChangedCanonicalEventTypeId = "event_card_zone_changed";
 
     private const string TriggeredAbilityKindId = "triggered";
     private const string AbilitySourceCardReferenceTypeId = "ref_ability_source_card";
@@ -51,6 +63,7 @@ internal static class CanonicalTriggerResolver
     internal static string? MapEngineEventType(string engineEventType) => engineEventType switch
     {
         EnteredPlayEngineEventType => EnteredPlayCanonicalEventTypeId,
+        ZoneChangedEngineEventType => ZoneChangedCanonicalEventTypeId,
         _ => null,
     };
 
@@ -70,8 +83,18 @@ internal static class CanonicalTriggerResolver
         }
 
         ValidateAuthoritativeEvent(engineEvent, state);
-        var source = ReadEnteredPlaySource(engineEvent.Payload, state);
-        if (!catalog.AbilitiesByCardId.TryGetValue(source.CardId, out var abilities))
+        var source = canonicalEventTypeId switch
+        {
+            EnteredPlayCanonicalEventTypeId => new CanonicalTriggerEventSource(
+                ReadEnteredPlaySource(engineEvent.Payload, state),
+                "dominion",
+                null,
+                "dominion",
+                null),
+            ZoneChangedCanonicalEventTypeId => ReadZoneChangedSource(engineEvent.Payload, state),
+            _ => throw SourceInvalid("Mapped canonical trigger event is unsupported."),
+        };
+        if (!catalog.AbilitiesByCardId.TryGetValue(source.Card.CardId, out var abilities))
         {
             return ImmutableArray<CanonicalTriggeredAbilityDiscovery>.Empty;
         }
@@ -81,14 +104,14 @@ internal static class CanonicalTriggerResolver
         {
             if (!string.Equals(ability.Status, ActiveStatus, StringComparison.Ordinal)
                 || !string.Equals(ability.AbilityKindId, TriggeredAbilityKindId, StringComparison.Ordinal)
-                || !string.Equals(ability.ActiveZoneId, source.Zone, StringComparison.Ordinal))
+                || !string.Equals(ability.ActiveZoneId, source.ActivationZoneId, StringComparison.Ordinal))
             {
                 continue;
             }
 
             foreach (var trigger in ability.Triggers)
             {
-                if (!MatchesEnteredPlayTrigger(trigger, canonicalEventTypeId, source, state))
+                if (!MatchesTrigger(trigger, canonicalEventTypeId, source, state))
                 {
                     continue;
                 }
@@ -96,17 +119,26 @@ internal static class CanonicalTriggerResolver
                 result.Add(new CanonicalTriggeredAbilityDiscovery(
                     ability.AbilityId,
                     ability.AbilityIndex,
-                    source.CardInstanceId,
-                    source.CardId,
+                    source.Card.CardInstanceId,
+                    source.Card.CardId,
                     trigger.TriggerId,
                     trigger.Sequence,
                     canonicalEventTypeId,
-                    source.ControllerPlayerId,
+                    source.Card.ControllerPlayerId,
                     engineEvent.EventId,
                     engineEvent.EventType,
                     ability.AbilityKindId!,
                     ability.ActiveZoneId!,
-                    trigger.FilterConditionId));
+                    trigger.FilterConditionId,
+                    string.Equals(canonicalEventTypeId, ZoneChangedCanonicalEventTypeId, StringComparison.Ordinal)
+                        ? source.FromZoneId
+                        : null,
+                    string.Equals(canonicalEventTypeId, ZoneChangedCanonicalEventTypeId, StringComparison.Ordinal)
+                        ? source.ToZoneId
+                        : null,
+                    string.Equals(canonicalEventTypeId, ZoneChangedCanonicalEventTypeId, StringComparison.Ordinal)
+                        ? source.ZoneTransitionInstanceId
+                        : null));
             }
         }
 
@@ -116,19 +148,20 @@ internal static class CanonicalTriggerResolver
         return result.ToImmutable();
     }
 
-    private static bool MatchesEnteredPlayTrigger(
+    private static bool MatchesTrigger(
         CanonicalAbilityTriggerDefinition trigger,
         string canonicalEventTypeId,
-        CardInstanceState source,
+        CanonicalTriggerEventSource source,
         MatchState state) =>
         string.Equals(trigger.Status, ActiveStatus, StringComparison.Ordinal)
         && string.Equals(trigger.EventTypeId, canonicalEventTypeId, StringComparison.Ordinal)
         && string.Equals(trigger.SubjectReferenceTypeId, AbilitySourceCardReferenceTypeId, StringComparison.Ordinal)
         && (trigger.EventStageId is null
             || string.Equals(trigger.EventStageId, AfterEventStageId, StringComparison.Ordinal))
-        && trigger.FromZoneId is null
+        && (trigger.FromZoneId is null
+            || string.Equals(trigger.FromZoneId, source.FromZoneId, StringComparison.Ordinal))
         && (trigger.ToZoneId is null
-            || string.Equals(trigger.ToZoneId, source.Zone, StringComparison.Ordinal))
+            || string.Equals(trigger.ToZoneId, source.ToZoneId, StringComparison.Ordinal))
         && (trigger.PhaseId is null
             || string.Equals(trigger.PhaseId, state.Phase, StringComparison.Ordinal))
         && (trigger.PlayerReferenceId is null
@@ -213,6 +246,70 @@ internal static class CanonicalTriggerResolver
         return source;
     }
 
+    private static CanonicalTriggerEventSource ReadZoneChangedSource(JsonElement payload, MatchState state)
+    {
+        var transitionId = ReadRequiredString(payload, "zone_transition_instance_id");
+        var cardInstanceId = ReadRequiredString(payload, "card_instance_id");
+        var cardId = ReadRequiredString(payload, "card_id");
+        var ownerPlayerId = ReadRequiredString(payload, "owner_player_id");
+        var controllerPlayerIdBefore = ReadRequiredString(payload, "controller_player_id");
+        var fromZoneId = ReadRequiredString(payload, "from_zone_id");
+        var toZoneId = ReadRequiredString(payload, "to_zone_id");
+        var fromPresenceId = ReadRequiredString(payload, "from_zone_presence_instance_id");
+        var toPresenceId = ReadRequiredString(payload, "to_zone_presence_instance_id");
+        var toZoneIndex = ReadRequiredInteger(payload, "to_zone_index");
+        var visibilityAfter = ReadRequiredString(payload, "visibility_after");
+        _ = ReadRequiredString(payload, "cause_event_id");
+        _ = ReadRequiredString(payload, "from_domain_row_id");
+        _ = ReadRequiredInteger(payload, "from_domain_lane_index");
+
+        if (!state.CardInstances.TryGetValue(cardInstanceId, out var source)
+            || !string.Equals(source.CardId, cardId, StringComparison.Ordinal)
+            || !string.Equals(source.OwnerPlayerId, ownerPlayerId, StringComparison.Ordinal)
+            || state.Players.All(player => !string.Equals(
+                player.PlayerId,
+                controllerPlayerIdBefore,
+                StringComparison.Ordinal))
+            || !string.Equals(fromZoneId, "dominion", StringComparison.Ordinal)
+            || toZoneId is not ("void" or "hand")
+            || !string.Equals(source.Zone, toZoneId, StringComparison.Ordinal)
+            || source.ZoneIndex != toZoneIndex
+            || source.DomainRow is not null
+            || source.DomainLaneIndex is not null
+            || source.ActivityState is not null
+            || source.DamageMarked != 0
+            || !string.Equals(source.Visibility, visibilityAfter, StringComparison.Ordinal)
+            || !string.Equals(
+                fromPresenceId,
+                PresenceId(cardInstanceId, source.ZoneSequence - 1),
+                StringComparison.Ordinal)
+            || !string.Equals(
+                toPresenceId,
+                PresenceId(cardInstanceId, source.ZoneSequence),
+                StringComparison.Ordinal))
+        {
+            throw SourceInvalid("Zone-change event and moved card instance are inconsistent.");
+        }
+
+        var owner = state.GetPlayer(ownerPlayerId);
+        var destination = string.Equals(toZoneId, "void", StringComparison.Ordinal)
+            ? owner.VoidCardInstanceIds
+            : owner.HandCardInstanceIds;
+        if (toZoneIndex < 0
+            || toZoneIndex >= destination.Count
+            || !string.Equals(destination[toZoneIndex], cardInstanceId, StringComparison.Ordinal))
+        {
+            throw SourceInvalid("Zone-change source does not occupy its authoritative destination index.");
+        }
+
+        return new CanonicalTriggerEventSource(
+            source,
+            fromZoneId,
+            fromZoneId,
+            toZoneId,
+            transitionId);
+    }
+
     private static string ReadRequiredString(JsonElement payload, string propertyName)
     {
         if (payload.ValueKind != JsonValueKind.Object
@@ -241,4 +338,7 @@ internal static class CanonicalTriggerResolver
 
     private static EngineStateException SourceInvalid(string message) =>
         new("CANONICAL_TRIGGER_SOURCE_INVALID", message);
+
+    private static string PresenceId(string cardInstanceId, int zoneSequence) =>
+        $"zone_presence_{cardInstanceId}_{zoneSequence:000000}";
 }

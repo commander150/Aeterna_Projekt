@@ -67,7 +67,10 @@ internal sealed record PendingTriggeredAbilityState(
     string ControllerPlayerId,
     string SourceEngineEventId,
     int SourceEngineEventSequence,
-    string CanonicalEventTypeId);
+    string CanonicalEventTypeId,
+    string? SourceFromZoneId = null,
+    string? SourceToZoneId = null,
+    string? SourceZoneTransitionInstanceId = null);
 
 internal sealed class PlayerState
 {
@@ -148,7 +151,7 @@ internal sealed class CardInstanceState
 
     public required string OwnerPlayerId { get; init; }
 
-    public required string ControllerPlayerId { get; init; }
+    public required string ControllerPlayerId { get; set; }
 
     public required string Zone { get; set; }
 

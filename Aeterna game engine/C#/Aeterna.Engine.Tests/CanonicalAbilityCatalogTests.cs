@@ -104,15 +104,18 @@ internal static class CanonicalAbilityCatalogTests
         Equal("duration_until_end_of_current_turn", Single(ability.Effects[1].Durations).DurationPolicyId, "Second duration was not preserved.");
     }
 
-    public static void TemplateInstanceRelationshipMaterializesWithoutExpansion()
+    public static void TemplateInstanceNormalizesWithProvenance()
     {
         var ability = Single(Materialize().AbilitiesByCardId["LUX-FHL-034"]);
 
         True(ability.IsTemplateInstanceAuthority, "Template-instance authority was not identified.");
-        True(!ability.IsStructuredGraphAuthority, "Template instance was misidentified as structured graph authority.");
+        True(ability.IsStructuredGraphAuthority, "Template instance was not normalized to structured graph authority.");
         Equal("template_resolution_damage_all_enemy_horizont_entities_v1", ability.Template?.TemplateId, "Template relationship was not resolved.");
         Equal(2, Single(ability.TemplateArguments).ValueInteger, "Template argument was not preserved.");
-        Equal(0, ability.Effects.Length, "Template instance was expanded during materialization.");
+        Equal("template_resolution_damage_all_enemy_horizont_entities_v1", ability.TemplateProvenance?.TemplateId, "Template provenance was not retained.");
+        Equal("effect_deal_damage", Single(ability.Effects).EffectActionTypeId, "Template effect was not expanded.");
+        Equal("all_matching", Single(ability.Targets).SelectionMethodId, "Template automatic target was not expanded.");
+        Equal(2, Single(ability.Effects).Parameters.Single(parameter => parameter.ContractFieldId == "parameter_field_deal_damage_amount").ValueInteger, "Typed argument was not bound.");
     }
 
     public static void CatalogIsImmutableDeterministicAndLossless()
@@ -207,8 +210,27 @@ internal static class CanonicalAbilityCatalogTests
                 ("ability_kind_id", "resolution"),
                 ("resolution_requirement_id", "full_resolution_required"),
                 ("default_active_zone_id", "hand"),
-                ("expansion_policy_id", "deterministic"),
+                ("expansion_policy_id", "load_time_compile"),
                 ("minimum_carddatabase_schema_version", "0.7.0"))));
+        registryTables.Add(CanonicalAbilityTableIds.AbilityTemplateNodes, Table(
+            CanonicalAbilityTableIds.AbilityTemplateNodes,
+            "template_node_id",
+            TemplateNodes().ToArray()));
+        registryTables.Add(CanonicalAbilityTableIds.AbilityTemplateBindings, Table(
+            CanonicalAbilityTableIds.AbilityTemplateBindings,
+            "template_binding_id",
+            TemplateBindings().ToArray()));
+        registryTables.Add(CanonicalAbilityTableIds.ContractFields, Table(
+            CanonicalAbilityTableIds.ContractFields,
+            "contract_field_id",
+            Record(
+                ("contract_field_id", "parameter_field_template_damage_all_enemy_horizont_amount"),
+                ("contract_schema_id", "parameters_template_resolution_damage_all_enemy_horizont_entities_v1"),
+                ("field_order", 1),
+                ("data_type", "integer"),
+                ("required_mode", "always"),
+                ("nullable", false),
+                ("is_collection", false))));
         registryTables.Add("effect_action_types", VocabularyTable(
             "effect_action_types",
             "effect_action_type_id",
@@ -226,15 +248,17 @@ internal static class CanonicalAbilityCatalogTests
             registryTables.ToImmutable());
 
         var tables = ImmutableDictionary.CreateBuilder<string, CanonicalTable>(StringComparer.Ordinal);
-        tables.Add("schema_fields", Table(
-            "schema_fields",
-            "field_id",
+        var schemaFieldRecords = new[]
+        {
             Record(
                 ("field_id", "cdb_fld_ability_effects_effect_action_type_id"),
                 ("table_id", CanonicalAbilityTableIds.Effects),
                 ("field_name", "effect_action_type_id"),
+                ("data_type", "string"),
                 ("allowed_group_id", null),
-                ("reference_table_id", "registry:effect_action_types"))));
+                ("reference_table_id", "registry:effect_action_types")),
+        }.Concat(TemplateSchemaFields()).ToArray();
+        tables.Add("schema_fields", Table("schema_fields", "field_id", schemaFieldRecords));
         tables.Add(CanonicalAbilityTableIds.Cards, Table(
             CanonicalAbilityTableIds.Cards,
             "card_id",
@@ -500,6 +524,155 @@ internal static class CanonicalAbilityCatalogTests
             ("duration_policy_id", policyId),
         ], values));
 
+    private static IEnumerable<CanonicalRecord> TemplateNodes()
+    {
+        yield return TemplateNode("target", CanonicalAbilityTableIds.Targets, 1, 1);
+        yield return TemplateNode("effect", CanonicalAbilityTableIds.Effects, 2, 1);
+        yield return TemplateNode("damage_kind", CanonicalAbilityTableIds.EffectParameters, 3, 1);
+        yield return TemplateNode("damage_amount", CanonicalAbilityTableIds.EffectParameters, 4, 2);
+    }
+
+    private static CanonicalRecord TemplateNode(
+        string nodeKey,
+        string outputTableId,
+        int nodeOrder,
+        int outputSequence) => Record(
+        ("template_node_id", $"template_node_fixture_{nodeKey}"),
+        ("ability_template_id", "template_resolution_damage_all_enemy_horizont_entities_v1"),
+        ("node_key", nodeKey),
+        ("output_table_id", outputTableId),
+        ("node_order", nodeOrder),
+        ("output_sequence", outputSequence));
+
+    private static IEnumerable<CanonicalRecord> TemplateBindings()
+    {
+        var bindings = new List<CanonicalRecord>();
+        var sequence = 0;
+        void Fixed(string node, string field, object value)
+        {
+            sequence += 1;
+            bindings.Add(TemplateBinding(sequence, node, field, "fixed_value", value));
+        }
+
+        void Generated(string node, string field, string sourceNode)
+        {
+            sequence += 1;
+            bindings.Add(TemplateBinding(sequence, node, field, "generated_node_id", sourceNode));
+        }
+
+        Fixed("target", "target_role_id", "primary");
+        Fixed("target", "target_primitive_id", "target_all_matching_cards");
+        Fixed("target", "reference_type_id", "ref_all_matching_cards_zero_or_more");
+        Fixed("target", "game_object_id", "card_instance");
+        Fixed("target", "card_type_id", "entity");
+        Fixed("target", "player_reference_id", "opponent_of_ability_controller");
+        Fixed("target", "zone_id", "dominion");
+        Fixed("target", "domain_row_id", "horizont");
+        Fixed("target", "selection_method_id", "all_matching");
+        Fixed("target", "minimum_targets", 0);
+        Fixed("target", "maximum_targets", 6);
+        Fixed("target", "optional", false);
+        Fixed("effect", "effect_action_type_id", "effect_deal_damage");
+        Fixed("effect", "source_reference_type_id", "ref_ability_source_card");
+        Generated("effect", "target_id", "target");
+        Fixed("effect", "value_type_id", "no_value");
+        Generated("damage_kind", "effect_id", "effect");
+        Fixed("damage_kind", "contract_field_id", "parameter_field_deal_damage_damage_kind");
+        Fixed("damage_kind", "item_index", 1);
+        Fixed("damage_kind", "value_registry_value_id", "damage_kind_direct");
+        Generated("damage_amount", "effect_id", "effect");
+        Fixed("damage_amount", "contract_field_id", "parameter_field_deal_damage_amount");
+        Fixed("damage_amount", "item_index", 1);
+        sequence += 1;
+        bindings.Add(Record(
+            ("template_binding_id", $"template_binding_fixture_{sequence:000}"),
+            ("template_node_id", "template_node_fixture_damage_amount"),
+            ("target_field_id", "fixture_schema_ability_effect_parameters_value_integer"),
+            ("binding_kind_id", "template_parameter"),
+            ("parameter_contract_field_id", "parameter_field_template_damage_all_enemy_horizont_amount"),
+            ("source_node_key", null),
+            ("fixed_boolean", null),
+            ("fixed_integer", null),
+            ("fixed_text", null),
+            ("fixed_registry_value_id", null),
+            ("fixed_reference_id", null)));
+        return bindings;
+    }
+
+    private static CanonicalRecord TemplateBinding(
+        int sequence,
+        string nodeKey,
+        string fieldName,
+        string kind,
+        object value)
+    {
+        var boolean = value is bool booleanValue ? booleanValue : (bool?)null;
+        var integer = value is int integerValue ? integerValue : (int?)null;
+        var reference = value is string stringValue ? stringValue : null;
+        return Record(
+            ("template_binding_id", $"template_binding_fixture_{sequence:000}"),
+            ("template_node_id", $"template_node_fixture_{nodeKey}"),
+            ("target_field_id", nodeKey == "effect" && fieldName == "effect_action_type_id"
+                ? "cdb_fld_ability_effects_effect_action_type_id"
+                : $"fixture_schema_{OutputTable(nodeKey)}_{fieldName}"),
+            ("binding_kind_id", kind),
+            ("parameter_contract_field_id", null),
+            ("source_node_key", kind == "generated_node_id" ? reference : null),
+            ("fixed_boolean", kind == "fixed_value" ? boolean : null),
+            ("fixed_integer", kind == "fixed_value" ? integer : null),
+            ("fixed_text", null),
+            ("fixed_registry_value_id", null),
+            ("fixed_reference_id", kind == "fixed_value" ? reference : null));
+    }
+
+    private static IEnumerable<CanonicalRecord> TemplateSchemaFields()
+    {
+        var fields = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            [CanonicalAbilityTableIds.Targets] =
+            [
+                "ability_id", "sequence", "target_role_id", "target_primitive_id", "reference_type_id",
+                "game_object_id", "card_type_id", "player_reference_id", "zone_id", "domain_row_id",
+                "selection_method_id", "minimum_targets", "maximum_targets", "optional", "status",
+                "source_id", "source_ref", "notes",
+            ],
+            [CanonicalAbilityTableIds.Effects] =
+            [
+                "ability_id", "sequence", "source_reference_type_id", "target_id",
+                "value_type_id", "status", "engine_support_status", "source_id", "source_ref", "notes",
+            ],
+            [CanonicalAbilityTableIds.EffectParameters] =
+            [
+                "effect_id", "contract_field_id", "item_index", "value_registry_value_id", "value_integer",
+                "status", "source_id", "source_ref", "notes",
+            ],
+        };
+        foreach (var (tableId, fieldNames) in fields)
+        {
+            foreach (var fieldName in fieldNames)
+            {
+                var dataType = fieldName is "sequence" or "minimum_targets" or "maximum_targets" or "item_index" or "value_integer"
+                    ? "integer"
+                    : fieldName == "optional" ? "boolean" : "string";
+                yield return Record(
+                    ("field_id", $"fixture_schema_{tableId}_{fieldName}"),
+                    ("table_id", tableId),
+                    ("field_name", fieldName),
+                    ("data_type", dataType),
+                    ("allowed_group_id", null),
+                    ("reference_table_id", null));
+            }
+        }
+    }
+
+    private static string OutputTable(string nodeKey) => nodeKey switch
+    {
+        "target" => CanonicalAbilityTableIds.Targets,
+        "effect" => CanonicalAbilityTableIds.Effects,
+        "damage_kind" or "damage_amount" => CanonicalAbilityTableIds.EffectParameters,
+        _ => throw new ArgumentOutOfRangeException(nameof(nodeKey)),
+    };
+
     private static CanonicalTable VocabularyTable(string tableId, string primaryKey, params string[] ids) =>
         Table(tableId, primaryKey, ids.Select(id => Record((primaryKey, id))).ToArray());
 
@@ -513,7 +686,7 @@ internal static class CanonicalAbilityCatalogTests
             values.ToImmutableDictionary(record => record.GetRequiredString(primaryKey), record => record, StringComparer.Ordinal));
     }
 
-    private static CanonicalRecord Record(params (string Key, object? Value)[] fields)
+    internal static CanonicalRecord Record(params (string Key, object? Value)[] fields)
     {
         var values = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
@@ -582,6 +755,39 @@ internal static class CanonicalAbilityCatalogTests
             RecordsById = table.RecordsById.SetItem(recordId, changed),
         };
         return package with { Tables = package.Tables.SetItem(tableId, changedTable) };
+    }
+
+    internal static CanonicalCardDatabasePackage AddRecord(
+        CanonicalCardDatabasePackage package,
+        string tableId,
+        CanonicalRecord record)
+    {
+        var table = package.Tables[tableId];
+        var recordId = record.GetRequiredString(table.PrimaryKey);
+        var changed = table with
+        {
+            Records = table.Records.Add(record),
+            RecordsById = table.RecordsById.Add(recordId, record),
+        };
+        return package with { Tables = package.Tables.SetItem(tableId, changed) };
+    }
+
+    internal static CanonicalCardDatabasePackage RemoveRecord(
+        CanonicalCardDatabasePackage package,
+        string tableId,
+        string recordId)
+    {
+        var table = package.Tables[tableId];
+        var changed = table with
+        {
+            Records = table.Records.Where(record => !string.Equals(
+                    record.GetRequiredString(table.PrimaryKey),
+                    recordId,
+                    StringComparison.Ordinal))
+                .ToImmutableArray(),
+            RecordsById = table.RecordsById.Remove(recordId),
+        };
+        return package with { Tables = package.Tables.SetItem(tableId, changed) };
     }
 
     private static CanonicalCardDatabasePackage DuplicateFirstRecord(CanonicalCardDatabasePackage package, string tableId)

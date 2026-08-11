@@ -13,12 +13,18 @@ internal sealed record CanonicalTargetCandidate(
     int LaneIndex,
     string? ActivityStateId);
 
-internal sealed record CanonicalResolvedTargetSelection(
+internal sealed record CanonicalResolvedTargetSet(
     CanonicalAbilityTargetDefinition Definition,
-    ImmutableArray<CanonicalTargetCandidate> SelectedCards);
+    string ResolutionModeId,
+    ImmutableArray<CanonicalTargetCandidate> SelectedCards,
+    string AbilityControllerPlayerId,
+    int SnapshotSequence);
 
 internal static class CanonicalTargetResolver
 {
+    internal const string ControllerChoiceSelectionMethodId = "controller_choice";
+    internal const string AllMatchingSelectionMethodId = "all_matching";
+
     private const string ActiveStatus = "active";
 
     internal static ImmutableArray<CanonicalAbilityTargetDefinition> GetSupportedTargets(
@@ -27,26 +33,31 @@ internal static class CanonicalTargetResolver
         ArgumentNullException.ThrowIfNull(ability);
         var targets = ability.Targets
             .Where(target => string.Equals(target.Status, ActiveStatus, StringComparison.Ordinal))
+            .OrderBy(target => target.Sequence)
+            .ThenBy(target => target.TargetId, StringComparer.Ordinal)
             .ToImmutableArray();
         if (targets.Length != 1)
         {
-            throw Unsupported("The first canonical target runtime slice requires exactly one active target definition.");
+            throw Unsupported("The current canonical target runtime slice requires exactly one active target definition.");
         }
 
-        RequireSupportedContract(targets[0]);
+        RequireSupportedContract(targets[0], ability);
         return targets;
     }
 
     internal static ImmutableArray<CanonicalTargetCandidate> ResolveCandidates(
         CanonicalAbilityTargetDefinition target,
+        CanonicalAbilityDefinition ability,
         string abilityControllerPlayerId,
         MatchState state,
-        RuntimePackageCatalog runtimePackage)
+        RuntimePackageCatalog runtimePackage,
+        CanonicalCardCatalog? canonicalCards)
     {
         ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(ability);
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(runtimePackage);
-        RequireSupportedContract(target);
+        RequireSupportedContract(target, ability);
 
         if (state.Players.All(player => !string.Equals(
                 player.PlayerId,
@@ -61,7 +72,13 @@ internal static class CanonicalTargetResolver
         var candidates = ImmutableArray.CreateBuilder<CanonicalTargetCandidate>();
         foreach (var player in state.Players)
         {
-            if (string.Equals(player.PlayerId, abilityControllerPlayerId, StringComparison.Ordinal))
+            var isController = string.Equals(
+                player.PlayerId,
+                abilityControllerPlayerId,
+                StringComparison.Ordinal);
+            if (string.Equals(target.PlayerReferenceId, "ability_controller", StringComparison.Ordinal)
+                    ? !isController
+                    : isController)
             {
                 continue;
             }
@@ -101,7 +118,7 @@ internal static class CanonicalTargetResolver
                         continue;
                     }
 
-                    candidates.Add(new CanonicalTargetCandidate(
+                    var candidate = new CanonicalTargetCandidate(
                         target.TargetId,
                         card.CardInstanceId,
                         card.CardId,
@@ -109,12 +126,21 @@ internal static class CanonicalTargetResolver
                         card.Zone,
                         rowId,
                         laneIndex,
-                        card.ActivityState));
+                        card.ActivityState);
+                    if (CanonicalTargetFilterEvaluator.Matches(
+                            ability,
+                            target,
+                            candidate,
+                            state,
+                            canonicalCards))
+                    {
+                        candidates.Add(candidate);
+                    }
                 }
             }
         }
 
-        // This is a stable UI/runtime enumeration order, not game-semantic priority.
+        // Stable enumeration order only; it is not game-semantic priority.
         return candidates
             .OrderBy(candidate => state.Players.FindIndex(player => string.Equals(
                 player.PlayerId,
@@ -126,20 +152,62 @@ internal static class CanonicalTargetResolver
             .ToImmutableArray();
     }
 
-    internal static CanonicalResolvedTargetSelection ValidateSelection(
+    internal static CanonicalResolvedTargetSet ResolveAutomatic(
         CanonicalAbilityTargetDefinition target,
+        CanonicalAbilityDefinition ability,
+        string abilityControllerPlayerId,
+        MatchState state,
+        RuntimePackageCatalog runtimePackage,
+        CanonicalCardCatalog? canonicalCards,
+        int snapshotSequence)
+    {
+        if (!string.Equals(target.SelectionMethodId, AllMatchingSelectionMethodId, StringComparison.Ordinal))
+        {
+            throw Unsupported("Automatic resolution requires all_matching selection authority.");
+        }
+
+        var candidates = ResolveCandidates(
+            target,
+            ability,
+            abilityControllerPlayerId,
+            state,
+            runtimePackage,
+            canonicalCards);
+        if (candidates.Length < target.MinimumTargets || candidates.Length > target.MaximumTargets)
+        {
+            throw new CanonicalAbilityExecutionException(
+                "CANONICAL_AUTOMATIC_TARGET_COUNT_INVALID",
+                "Automatic target collection is outside canonical cardinality.");
+        }
+
+        return new CanonicalResolvedTargetSet(
+            target,
+            AllMatchingSelectionMethodId,
+            candidates,
+            abilityControllerPlayerId,
+            snapshotSequence);
+    }
+
+    internal static CanonicalResolvedTargetSet ValidateSelection(
+        CanonicalAbilityTargetDefinition target,
+        CanonicalAbilityDefinition ability,
         ImmutableArray<string> selectedCardInstanceIds,
         string abilityControllerPlayerId,
         MatchState state,
         RuntimePackageCatalog runtimePackage,
-        CanonicalResolutionOrigin origin)
+        CanonicalCardCatalog? canonicalCards,
+        CanonicalResolutionOrigin origin,
+        int snapshotSequence)
     {
-        RequireSupportedContract(target);
+        RequireSupportedContract(target, ability);
+        if (!string.Equals(target.SelectionMethodId, ControllerChoiceSelectionMethodId, StringComparison.Ordinal))
+        {
+            throw Invalid(origin, "Automatic target collections must not be submitted by the client.");
+        }
+
         if (selectedCardInstanceIds.IsDefault)
         {
-            throw new CanonicalAbilityExecutionException(
-                Code(origin, "TARGET_SELECTION_INVALID"),
-                "Canonical target selection is missing.");
+            throw Invalid(origin, "Canonical target selection is missing.");
         }
 
         if (selectedCardInstanceIds.Any(string.IsNullOrWhiteSpace))
@@ -164,7 +232,13 @@ internal static class CanonicalTargetResolver
                 "Canonical target selection count is outside the declared minimum/maximum range.");
         }
 
-        var candidates = ResolveCandidates(target, abilityControllerPlayerId, state, runtimePackage);
+        var candidates = ResolveCandidates(
+            target,
+            ability,
+            abilityControllerPlayerId,
+            state,
+            runtimePackage,
+            canonicalCards);
         var candidatesById = candidates.ToImmutableDictionary(
             candidate => candidate.CardInstanceId,
             StringComparer.Ordinal);
@@ -186,46 +260,55 @@ internal static class CanonicalTargetResolver
             }
         }
 
-        // Selection execution follows the stable public candidate order. Request
-        // array order is not a hidden game-semantic ordering channel.
-        return new CanonicalResolvedTargetSelection(
+        return new CanonicalResolvedTargetSet(
             target,
-            candidates.Where(candidate => selectedIds.Contains(candidate.CardInstanceId)).ToImmutableArray());
+            ControllerChoiceSelectionMethodId,
+            candidates.Where(candidate => selectedIds.Contains(candidate.CardInstanceId)).ToImmutableArray(),
+            abilityControllerPlayerId,
+            snapshotSequence);
     }
 
-    private static void RequireSupportedContract(CanonicalAbilityTargetDefinition target)
+    private static void RequireSupportedContract(
+        CanonicalAbilityTargetDefinition target,
+        CanonicalAbilityDefinition ability)
     {
-        var primitiveSupported =
-            string.Equals(target.TargetPrimitiveId, "target_choose_one_card", StringComparison.Ordinal)
-            && string.Equals(target.ReferenceTypeId, "ref_selected_card_exactly_one", StringComparison.Ordinal)
-            || string.Equals(target.TargetPrimitiveId, "target_choose_cards_zero_or_more", StringComparison.Ordinal)
-            && string.Equals(target.ReferenceTypeId, "ref_selected_cards_zero_or_more", StringComparison.Ordinal);
+        var choice = string.Equals(target.SelectionMethodId, ControllerChoiceSelectionMethodId, StringComparison.Ordinal)
+                     && (string.Equals(target.TargetPrimitiveId, "target_choose_one_card", StringComparison.Ordinal)
+                         && string.Equals(target.ReferenceTypeId, "ref_selected_card_exactly_one", StringComparison.Ordinal)
+                         || string.Equals(target.TargetPrimitiveId, "target_choose_cards_zero_or_more", StringComparison.Ordinal)
+                         && string.Equals(target.ReferenceTypeId, "ref_selected_cards_zero_or_more", StringComparison.Ordinal));
+        var automatic = string.Equals(target.SelectionMethodId, AllMatchingSelectionMethodId, StringComparison.Ordinal)
+                        && string.Equals(target.TargetPrimitiveId, "target_all_matching_cards", StringComparison.Ordinal)
+                        && string.Equals(target.ReferenceTypeId, "ref_all_matching_cards_zero_or_more", StringComparison.Ordinal);
         if (!string.Equals(target.Status, ActiveStatus, StringComparison.Ordinal)
-            || !primitiveSupported
+            || !(choice || automatic)
             || !string.Equals(target.GameObjectId, "card_instance", StringComparison.Ordinal)
             || !string.Equals(target.CardTypeId, "entity", StringComparison.Ordinal)
-            || !string.Equals(target.PlayerReferenceId, "opponent_of_ability_controller", StringComparison.Ordinal)
+            || target.PlayerReferenceId is not ("ability_controller" or "opponent_of_ability_controller")
             || !string.Equals(target.ZoneId, "dominion", StringComparison.Ordinal)
             || target.DomainRowId is not (null or "horizont" or "zenit")
             || target.DomainLaneId is not null
-            || target.ActivityStateId is not null
-            && !string.Equals(target.ActivityStateId, "active", StringComparison.Ordinal)
-            || !string.Equals(target.SelectionMethodId, "controller_choice", StringComparison.Ordinal)
+            || target.ActivityStateId is not (null or "active")
             || target.MinimumTargets < 0
-            || target.MaximumTargets < 1
-            || target.MinimumTargets > target.MaximumTargets
-            || target.FilterConditionId is not null
-            || target.Optional != (target.MinimumTargets == 0)
+            || target.MaximumTargets < target.MinimumTargets
+            || target.MaximumTargets > DomainState.LaneCount * 2
+            || target.Optional != (choice && target.MinimumTargets == 0)
             || string.Equals(target.TargetPrimitiveId, "target_choose_one_card", StringComparison.Ordinal)
             && (target.MinimumTargets != 1 || target.MaximumTargets != 1))
         {
-            throw Unsupported("Canonical target definition is outside the controlled Dominion Entity choice runtime slice.");
+            throw Unsupported("Canonical target definition is outside the controlled Dominion Entity collection slice.");
         }
+
+        CanonicalTargetFilterEvaluator.Validate(ability, target);
     }
 
     private static CanonicalAbilityExecutionException Unsupported(string message) => new(
         "CANONICAL_TARGET_CONTRACT_UNSUPPORTED",
         message);
+
+    private static CanonicalAbilityExecutionException Invalid(
+        CanonicalResolutionOrigin origin,
+        string message) => new(Code(origin, "TARGET_SELECTION_INVALID"), message);
 
     private static string Code(CanonicalResolutionOrigin origin, string suffix) =>
         origin == CanonicalResolutionOrigin.TriggeredAbility

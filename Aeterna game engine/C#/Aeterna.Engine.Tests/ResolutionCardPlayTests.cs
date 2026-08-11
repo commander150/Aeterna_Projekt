@@ -288,10 +288,18 @@ internal static class ResolutionCardPlayTests
             AbilityId,
             "ability_template_id",
             "template_resolution_damage_all_enemy_horizont_entities_v1");
-        AssertRejectedImmutable(
-            CreateFixture(canonicalPackage: templatePackage),
-            fixture => ResolutionPayload(fixture, ["ci_default_target"]),
-            "CANONICAL_PLAYED_CARD_GRAPH_UNSUPPORTED");
+        try
+        {
+            _ = CanonicalAbilityMaterializer.Materialize(templatePackage);
+            throw new InvalidOperationException("Template/manual graph coexistence was accepted.");
+        }
+        catch (EngineInputException exception)
+        {
+            Equal(
+                "CANONICAL_TEMPLATE_MANUAL_GRAPH_CONFLICT",
+                exception.Code,
+                "Template/manual graph conflict returned an unexpected code.");
+        }
 
         var wrongKindPackage = CanonicalAbilityCatalogTests.SetField(
             CanonicalAbilityCatalogTests.CreatePackage(),

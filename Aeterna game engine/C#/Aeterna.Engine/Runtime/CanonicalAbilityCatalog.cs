@@ -17,6 +17,11 @@ public static class CanonicalAbilityTableIds
     public const string Durations = "ability_durations";
     public const string TemplateArguments = "ability_template_arguments";
     public const string AbilityTemplates = "ability_templates";
+    public const string AbilityTemplateNodes = "ability_template_nodes";
+    public const string AbilityTemplateBindings = "ability_template_bindings";
+    public const string ContractFields = "contract_fields";
+    public const string SchemaFields = "schema_fields";
+    public const string ValueRegistry = "value_registry";
 }
 
 public sealed record CanonicalAbilityTemplateDefinition(
@@ -221,6 +226,7 @@ public sealed record CanonicalAbilityDefinition(
     string ImplementationModeId,
     string? AbilityTemplateId,
     CanonicalAbilityTemplateDefinition? Template,
+    CanonicalAbilityTemplateProvenance? TemplateProvenance,
     string? ModuleKey,
     string? ParentAbilityId,
     string Status,
@@ -238,7 +244,8 @@ public sealed record CanonicalAbilityDefinition(
 {
     public bool IsStructuredGraphAuthority => string.Equals(ImplementationModeId, "structured_data", StringComparison.Ordinal);
 
-    public bool IsTemplateInstanceAuthority => string.Equals(ImplementationModeId, "template_instance", StringComparison.Ordinal);
+    public bool IsTemplateInstanceAuthority => TemplateProvenance is not null
+                                               || string.Equals(ImplementationModeId, "template_instance", StringComparison.Ordinal);
 }
 
 public sealed class CanonicalAbilityCatalog
@@ -381,34 +388,54 @@ public static class CanonicalAbilityMaterializer
             keywordTable.Records.Select(ParseKeyword),
             keyword => keyword.CardKeywordId,
             CanonicalAbilityTableIds.CardKeywords);
-        var targets = BuildUnique(
-            targetTable.Records.Select(ParseTarget),
-            target => target.TargetId,
-            CanonicalAbilityTableIds.Targets);
-        var parameters = BuildUnique(
-            parameterTable.Records.Select(ParseEffectParameter),
-            parameter => parameter.EffectParameterId,
-            CanonicalAbilityTableIds.EffectParameters);
-        var triggers = BuildUnique(
-            triggerTable.Records.Select(ParseTrigger),
-            trigger => trigger.TriggerId,
-            CanonicalAbilityTableIds.Triggers);
-        var conditions = BuildUnique(
-            conditionTable.Records.Select(ParseCondition),
-            condition => condition.ConditionId,
-            CanonicalAbilityTableIds.Conditions);
-        var expressions = BuildUnique(
-            expressionTable.Records.Select(ParseExpression),
-            expression => expression.ExpressionId,
-            CanonicalAbilityTableIds.Expressions);
-        var durations = BuildUnique(
-            durationTable.Records.Select(ParseDuration),
-            duration => duration.DurationId,
-            CanonicalAbilityTableIds.Durations);
         var arguments = BuildUnique(
             argumentTable.Records.Select(ParseTemplateArgument),
             argument => argument.ArgumentId,
             CanonicalAbilityTableIds.TemplateArguments);
+        var expansion = CanonicalAbilityTemplateCompiler.Expand(
+            cardDatabase,
+            templates,
+            arguments,
+            abilityTable.Records);
+        var targetRecords = targetTable.Records.AddRange(expansion.GetRecords(CanonicalAbilityTableIds.Targets));
+        var parameterRecords = parameterTable.Records.AddRange(expansion.GetRecords(CanonicalAbilityTableIds.EffectParameters));
+        var triggerRecords = triggerTable.Records.AddRange(expansion.GetRecords(CanonicalAbilityTableIds.Triggers));
+        var conditionRecords = conditionTable.Records.AddRange(expansion.GetRecords(CanonicalAbilityTableIds.Conditions));
+        var expressionRecords = expressionTable.Records.AddRange(expansion.GetRecords(CanonicalAbilityTableIds.Expressions));
+        var durationRecords = durationTable.Records.AddRange(expansion.GetRecords(CanonicalAbilityTableIds.Durations));
+        var effectRecords = effectTable.Records.AddRange(expansion.GetRecords(CanonicalAbilityTableIds.Effects));
+        vocabulary.ValidateCardDatabaseTable(CanonicalAbilityTableIds.Targets, targetRecords);
+        vocabulary.ValidateCardDatabaseTable(CanonicalAbilityTableIds.Effects, effectRecords);
+        vocabulary.ValidateCardDatabaseTable(CanonicalAbilityTableIds.EffectParameters, parameterRecords);
+        vocabulary.ValidateCardDatabaseTable(CanonicalAbilityTableIds.Triggers, triggerRecords);
+        vocabulary.ValidateCardDatabaseTable(CanonicalAbilityTableIds.Conditions, conditionRecords);
+        vocabulary.ValidateCardDatabaseTable(CanonicalAbilityTableIds.Expressions, expressionRecords);
+        vocabulary.ValidateCardDatabaseTable(CanonicalAbilityTableIds.Durations, durationRecords);
+
+        var targets = BuildUnique(
+            targetRecords.Select(ParseTarget),
+            target => target.TargetId,
+            CanonicalAbilityTableIds.Targets);
+        var parameters = BuildUnique(
+            parameterRecords.Select(ParseEffectParameter),
+            parameter => parameter.EffectParameterId,
+            CanonicalAbilityTableIds.EffectParameters);
+        var triggers = BuildUnique(
+            triggerRecords.Select(ParseTrigger),
+            trigger => trigger.TriggerId,
+            CanonicalAbilityTableIds.Triggers);
+        var conditions = BuildUnique(
+            conditionRecords.Select(ParseCondition),
+            condition => condition.ConditionId,
+            CanonicalAbilityTableIds.Conditions);
+        var expressions = BuildUnique(
+            expressionRecords.Select(ParseExpression),
+            expression => expression.ExpressionId,
+            CanonicalAbilityTableIds.Expressions);
+        var durations = BuildUnique(
+            durationRecords.Select(ParseDuration),
+            duration => duration.DurationId,
+            CanonicalAbilityTableIds.Durations);
 
         var parameterGroups = GroupOrdered(
             parameters.Values,
@@ -422,7 +449,7 @@ public static class CanonicalAbilityMaterializer
             duration => 0,
             duration => duration.DurationId);
         var effects = BuildUnique(
-            effectTable.Records.Select(record => ParseEffect(record, parameterGroups, durationGroups)),
+            effectRecords.Select(record => ParseEffect(record, parameterGroups, durationGroups)),
             effect => effect.EffectId,
             CanonicalAbilityTableIds.Effects);
 
@@ -446,7 +473,8 @@ public static class CanonicalAbilityMaterializer
                 triggerGroups,
                 conditionGroups,
                 expressionGroups,
-                argumentGroups)),
+                argumentGroups,
+                expansion.ProvenanceByAbilityId)),
             ability => ability.AbilityId,
             CanonicalAbilityTableIds.Abilities);
         ValidateAbilityReferences(cards, abilities, templates);
@@ -683,21 +711,24 @@ public static class CanonicalAbilityMaterializer
         ImmutableDictionary<string, ImmutableArray<CanonicalAbilityTriggerDefinition>> triggers,
         ImmutableDictionary<string, ImmutableArray<CanonicalAbilityConditionDefinition>> conditions,
         ImmutableDictionary<string, ImmutableArray<CanonicalAbilityExpressionDefinition>> expressions,
-        ImmutableDictionary<string, ImmutableArray<CanonicalAbilityTemplateArgumentDefinition>> arguments)
+        ImmutableDictionary<string, ImmutableArray<CanonicalAbilityTemplateArgumentDefinition>> arguments,
+        ImmutableDictionary<string, CanonicalAbilityTemplateProvenance> provenanceByAbilityId)
     {
         var abilityId = ReadRequiredString(record, "ability_id");
         var templateId = ReadOptionalString(record, "ability_template_id");
         templates.TryGetValue(templateId ?? string.Empty, out var template);
+        provenanceByAbilityId.TryGetValue(abilityId, out var provenance);
         return new CanonicalAbilityDefinition(
             abilityId,
             ReadRequiredString(record, "card_id"),
             ReadRequiredInteger(record, "ability_index"),
-            ReadOptionalString(record, "ability_kind_id"),
-            ReadOptionalString(record, "resolution_requirement_id"),
-            ReadOptionalString(record, "active_zone_id"),
-            ReadRequiredString(record, "implementation_mode_id"),
+            provenance is null ? ReadOptionalString(record, "ability_kind_id") : template!.AbilityKindId,
+            provenance is null ? ReadOptionalString(record, "resolution_requirement_id") : template!.ResolutionRequirementId,
+            provenance is null ? ReadOptionalString(record, "active_zone_id") : template!.DefaultActiveZoneId,
+            provenance is null ? ReadRequiredString(record, "implementation_mode_id") : "structured_data",
             templateId,
             template,
+            provenance,
             ReadOptionalString(record, "module_key"),
             ReadOptionalString(record, "parent_ability_id"),
             ReadRequiredString(record, "status"),

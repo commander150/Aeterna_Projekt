@@ -343,9 +343,11 @@ public sealed class EngineSession
                     ["selection_method_id"] = target.SelectionMethodId,
                     ["candidate_card_instance_ids"] = CanonicalTargetResolver.ResolveCandidates(
                             target,
+                            ability,
                             pending.ControllerPlayerId,
                             state,
-                            runtimePackage)
+                            runtimePackage,
+                            canonicalRuntime.Cards)
                         .Select(candidate => candidate.CardInstanceId)
                         .ToArray(),
                 }).ToArray();
@@ -1173,9 +1175,11 @@ public sealed class EngineSession
                         target,
                         CanonicalTargetResolver.ResolveCandidates(
                             target,
+                            resolutionAbility,
                             player.PlayerId,
                             state,
-                            runtimePackage)))
+                            runtimePackage,
+                            _canonicalRuntime.Cards)))
                     .ToImmutableArray();
                 if (contracts.All(contract =>
                         contract.Candidates.Length >= contract.Definition.MinimumTargets))
@@ -1656,9 +1660,11 @@ public sealed class EngineSession
                 var hasRequiredLegalTargets = targets.All(target =>
                     CanonicalTargetResolver.ResolveCandidates(
                         target,
+                        ability,
                         discovery.ControllerPlayerId,
                         state,
-                        runtimePackage).Length >= target.MinimumTargets);
+                        runtimePackage,
+                        canonicalRuntime.Cards).Length >= target.MinimumTargets);
                 var pendingTriggerId = CreatePendingTriggerId(discovery, engineEvent);
                 consequenceEvents.Add(CreateCanonicalRuntimeEvent(
                     state,
@@ -1742,7 +1748,10 @@ public sealed class EngineSession
                     discovery.ControllerPlayerId,
                     engineEvent.EventId,
                     engineEvent.EventSequence,
-                    discovery.CanonicalEventTypeId));
+                    discovery.CanonicalEventTypeId,
+                    discovery.SourceFromZoneId,
+                    discovery.SourceToZoneId,
+                    discovery.SourceZoneTransitionInstanceId));
             }
         }
 
@@ -1882,8 +1891,7 @@ public sealed class EngineSession
         if (!state.CardInstances.TryGetValue(pending.SourceCardInstanceId, out var source)
             || !string.Equals(ability.CardId, pending.SourceCardId, StringComparison.Ordinal)
             || !string.Equals(source.CardId, pending.SourceCardId, StringComparison.Ordinal)
-            || !string.Equals(source.ControllerPlayerId, pending.ControllerPlayerId, StringComparison.Ordinal)
-            || !string.Equals(source.Zone, ability.ActiveZoneId, StringComparison.Ordinal))
+            || !string.Equals(source.ControllerPlayerId, pending.ControllerPlayerId, StringComparison.Ordinal))
         {
             throw new CanonicalAbilityExecutionException(
                 "RESOLVE_TRIGGER_SOURCE_INVALID",
@@ -1908,6 +1916,42 @@ public sealed class EngineSession
             throw new CanonicalAbilityExecutionException(
                 "RESOLVE_TRIGGER_SOURCE_EVENT_INVALID",
                 "Pending trigger source engine event identity is invalid.");
+        }
+
+        var zoneChanged = string.Equals(
+            pending.CanonicalEventTypeId,
+            CanonicalTriggerResolver.ZoneChangedCanonicalEventTypeId,
+            StringComparison.Ordinal);
+        if (zoneChanged)
+        {
+            var sourceEventPayload = sourceEvent.Payload;
+            if (pending.SourceFromZoneId is null
+                || pending.SourceToZoneId is null
+                || pending.SourceZoneTransitionInstanceId is null
+                || !string.Equals(ability.ActiveZoneId, pending.SourceFromZoneId, StringComparison.Ordinal)
+                || !string.Equals(source.Zone, pending.SourceToZoneId, StringComparison.Ordinal)
+                || !sourceEventPayload.TryGetProperty("card_instance_id", out var eventCardInstance)
+                || !string.Equals(eventCardInstance.GetString(), pending.SourceCardInstanceId, StringComparison.Ordinal)
+                || !sourceEventPayload.TryGetProperty("from_zone_id", out var fromZone)
+                || !string.Equals(fromZone.GetString(), pending.SourceFromZoneId, StringComparison.Ordinal)
+                || !sourceEventPayload.TryGetProperty("to_zone_id", out var toZone)
+                || !string.Equals(toZone.GetString(), pending.SourceToZoneId, StringComparison.Ordinal)
+                || !sourceEventPayload.TryGetProperty("zone_transition_instance_id", out var transition)
+                || !string.Equals(
+                    transition.GetString(),
+                    pending.SourceZoneTransitionInstanceId,
+                    StringComparison.Ordinal))
+            {
+                throw new CanonicalAbilityExecutionException(
+                    "RESOLVE_TRIGGER_SOURCE_EVENT_INVALID",
+                    "Pending zone-change trigger context no longer matches its authoritative event.");
+            }
+        }
+        else if (!string.Equals(source.Zone, ability.ActiveZoneId, StringComparison.Ordinal))
+        {
+            throw new CanonicalAbilityExecutionException(
+                "RESOLVE_TRIGGER_SOURCE_INVALID",
+                "Pending trigger source card is no longer in its canonical active zone.");
         }
 
         var context = new CanonicalAbilityResolutionContext(
@@ -2544,34 +2588,99 @@ public sealed class EngineSession
                             context.Ability.AbilityId,
                             damage.EffectId,
                             context.ResolutionId))));
-                    var transition = destruction.ZoneTransition;
+                    AppendZoneChangeEvent(
+                        events,
+                        createEvent,
+                        context,
+                        damage.EffectId,
+                        destruction.ZoneTransition);
+                    break;
+                case CanonicalDestroyEffectMutation destroy:
                     events.Add(createEvent(
                         events.Count,
-                        "card_zone_changed",
-                        ContractJsonValue.From(new CardZoneChangedPayload(
-                            transition.ZoneTransitionInstanceId,
-                            transition.CardInstanceId,
-                            transition.FromZoneId,
-                            transition.ToZoneId,
-                            transition.FromZonePresenceInstanceId,
-                            transition.ToZonePresenceInstanceId,
-                            transition.CauseInstanceId,
-                            transition.CardId,
-                            transition.OwnerPlayerId,
-                            transition.ControllerPlayerId,
-                            transition.FromDomainRow == DomainRow.Horizon ? "horizont" : "zenit",
-                            transition.FromDomainLaneIndex,
-                            transition.ToZoneIndex,
-                            "public",
-                            "public",
+                        "entity_destroyed",
+                        ContractJsonValue.From(new EntityDestroyedPayload(
+                            destroy.Destruction.DestructionInstanceId,
+                            destroy.CardInstanceId,
+                            destroy.Destruction.DestructionCauseKindId,
+                            destroy.Destruction.SourceCardInstanceId,
+                            destroy.Destruction.CauseInstanceId,
+                            destroy.CardId,
                             context.Ability.AbilityId,
-                            damage.EffectId,
+                            destroy.EffectId,
                             context.ResolutionId))));
+                    AppendZoneChangeEvent(
+                        events,
+                        createEvent,
+                        context,
+                        destroy.EffectId,
+                        destroy.Destruction.ZoneTransition);
+                    break;
+                case CanonicalHealMutation heal:
+                    if (heal.RemovedAmount > 0)
+                    {
+                        events.Add(createEvent(
+                            events.Count,
+                            "damage_removed",
+                            ContractJsonValue.From(new DamageRemovedPayload(
+                                heal.DamageRemovalInstanceId,
+                                heal.CardInstanceId,
+                                heal.SourceCardInstanceId,
+                                heal.RequestedAmount,
+                                heal.RemovedAmount,
+                                heal.DamageBefore,
+                                heal.DamageAfter,
+                                heal.MiasmaRemoved,
+                                context.ResolutionId,
+                                heal.CardId,
+                                CanonicalEffectExecutor.HealEntityEffectActionTypeId))));
+                    }
+
+                    break;
+                case CanonicalMoveCardMutation move:
+                    AppendZoneChangeEvent(
+                        events,
+                        createEvent,
+                        context,
+                        move.EffectId,
+                        move.ZoneTransition);
                     break;
                 default:
                     throw new EngineStateException("Unknown canonical effect mutation event type.");
             }
         }
+    }
+
+    private static void AppendZoneChangeEvent(
+        ImmutableArray<EngineEvent>.Builder events,
+        Func<int, string, JsonElement, EngineEvent> createEvent,
+        CanonicalAbilityResolutionContext context,
+        string effectId,
+        CanonicalZoneTransitionPlan transitionPlan)
+    {
+        var transition = transitionPlan.Actual;
+        events.Add(createEvent(
+            events.Count,
+            "card_zone_changed",
+            ContractJsonValue.From(new CardZoneChangedPayload(
+                transition.ZoneTransitionInstanceId,
+                transition.CardInstanceId,
+                transition.FromZoneId,
+                transition.ToZoneId,
+                transition.FromZonePresenceInstanceId,
+                transition.ToZonePresenceInstanceId,
+                transition.CauseInstanceId,
+                transition.CardId,
+                transition.OwnerPlayerId,
+                transition.ControllerPlayerIdBefore,
+                transition.FromDomainRow == DomainRow.Horizon ? "horizont" : "zenit",
+                transition.FromDomainLaneIndex,
+                transition.ToZoneIndex,
+                transition.VisibilityBefore,
+                transition.VisibilityAfter,
+                context.Ability.AbilityId,
+                effectId,
+                context.ResolutionId))));
     }
 
     private static EngineEvent CreatePlayCardEvent(
@@ -3876,6 +3985,22 @@ public sealed class EngineSession
                     StringComparison.Ordinal))
             {
                 throw new EngineStateException("Pending canonical trigger source event is invalid.");
+            }
+
+            var zoneChanged = string.Equals(
+                pending.CanonicalEventTypeId,
+                CanonicalTriggerResolver.ZoneChangedCanonicalEventTypeId,
+                StringComparison.Ordinal);
+            if (zoneChanged
+                    ? pending.SourceFromZoneId is null
+                      || pending.SourceToZoneId is null
+                      || pending.SourceZoneTransitionInstanceId is null
+                      || !string.Equals(source.Zone, pending.SourceToZoneId, StringComparison.Ordinal)
+                    : pending.SourceFromZoneId is not null
+                      || pending.SourceToZoneId is not null
+                      || pending.SourceZoneTransitionInstanceId is not null)
+            {
+                throw new EngineStateException("Pending canonical trigger event context is invalid.");
             }
         }
     }
