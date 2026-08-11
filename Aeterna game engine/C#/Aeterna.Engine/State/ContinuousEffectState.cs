@@ -1,0 +1,43 @@
+namespace Aeterna.Engine.State;
+
+internal sealed record ModifierInstanceState(
+    string ModifierInstanceId,
+    string SourceAbilityId,
+    string SourceEffectId,
+    string SourceResolutionId,
+    string SourceCardInstanceId,
+    string ControllerPlayerId,
+    string TargetCardInstanceId,
+    int TargetZoneSequence,
+    string ModifierTypeId,
+    string AffectedFieldId,
+    int IntegerValue,
+    string DurationId,
+    string DurationPolicyId,
+    string DurationInstanceId,
+    string TurnInstanceId,
+    string PhaseInstanceId,
+    int CreatedTurnNumber,
+    string CreatedActivePlayerId,
+    int CreatedStateVersion,
+    int CreatedSequence);
+
+internal sealed record KeywordGrantInstanceState(
+    string KeywordGrantInstanceId,
+    string SourceAbilityId,
+    string SourceEffectId,
+    string SourceResolutionId,
+    string SourceCardInstanceId,
+    string ControllerPlayerId,
+    string TargetCardInstanceId,
+    int TargetZoneSequence,
+    string KeywordId,
+    string DurationId,
+    string DurationPolicyId,
+    string DurationInstanceId,
+    string TurnInstanceId,
+    string PhaseInstanceId,
+    int CreatedTurnNumber,
+    string CreatedActivePlayerId,
+    int CreatedStateVersion,
+    int CreatedSequence);

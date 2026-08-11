@@ -16,7 +16,7 @@ public static class ContractSchemas
     public const string WellspringResourceSummary = "aeterna-wellspring-resource-summary-v1";
     public const string ResourceSummary = "aeterna-resource-summary-v1";
     public const string DomainBoardProjection = "aeterna-player-visible-domain-board-v1";
-    public const string DebugSnapshot = "aeterna-debug-match-snapshot-v2";
+    public const string DebugSnapshot = "aeterna-debug-match-snapshot-v3";
     public const string EngineEvent = "minimal-engine-event-v0";
     public const string EngineDiagnostic = "aeterna-engine-diagnostic-v1";
     public const string MatchResult = "aeterna-match-result-v1";
@@ -294,6 +294,68 @@ public sealed record CanonicalAbilityResolvedPayload(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? TriggerId);
 
+public sealed record ModifierAppliedPayload(
+    [property: JsonPropertyName("modifier_application_instance_id")] string ModifierApplicationInstanceId,
+    [property: JsonPropertyName("modifier_instance_id")] string ModifierInstanceId,
+    [property: JsonPropertyName("modifier_type_id")] string ModifierTypeId,
+    [property: JsonPropertyName("target_card_instance_id")] string TargetCardInstanceId,
+    [property: JsonPropertyName("source_card_instance_id")] string? SourceCardInstanceId,
+    [property: JsonPropertyName("field_id")] string FieldId,
+    [property: JsonPropertyName("modifier_value")] int ModifierValue,
+    [property: JsonPropertyName("resolved_field_value_before")] int ResolvedFieldValueBefore,
+    [property: JsonPropertyName("resolved_field_value_after")] int ResolvedFieldValueAfter,
+    [property: JsonPropertyName("duration_policy_id")] string? DurationPolicyId,
+    [property: JsonPropertyName("duration_instance_id")] string? DurationInstanceId,
+    [property: JsonPropertyName("cause_event_id")] string? CauseEventId,
+    [property: JsonPropertyName("turn_instance_id")] string? TurnInstanceId,
+    [property: JsonPropertyName("phase_instance_id")] string? PhaseInstanceId);
+
+public sealed record ModifierRemovedPayload(
+    [property: JsonPropertyName("modifier_removal_instance_id")] string ModifierRemovalInstanceId,
+    [property: JsonPropertyName("modifier_instance_id")] string ModifierInstanceId,
+    [property: JsonPropertyName("modifier_type_id")] string ModifierTypeId,
+    [property: JsonPropertyName("target_card_instance_id")] string TargetCardInstanceId,
+    [property: JsonPropertyName("source_card_instance_id")] string? SourceCardInstanceId,
+    [property: JsonPropertyName("field_id")] string FieldId,
+    [property: JsonPropertyName("modifier_value")] int ModifierValue,
+    [property: JsonPropertyName("resolved_field_value_before")] int ResolvedFieldValueBefore,
+    [property: JsonPropertyName("resolved_field_value_after")] int ResolvedFieldValueAfter,
+    [property: JsonPropertyName("modifier_removal_reason_id")] string ModifierRemovalReasonId,
+    [property: JsonPropertyName("duration_policy_id")] string? DurationPolicyId,
+    [property: JsonPropertyName("duration_instance_id")] string? DurationInstanceId,
+    [property: JsonPropertyName("cause_event_id")] string? CauseEventId,
+    [property: JsonPropertyName("turn_instance_id")] string? TurnInstanceId,
+    [property: JsonPropertyName("phase_instance_id")] string? PhaseInstanceId);
+
+public sealed record KeywordGrantedPayload(
+    [property: JsonPropertyName("keyword_change_instance_id")] string KeywordChangeInstanceId,
+    [property: JsonPropertyName("keyword_grant_instance_id")] string KeywordGrantInstanceId,
+    [property: JsonPropertyName("card_instance_id")] string CardInstanceId,
+    [property: JsonPropertyName("keyword_id")] string KeywordId,
+    [property: JsonPropertyName("source_card_instance_id")] string? SourceCardInstanceId,
+    [property: JsonPropertyName("duration_policy_id")] string? DurationPolicyId,
+    [property: JsonPropertyName("duration_instance_id")] string? DurationInstanceId,
+    [property: JsonPropertyName("effective_keyword_present_before")] bool EffectiveKeywordPresentBefore,
+    [property: JsonPropertyName("effective_keyword_present_after")] bool EffectiveKeywordPresentAfter,
+    [property: JsonPropertyName("cause_event_id")] string? CauseEventId,
+    [property: JsonPropertyName("turn_instance_id")] string? TurnInstanceId,
+    [property: JsonPropertyName("phase_instance_id")] string? PhaseInstanceId);
+
+public sealed record KeywordRemovedPayload(
+    [property: JsonPropertyName("keyword_change_instance_id")] string KeywordChangeInstanceId,
+    [property: JsonPropertyName("keyword_grant_instance_id")] string KeywordGrantInstanceId,
+    [property: JsonPropertyName("card_instance_id")] string CardInstanceId,
+    [property: JsonPropertyName("keyword_id")] string KeywordId,
+    [property: JsonPropertyName("source_card_instance_id")] string? SourceCardInstanceId,
+    [property: JsonPropertyName("keyword_removal_reason_id")] string KeywordRemovalReasonId,
+    [property: JsonPropertyName("duration_policy_id")] string? DurationPolicyId,
+    [property: JsonPropertyName("duration_instance_id")] string? DurationInstanceId,
+    [property: JsonPropertyName("effective_keyword_present_before")] bool EffectiveKeywordPresentBefore,
+    [property: JsonPropertyName("effective_keyword_present_after")] bool EffectiveKeywordPresentAfter,
+    [property: JsonPropertyName("cause_event_id")] string? CauseEventId,
+    [property: JsonPropertyName("turn_instance_id")] string? TurnInstanceId,
+    [property: JsonPropertyName("phase_instance_id")] string? PhaseInstanceId);
+
 public sealed record TurnTransitionPayload(
     [property: JsonPropertyName("source_action_id")] string SourceActionId,
     [property: JsonPropertyName("source_action_type")] string SourceActionType,
@@ -351,9 +413,11 @@ public sealed record DomainCardProjection(
     [property: JsonPropertyName("visibility")] string Visibility,
     [property: JsonPropertyName("activity_state")] string ActivityState,
     [property: JsonPropertyName("entered_domain_turn_number")] int EnteredDomainTurnNumber,
+    [property: JsonPropertyName("effective_atk")] int? EffectiveAtk,
     [property: JsonPropertyName("effective_max_hp")] int? EffectiveMaxHp,
     [property: JsonPropertyName("damage_marked")] int DamageMarked,
-    [property: JsonPropertyName("remaining_hp")] int? RemainingHp);
+    [property: JsonPropertyName("remaining_hp")] int? RemainingHp,
+    [property: JsonPropertyName("effective_keywords")] ImmutableArray<string> EffectiveKeywords);
 
 public sealed record DomainSlotProjection(
     [property: JsonPropertyName("row")] string Row,
@@ -465,6 +529,48 @@ public sealed record DebugCardInstanceSnapshot(
     int? EnteredDomainTurnNumber,
     int DamageMarked);
 
+public sealed record DebugModifierInstanceSnapshot(
+    string ModifierInstanceId,
+    string SourceAbilityId,
+    string SourceEffectId,
+    string SourceResolutionId,
+    string SourceCardInstanceId,
+    string ControllerPlayerId,
+    string TargetCardInstanceId,
+    int TargetZoneSequence,
+    string ModifierTypeId,
+    string AffectedFieldId,
+    int IntegerValue,
+    string DurationId,
+    string DurationPolicyId,
+    string DurationInstanceId,
+    string TurnInstanceId,
+    string PhaseInstanceId,
+    int CreatedTurnNumber,
+    string CreatedActivePlayerId,
+    int CreatedStateVersion,
+    int CreatedSequence);
+
+public sealed record DebugKeywordGrantInstanceSnapshot(
+    string KeywordGrantInstanceId,
+    string SourceAbilityId,
+    string SourceEffectId,
+    string SourceResolutionId,
+    string SourceCardInstanceId,
+    string ControllerPlayerId,
+    string TargetCardInstanceId,
+    int TargetZoneSequence,
+    string KeywordId,
+    string DurationId,
+    string DurationPolicyId,
+    string DurationInstanceId,
+    string TurnInstanceId,
+    string PhaseInstanceId,
+    int CreatedTurnNumber,
+    string CreatedActivePlayerId,
+    int CreatedStateVersion,
+    int CreatedSequence);
+
 public sealed record DebugSnapshot(
     string SchemaVersion,
     string MatchId,
@@ -476,6 +582,8 @@ public sealed record DebugSnapshot(
     string PriorityPlayerId,
     ImmutableArray<DebugPlayerSnapshot> Players,
     ImmutableArray<DebugCardInstanceSnapshot> CardInstances,
+    ImmutableArray<DebugModifierInstanceSnapshot> ModifierInstances,
+    ImmutableArray<DebugKeywordGrantInstanceSnapshot> KeywordGrantInstances,
     ImmutableArray<EngineEvent> Events,
     JsonElement PendingTriggerSummary,
     MatchResult MatchResult);

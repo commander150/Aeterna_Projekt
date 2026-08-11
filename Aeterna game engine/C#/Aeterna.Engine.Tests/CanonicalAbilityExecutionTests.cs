@@ -300,7 +300,7 @@ internal static class CanonicalAbilityExecutionTests
             TargetId,
             ["ci_unsupported_target"]);
 
-        AssertRejected(response, "CANONICAL_EFFECT_ACTION_UNSUPPORTED");
+        AssertRejected(response, "CANONICAL_EFFECT_GRAPH_UNSUPPORTED");
         Equal(before, Fingerprint(fixture), "Unsupported effect action mutated authoritative state.");
     }
 

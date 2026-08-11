@@ -211,6 +211,55 @@ public static class CanonicalCardMaterializer
 internal static class CanonicalVitals
 {
     internal static int GetEffectiveMaxHp(CardInstanceState card, CanonicalCardCatalog cards)
+        => GetPrintedMaxHp(card, cards);
+
+    internal static int GetEffectiveMaxHp(
+        MatchState state,
+        CardInstanceState card,
+        CanonicalCardCatalog cards,
+        IReadOnlySet<string>? excludedModifierIds = null)
+    {
+        var printedHp = GetPrintedMaxHp(card, cards);
+        return AddSupportedModifierTotal(
+            printedHp,
+            CanonicalContinuousEffects.ModifierTotal(
+                state,
+                card,
+                CanonicalContinuousEffects.MaxHpFieldId,
+                excludedModifierIds));
+    }
+
+    internal static int GetEffectiveAtk(
+        MatchState state,
+        CardInstanceState card,
+        CanonicalCardCatalog cards,
+        IReadOnlySet<string>? excludedModifierIds = null)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(card);
+        ArgumentNullException.ThrowIfNull(cards);
+        if (!cards.DefinitionsById.TryGetValue(card.CardId, out var definition)
+            || !string.Equals(definition.Status, "active", StringComparison.Ordinal)
+            || !string.Equals(definition.CardType, "entity", StringComparison.Ordinal)
+            || definition.PrintedAtk is not int printedAtk
+            || printedAtk < 0)
+        {
+            throw new EngineStateException(
+                "CANONICAL_CARD_STATS_INVALID",
+                "Entity ATK requires an active canonical Entity definition with non-negative printed ATK.");
+        }
+
+        return AddSupportedModifierTotal(
+            printedAtk,
+            CanonicalContinuousEffects.ModifierTotal(
+                state,
+                card,
+                CanonicalContinuousEffects.AttackFieldId,
+                excludedModifierIds),
+            allowZero: true);
+    }
+
+    private static int GetPrintedMaxHp(CardInstanceState card, CanonicalCardCatalog cards)
     {
         ArgumentNullException.ThrowIfNull(card);
         ArgumentNullException.ThrowIfNull(cards);
@@ -225,7 +274,22 @@ internal static class CanonicalVitals
                 "Entity HP requires an active canonical Entity definition with positive printed HP.");
         }
 
-        // Future HP modifiers are applied at this single boundary.
         return printedHp;
+    }
+
+    private static int AddSupportedModifierTotal(
+        int printedValue,
+        int modifierTotal,
+        bool allowZero = false)
+    {
+        var effective = (long)printedValue + modifierTotal;
+        if (effective > int.MaxValue || (allowZero ? effective < 0 : effective <= 0))
+        {
+            throw new EngineStateException(
+                "CANONICAL_EFFECTIVE_STAT_INVALID",
+                "Effective canonical Entity stat is outside its supported integer range.");
+        }
+
+        return (int)effective;
     }
 }

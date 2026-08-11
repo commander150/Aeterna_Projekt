@@ -7,6 +7,7 @@ internal static class CanonicalZoneTransitionCauseKinds
     internal const string DamageLethal = "damage_lethal";
     internal const string DestroyEffect = "destroy_effect";
     internal const string MoveEffect = "move_effect";
+    internal const string ModifierExpiryLethal = "modifier_expiry_lethal";
 }
 
 internal sealed record CanonicalProposedZoneTransition(

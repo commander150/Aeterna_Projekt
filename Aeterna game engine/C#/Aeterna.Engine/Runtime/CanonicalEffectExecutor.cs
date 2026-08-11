@@ -92,6 +92,26 @@ internal sealed record CanonicalMoveCardMutation(
     CanonicalZoneTransitionPlan ZoneTransition)
     : CanonicalEffectMutation(EffectId, EffectSequence, CardInstanceId, CardId);
 
+internal sealed record CanonicalModifierMutation(
+    string EffectId,
+    int EffectSequence,
+    string CardInstanceId,
+    string CardId,
+    ModifierInstanceState Instance,
+    int ResolvedValueBefore,
+    int ResolvedValueAfter)
+    : CanonicalEffectMutation(EffectId, EffectSequence, CardInstanceId, CardId);
+
+internal sealed record CanonicalKeywordGrantMutation(
+    string EffectId,
+    int EffectSequence,
+    string CardInstanceId,
+    string CardId,
+    KeywordGrantInstanceState Instance,
+    bool EffectiveKeywordPresentBefore,
+    bool EffectiveKeywordPresentAfter)
+    : CanonicalEffectMutation(EffectId, EffectSequence, CardInstanceId, CardId);
+
 internal sealed record CanonicalEffectExecutionPlan(
     CanonicalAbilityResolutionContext Context,
     ImmutableArray<CanonicalResolvedTargetSet> TargetSelections,
@@ -131,6 +151,8 @@ internal static class CanonicalEffectExecutor
     internal const string DestroyEntityEffectActionTypeId = "effect_destroy_entity";
     internal const string HealEntityEffectActionTypeId = "effect_heal_entity";
     internal const string MoveCardBetweenZonesEffectActionTypeId = "effect_move_card_between_zones";
+    internal const string ApplyModifierEffectActionTypeId = CanonicalContinuousEffects.ApplyModifierEffectActionTypeId;
+    internal const string GrantKeywordEffectActionTypeId = CanonicalContinuousEffects.GrantKeywordEffectActionTypeId;
     internal const string DirectDamageKindId = "damage_kind_direct";
     internal const string AppliedOutcome = "resolved_effect_applied";
     internal const string NoLegalTargetOutcome = "resolved_no_effect_no_legal_target";
@@ -184,7 +206,9 @@ internal static class CanonicalEffectExecutor
                     DealDamageEffectActionTypeId or
                     DestroyEntityEffectActionTypeId or
                     HealEntityEffectActionTypeId or
-                    MoveCardBetweenZonesEffectActionTypeId))
+                    MoveCardBetweenZonesEffectActionTypeId or
+                    ApplyModifierEffectActionTypeId or
+                    GrantKeywordEffectActionTypeId))
             {
                 throw new CanonicalAbilityExecutionException(
                     "CANONICAL_EFFECT_ACTION_UNSUPPORTED",
@@ -196,8 +220,24 @@ internal static class CanonicalEffectExecutor
                 || !string.Equals(effect.SourceReferenceTypeId, "ref_ability_source_card", StringComparison.Ordinal)
                 || effect.ParentEffectId is not null
                 || effect.BranchKey is not null
-                || effect.ConditionId is not null
-                || effect.ValueTypeId is not (null or "no_value")
+                || effect.ConditionId is not null)
+            {
+                throw UnsupportedGraph("Canonical effect graph is outside the direct execution runtime slice.");
+            }
+
+            if (string.Equals(effect.EffectActionTypeId, ApplyModifierEffectActionTypeId, StringComparison.Ordinal))
+            {
+                _ = CanonicalContinuousEffects.ResolveModifierField(effect);
+                continue;
+            }
+
+            if (string.Equals(effect.EffectActionTypeId, GrantKeywordEffectActionTypeId, StringComparison.Ordinal))
+            {
+                _ = CanonicalContinuousEffects.ResolveGrantedKeywordId(effect);
+                continue;
+            }
+
+            if (effect.ValueTypeId is not (null or "no_value")
                 || effect.ValueNumber is not null
                 || effect.ValueText is not null
                 || effect.ValueRegistryValueId is not null
@@ -256,7 +296,8 @@ internal static class CanonicalEffectExecutor
         CanonicalAbilityResolutionContext context,
         MatchState state,
         RuntimePackageCatalog runtimePackage,
-        CanonicalCardCatalog? canonicalCards)
+        CanonicalCardCatalog? canonicalCards,
+        CanonicalAbilityCatalog? canonicalAbilities = null)
     {
         ArgumentNullException.ThrowIfNull(context);
         ValidateSupportedGraph(context.Ability);
@@ -327,6 +368,9 @@ internal static class CanonicalEffectExecutor
         var simulatedZone = state.CardInstances.Values.ToDictionary(card => card.CardInstanceId, card => card.Zone, StringComparer.Ordinal);
         var simulatedVoidCounts = state.Players.ToDictionary(player => player.PlayerId, player => player.VoidCardInstanceIds.Count, StringComparer.Ordinal);
         var simulatedHandCounts = state.Players.ToDictionary(player => player.PlayerId, player => player.HandCardInstanceIds.Count, StringComparer.Ordinal);
+        var simulatedResolvedValues = new Dictionary<(string CardInstanceId, string FieldId), int>();
+        var simulatedKeywordPresence = new Dictionary<(string CardInstanceId, string KeywordId), bool>();
+        var nextContinuousEffectSequence = state.NextContinuousEffectSequence;
         var mutations = ImmutableArray.CreateBuilder<CanonicalEffectMutation>();
         foreach (var effect in ActiveEffects(context.Ability))
         {
@@ -389,6 +433,30 @@ internal static class CanonicalEffectExecutor
                             simulatedHandCounts,
                             mutations);
                         break;
+                    case ApplyModifierEffectActionTypeId:
+                        PlanModifier(
+                            context,
+                            effect,
+                            selected,
+                            targetIndex,
+                            state,
+                            canonicalCards,
+                            simulatedResolvedValues,
+                            ref nextContinuousEffectSequence,
+                            mutations);
+                        break;
+                    case GrantKeywordEffectActionTypeId:
+                        PlanKeywordGrant(
+                            context,
+                            effect,
+                            selected,
+                            targetIndex,
+                            state,
+                            canonicalAbilities,
+                            simulatedKeywordPresence,
+                            ref nextContinuousEffectSequence,
+                            mutations);
+                        break;
                 }
             }
         }
@@ -423,6 +491,18 @@ internal static class CanonicalEffectExecutor
                     break;
                 case CanonicalMoveCardMutation move:
                     CanonicalZoneTransition.Apply(state, move.ZoneTransition);
+                    break;
+                case CanonicalModifierMutation modifier:
+                    state.ModifierInstances.Add(
+                        modifier.Instance.ModifierInstanceId,
+                        modifier.Instance);
+                    state.NextContinuousEffectSequence = checked(modifier.Instance.CreatedSequence + 1);
+                    break;
+                case CanonicalKeywordGrantMutation grant:
+                    state.KeywordGrantInstances.Add(
+                        grant.Instance.KeywordGrantInstanceId,
+                        grant.Instance);
+                    state.NextContinuousEffectSequence = checked(grant.Instance.CreatedSequence + 1);
                     break;
                 default:
                     throw new EngineStateException("Unknown canonical effect mutation type.");
@@ -495,7 +575,7 @@ internal static class CanonicalEffectExecutor
         }
 
         var after = before + amount;
-        var maxHp = CanonicalVitals.GetEffectiveMaxHp(target, canonicalCards);
+        var maxHp = CanonicalVitals.GetEffectiveMaxHp(state, target, canonicalCards);
         var lethal = after >= maxHp;
         var damageId = $"damage_{context.ResolutionId}_{effect.Sequence:000}_{targetIndex + 1:000}";
         CanonicalDestructionMutation? destruction = null;
@@ -626,6 +706,149 @@ internal static class CanonicalEffectExecutor
             selected.CardId,
             transition));
         RecordDeparture(target, simulatedDamage, simulatedActivity, simulatedZone, simulatedHandCounts, "hand");
+    }
+
+    private static void PlanModifier(
+        CanonicalAbilityResolutionContext context,
+        CanonicalAbilityEffectDefinition effect,
+        CanonicalTargetCandidate selected,
+        int targetIndex,
+        MatchState state,
+        CanonicalCardCatalog? canonicalCards,
+        IDictionary<(string CardInstanceId, string FieldId), int> simulatedResolvedValues,
+        ref int nextContinuousEffectSequence,
+        ImmutableArray<CanonicalEffectMutation>.Builder mutations)
+    {
+        if (canonicalCards is null)
+        {
+            throw new CanonicalAbilityExecutionException(
+                "CANONICAL_CARD_STATS_REQUIRED",
+                "effect_apply_modifier requires canonical card-stat authority.");
+        }
+
+        var fieldId = CanonicalContinuousEffects.ResolveModifierField(effect);
+        var instance = CanonicalContinuousEffects.CreateModifierInstance(
+            context,
+            effect,
+            selected,
+            targetIndex,
+            state,
+            nextContinuousEffectSequence);
+        if (state.ModifierInstances.ContainsKey(instance.ModifierInstanceId)
+            || mutations.OfType<CanonicalModifierMutation>().Any(mutation => string.Equals(
+                mutation.Instance.ModifierInstanceId,
+                instance.ModifierInstanceId,
+                StringComparison.Ordinal)))
+        {
+            throw new CanonicalAbilityExecutionException(
+                "CANONICAL_MODIFIER_INSTANCE_DUPLICATE",
+                "Canonical modifier application would duplicate an active instance identity.");
+        }
+
+        var target = state.GetCardInstance(selected.CardInstanceId);
+        var key = (selected.CardInstanceId, fieldId);
+        if (!simulatedResolvedValues.TryGetValue(key, out var before))
+        {
+            before = fieldId switch
+            {
+                CanonicalContinuousEffects.AttackFieldId => CanonicalVitals.GetEffectiveAtk(
+                    state,
+                    target,
+                    canonicalCards),
+                CanonicalContinuousEffects.MaxHpFieldId => CanonicalVitals.GetEffectiveMaxHp(
+                    state,
+                    target,
+                    canonicalCards),
+                _ => throw new EngineStateException("Supported modifier resolved an unknown field."),
+            };
+        }
+
+        var resolvedAfter = (long)before + instance.IntegerValue;
+        if (resolvedAfter > int.MaxValue || nextContinuousEffectSequence == int.MaxValue)
+        {
+            throw new CanonicalAbilityExecutionException(
+                "CANONICAL_MODIFIER_VALUE_INVALID",
+                "Canonical modifier result exceeds the supported integer range.");
+        }
+
+        var after = (int)resolvedAfter;
+        mutations.Add(new CanonicalModifierMutation(
+            effect.EffectId,
+            effect.Sequence,
+            selected.CardInstanceId,
+            selected.CardId,
+            instance,
+            before,
+            after));
+        simulatedResolvedValues[key] = after;
+        nextContinuousEffectSequence += 1;
+    }
+
+    private static void PlanKeywordGrant(
+        CanonicalAbilityResolutionContext context,
+        CanonicalAbilityEffectDefinition effect,
+        CanonicalTargetCandidate selected,
+        int targetIndex,
+        MatchState state,
+        CanonicalAbilityCatalog? canonicalAbilities,
+        IDictionary<(string CardInstanceId, string KeywordId), bool> simulatedKeywordPresence,
+        ref int nextContinuousEffectSequence,
+        ImmutableArray<CanonicalEffectMutation>.Builder mutations)
+    {
+        if (canonicalAbilities is null)
+        {
+            throw new CanonicalAbilityExecutionException(
+                "CANONICAL_ABILITY_CATALOG_REQUIRED",
+                "effect_grant_keyword requires canonical intrinsic-keyword authority.");
+        }
+
+        var keywordId = CanonicalContinuousEffects.ResolveGrantedKeywordId(effect);
+        var instance = CanonicalContinuousEffects.CreateKeywordGrantInstance(
+            context,
+            effect,
+            selected,
+            targetIndex,
+            state,
+            nextContinuousEffectSequence);
+        if (state.KeywordGrantInstances.ContainsKey(instance.KeywordGrantInstanceId)
+            || mutations.OfType<CanonicalKeywordGrantMutation>().Any(mutation => string.Equals(
+                mutation.Instance.KeywordGrantInstanceId,
+                instance.KeywordGrantInstanceId,
+                StringComparison.Ordinal)))
+        {
+            throw new CanonicalAbilityExecutionException(
+                "CANONICAL_KEYWORD_GRANT_INSTANCE_DUPLICATE",
+                "Canonical keyword grant would duplicate an active instance identity.");
+        }
+
+        var target = state.GetCardInstance(selected.CardInstanceId);
+        var key = (selected.CardInstanceId, keywordId);
+        if (!simulatedKeywordPresence.TryGetValue(key, out var before))
+        {
+            before = CanonicalContinuousEffects.HasEffectiveKeyword(
+                state,
+                target,
+                canonicalAbilities,
+                keywordId);
+        }
+
+        if (nextContinuousEffectSequence == int.MaxValue)
+        {
+            throw new CanonicalAbilityExecutionException(
+                "CANONICAL_KEYWORD_GRANT_SEQUENCE_INVALID",
+                "Canonical keyword grant creation sequence exceeds the supported integer range.");
+        }
+
+        mutations.Add(new CanonicalKeywordGrantMutation(
+            effect.EffectId,
+            effect.Sequence,
+            selected.CardInstanceId,
+            selected.CardId,
+            instance,
+            before,
+            EffectiveKeywordPresentAfter: true));
+        simulatedKeywordPresence[key] = true;
+        nextContinuousEffectSequence += 1;
     }
 
     private static void RecordDeparture(

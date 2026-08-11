@@ -70,7 +70,7 @@ internal static class CanonicalTargetFilterEvaluator
         var card = state.GetCardInstance(candidate.CardInstanceId);
         var value = field.FieldId switch
         {
-            "entity_max_hp" => CanonicalVitals.GetEffectiveMaxHp(card, canonicalCards),
+            "entity_max_hp" => CanonicalVitals.GetEffectiveMaxHp(state, card, canonicalCards),
             "card_magnitude" => canonicalCards.DefinitionsById.TryGetValue(card.CardId, out var definition)
                 && string.Equals(definition.Status, ActiveStatus, StringComparison.Ordinal)
                     ? definition.Magnitude

@@ -14,7 +14,7 @@ internal static class VoidZoneTests
         True(response.Accepted, "Canonical fixture match creation failed.");
 
         var debug = session.GetDebugSnapshot();
-        Equal("aeterna-debug-match-snapshot-v2", debug.SchemaVersion, "Debug schema was not bumped.");
+        Equal("aeterna-debug-match-snapshot-v3", debug.SchemaVersion, "Debug schema was not bumped.");
         True(debug.Players.All(player => player.VoidCardInstanceIds.IsEmpty), "Initial Void must be empty.");
         var debugJson = JsonSerializer.Serialize(debug);
         True(debugJson.Contains("\"VoidCardInstanceIds\"", StringComparison.Ordinal), "Debug output does not expose Void.");

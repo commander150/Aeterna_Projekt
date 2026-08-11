@@ -270,7 +270,11 @@ internal static class CanonicalAbilityCatalogTests
             Card("AQU-ART-044", cardType: "spell", realm: "aqua", magnitude: 5, auraCost: 4),
             Card("AQU-MOR-007"),
             Card("AQU-MOR-017"),
-            Card("AQU-MOR-033"),
+            Card("AQU-MOR-033", cardType: "ritual", realm: "aqua", magnitude: 5, auraCost: 4),
+            Card("IGN-HAM-036", cardType: "ritual", magnitude: 3, auraCost: 3),
+            Card("IGN-HAM-041", cardType: "spell", magnitude: 2, auraCost: 2),
+            Card("FIXTURE-AQUA-SOURCE-001", realm: "aqua", magnitude: 1, auraCost: 1),
+            Card("FIXTURE-ENTITY-WARD", realm: "aqua", printedAtk: 2, printedHp: 2),
             Card("LUX-FHL-034"),
             Card("FIXTURE-CARD-P1-001", magnitude: 1, auraCost: 1),
             Card("FIXTURE-CARD-P1-002", magnitude: 1, auraCost: 1),
@@ -287,6 +291,13 @@ internal static class CanonicalAbilityCatalogTests
                 ("keyword_id", "speed"),
                 ("numeric_value", null),
                 ("text_value", null),
+                ("sequence", 1)),
+            Record(
+                ("card_keyword_id", "cardkw_fixture_entity_ward"),
+                ("card_id", "FIXTURE-ENTITY-WARD"),
+                ("keyword_id", "ward"),
+                ("numeric_value", null),
+                ("text_value", null),
                 ("sequence", 1))));
         tables.Add(CanonicalAbilityTableIds.Abilities, Table(
             CanonicalAbilityTableIds.Abilities,
@@ -299,6 +310,8 @@ internal static class CanonicalAbilityCatalogTests
             StructuredAbility("ability_aqu_mor_007_01", "AQU-MOR-007", "triggered", "full_resolution_required", "dominion"),
             StructuredAbility("ability_aqu_mor_017_01", "AQU-MOR-017", "static", null, "dominion"),
             StructuredAbility("ability_aqu_mor_033_01", "AQU-MOR-033", "resolution", "full_resolution_required", "hand"),
+            StructuredAbility("ability_ign_ham_036_01", "IGN-HAM-036", "resolution", "full_resolution_required", "hand"),
+            StructuredAbility("ability_ign_ham_041_01", "IGN-HAM-041", "resolution", "full_resolution_required", "hand"),
             Record(
                 ("ability_id", "ability_lux_fhl_034_01"),
                 ("card_id", "LUX-FHL-034"),
@@ -338,7 +351,14 @@ internal static class CanonicalAbilityCatalogTests
             Target("target_aqu_mor_017_01_source_card", "ability_aqu_mor_017_01", "target_reference_ability_source_card", 1, 1, false, null,
                 ("target_role_id", "reference_subject"), ("reference_type_id", "ref_ability_source_card"), ("selection_method_id", "automatic_reference")),
             Target("target_aqu_mor_033_01_all_allied_entities", "ability_aqu_mor_033_01", "target_all_matching_cards", 0, 12, false, null,
-                ("reference_type_id", "ref_all_matching_cards_zero_or_more"), ("player_reference_id", "ability_controller"), ("selection_method_id", "all_matching"))));
+                ("reference_type_id", "ref_all_matching_cards_zero_or_more"), ("game_object_id", "card_instance"), ("card_type_id", "entity"),
+                ("player_reference_id", "ability_controller"), ("zone_id", "dominion"), ("selection_method_id", "all_matching")),
+            Target("target_ign_ham_036_01_primary_entity", "ability_ign_ham_036_01", "target_choose_one_card", 1, 1, false, null,
+                ("reference_type_id", "ref_selected_card_exactly_one"), ("game_object_id", "card_instance"), ("card_type_id", "entity"),
+                ("player_reference_id", "ability_controller"), ("zone_id", "dominion"), ("domain_row_id", "horizont")),
+            Target("target_ign_ham_041_01_primary_entity", "ability_ign_ham_041_01", "target_choose_one_card", 1, 1, false, null,
+                ("reference_type_id", "ref_selected_card_exactly_one"), ("game_object_id", "card_instance"), ("card_type_id", "entity"),
+                ("player_reference_id", "ability_controller"), ("zone_id", "dominion"), ("domain_row_id", "horizont"))));
         tables.Add(CanonicalAbilityTableIds.Effects, Table(
             CanonicalAbilityTableIds.Effects,
             "effect_id",
@@ -351,7 +371,11 @@ internal static class CanonicalAbilityCatalogTests
             Effect("effect_aqu_mor_007_01_exhaust_target", "ability_aqu_mor_007_01", 1, "effect_exhaust_card", "target_aqu_mor_007_01_enemy_horizont_entity"),
             Effect("effect_aqu_mor_017_01_attack_prohibition", "ability_aqu_mor_017_01", 1, "effect_apply_restriction", "target_aqu_mor_017_01_source_card", ("restriction_type_id", "restriction_entity_cannot_initiate_attack")),
             Effect("effect_aqu_mor_033_01_max_hp_bonus", "ability_aqu_mor_033_01", 1, "effect_apply_modifier", "target_aqu_mor_033_01_all_allied_entities", ("value_type_id", "number"), ("value_number", 1), ("modifier_type_id", "modifier_entity_max_hp_additive")),
-            Effect("effect_aqu_mor_033_01_grant_ward", "ability_aqu_mor_033_01", 2, "effect_grant_keyword", "target_aqu_mor_033_01_all_allied_entities", ("value_type_id", "registry_value"), ("value_registry_value_id", "keyword_ward"))));
+            Effect("effect_aqu_mor_033_01_grant_ward", "ability_aqu_mor_033_01", 2, "effect_grant_keyword", "target_aqu_mor_033_01_all_allied_entities", ("value_type_id", "registry_value"), ("value_registry_value_id", "keyword_ward")),
+            Effect("effect_ign_ham_036_01_attack_bonus", "ability_ign_ham_036_01", 1, "effect_apply_modifier", "target_ign_ham_036_01_primary_entity", ("value_type_id", "number"), ("value_number", 2), ("modifier_type_id", "modifier_entity_attack_additive")),
+            Effect("effect_ign_ham_036_01_grant_cleave", "ability_ign_ham_036_01", 2, "effect_grant_keyword", "target_ign_ham_036_01_primary_entity", ("value_type_id", "registry_value"), ("value_registry_value_id", "keyword_cleave")),
+            Effect("effect_ign_ham_041_01_attack_bonus", "ability_ign_ham_041_01", 1, "effect_apply_modifier", "target_ign_ham_041_01_primary_entity", ("value_type_id", "number"), ("value_number", 2), ("modifier_type_id", "modifier_entity_attack_additive")),
+            Effect("effect_ign_ham_041_01_grant_cleave", "ability_ign_ham_041_01", 2, "effect_grant_keyword", "target_ign_ham_041_01_primary_entity", ("value_type_id", "registry_value"), ("value_registry_value_id", "keyword_cleave"))));
         tables.Add(CanonicalAbilityTableIds.EffectParameters, Table(
             CanonicalAbilityTableIds.EffectParameters,
             "effect_parameter_id",
@@ -393,7 +417,11 @@ internal static class CanonicalAbilityCatalogTests
             "duration_id",
             Duration("duration_aqu_mor_017_01_attack_prohibition_source_zone", "effect_aqu_mor_017_01_attack_prohibition", "duration_while_source_in_required_zone", ("dependency_reference_type_id", "ref_ability_source_card")),
             Duration("duration_aqu_mor_033_01_max_hp_turn", "effect_aqu_mor_033_01_max_hp_bonus", "duration_until_end_of_current_turn"),
-            Duration("duration_aqu_mor_033_01_ward_turn", "effect_aqu_mor_033_01_grant_ward", "duration_until_end_of_current_turn")));
+            Duration("duration_aqu_mor_033_01_ward_turn", "effect_aqu_mor_033_01_grant_ward", "duration_until_end_of_current_turn"),
+            Duration("duration_ign_ham_036_01_attack_bonus_turn", "effect_ign_ham_036_01_attack_bonus", "duration_until_end_of_current_turn"),
+            Duration("duration_ign_ham_036_01_grant_cleave_turn", "effect_ign_ham_036_01_grant_cleave", "duration_until_end_of_current_turn"),
+            Duration("duration_ign_ham_041_01_attack_bonus_turn", "effect_ign_ham_041_01_attack_bonus", "duration_until_end_of_current_turn"),
+            Duration("duration_ign_ham_041_01_grant_cleave_turn", "effect_ign_ham_041_01_grant_cleave", "duration_until_end_of_current_turn")));
         tables.Add(CanonicalAbilityTableIds.TemplateArguments, Table(
             CanonicalAbilityTableIds.TemplateArguments,
             "ability_argument_id",

@@ -62,7 +62,7 @@ public sealed class EngineSession
     {
         ArgumentNullException.ThrowIfNull(initialState);
         ArgumentNullException.ThrowIfNull(runtimePackage);
-        ValidateState(initialState, canonicalCards);
+        ValidateState(initialState, canonicalCards, canonicalAbilities);
         RuntimePackageLoader.ValidateCatalog(runtimePackage);
         if (!string.Equals(initialState.RuntimePackageId, runtimePackage.PackageId, StringComparison.Ordinal))
         {
@@ -113,7 +113,7 @@ public sealed class EngineSession
             var state = BuildInitialState(request, package);
             var canonicalRuntime = LoadCanonicalRuntime(request.CanonicalData);
             canonicalRuntime?.Cards?.ValidateRuntimeOverlap(package);
-            ValidateState(state, canonicalRuntime?.Cards);
+            ValidateState(state, canonicalRuntime?.Cards, canonicalRuntime?.Abilities);
             _state = state;
             _runtimePackage = package;
             _canonicalRuntime = canonicalRuntime;
@@ -134,7 +134,7 @@ public sealed class EngineSession
     public PlayerSnapshot GetPlayerSnapshot(string playerId)
     {
         var state = RequireState();
-        ValidateState(state, _canonicalRuntime?.Cards);
+        ValidateState(state, _canonicalRuntime?.Cards, _canonicalRuntime?.Abilities);
         RequireKnownPlayer(state, playerId);
         var resourceSummaries = state.Players
             .Select(player => BuildWellspringResourceSummary(state, player))
@@ -171,7 +171,7 @@ public sealed class EngineSession
     public LegalActionSpace ListLegalActions(string playerId, bool includeDisabled = false)
     {
         var state = RequireState();
-        ValidateState(state, _canonicalRuntime?.Cards);
+        ValidateState(state, _canonicalRuntime?.Cards, _canonicalRuntime?.Abilities);
         var player = RequireKnownPlayer(state, playerId);
         if (state.PendingTriggerWindow is not null)
         {
@@ -586,9 +586,9 @@ public sealed class EngineSession
                     "The action type is outside the C.5B production rules scope.",
                     "fix_request")),
         };
-        ValidateState(state, _canonicalRuntime?.Cards);
+        ValidateState(state, _canonicalRuntime?.Cards, _canonicalRuntime?.Abilities);
         var triggerEvents = DiscoverCanonicalTriggers(state, response.Events);
-        ValidateState(state, _canonicalRuntime?.Cards);
+        ValidateState(state, _canonicalRuntime?.Cards, _canonicalRuntime?.Abilities);
         return triggerEvents.IsDefaultOrEmpty
             ? response
             : response with { Events = response.Events.AddRange(triggerEvents) };
@@ -652,6 +652,54 @@ public sealed class EngineSession
                     card.EnteredDomainTurnNumber,
                     card.DamageMarked))
                 .ToImmutableArray(),
+            state.ModifierInstances.Values
+                .OrderBy(instance => instance.CreatedSequence)
+                .ThenBy(instance => instance.ModifierInstanceId, StringComparer.Ordinal)
+                .Select(instance => new DebugModifierInstanceSnapshot(
+                    instance.ModifierInstanceId,
+                    instance.SourceAbilityId,
+                    instance.SourceEffectId,
+                    instance.SourceResolutionId,
+                    instance.SourceCardInstanceId,
+                    instance.ControllerPlayerId,
+                    instance.TargetCardInstanceId,
+                    instance.TargetZoneSequence,
+                    instance.ModifierTypeId,
+                    instance.AffectedFieldId,
+                    instance.IntegerValue,
+                    instance.DurationId,
+                    instance.DurationPolicyId,
+                    instance.DurationInstanceId,
+                    instance.TurnInstanceId,
+                    instance.PhaseInstanceId,
+                    instance.CreatedTurnNumber,
+                    instance.CreatedActivePlayerId,
+                    instance.CreatedStateVersion,
+                    instance.CreatedSequence))
+                .ToImmutableArray(),
+            state.KeywordGrantInstances.Values
+                .OrderBy(instance => instance.CreatedSequence)
+                .ThenBy(instance => instance.KeywordGrantInstanceId, StringComparer.Ordinal)
+                .Select(instance => new DebugKeywordGrantInstanceSnapshot(
+                    instance.KeywordGrantInstanceId,
+                    instance.SourceAbilityId,
+                    instance.SourceEffectId,
+                    instance.SourceResolutionId,
+                    instance.SourceCardInstanceId,
+                    instance.ControllerPlayerId,
+                    instance.TargetCardInstanceId,
+                    instance.TargetZoneSequence,
+                    instance.KeywordId,
+                    instance.DurationId,
+                    instance.DurationPolicyId,
+                    instance.DurationInstanceId,
+                    instance.TurnInstanceId,
+                    instance.PhaseInstanceId,
+                    instance.CreatedTurnNumber,
+                    instance.CreatedActivePlayerId,
+                    instance.CreatedStateVersion,
+                    instance.CreatedSequence))
+                .ToImmutableArray(),
             state.Events.Select(CloneEvent).ToImmutableArray(),
             BuildPendingTriggerSummary(state),
             state.Result with { });
@@ -689,7 +737,7 @@ public sealed class EngineSession
     {
         try
         {
-            ValidateState(RequireState(), _canonicalRuntime?.Cards);
+            ValidateState(RequireState(), _canonicalRuntime?.Cards, _canonicalRuntime?.Abilities);
             return ImmutableArray<EngineDiagnostic>.Empty;
         }
         catch (EngineStateException exception)
@@ -1970,7 +2018,8 @@ public sealed class EngineSession
             context,
             state,
             runtimePackage,
-            canonicalRuntime.Cards);
+            canonicalRuntime.Cards,
+            canonicalRuntime.Abilities);
         return new TriggeredAbilityResolutionPlan(pending, ability, effectPlan);
     }
 
@@ -2322,7 +2371,8 @@ public sealed class EngineSession
                 context,
                 state,
                 runtimePackage,
-                canonicalRuntime.Cards);
+                canonicalRuntime.Cards,
+                canonicalRuntime.Abilities);
         }
         catch (CanonicalAbilityExecutionException exception)
         {
@@ -2645,6 +2695,44 @@ public sealed class EngineSession
                         move.EffectId,
                         move.ZoneTransition);
                     break;
+                case CanonicalModifierMutation modifier:
+                    events.Add(createEvent(
+                        events.Count,
+                        "modifier_applied",
+                        ContractJsonValue.From(new ModifierAppliedPayload(
+                            $"modifier_application_{modifier.Instance.ModifierInstanceId}",
+                            modifier.Instance.ModifierInstanceId,
+                            modifier.Instance.ModifierTypeId,
+                            modifier.Instance.TargetCardInstanceId,
+                            modifier.Instance.SourceCardInstanceId,
+                            modifier.Instance.AffectedFieldId,
+                            modifier.Instance.IntegerValue,
+                            modifier.ResolvedValueBefore,
+                            modifier.ResolvedValueAfter,
+                            modifier.Instance.DurationPolicyId,
+                            modifier.Instance.DurationInstanceId,
+                            CauseEventId: null,
+                            modifier.Instance.TurnInstanceId,
+                            modifier.Instance.PhaseInstanceId))));
+                    break;
+                case CanonicalKeywordGrantMutation grant:
+                    events.Add(createEvent(
+                        events.Count,
+                        "keyword_granted",
+                        ContractJsonValue.From(new KeywordGrantedPayload(
+                            $"keyword_change_{grant.Instance.KeywordGrantInstanceId}",
+                            grant.Instance.KeywordGrantInstanceId,
+                            grant.Instance.TargetCardInstanceId,
+                            grant.Instance.KeywordId,
+                            grant.Instance.SourceCardInstanceId,
+                            grant.Instance.DurationPolicyId,
+                            grant.Instance.DurationInstanceId,
+                            grant.EffectiveKeywordPresentBefore,
+                            grant.EffectiveKeywordPresentAfter,
+                            CauseEventId: null,
+                            grant.Instance.TurnInstanceId,
+                            grant.Instance.PhaseInstanceId))));
+                    break;
                 default:
                     throw new EngineStateException("Unknown canonical effect mutation event type.");
             }
@@ -2702,11 +2790,18 @@ public sealed class EngineSession
             "public",
             payload);
 
-    private static ActionResponse ApplyEndTurn(MatchState state, ActionRequest request, int stateVersionBefore)
+    private ActionResponse ApplyEndTurn(MatchState state, ActionRequest request, int stateVersionBefore)
     {
         var previousPlayerId = state.ActivePlayerId;
         var nextPlayerId = state.GetNextPlayerId(previousPlayerId);
         var turnBefore = state.TurnNumber;
+        var continuousEffectPlan = CanonicalContinuousEffects.BuildEndTurnPlan(
+            state,
+            _canonicalRuntime?.Cards,
+            _canonicalRuntime?.Abilities);
+        var expiryLethalTargets = continuousEffectPlan.LethalMutations
+            .Select(mutation => mutation.TargetCardInstanceId)
+            .ToHashSet(StringComparer.Ordinal);
         var damagedSurvivors = state.Players
             .SelectMany(player => new[]
             {
@@ -2716,13 +2811,16 @@ public sealed class EngineSession
             .SelectMany(row => row)
             .Where(cardInstanceId => cardInstanceId is not null)
             .Select(cardInstanceId => state.GetCardInstance(cardInstanceId!))
-            .Where(card => card.DamageMarked > 0)
+            .Where(card => card.DamageMarked > 0
+                           && !expiryLethalTargets.Contains(card.CardInstanceId))
             .Select(card => (Card: card, DamageBefore: card.DamageMarked))
             .ToImmutableArray();
 
         // Temporary until the explicit phase engine exists: today's end_turn is
         // the end of the active player's complete turn, so it is the production
-        // proxy for the official Eloszlás survivor-damage cleanup boundary.
+        // proxy for the official Eloszlas boundary: contribution expiry and any
+        // resulting lethal transitions precede survivor-damage cleanup.
+        CanonicalContinuousEffects.ApplyEndTurnPlan(state, continuousEffectPlan);
         foreach (var damaged in damagedSurvivors)
         {
             damaged.Card.DamageMarked = 0;
@@ -2737,6 +2835,28 @@ public sealed class EngineSession
         state.PriorityPlayerId = nextPlayerId;
         state.StateVersion += 1;
         var events = ImmutableArray.CreateBuilder<EngineEvent>();
+        foreach (var expiration in continuousEffectPlan.Expirations)
+        {
+            AppendContinuousEffectExpirationEvent(
+                state,
+                request,
+                turnBefore,
+                previousPlayerId,
+                events,
+                expiration);
+        }
+
+        foreach (var lethal in continuousEffectPlan.LethalMutations)
+        {
+            AppendExpiryLethalEvents(
+                state,
+                request,
+                turnBefore,
+                previousPlayerId,
+                events,
+                lethal);
+        }
+
         foreach (var damaged in damagedSurvivors)
         {
             var card = damaged.Card;
@@ -2793,6 +2913,149 @@ public sealed class EngineSession
         var materializedEvents = events.ToImmutable();
         state.Events.AddRange(materializedEvents);
         return AcceptAction(state, request, stateVersionBefore, materializedEvents);
+    }
+
+    private static void AppendContinuousEffectExpirationEvent(
+        MatchState state,
+        ActionRequest request,
+        int turnBefore,
+        string previousPlayerId,
+        ImmutableArray<EngineEvent>.Builder events,
+        CanonicalContinuousEffectExpiration expiration)
+    {
+        switch (expiration)
+        {
+            case CanonicalModifierExpiration modifier:
+                events.Add(CreateEndTurnEvent(
+                    state,
+                    request,
+                    turnBefore,
+                    previousPlayerId,
+                    events.Count,
+                    "modifier_removed",
+                    ContractJsonValue.From(new ModifierRemovedPayload(
+                        $"modifier_removal_{modifier.Instance.ModifierInstanceId}",
+                        modifier.Instance.ModifierInstanceId,
+                        modifier.Instance.ModifierTypeId,
+                        modifier.Instance.TargetCardInstanceId,
+                        modifier.Instance.SourceCardInstanceId,
+                        modifier.Instance.AffectedFieldId,
+                        modifier.Instance.IntegerValue,
+                        modifier.ResolvedValueBefore,
+                        modifier.ResolvedValueAfter,
+                        CanonicalContinuousEffects.DurationExpiredRemovalReasonId,
+                        modifier.Instance.DurationPolicyId,
+                        modifier.Instance.DurationInstanceId,
+                        CauseEventId: null,
+                        modifier.Instance.TurnInstanceId,
+                        modifier.Instance.PhaseInstanceId))));
+                break;
+            case CanonicalKeywordGrantExpiration grant:
+                events.Add(CreateEndTurnEvent(
+                    state,
+                    request,
+                    turnBefore,
+                    previousPlayerId,
+                    events.Count,
+                    "keyword_removed",
+                    ContractJsonValue.From(new KeywordRemovedPayload(
+                        $"keyword_change_{grant.Instance.KeywordGrantInstanceId}_expired",
+                        grant.Instance.KeywordGrantInstanceId,
+                        grant.Instance.TargetCardInstanceId,
+                        grant.Instance.KeywordId,
+                        grant.Instance.SourceCardInstanceId,
+                        CanonicalContinuousEffects.DurationExpiredRemovalReasonId,
+                        grant.Instance.DurationPolicyId,
+                        grant.Instance.DurationInstanceId,
+                        grant.EffectiveKeywordPresentBefore,
+                        grant.EffectiveKeywordPresentAfter,
+                        CauseEventId: null,
+                        grant.Instance.TurnInstanceId,
+                        grant.Instance.PhaseInstanceId))));
+                break;
+            default:
+                throw new EngineStateException("Unknown continuous-effect expiration event type.");
+        }
+    }
+
+    private static void AppendExpiryLethalEvents(
+        MatchState state,
+        ActionRequest request,
+        int turnBefore,
+        string previousPlayerId,
+        ImmutableArray<EngineEvent>.Builder events,
+        CanonicalExpiryLethalMutation lethal)
+    {
+        var destruction = lethal.Destruction;
+        events.Add(CreateEndTurnEvent(
+            state,
+            request,
+            turnBefore,
+            previousPlayerId,
+            events.Count,
+            "entity_destroyed",
+            ContractJsonValue.From(new EntityDestroyedPayload(
+                destruction.DestructionInstanceId,
+                lethal.TargetCardInstanceId,
+                destruction.DestructionCauseKindId,
+                destruction.SourceCardInstanceId,
+                destruction.CauseInstanceId,
+                lethal.TargetCardId,
+                lethal.CauseModifier.SourceAbilityId,
+                lethal.CauseModifier.SourceEffectId,
+                lethal.CauseModifier.SourceResolutionId))));
+
+        var transition = destruction.ZoneTransition.Actual;
+        events.Add(CreateEndTurnEvent(
+            state,
+            request,
+            turnBefore,
+            previousPlayerId,
+            events.Count,
+            "card_zone_changed",
+            ContractJsonValue.From(new CardZoneChangedPayload(
+                transition.ZoneTransitionInstanceId,
+                transition.CardInstanceId,
+                transition.FromZoneId,
+                transition.ToZoneId,
+                transition.FromZonePresenceInstanceId,
+                transition.ToZonePresenceInstanceId,
+                transition.CauseInstanceId,
+                transition.CardId,
+                transition.OwnerPlayerId,
+                transition.ControllerPlayerIdBefore,
+                transition.FromDomainRow == DomainRow.Horizon ? "horizont" : "zenit",
+                transition.FromDomainLaneIndex,
+                transition.ToZoneIndex,
+                transition.VisibilityBefore,
+                transition.VisibilityAfter,
+                lethal.CauseModifier.SourceAbilityId,
+                lethal.CauseModifier.SourceEffectId,
+                lethal.CauseModifier.SourceResolutionId))));
+    }
+
+    private static EngineEvent CreateEndTurnEvent(
+        MatchState state,
+        ActionRequest request,
+        int turnBefore,
+        string previousPlayerId,
+        int pendingEventCount,
+        string eventType,
+        JsonElement payload)
+    {
+        var eventSequence = state.Events.Count + pendingEventCount + 1;
+        return new EngineEvent(
+            ContractSchemas.EngineEvent,
+            $"event_{eventSequence:000000}",
+            eventSequence,
+            eventType,
+            state.MatchId,
+            state.StateVersion,
+            turnBefore,
+            previousPlayerId,
+            request.ActionType,
+            "public",
+            payload);
     }
 
     private static ActionResponse AcceptAction(
@@ -2984,12 +3247,19 @@ public sealed class EngineSession
             if (cardInstanceId is not null)
             {
                 var card = state.GetCardInstance(cardInstanceId);
+                int? effectiveAtk = null;
                 int? effectiveMaxHp = null;
+                var effectiveKeywords = ImmutableArray<string>.Empty;
                 if (_canonicalRuntime?.Cards is { } canonicalCards
                     && canonicalCards.DefinitionsById.TryGetValue(card.CardId, out var canonicalDefinition)
                     && string.Equals(canonicalDefinition.CardType, "entity", StringComparison.Ordinal))
                 {
-                    effectiveMaxHp = CanonicalVitals.GetEffectiveMaxHp(card, canonicalCards);
+                    effectiveAtk = CanonicalVitals.GetEffectiveAtk(state, card, canonicalCards);
+                    effectiveMaxHp = CanonicalVitals.GetEffectiveMaxHp(state, card, canonicalCards);
+                    effectiveKeywords = CanonicalContinuousEffects.GetEffectiveKeywords(
+                        state,
+                        card,
+                        _canonicalRuntime.Abilities);
                 }
 
                 occupant = new DomainCardProjection(
@@ -3004,9 +3274,11 @@ public sealed class EngineSession
                     ?? throw new EngineStateException("Domain card activity state is missing."),
                     card.EnteredDomainTurnNumber
                     ?? throw new EngineStateException("Domain entry turn is missing."),
+                    effectiveAtk,
                     effectiveMaxHp,
                     card.DamageMarked,
-                    effectiveMaxHp - card.DamageMarked);
+                    effectiveMaxHp - card.DamageMarked,
+                    effectiveKeywords);
             }
 
             return new DomainSlotProjection(
@@ -3750,8 +4022,12 @@ public sealed class EngineSession
             failureReason,
             resolvedSourceInstanceIds);
 
-    internal static void ValidateState(MatchState state, CanonicalCardCatalog? canonicalCards = null)
+    internal static void ValidateState(
+        MatchState state,
+        CanonicalCardCatalog? canonicalCards = null,
+        CanonicalAbilityCatalog? canonicalAbilities = null)
     {
+        CanonicalContinuousEffects.ValidateState(state, canonicalCards, canonicalAbilities);
         var zoneIds = new HashSet<string>(StringComparer.Ordinal);
         var knownPlayerIds = state.Players
             .Select(player => player.PlayerId)
@@ -3882,7 +4158,7 @@ public sealed class EngineSession
 
                 if (canonicalCards is not null)
                 {
-                    var effectiveMaxHp = CanonicalVitals.GetEffectiveMaxHp(card, canonicalCards);
+                    var effectiveMaxHp = CanonicalVitals.GetEffectiveMaxHp(state, card, canonicalCards);
                     if (card.DamageMarked >= effectiveMaxHp)
                     {
                         throw new EngineStateException(

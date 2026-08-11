@@ -25,6 +25,14 @@ internal sealed class MatchState
     public Dictionary<string, CardInstanceState> CardInstances { get; } =
         new(StringComparer.Ordinal);
 
+    public Dictionary<string, ModifierInstanceState> ModifierInstances { get; } =
+        new(StringComparer.Ordinal);
+
+    public Dictionary<string, KeywordGrantInstanceState> KeywordGrantInstances { get; } =
+        new(StringComparer.Ordinal);
+
+    public int NextContinuousEffectSequence { get; set; } = 1;
+
     public List<EngineEvent> Events { get; } = [];
 
     public PendingTriggerWindowState? PendingTriggerWindow { get; set; }
