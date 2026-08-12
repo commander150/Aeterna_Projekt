@@ -335,6 +335,7 @@ public sealed class EngineSession
         {
             var ability = canonicalRuntime.Abilities.AbilitiesById[pending.AbilityId];
             var targetContracts = CanonicalTargetResolver.GetSupportedTargets(ability)
+                .Where(CanonicalTargetResolver.IsClientSelectable)
                 .Select(target => new Dictionary<string, object?>
                 {
                     ["target_id"] = target.TargetId,
@@ -347,7 +348,8 @@ public sealed class EngineSession
                             pending.ControllerPlayerId,
                             state,
                             runtimePackage,
-                            canonicalRuntime.Cards)
+                            canonicalRuntime.Cards,
+                            canonicalRuntime.Abilities)
                         .Select(candidate => candidate.CardInstanceId)
                         .ToArray(),
                 }).ToArray();
@@ -1218,7 +1220,20 @@ public sealed class EngineSession
             try
             {
                 CanonicalEffectExecutor.ValidateSupportedPlayedCardGraph(resolutionAbility);
-                var contracts = CanonicalTargetResolver.GetSupportedTargets(resolutionAbility)
+                var targets = CanonicalTargetResolver.GetSupportedTargets(resolutionAbility);
+                var collectionTargetsResolvable = targets
+                    .Where(target => CanonicalTargetResolver.IsClientSelectable(target)
+                                     || CanonicalTargetResolver.IsAutomaticCollection(target))
+                    .All(target => CanonicalTargetResolver.ResolveCandidates(
+                        target,
+                        resolutionAbility,
+                        player.PlayerId,
+                        state,
+                        runtimePackage,
+                        _canonicalRuntime.Cards,
+                        _canonicalRuntime.Abilities).Length >= target.MinimumTargets);
+                var contracts = targets
+                    .Where(CanonicalTargetResolver.IsClientSelectable)
                     .Select(target => new PlayCardTargetContractOption(
                         target,
                         CanonicalTargetResolver.ResolveCandidates(
@@ -1227,10 +1242,10 @@ public sealed class EngineSession
                             player.PlayerId,
                             state,
                             runtimePackage,
-                            _canonicalRuntime.Cards)))
+                            _canonicalRuntime.Cards,
+                            _canonicalRuntime.Abilities)))
                     .ToImmutableArray();
-                if (contracts.All(contract =>
-                        contract.Candidates.Length >= contract.Definition.MinimumTargets))
+                if (collectionTargetsResolvable)
                 {
                     options.Add(new PlayCardOption(
                         card,
@@ -1440,31 +1455,27 @@ public sealed class EngineSession
                     "refresh_projection"));
         }
 
-        var cardInstanceId = player.DeckCardInstanceIds[0];
-        var card = state.GetCardInstance(cardInstanceId);
-        var fromZoneIndex = card.ZoneIndex;
-        var toZoneIndex = player.HandCardInstanceIds.Count;
-        player.DeckCardInstanceIds.RemoveAt(0);
-        player.HandCardInstanceIds.Add(cardInstanceId);
-        ReindexZone(state, player.DeckCardInstanceIds, "deck");
-        card.Zone = "hand";
-        card.ZoneIndex = toZoneIndex;
-        card.ZoneSequence += 1;
+        var transition = CanonicalDrawTransition.PlanTopCard(
+            state,
+            player.PlayerId,
+            player.DeckCardInstanceIds,
+            player.HandCardInstanceIds.Count);
+        CanonicalDrawTransition.Apply(state, transition);
         state.StateVersion += 1;
         var eventSequence = state.Events.Count + 1;
         var payload = new ZoneMovePayload(
             request.ActionId,
             request.ActionType,
-            card.CardInstanceId,
-            card.CardId,
-            card.OwnerPlayerId,
-            card.ControllerPlayerId,
+            transition.CardInstanceId,
+            transition.CardId,
+            transition.PlayerId,
+            transition.PlayerId,
             "deck",
             "hand",
-            fromZoneIndex,
-            toZoneIndex,
-            "owner_only",
-            "owner_only");
+            transition.FromZoneIndex,
+            transition.ToZoneIndex,
+            transition.VisibilityBefore,
+            transition.VisibilityAfter);
         var engineEvent = new EngineEvent(
             ContractSchemas.EngineEvent,
             $"event_{eventSequence:000000}",
@@ -1705,14 +1716,18 @@ public sealed class EngineSession
                 }
 
                 var targets = CanonicalTargetResolver.GetSupportedTargets(ability);
-                var hasRequiredLegalTargets = targets.All(target =>
+                var hasRequiredLegalTargets = targets
+                    .Where(target => CanonicalTargetResolver.IsClientSelectable(target)
+                                     || CanonicalTargetResolver.IsAutomaticCollection(target))
+                    .All(target =>
                     CanonicalTargetResolver.ResolveCandidates(
                         target,
                         ability,
                         discovery.ControllerPlayerId,
                         state,
                         runtimePackage,
-                        canonicalRuntime.Cards).Length >= target.MinimumTargets);
+                        canonicalRuntime.Cards,
+                        canonicalRuntime.Abilities).Length >= target.MinimumTargets);
                 var pendingTriggerId = CreatePendingTriggerId(discovery, engineEvent);
                 consequenceEvents.Add(CreateCanonicalRuntimeEvent(
                     state,
@@ -2383,6 +2398,11 @@ public sealed class EngineSession
                 exception.Message,
                 exception.Code.StartsWith("PLAY_CARD_TARGET_", StringComparison.Ordinal)
                     ? "fix_request"
+                    : string.Equals(
+                        exception.Code,
+                        CanonicalEffectExecutor.DrawRefreshPenaltyUnsupportedCode,
+                        StringComparison.Ordinal)
+                        ? "refresh_projection"
                     : "fix_runtime_package");
         }
 
@@ -2694,6 +2714,24 @@ public sealed class EngineSession
                         context,
                         move.EffectId,
                         move.ZoneTransition);
+                    break;
+                case CanonicalDrawMutation draw:
+                    events.Add(createEvent(
+                        events.Count,
+                        "zone_move",
+                        ContractJsonValue.From(new ZoneMovePayload(
+                            context.SourceActionId ?? context.ResolutionId,
+                            context.SourceActionType,
+                            draw.CardInstanceId,
+                            draw.CardId,
+                            draw.PlayerId,
+                            draw.PlayerId,
+                            "deck",
+                            "hand",
+                            draw.Transition.FromZoneIndex,
+                            draw.Transition.ToZoneIndex,
+                            draw.Transition.VisibilityBefore,
+                            draw.Transition.VisibilityAfter))));
                     break;
                 case CanonicalModifierMutation modifier:
                     events.Add(createEvent(

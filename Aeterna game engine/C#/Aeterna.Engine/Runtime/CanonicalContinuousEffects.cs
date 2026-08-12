@@ -117,6 +117,13 @@ internal static class CanonicalContinuousEffects
         return keywordId;
     }
 
+    internal static string ResolveKeywordRegistryValue(string registryValueId) => registryValueId switch
+    {
+        WardRegistryValueId => WardKeywordId,
+        CleaveRegistryValueId => CleaveKeywordId,
+        _ => throw Unsupported($"Unsupported canonical keyword registry value: {registryValueId}"),
+    };
+
     internal static CanonicalAbilityDurationDefinition RequireDuration(
         CanonicalAbilityEffectDefinition effect)
     {

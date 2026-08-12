@@ -32,13 +32,21 @@ internal static class CanonicalTargetFilterEvaluator
                 "op_less_than_or_equal" or
                 "op_equal" or
                 "op_greater_than_or_equal" or
-                "op_greater_than"))
+                "op_greater_than" or
+                "op_contains"))
         {
-            throw Unsupported("Target filter condition is outside numeric comparison v1.");
+            throw Unsupported("Target filter condition is outside numeric/effective-keyword comparison v1.");
         }
 
-        _ = ReadFieldExpression(ability, condition.LeftExpressionId);
-        _ = ReadLiteralExpression(ability, condition.RightExpressionId);
+        if (string.Equals(condition.ComparisonOperatorId, "op_contains", StringComparison.Ordinal))
+        {
+            _ = ReadEffectiveKeywordFieldExpression(ability, condition.LeftExpressionId);
+            _ = ReadKeywordLiteralExpression(ability, condition.RightExpressionId);
+            return;
+        }
+
+        _ = ReadNumericFieldExpression(ability, condition.LeftExpressionId);
+        _ = ReadIntegerLiteralExpression(ability, condition.RightExpressionId);
     }
 
     internal static bool Matches(
@@ -46,7 +54,8 @@ internal static class CanonicalTargetFilterEvaluator
         CanonicalAbilityTargetDefinition target,
         CanonicalTargetCandidate candidate,
         MatchState state,
-        CanonicalCardCatalog? canonicalCards)
+        CanonicalCardCatalog? canonicalCards,
+        CanonicalAbilityCatalog? canonicalAbilities)
     {
         if (target.FilterConditionId is null)
         {
@@ -58,8 +67,29 @@ internal static class CanonicalTargetFilterEvaluator
             item.ConditionId,
             target.FilterConditionId,
             StringComparison.Ordinal));
-        var field = ReadFieldExpression(ability, condition.LeftExpressionId!);
-        var literal = ReadLiteralExpression(ability, condition.RightExpressionId!);
+        if (string.Equals(condition.ComparisonOperatorId, "op_contains", StringComparison.Ordinal))
+        {
+            _ = ReadEffectiveKeywordFieldExpression(ability, condition.LeftExpressionId!);
+            var keywordLiteral = ReadKeywordLiteralExpression(ability, condition.RightExpressionId!);
+            if (canonicalAbilities is null)
+            {
+                throw new CanonicalAbilityExecutionException(
+                    "CANONICAL_ABILITY_CATALOG_REQUIRED",
+                    "card_effective_keywords requires canonical intrinsic-keyword authority.");
+            }
+
+            var candidateCard = state.GetCardInstance(candidate.CardInstanceId);
+            var keywordId = CanonicalContinuousEffects.ResolveKeywordRegistryValue(
+                keywordLiteral.LiteralRegistryValueId!);
+            return CanonicalContinuousEffects.HasEffectiveKeyword(
+                state,
+                candidateCard,
+                canonicalAbilities,
+                keywordId);
+        }
+
+        var field = ReadNumericFieldExpression(ability, condition.LeftExpressionId!);
+        var literal = ReadIntegerLiteralExpression(ability, condition.RightExpressionId!);
         if (canonicalCards is null)
         {
             throw new CanonicalAbilityExecutionException(
@@ -90,7 +120,7 @@ internal static class CanonicalTargetFilterEvaluator
         };
     }
 
-    private static CanonicalAbilityExpressionDefinition ReadFieldExpression(
+    private static CanonicalAbilityExpressionDefinition ReadNumericFieldExpression(
         CanonicalAbilityDefinition ability,
         string expressionId)
     {
@@ -118,7 +148,7 @@ internal static class CanonicalTargetFilterEvaluator
         return expression;
     }
 
-    private static CanonicalAbilityExpressionDefinition ReadLiteralExpression(
+    private static CanonicalAbilityExpressionDefinition ReadIntegerLiteralExpression(
         CanonicalAbilityDefinition ability,
         string expressionId)
     {
@@ -143,6 +173,63 @@ internal static class CanonicalTargetFilterEvaluator
             throw Unsupported("Target filter right expression is outside integer literal v1.");
         }
 
+        return expression;
+    }
+
+    private static CanonicalAbilityExpressionDefinition ReadEffectiveKeywordFieldExpression(
+        CanonicalAbilityDefinition ability,
+        string expressionId)
+    {
+        var expression = ability.Expressions.SingleOrDefault(item => string.Equals(
+            item.ExpressionId,
+            expressionId,
+            StringComparison.Ordinal));
+        if (expression is null
+            || !string.Equals(expression.Status, ActiveStatus, StringComparison.Ordinal)
+            || expression.ParentExpressionId is not null
+            || !string.Equals(expression.ExpressionKindId, "field_reference", StringComparison.Ordinal)
+            || !string.Equals(expression.ReferenceTypeId, "ref_target_candidate_card", StringComparison.Ordinal)
+            || !string.Equals(expression.FieldId, "card_effective_keywords", StringComparison.Ordinal)
+            || expression.OperatorId is not null
+            || expression.AggregateTypeId is not null
+            || expression.LiteralDataTypeId is not null
+            || expression.LiteralNumber is not null
+            || expression.LiteralText is not null
+            || expression.LiteralRegistryValueId is not null
+            || expression.TargetId is not null)
+        {
+            throw Unsupported("Target filter left expression is outside effective-keyword field-reference v1.");
+        }
+
+        return expression;
+    }
+
+    private static CanonicalAbilityExpressionDefinition ReadKeywordLiteralExpression(
+        CanonicalAbilityDefinition ability,
+        string expressionId)
+    {
+        var expression = ability.Expressions.SingleOrDefault(item => string.Equals(
+            item.ExpressionId,
+            expressionId,
+            StringComparison.Ordinal));
+        if (expression is null
+            || !string.Equals(expression.Status, ActiveStatus, StringComparison.Ordinal)
+            || expression.ParentExpressionId is not null
+            || !string.Equals(expression.ExpressionKindId, "literal", StringComparison.Ordinal)
+            || !string.Equals(expression.LiteralDataTypeId, "string", StringComparison.Ordinal)
+            || expression.LiteralRegistryValueId is null
+            || expression.OperatorId is not null
+            || expression.ReferenceTypeId is not null
+            || expression.FieldId is not null
+            || expression.AggregateTypeId is not null
+            || expression.LiteralNumber is not null
+            || expression.LiteralText is not null
+            || expression.TargetId is not null)
+        {
+            throw Unsupported("Target filter right expression is outside keyword registry-literal v1.");
+        }
+
+        _ = CanonicalContinuousEffects.ResolveKeywordRegistryValue(expression.LiteralRegistryValueId);
         return expression;
     }
 

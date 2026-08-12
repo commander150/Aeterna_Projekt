@@ -92,6 +92,16 @@ internal sealed record CanonicalMoveCardMutation(
     CanonicalZoneTransitionPlan ZoneTransition)
     : CanonicalEffectMutation(EffectId, EffectSequence, CardInstanceId, CardId);
 
+internal sealed record CanonicalDrawMutation(
+    string EffectId,
+    int EffectSequence,
+    string CardInstanceId,
+    string CardId,
+    string PlayerId,
+    int DrawIndex,
+    CanonicalDrawTransitionPlan Transition)
+    : CanonicalEffectMutation(EffectId, EffectSequence, CardInstanceId, CardId);
+
 internal sealed record CanonicalModifierMutation(
     string EffectId,
     int EffectSequence,
@@ -153,6 +163,8 @@ internal static class CanonicalEffectExecutor
     internal const string MoveCardBetweenZonesEffectActionTypeId = "effect_move_card_between_zones";
     internal const string ApplyModifierEffectActionTypeId = CanonicalContinuousEffects.ApplyModifierEffectActionTypeId;
     internal const string GrantKeywordEffectActionTypeId = CanonicalContinuousEffects.GrantKeywordEffectActionTypeId;
+    internal const string DrawCardsEffectActionTypeId = "effect_draw_cards";
+    internal const string DrawRefreshPenaltyUnsupportedCode = "CANONICAL_DRAW_REFRESH_PENALTY_UNSUPPORTED";
     internal const string DirectDamageKindId = "damage_kind_direct";
     internal const string AppliedOutcome = "resolved_effect_applied";
     internal const string NoLegalTargetOutcome = "resolved_no_effect_no_legal_target";
@@ -177,7 +189,8 @@ internal static class CanonicalEffectExecutor
             exception.Code is "CANONICAL_TARGET_CONTRACT_UNSUPPORTED"
                 or "CANONICAL_TARGET_FILTER_UNSUPPORTED"
                 or "CANONICAL_EFFECT_ACTION_UNSUPPORTED"
-                or "CANONICAL_EFFECT_GRAPH_UNSUPPORTED")
+                or "CANONICAL_EFFECT_GRAPH_UNSUPPORTED"
+                or "CANONICAL_EFFECT_CONDITION_UNSUPPORTED")
         {
             return false;
         }
@@ -192,7 +205,7 @@ internal static class CanonicalEffectExecutor
         }
 
         var targets = CanonicalTargetResolver.GetSupportedTargets(ability);
-        var targetIds = targets.Select(target => target.TargetId).ToImmutableHashSet(StringComparer.Ordinal);
+        var targetsById = targets.ToImmutableDictionary(target => target.TargetId, StringComparer.Ordinal);
         var effects = ActiveEffects(ability);
         if (effects.Length == 0)
         {
@@ -208,7 +221,8 @@ internal static class CanonicalEffectExecutor
                     HealEntityEffectActionTypeId or
                     MoveCardBetweenZonesEffectActionTypeId or
                     ApplyModifierEffectActionTypeId or
-                    GrantKeywordEffectActionTypeId))
+                    GrantKeywordEffectActionTypeId or
+                    DrawCardsEffectActionTypeId))
             {
                 throw new CanonicalAbilityExecutionException(
                     "CANONICAL_EFFECT_ACTION_UNSUPPORTED",
@@ -216,13 +230,22 @@ internal static class CanonicalEffectExecutor
             }
 
             if (effect.TargetId is null
-                || !targetIds.Contains(effect.TargetId)
+                || !targetsById.ContainsKey(effect.TargetId)
                 || !string.Equals(effect.SourceReferenceTypeId, "ref_ability_source_card", StringComparison.Ordinal)
                 || effect.ParentEffectId is not null
-                || effect.BranchKey is not null
-                || effect.ConditionId is not null)
+                || effect.BranchKey is not null)
             {
                 throw UnsupportedGraph("Canonical effect graph is outside the direct execution runtime slice.");
+            }
+
+            if (effect.ConditionId is not null)
+            {
+                if (!string.Equals(effect.EffectActionTypeId, DrawCardsEffectActionTypeId, StringComparison.Ordinal))
+                {
+                    throw UnsupportedGraph("Only effect_draw_cards may carry the bounded effect condition v1.");
+                }
+
+                CanonicalEffectConditionEvaluator.Validate(ability, effect.ConditionId);
             }
 
             if (string.Equals(effect.EffectActionTypeId, ApplyModifierEffectActionTypeId, StringComparison.Ordinal))
@@ -234,6 +257,12 @@ internal static class CanonicalEffectExecutor
             if (string.Equals(effect.EffectActionTypeId, GrantKeywordEffectActionTypeId, StringComparison.Ordinal))
             {
                 _ = CanonicalContinuousEffects.ResolveGrantedKeywordId(effect);
+                continue;
+            }
+
+            if (string.Equals(effect.EffectActionTypeId, DrawCardsEffectActionTypeId, StringComparison.Ordinal))
+            {
+                ValidateDrawContract(effect, targetsById[effect.TargetId]);
                 continue;
             }
 
@@ -338,43 +367,137 @@ internal static class CanonicalEffectExecutor
             throw InvalidSelection(context.Origin, "Target selection does not cover every controller-choice target.");
         }
 
-        var resolved = definitions.Select(definition =>
-            string.Equals(
-                definition.SelectionMethodId,
-                CanonicalTargetResolver.AllMatchingSelectionMethodId,
-                StringComparison.Ordinal)
-                ? CanonicalTargetResolver.ResolveAutomatic(
+        var resolvedBuilder = ImmutableArray.CreateBuilder<CanonicalResolvedTargetSet>();
+        foreach (var definition in definitions)
+        {
+            CanonicalResolvedTargetSet targetSet;
+            if (CanonicalTargetResolver.IsAutomaticCollection(definition))
+            {
+                targetSet = CanonicalTargetResolver.ResolveAutomaticCollection(
                     definition,
                     context.Ability,
                     context.ControllerPlayerId,
                     state,
                     runtimePackage,
                     canonicalCards,
-                    definition.Sequence)
-                : CanonicalTargetResolver.ValidateSelection(
+                    canonicalAbilities,
+                    definition.Sequence);
+            }
+            else if (CanonicalTargetResolver.IsClientSelectable(definition))
+            {
+                targetSet = CanonicalTargetResolver.ValidateSelection(
                     definition,
                     context.Ability,
-                    provided.Single(item => string.Equals(item.TargetId, definition.TargetId, StringComparison.Ordinal)).CardInstanceIds,
+                    provided.Single(item => string.Equals(
+                        item.TargetId,
+                        definition.TargetId,
+                        StringComparison.Ordinal)).CardInstanceIds,
                     context.ControllerPlayerId,
                     state,
                     runtimePackage,
                     canonicalCards,
+                    canonicalAbilities,
                     context.Origin,
-                    definition.Sequence)).ToImmutableArray();
+                    definition.Sequence);
+            }
+            else if (string.Equals(
+                         definition.TargetPrimitiveId,
+                         "target_reference_ability_source_card",
+                         StringComparison.Ordinal))
+            {
+                targetSet = CanonicalTargetResolver.ResolveSourceCardReference(
+                    definition,
+                    context,
+                    state,
+                    runtimePackage,
+                    definition.Sequence);
+            }
+            else
+            {
+                targetSet = CanonicalTargetResolver.ResolveControllerPlayerReference(
+                    definition,
+                    context,
+                    state,
+                    definition.Sequence);
+            }
+
+            resolvedBuilder.Add(targetSet);
+        }
+
+        var resolved = resolvedBuilder.ToImmutable();
         var targetSets = resolved.ToImmutableDictionary(set => set.Definition.TargetId, StringComparer.Ordinal);
+
+        var activeEffects = ActiveEffects(context.Ability);
+        var drawTotals = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var effect in activeEffects.Where(effect => string.Equals(
+                     effect.EffectActionTypeId,
+                     DrawCardsEffectActionTypeId,
+                     StringComparison.Ordinal)))
+        {
+            if (!ShouldApplyEffect(context.Ability, effect, targetSets))
+            {
+                continue;
+            }
+
+            var playerId = targetSets[effect.TargetId!].ReferencedPlayerId
+                ?? throw UnsupportedGraph("effect_draw_cards requires a resolved player reference target.");
+            var total = drawTotals.TryGetValue(playerId, out var current) ? current : 0;
+            try
+            {
+                drawTotals[playerId] = checked(total + effect.ValueNumber!.Value);
+            }
+            catch (OverflowException)
+            {
+                throw UnsupportedGraph("Canonical draw total exceeds the supported integer range.");
+            }
+        }
+
+        foreach (var (playerId, requiredDraws) in drawTotals)
+        {
+            if (state.GetPlayer(playerId).DeckCardInstanceIds.Count < requiredDraws)
+            {
+                throw new CanonicalAbilityExecutionException(
+                    DrawRefreshPenaltyUnsupportedCode,
+                    "The canonical draw sequence requires a Refresh Penalty, which is outside this runtime checkpoint.");
+            }
+        }
 
         var simulatedActivity = state.CardInstances.Values.ToDictionary(card => card.CardInstanceId, card => card.ActivityState, StringComparer.Ordinal);
         var simulatedDamage = state.CardInstances.Values.ToDictionary(card => card.CardInstanceId, card => card.DamageMarked, StringComparer.Ordinal);
         var simulatedZone = state.CardInstances.Values.ToDictionary(card => card.CardInstanceId, card => card.Zone, StringComparer.Ordinal);
         var simulatedVoidCounts = state.Players.ToDictionary(player => player.PlayerId, player => player.VoidCardInstanceIds.Count, StringComparer.Ordinal);
         var simulatedHandCounts = state.Players.ToDictionary(player => player.PlayerId, player => player.HandCardInstanceIds.Count, StringComparer.Ordinal);
+        var simulatedDecks = state.Players.ToDictionary(
+            player => player.PlayerId,
+            player => player.DeckCardInstanceIds.ToList(),
+            StringComparer.Ordinal);
         var simulatedResolvedValues = new Dictionary<(string CardInstanceId, string FieldId), int>();
         var simulatedKeywordPresence = new Dictionary<(string CardInstanceId, string KeywordId), bool>();
         var nextContinuousEffectSequence = state.NextContinuousEffectSequence;
         var mutations = ImmutableArray.CreateBuilder<CanonicalEffectMutation>();
-        foreach (var effect in ActiveEffects(context.Ability))
+        foreach (var effect in activeEffects)
         {
-            var selectedCards = targetSets[effect.TargetId!].SelectedCards;
+            if (!ShouldApplyEffect(context.Ability, effect, targetSets))
+            {
+                continue;
+            }
+
+            var targetSet = targetSets[effect.TargetId!];
+            if (string.Equals(effect.EffectActionTypeId, DrawCardsEffectActionTypeId, StringComparison.Ordinal))
+            {
+                var playerId = targetSet.ReferencedPlayerId
+                    ?? throw UnsupportedGraph("effect_draw_cards requires a resolved player reference target.");
+                PlanDraws(
+                    effect,
+                    playerId,
+                    state,
+                    simulatedDecks[playerId],
+                    simulatedHandCounts,
+                    mutations);
+                continue;
+            }
+
+            var selectedCards = targetSet.SelectedCards;
             for (var targetIndex = 0; targetIndex < selectedCards.Length; targetIndex += 1)
             {
                 var selected = selectedCards[targetIndex];
@@ -491,6 +614,9 @@ internal static class CanonicalEffectExecutor
                     break;
                 case CanonicalMoveCardMutation move:
                     CanonicalZoneTransition.Apply(state, move.ZoneTransition);
+                    break;
+                case CanonicalDrawMutation draw:
+                    CanonicalDrawTransition.Apply(state, draw.Transition);
                     break;
                 case CanonicalModifierMutation modifier:
                     state.ModifierInstances.Add(
@@ -706,6 +832,35 @@ internal static class CanonicalEffectExecutor
             selected.CardId,
             transition));
         RecordDeparture(target, simulatedDamage, simulatedActivity, simulatedZone, simulatedHandCounts, "hand");
+    }
+
+    private static void PlanDraws(
+        CanonicalAbilityEffectDefinition effect,
+        string playerId,
+        MatchState state,
+        List<string> simulatedDeck,
+        IDictionary<string, int> simulatedHandCounts,
+        ImmutableArray<CanonicalEffectMutation>.Builder mutations)
+    {
+        var amount = effect.ValueNumber!.Value;
+        for (var drawIndex = 0; drawIndex < amount; drawIndex += 1)
+        {
+            var transition = CanonicalDrawTransition.PlanTopCard(
+                state,
+                playerId,
+                simulatedDeck,
+                simulatedHandCounts[playerId]);
+            mutations.Add(new CanonicalDrawMutation(
+                effect.EffectId,
+                effect.Sequence,
+                transition.CardInstanceId,
+                transition.CardId,
+                playerId,
+                drawIndex + 1,
+                transition));
+            simulatedDeck.RemoveAt(0);
+            simulatedHandCounts[playerId] += 1;
+        }
     }
 
     private static void PlanModifier(
@@ -938,6 +1093,44 @@ internal static class CanonicalEffectExecutor
             throw UnsupportedGraph("Dominion-to-Hand destination must be the subject card owner.");
         }
     }
+
+    private static void ValidateDrawContract(
+        CanonicalAbilityEffectDefinition effect,
+        CanonicalAbilityTargetDefinition target)
+    {
+        if (!string.Equals(effect.ValueTypeId, "number", StringComparison.Ordinal)
+            || effect.ValueNumber is not int amount
+            || amount <= 0
+            || effect.ValueText is not null
+            || effect.ValueRegistryValueId is not null
+            || effect.ValueExpressionId is not null
+            || effect.FieldId is not null
+            || effect.FromZoneId is not null
+            || effect.ToZoneId is not null
+            || effect.DestinationPositionId is not null
+            || effect.ModifierTypeId is not null
+            || effect.RestrictionTypeId is not null
+            || effect.Parameters.Length != 0
+            || effect.Durations.Length != 0
+            || !string.Equals(
+                target.TargetPrimitiveId,
+                "target_reference_ability_controller_player",
+                StringComparison.Ordinal)
+            || !string.Equals(target.ReferenceTypeId, "ref_ability_controller_player", StringComparison.Ordinal)
+            || !string.Equals(target.GameObjectId, "player_state", StringComparison.Ordinal))
+        {
+            throw UnsupportedGraph("effect_draw_cards is outside positive literal controller draw v1.");
+        }
+    }
+
+    private static bool ShouldApplyEffect(
+        CanonicalAbilityDefinition ability,
+        CanonicalAbilityEffectDefinition effect,
+        IReadOnlyDictionary<string, CanonicalResolvedTargetSet> resolvedTargets) => effect.ConditionId is null
+            || CanonicalEffectConditionEvaluator.Evaluate(
+                ability,
+                effect.ConditionId,
+                resolvedTargets);
 
     private static void RequireParameterShape(CanonicalAbilityEffectDefinition effect, int count)
     {
