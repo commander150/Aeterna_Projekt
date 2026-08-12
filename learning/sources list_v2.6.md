@@ -133,10 +133,11 @@ sources list_vX.Y.md
 | 53 | `Card Game Engine` | [aktuális upstream](https://gitlab.com/DavidCorrect/card-game-engine) | forrás rögzítve | Első README/architecture audit elkészült. Godot/GDScript; Control Node UI; Deck, Hand, Stack, Play, Discard és Exile; drag-and-drop; Godot High-Level API és RPC; README snapshot: `9a092bdf`, v3.1. A helyi source-, RPC-, authority- és hidden-information audit még nyitott. |
 
 
-### 6. célzott vizuális forrás
+### 6. gyűjtési kör
 | # | Rögzített név / helyi mappanév | Forrás | Állapot | Megjegyzés |
 |---:|---|---|---|---|
 | 54 | `pokemon-cards-css` | [forrás](https://github.com/simeydotme/pokemon-cards-css) | forrás rögzítve | Első teljes holografikus effect/material source-family audit elkészült. Vizsgált commit: `acb1197633e749a1fba4412231db2f6581586d00`; Svelte/JavaScript/CSS; GPL-3.0. Kapcsolódó hivatalos forrás: `simeydotme/pokemon-cards-151`, commit `98030f941cdc4919b648457200277e29b60d5f5a`, szintén GPL-3.0. Kiemelt pointer-/orientation-vezérelt spectrum, mask, pattern, glitter, glare és rarity profile referencia. A szerző szerint showcase, nem modul; teljesítményigényes. Pokémon- és külső assetek nem használhatók; kizárólag clean-room Godot `FoilProfile` inspirációként ajánlott. |
+| 55 | `Forge: The Magic: The Gathering Rules Engine` | [forrás](https://github.com/Card-Forge/forge) | forrás rögzítve |  |
 
 ## 5. Kiemelt konzisztencia-eltérések
 
