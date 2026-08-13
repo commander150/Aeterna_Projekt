@@ -46,7 +46,10 @@ public static class RuntimeComparisonFixtureRunner
     public static RuntimeComparisonRunResult Run(RuntimeComparisonFixture fixture)
     {
         ArgumentNullException.ThrowIfNull(fixture);
-        var session = new EngineSession();
+        // The historical oracle intentionally exercises the retired draw/end_turn
+        // action surface. This friend-assembly-only mode cannot be enabled by a
+        // production client and keeps the comparison artifact byte-stable.
+        var session = new EngineSession(legacyActionCompatibility: true);
         var createResponse = session.CreateMatch(fixture.CreateMatchRequest());
         Require(
             createResponse.Accepted,

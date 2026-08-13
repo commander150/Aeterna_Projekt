@@ -69,7 +69,7 @@ internal static class ProductionEngineTests
         new("canonical_card_typed_stats_and_null_contract", CanonicalCardCatalogTests.TypedStatsAndNullContractMaterializeDeterministically),
         new("canonical_card_duplicate_and_malformed_rejections", CanonicalCardCatalogTests.DuplicateAndMalformedCardsAreRejected),
         new("canonical_card_legacy_overlap_validation", CanonicalCardCatalogTests.LegacyOverlapMatchesAndMismatchRejects),
-        new("canonical_runtime_legacy_v1_compatible", CanonicalRuntimeBindingTests.LegacyV1RequestRemainsCompatible),
+        new("canonical_runtime_v2_optional_canonical_data", CanonicalRuntimeBindingTests.CurrentV2RequestWithoutCanonicalDataRemainsSupported),
         new("canonical_runtime_valid_source_binds_catalog", CanonicalRuntimeBindingTests.ValidCanonicalSourceBindsCatalog),
         new("canonical_runtime_invalid_paths", CanonicalRuntimeBindingTests.InvalidCanonicalPathsAreRejected),
         new("canonical_runtime_invalid_source_mode", CanonicalRuntimeBindingTests.InvalidCanonicalSourceModeIsRejected),
@@ -118,6 +118,14 @@ internal static class ProductionEngineTests
         new("canonical_draw_order_privacy", CanonicalDrawReferenceRuntimeTests.DrawOrderProjectionAndPrivacyArePreserved),
         new("canonical_draw_refresh_boundary", CanonicalDrawReferenceRuntimeTests.RefreshPenaltyBoundaryRejectsBeforeAnyMutation),
         new("canonical_draw_graph_rejections", CanonicalDrawReferenceRuntimeTests.UnsupportedConditionAndDrawGraphsRejectAtomically),
+        new("explicit_phase_order_legal_actions", ExplicitPhaseFoundationTests.PhaseOrderAndLegalActionMatrix),
+        new("explicit_phase_starting_player_draws", ExplicitPhaseFoundationTests.ExplicitStartingPlayerAndFirstAwakeningDraws),
+        new("explicit_phase_awakening_ready_once", ExplicitPhaseFoundationTests.AwakeningReadiesOnceAndPreservesOpponentState),
+        new("explicit_phase_action_response_viewer_privacy", ExplicitPhaseFoundationTests.ActionResponseUsesSubmittingPlayerProjectionAcrossSwitch),
+        new("explicit_phase_direct_illegal_actions", ExplicitPhaseFoundationTests.DirectRetiredAndWrongPhaseActionsAreRejectedAtomically),
+        new("explicit_phase_awakening_atomic_failure", ExplicitPhaseFoundationTests.AwakeningDrawFailureIsAtomic),
+        new("explicit_phase_distribution_boundary", ExplicitPhaseFoundationTests.DistributionIsObservableAndSwitchesOnlyOnExit),
+        new("explicit_phase_vocabulary_determinism", ExplicitPhaseFoundationTests.PhaseVocabularyAndEventDeterminism),
         new("domain_explicit_six_by_six_topology", DomainStateTests.ExplicitSixBySixTopologyIsInitialized),
         new("domain_structural_placement_single_occupancy", DomainStateTests.StructuralPlacementEnforcesSingleOccupancy),
         new("domain_public_projection_complete_and_viewer_independent", DomainStateTests.PublicProjectionIsCompleteAndViewerIndependent),
@@ -272,22 +280,28 @@ internal static class ProductionEngineTests
 
         var (session, _, createResponse) = CreateSession();
         Equal(true, createResponse.Accepted, "CreateMatch must accept the canonical fixture.");
+        Equal("aeterna-create-match-request-v2", RuntimeComparisonFixture.Load(FixtureLocator.LocateCanonicalFixture()).CreateMatchRequest().SchemaVersion, "Create request schema identifier drifted.");
         Equal(0, createResponse.StateVersion, "Initial state_version must be zero.");
         Equal(ContractSchemas.CreateMatchResponse, createResponse.SchemaVersion, "Create response schema is invalid.");
 
         var state = session.GetDebugSnapshot();
+        Equal("aeterna-debug-match-snapshot-v4", state.SchemaVersion, "Debug snapshot schema identifier drifted.");
         Equal(0, state.StateVersion, "Initial debug state version is invalid.");
         Equal(1, state.TurnNumber, "Initial turn is invalid.");
+        Equal(CanonicalPhaseIds.Awakening, state.Phase, "Initial phase is invalid.");
+        Equal("player_1", state.StartingPlayerId, "Explicit starting player is invalid.");
         Equal("player_1", state.ActivePlayerId, "Initial active player is invalid.");
         Equal(0, state.Events.Length, "Initial event log must be empty.");
         Equal(6, state.CardInstances.Length, "Initial card registry count is invalid.");
 
         var legal = session.ListLegalActions("player_1", includeDisabled: true);
+        Equal("aeterna-legal-action-space-v1", legal.SchemaVersion, "Legal action-space schema identifier drifted.");
         SequenceEqual(
-            ["end_turn", "normal_inflow", "play_card", "draw_card"],
+            ["advance_phase"],
             legal.Actions.Select(item => item.ActionType),
             "Legal action order is invalid.");
-        Equal(3, legal.Actions.Count(item => item.Enabled), "Initial enabled action count is invalid.");
+        Equal(1, legal.Actions.Count(item => item.Enabled), "Initial enabled action count is invalid.");
+        Equal("engine-player-visible-snapshot-v4", session.GetPlayerSnapshot("player_1").SchemaVersion, "Player snapshot schema identifier drifted.");
         JsonSerializer.Serialize(createResponse);
         JsonSerializer.Serialize(legal);
 
@@ -298,33 +312,40 @@ internal static class ProductionEngineTests
 
     private static void DrawTransitionAndEvent()
     {
-        var (session, fixture, _) = CreateSession();
-        var action = EnabledAction(session, "player_1", "draw_card");
-        var response = session.SubmitAction(Request(fixture, action, "test_draw_1", 0));
+        var (session, _, _) = CreateSession();
+        ActionResponse response = null!;
+        for (var index = 0; index < 5; index += 1)
+        {
+            response = AdvancePhase(session, "player_1", $"advance-to-player-2-{index + 1}");
+        }
 
-        Equal(true, response.Accepted, "Draw must be accepted.");
-        Equal(0, response.StateVersionBefore, "Draw response before-version is invalid.");
-        Equal(1, response.StateVersionAfter, "Draw response after-version is invalid.");
-        Equal(1, response.Events.Length, "Draw must emit one event.");
-        Equal("zone_move", response.Events[0].EventType, "Draw event type is invalid.");
-        Equal(1, response.Events[0].EventSequence, "Draw event sequence is invalid.");
-        Equal(1, session.GetDebugEvents().Length, "Session event history is invalid after draw.");
+        Equal(true, response.Accepted, "Awakening transition must be accepted.");
+        Equal(4, response.StateVersionBefore, "Awakening response before-version is invalid.");
+        Equal(5, response.StateVersionAfter, "Awakening response after-version is invalid.");
+        SequenceEqual(
+            ["turn_transition", "zone_move", "zone_move"],
+            response.Events.Select(item => item.EventType),
+            "Awakening draw event order is invalid.");
+        Equal(5, response.Events[0].EventSequence, "Turn transition event sequence is invalid.");
+        Equal(7, session.GetDebugEvents().Length, "Session event history is invalid after Awakening draw.");
 
-        var player = session.GetDebugSnapshot().Players.Single(item => item.PlayerId == "player_1");
-        Equal(2, player.HandCardInstanceIds.Length, "Draw did not add a card to hand.");
-        Equal(1, player.DeckCardInstanceIds.Length, "Draw did not remove a card from deck.");
+        var player = session.GetDebugSnapshot().Players.Single(item => item.PlayerId == "player_2");
+        Equal(3, player.HandCardInstanceIds.Length, "Awakening did not draw two cards.");
+        Equal(0, player.DeckCardInstanceIds.Length, "Awakening did not remove two cards from Deck.");
         JsonSerializer.Serialize(response);
     }
 
     private static void ViewerSafeEventProjection()
     {
-        var (session, fixture, _) = CreateSession();
-        var draw = EnabledAction(session, "player_1", "draw_card");
-        session.SubmitAction(Request(fixture, draw, "viewer_safe_draw", 0));
+        var (session, _, _) = CreateSession();
+        for (var index = 0; index < 5; index += 1)
+        {
+            AdvancePhase(session, "player_1", $"viewer-safe-advance-{index + 1}");
+        }
 
-        var ownerEvent = session.GetEvents("player_1").Single();
-        var opponentEvent = session.GetEvents("player_2").Single();
-        var debugEvent = session.GetDebugEvents().Single();
+        var ownerEvent = session.GetEvents("player_2").First(item => item.EventType == "zone_move");
+        var opponentEvent = session.GetEvents("player_1").First(item => item.EventType == "zone_move");
+        var debugEvent = session.GetDebugEvents().First(item => item.EventType == "zone_move");
         True(ownerEvent.Payload.TryGetProperty("card_instance_id", out _), "Owner event lost card_instance_id.");
         True(ownerEvent.Payload.TryGetProperty("card_id", out _), "Owner event lost card_id.");
         True(debugEvent.Payload.TryGetProperty("card_instance_id", out _), "Internal debug event lost card_instance_id.");
@@ -351,18 +372,18 @@ internal static class ProductionEngineTests
 
         var createResponse = session.CreateMatch(fixture.CreateMatchRequest());
         Equal(true, createResponse.Accepted, "Valid create request failed after structured rejections.");
-        var draw = EnabledAction(session, "player_1", "draw_card");
+        var advance = EnabledAction(session, "player_1", "advance_phase");
         var stateBefore = CanonicalDebugState(session);
 
         var missingActionRequest = session.SubmitAction(null);
         Equal(false, missingActionRequest.Accepted, "Missing action request must be rejected.");
         Equal("ACTION_REQUEST_MISSING", missingActionRequest.Diagnostics.Single().Code, "Missing action request diagnostic is invalid.");
 
-        var emptyRequestId = session.SubmitAction(Request(fixture, draw, "   ", 0));
+        var emptyRequestId = session.SubmitAction(Request(fixture, advance, "   ", 0));
         Equal(false, emptyRequestId.Accepted, "Whitespace request_id must be rejected.");
         Equal("ACTION_REQUEST_ID_INVALID", emptyRequestId.Diagnostics.Single().Code, "Whitespace request_id diagnostic is invalid.");
 
-        var missingPayload = session.SubmitAction(Request(fixture, draw, "missing_payload", 0) with
+        var missingPayload = session.SubmitAction(Request(fixture, advance, "missing_payload", 0) with
         {
             Payload = default,
         });
@@ -370,21 +391,21 @@ internal static class ProductionEngineTests
         Equal("ACTION_PAYLOAD_INVALID", missingPayload.Diagnostics.Single().Code, "Missing payload diagnostic is invalid.");
 
         using var nullPayloadDocument = JsonDocument.Parse("null");
-        var nullPayload = session.SubmitAction(Request(fixture, draw, "null_payload", 0) with
+        var nullPayload = session.SubmitAction(Request(fixture, advance, "null_payload", 0) with
         {
             Payload = nullPayloadDocument.RootElement.Clone(),
         });
         Equal(false, nullPayload.Accepted, "Null payload must be rejected.");
         Equal("ACTION_PAYLOAD_INVALID", nullPayload.Diagnostics.Single().Code, "Null payload diagnostic is invalid.");
 
-        var invalidPayloadShape = session.SubmitAction(Request(fixture, draw, "invalid_payload_shape", 0) with
+        var invalidPayloadShape = session.SubmitAction(Request(fixture, advance, "invalid_payload_shape", 0) with
         {
             Payload = ContractJsonValue.From(new Dictionary<string, object?>
             {
                 ["unexpected"] = true,
             }),
         });
-        Equal(false, invalidPayloadShape.Accepted, "Unexpected draw payload fields must be rejected.");
+        Equal(false, invalidPayloadShape.Accepted, "Unexpected advance payload fields must be rejected.");
         Equal("ACTION_PAYLOAD_INVALID", invalidPayloadShape.Diagnostics.Single().Code, "Payload shape diagnostic is invalid.");
         Equal(stateBefore, CanonicalDebugState(session), "Invalid contract input mutated state.");
         Equal(0, session.GetDebugEvents().Length, "Invalid contract input emitted events.");
@@ -393,10 +414,10 @@ internal static class ProductionEngineTests
     private static void StaleRequestIsImmutable()
     {
         var (session, fixture, _) = CreateSession();
-        var draw = EnabledAction(session, "player_1", "draw_card");
-        session.SubmitAction(Request(fixture, draw, "test_draw_before_stale", 0));
-        var endTurn = EnabledAction(session, "player_1", "end_turn");
-        var staleRequest = Request(fixture, endTurn, "test_stale", 0);
+        var advance = EnabledAction(session, "player_1", "advance_phase");
+        session.SubmitAction(Request(fixture, advance, "advance_before_stale", 0));
+        var nextAdvance = EnabledAction(session, "player_1", "advance_phase");
+        var staleRequest = Request(fixture, nextAdvance, "test_stale", 0);
         var requestBefore = JsonSerializer.Serialize(staleRequest);
         var stateBefore = CanonicalDebugState(session);
         var eventCountBefore = session.GetDebugEvents().Length;
@@ -416,26 +437,22 @@ internal static class ProductionEngineTests
 
     private static void EndTurnAndSecondDraw()
     {
-        var (session, fixture, _) = CreateSession();
-        session.SubmitAction(Request(fixture, EnabledAction(session, "player_1", "draw_card"), "draw_p1", 0));
-        var endResponse = session.SubmitAction(Request(
-            fixture,
-            EnabledAction(session, "player_1", "end_turn"),
-            "end_p1",
-            1));
-        Equal(true, endResponse.Accepted, "End turn must be accepted.");
-        Equal("turn_transition", endResponse.Events.Single().EventType, "End turn event is invalid.");
-        Equal("player_2", session.GetDebugSnapshot().ActivePlayerId, "Active player did not change.");
+        var (session, _, _) = CreateSession();
+        ActionResponse awakening = null!;
+        for (var index = 0; index < 5; index += 1)
+        {
+            awakening = AdvancePhase(session, "player_1", $"first-turn-phase-{index + 1}");
+        }
 
-        var secondDrawResponse = session.SubmitAction(Request(
-            fixture,
-            EnabledAction(session, "player_2", "draw_card"),
-            "draw_p2",
-            2));
-        Equal(true, secondDrawResponse.Accepted, "Player two draw must be accepted.");
-        Equal(3, secondDrawResponse.StateVersionAfter, "Final state version is invalid.");
-        SequenceEqual([1, 2, 3], session.GetDebugEvents().Select(item => item.EventSequence), "Event sequence is invalid.");
-        SequenceEqual(["zone_move", "turn_transition", "zone_move"], session.GetDebugEvents().Select(item => item.EventType), "Event type order is invalid.");
+        Equal(true, awakening.Accepted, "Next-player Awakening must be accepted.");
+        Equal("turn_transition", awakening.Events[0].EventType, "Turn transition event is invalid.");
+        Equal("player_2", session.GetDebugSnapshot().ActivePlayerId, "Active player did not change.");
+        Equal(CanonicalPhaseIds.Awakening, session.GetDebugSnapshot().Phase, "Next player did not remain in Awakening.");
+        Equal(5, awakening.StateVersionAfter, "Final state version is invalid.");
+        SequenceEqual(
+            Enumerable.Range(1, 7),
+            session.GetDebugEvents().Select(item => item.EventSequence),
+            "Event sequence is invalid.");
         Equal(false, session.GetMatchResult().Completed, "Minimal match must remain in progress.");
     }
 
@@ -883,14 +900,14 @@ internal static class ProductionEngineTests
             "normal_inflow_stale",
             NormalInflowPayload(selectedCardId),
             expectedStateVersion: 0);
-        var draw = EnabledAction(session, "player_1", "draw_card");
-        var drawResponse = session.SubmitAction(Request(
+        var advance = EnabledAction(session, "player_1", "advance_phase");
+        var advanceResponse = session.SubmitAction(Request(
             session,
-            draw,
-            "normal_inflow_stale_setup_draw",
+            advance,
+            "normal_inflow_stale_setup_advance",
             ContractJsonValue.EmptyObject(),
             expectedStateVersion: 0));
-        Equal(true, drawResponse.Accepted, "Stale request setup draw failed.");
+        Equal(true, advanceResponse.Accepted, "Stale request setup phase advance failed.");
 
         var stateBefore = CanonicalDebugState(session);
         var requestBefore = JsonSerializer.Serialize(staleRequest);
@@ -1045,7 +1062,11 @@ internal static class ProductionEngineTests
 
     private static void NormalInflowIsOncePerTurnAndRestoresNextRound()
     {
-        var (session, state) = CreateNormalInflowSession(handCount: 2, playerTwoHandCount: 1);
+        var (session, state) = CreateNormalInflowSession(
+            handCount: 2,
+            deckCount: 2,
+            playerTwoHandCount: 1,
+            playerTwoDeckCount: 2);
         var player = state.GetPlayer("player_1");
         var firstSelected = player.HandCardInstanceIds[0];
         var firstResponse = session.SubmitAction(Request(
@@ -1070,25 +1091,28 @@ internal static class ProductionEngineTests
         Equal("normal_inflow_already_used", secondResponse.Reason, "Second Normal Inflow rejection reason is invalid.");
         Equal(stateBeforeSecond, CanonicalDebugState(session), "Second Normal Inflow mutated state.");
 
-        var endPlayerOne = session.SubmitAction(Request(
-            session,
-            EnabledAction(session, "player_1", "end_turn"),
-            "normal_inflow_end_player_1",
-            ContractJsonValue.EmptyObject(),
-            expectedStateVersion: 1));
-        Equal(true, endPlayerOne.Accepted, "Player one end_turn failed.");
-        var endPlayerTwo = session.SubmitAction(Request(
-            session,
-            EnabledAction(session, "player_2", "end_turn"),
-            "normal_inflow_end_player_2",
-            ContractJsonValue.EmptyObject(),
-            expectedStateVersion: 2));
-        Equal(true, endPlayerTwo.Accepted, "Player two end_turn failed.");
+        for (var index = 0; index < 4; index += 1)
+        {
+            True(
+                AdvancePhase(session, "player_1", $"normal-inflow-player-1-phase-{index + 1}").Accepted,
+                "Player one phase progression failed.");
+        }
+
+        for (var index = 0; index < 5; index += 1)
+        {
+            True(
+                AdvancePhase(session, "player_2", $"normal-inflow-player-2-phase-{index + 1}").Accepted,
+                "Player two phase progression failed.");
+        }
+
+        True(
+            AdvancePhase(session, "player_1", "normal-inflow-player-1-next-infusion").Accepted,
+            "Player one next Infusion entry failed.");
         Equal(2, state.TurnNumber, "Full round did not advance turn_number.");
         Equal(1, player.NormalInflowUsedTurnNumber, "Turn usage history was reset instead of remaining turn-scoped.");
 
         var nextOwnTurn = EnabledAction(session, "player_1", "normal_inflow");
-        Equal("normal_inflow:2:3:player_1", nextOwnTurn.ActionId, "Next own turn action_id is invalid.");
+        Equal("normal_inflow:2:11:player_1", nextOwnTurn.ActionId, "Next own turn action_id is invalid.");
     }
 
     private static void EndTurnRemainsEnabledWithoutNormalInflow()
@@ -1096,15 +1120,11 @@ internal static class ProductionEngineTests
         var (session, state) = CreateNormalInflowSession(handCount: 1);
         Equal(true, EnabledAction(session, "player_1", "normal_inflow").Enabled, "Normal Inflow setup is invalid.");
         var handBefore = state.GetPlayer("player_1").HandCardInstanceIds.ToArray();
-        var response = session.SubmitAction(Request(
-            session,
-            EnabledAction(session, "player_1", "end_turn"),
-            "end_turn_without_normal_inflow",
-            ContractJsonValue.EmptyObject(),
-            expectedStateVersion: 0));
+        var response = AdvancePhase(session, "player_1", "skip-normal-inflow");
 
-        Equal(true, response.Accepted, "end_turn must remain available when Normal Inflow is unused.");
-        Equal("turn_transition", response.Events.Single().EventType, "Optional Normal Inflow changed end_turn event semantics.");
+        Equal(true, response.Accepted, "advance_phase must skip unused Normal Inflow.");
+        Equal("phase_transition", response.Events.Single().EventType, "Optional Normal Inflow skip event is invalid.");
+        Equal(CanonicalPhaseIds.Manifestation, state.Phase, "Skipping Normal Inflow did not enter Manifestation.");
         Equal(null, state.GetPlayer("player_1").NormalInflowUsedTurnNumber, "Skipping Normal Inflow created a usage marker.");
         SequenceEqual(handBefore, state.GetPlayer("player_1").HandCardInstanceIds, "end_turn moved a hand card implicitly.");
     }
@@ -2403,24 +2423,34 @@ internal static class ProductionEngineTests
 
     private static void PublicResultsAreDefensive()
     {
-        var (session, fixture, _) = CreateSession();
+        var (session, _, _) = CreateSession();
         var firstActions = session.ListLegalActions("player_1", includeDisabled: true);
         var secondActions = session.ListLegalActions("player_1", includeDisabled: true);
         NotSame(firstActions, secondActions, "Legal action spaces must be independent projections.");
         NotSame(firstActions.Actions[0], secondActions.Actions[0], "Legal action records must be cloned.");
 
-        var firstSnapshot = session.GetPlayerSnapshot("player_1");
-        var secondSnapshot = session.GetPlayerSnapshot("player_1");
+        var firstSnapshot = session.GetPlayerSnapshot("player_2");
+        var secondSnapshot = session.GetPlayerSnapshot("player_2");
         NotSame(firstSnapshot, secondSnapshot, "Player snapshots must be independent projections.");
         NotSame(firstSnapshot.Players[0], secondSnapshot.Players[0], "Player projection records must be independent.");
-        var originalHandCount = firstSnapshot.Players.Single(item => item.PlayerId == "player_1").Hand.Count;
-        session.SubmitAction(Request(
-            fixture,
-            EnabledAction(session, "player_1", "draw_card"),
-            "defensive_snapshot_draw",
-            expectedStateVersion: 0));
-        Equal(originalHandCount, firstSnapshot.Players.Single(item => item.PlayerId == "player_1").Hand.Count, "Earlier snapshot changed after a transition.");
-        Equal(originalHandCount + 1, session.GetPlayerSnapshot("player_1").Players.Single(item => item.PlayerId == "player_1").Hand.Count, "Fresh snapshot did not reflect the transition.");
+        var oldOwnHand = firstSnapshot.Players.Single(player => player.PlayerId == "player_2").Hand;
+        var originalHandCount = oldOwnHand.Count;
+        var originalHandObjects = oldOwnHand.Objects.Select(card => card.CardInstanceId).ToArray();
+        Equal(CanonicalPhaseIds.Awakening, firstSnapshot.Phase, "Initial defensive snapshot phase is invalid.");
+        AdvancePhase(session, "player_1", "defensive-snapshot-advance");
+        Equal(CanonicalPhaseIds.Awakening, firstSnapshot.Phase, "Earlier snapshot changed after a transition.");
+        Equal(CanonicalPhaseIds.Infusion, session.GetPlayerSnapshot("player_1").Phase, "Fresh snapshot did not reflect the transition.");
+        for (var index = 0; index < 4; index += 1)
+        {
+            AdvancePhase(session, "player_1", $"defensive-snapshot-next-awakening-{index + 1}");
+        }
+
+        var freshPlayerTwoSnapshot = session.GetPlayerSnapshot("player_2");
+        var freshPlayerTwoHand = freshPlayerTwoSnapshot.Players.Single(player => player.PlayerId == "player_2").Hand;
+        Equal(originalHandCount, oldOwnHand.Count, "Earlier nested hand projection changed after a later Awakening draw.");
+        SequenceEqual(originalHandObjects, oldOwnHand.Objects.Select(card => card.CardInstanceId), "Earlier nested hand objects changed after a later Awakening draw.");
+        Equal(originalHandCount + 2, freshPlayerTwoHand.Count, "Fresh nested hand projection missed the automatic Awakening draw.");
+        Equal(freshPlayerTwoHand.Count, freshPlayerTwoHand.Objects.Length, "Fresh owner hand projection is not complete.");
 
         var firstResult = session.GetMatchResult();
         var secondResult = session.GetMatchResult();
@@ -2497,6 +2527,20 @@ internal static class ProductionEngineTests
         return (session, fixture, response);
     }
 
+    private static ActionResponse AdvancePhase(
+        EngineSession session,
+        string playerId,
+        string requestId)
+    {
+        var action = EnabledAction(session, playerId, "advance_phase");
+        return session.SubmitAction(Request(
+            session,
+            action,
+            requestId,
+            ContractJsonValue.EmptyObject(),
+            session.GetDebugSnapshot().StateVersion));
+    }
+
     private static CreateMatchRequest CreatePackageMatchRequest(RuntimePackageSource source) => new(
         ContractSchemas.CreateMatchRequest,
         "runtime-package-lifecycle-test-match",
@@ -2505,6 +2549,7 @@ internal static class ProductionEngineTests
             new PlayerSetup("player_1", "test-deck"),
             new PlayerSetup("player_2", "test-deck")),
         StartingHandSize: 1,
+        StartingPlayerId: "player_1",
         source);
 
     private static (
@@ -2523,6 +2568,7 @@ internal static class ProductionEngineTests
             handCount,
             deckCount,
             playerTwoHandCount,
+            0,
             activeWellspringCount,
             exhaustedWellspringCount);
         var targetCardInstanceId = state.GetPlayer("player_1").HandCardInstanceIds.First();
@@ -2725,6 +2771,7 @@ internal static class ProductionEngineTests
         int handCount,
         int deckCount = 0,
         int playerTwoHandCount = 0,
+        int playerTwoDeckCount = 0,
         int activeWellspringCount = 0,
         int exhaustedWellspringCount = 0)
     {
@@ -2732,6 +2779,7 @@ internal static class ProductionEngineTests
             handCount,
             deckCount,
             playerTwoHandCount,
+            playerTwoDeckCount,
             activeWellspringCount,
             exhaustedWellspringCount);
         return (new EngineSession(state), state);
@@ -2741,6 +2789,7 @@ internal static class ProductionEngineTests
         int handCount,
         int deckCount = 0,
         int playerTwoHandCount = 0,
+        int playerTwoDeckCount = 0,
         int activeWellspringCount = 0,
         int exhaustedWellspringCount = 0)
     {
@@ -2750,6 +2799,8 @@ internal static class ProductionEngineTests
             Seed = 1,
             RuntimePackageId = "production-normal-inflow-test-package",
             StateVersion = 0,
+            Phase = CanonicalPhaseIds.Infusion,
+            StartingPlayerId = "player_1",
             ActivePlayerId = "player_1",
             PriorityPlayerId = "player_1",
         };
@@ -2778,6 +2829,11 @@ internal static class ProductionEngineTests
         for (var index = 0; index < playerTwoHandCount; index++)
         {
             AddPrivateZoneCard(state, playerTwo, "hand");
+        }
+
+        for (var index = 0; index < playerTwoDeckCount; index++)
+        {
+            AddPrivateZoneCard(state, playerTwo, "deck");
         }
 
         for (var index = 0; index < activeWellspringCount; index++)
@@ -2837,6 +2893,7 @@ internal static class ProductionEngineTests
             Seed = 1,
             RuntimePackageId = "production-wellspring-test-package",
             StateVersion = 0,
+            StartingPlayerId = "player_1",
             ActivePlayerId = "player_1",
             PriorityPlayerId = "player_1",
         };

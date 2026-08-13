@@ -48,9 +48,9 @@ public partial class CsharpProductionEngineBridgeNegativeSmoke : Node
                 "MALFORMED_ACTION_DIAGNOSTIC_INVALID",
                 "Malformed action JSON returned an unstable diagnostic.");
 
-            var drawAction = EnabledAction(bridge, "player_1", "draw_card");
+            var advanceAction = EnabledAction(bridge, "player_1", "advance_phase");
             var whitespaceRequestId = Deserialize<ActionResponse>(bridge.SubmitActionJson(JsonSerializer.Serialize(
-                Request(validCreateRequest.MatchId, drawAction, "   ", ContractJsonValue.EmptyObject()))));
+                Request(validCreateRequest.MatchId, advanceAction, "   ", ContractJsonValue.EmptyObject()))));
             Require(!whitespaceRequestId.Accepted, "EMPTY_REQUEST_ID_ACCEPTED", "Whitespace request_id was accepted.");
             Require(
                 whitespaceRequestId.Diagnostics.Single().Code == "ACTION_REQUEST_ID_INVALID",
@@ -58,7 +58,7 @@ public partial class CsharpProductionEngineBridgeNegativeSmoke : Node
                 "Whitespace request_id returned an unstable diagnostic.");
 
             var missingPayloadNode = JsonSerializer.SerializeToNode(
-                    Request(validCreateRequest.MatchId, drawAction, "missing_payload", ContractJsonValue.EmptyObject()))
+                    Request(validCreateRequest.MatchId, advanceAction, "missing_payload", ContractJsonValue.EmptyObject()))
                 ?.AsObject()
                 ?? throw new InvalidOperationException("Action request serialization returned null.");
             missingPayloadNode.Remove("payload");
@@ -72,7 +72,7 @@ public partial class CsharpProductionEngineBridgeNegativeSmoke : Node
             var nullPayload = Deserialize<ActionResponse>(bridge.SubmitActionJson(JsonSerializer.Serialize(
                 Request(
                     validCreateRequest.MatchId,
-                    drawAction,
+                    advanceAction,
                     "null_payload",
                     JsonDocument.Parse("null").RootElement.Clone()))));
             Require(!nullPayload.Accepted, "NULL_PAYLOAD_ACCEPTED", "Null action payload was accepted.");
@@ -85,20 +85,19 @@ public partial class CsharpProductionEngineBridgeNegativeSmoke : Node
                 "INVALID_ACTION_MUTATED_STATE",
                 "Rejected bridge input changed production state.");
 
-            var drawResponse = Deserialize<ActionResponse>(bridge.SubmitActionJson(JsonSerializer.Serialize(
+            var advanceResponse = Deserialize<ActionResponse>(bridge.SubmitActionJson(JsonSerializer.Serialize(
                 Request(
                     validCreateRequest.MatchId,
-                    drawAction,
-                    "negative_smoke_valid_draw",
+                    advanceAction,
+                    "negative_smoke_valid_phase_advance",
                     ContractJsonValue.EmptyObject()))));
-            Require(drawResponse.Accepted, "VALID_DRAW_REJECTED", "Valid draw was rejected after negative checks.");
+            Require(advanceResponse.Accepted, "VALID_PHASE_ADVANCE_REJECTED", "Valid phase advance was rejected after negative checks.");
 
             var ownerEvent = Deserialize<ImmutableArray<EngineEvent>>(bridge.GetEventsJson("player_1")).Single();
             var opponentEvent = Deserialize<ImmutableArray<EngineEvent>>(bridge.GetEventsJson("player_2")).Single();
-            Require(ownerEvent.Payload.TryGetProperty("card_instance_id", out _), "OWNER_EVENT_REDACTED", "Owner event lost card_instance_id.");
-            Require(ownerEvent.Payload.TryGetProperty("card_id", out _), "OWNER_CARD_ID_REDACTED", "Owner event lost card_id.");
-            Require(!opponentEvent.Payload.TryGetProperty("card_instance_id", out _), "OPPONENT_INSTANCE_ID_LEAK", "Opponent event leaked card_instance_id.");
-            Require(!opponentEvent.Payload.TryGetProperty("card_id", out _), "OPPONENT_CARD_ID_LEAK", "Opponent event leaked card_id.");
+            Require(ownerEvent.EventType == "phase_transition", "OWNER_EVENT_INVALID", "Owner did not receive the canonical phase transition.");
+            Require(opponentEvent.EventType == "phase_transition", "OPPONENT_EVENT_INVALID", "Opponent did not receive the canonical phase transition.");
+            Require(JsonSerializer.Serialize(ownerEvent) == JsonSerializer.Serialize(opponentEvent), "PUBLIC_EVENT_PROJECTION_DIVERGED", "Public phase transition differs by viewer.");
 
             var summary = new JsonObject
             {
@@ -106,8 +105,8 @@ public partial class CsharpProductionEngineBridgeNegativeSmoke : Node
                 ["schema_version"] = "aeterna-godot-csharp-production-bridge-negative-smoke-v1",
                 ["controlled_create_rejections"] = 2,
                 ["controlled_action_rejections"] = 4,
-                ["owner_event_identity_visible"] = true,
-                ["opponent_event_identity_redacted"] = true,
+                ["valid_canonical_phase_advance"] = true,
+                ["public_event_projection_stable"] = true,
                 ["state_unchanged_after_rejections"] = true,
                 ["final_result"] = "PASS",
                 ["error_code"] = null,
@@ -142,6 +141,7 @@ public partial class CsharpProductionEngineBridgeNegativeSmoke : Node
             new PlayerSetup("player_1", "FIXTURE-DECK-PLAYER-1"),
             new PlayerSetup("player_2", "FIXTURE-DECK-PLAYER-2")),
         StartingHandSize: 1,
+        StartingPlayerId: "player_1",
         new RuntimePackageSource(runtimePackagePath));
 
     private static ActionRequest Request(

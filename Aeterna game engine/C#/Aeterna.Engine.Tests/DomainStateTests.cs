@@ -271,6 +271,7 @@ internal static class DomainStateTests
             Seed = 1,
             RuntimePackageId = "domain-state-test-package",
             StateVersion = 0,
+            StartingPlayerId = "player_1",
             ActivePlayerId = "player_1",
             PriorityPlayerId = "player_1",
         };

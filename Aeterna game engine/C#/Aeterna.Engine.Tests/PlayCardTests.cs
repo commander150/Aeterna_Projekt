@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Aeterna.Engine;
 using Aeterna.Engine.Contracts;
+using Aeterna.Engine.Rules;
 using Aeterna.Engine.Runtime;
 using Aeterna.Engine.State;
 
@@ -47,12 +48,13 @@ internal static class PlayCardTests
         Equal("not_active_player", inactive.DisabledReason, "Inactive disabled reason is invalid.");
 
         var wrongPhase = CreateFixture(extraHandCount: 0);
-        wrongPhase.State.Phase = "combat";
+        wrongPhase.State.Phase = CanonicalPhaseIds.Incursion;
         EngineSession.ValidateState(wrongPhase.State);
         Equal(
-            "phase_not_main",
-            PlayAction(wrongPhase.Session, "player_1").DisabledReason,
-            "Wrong-phase disabled reason is invalid.");
+            false,
+            wrongPhase.Session.ListLegalActions("player_1", includeDisabled: true).Actions
+                .Any(item => item.ActionType == "play_card"),
+            "play_card was exposed outside Manifestation.");
 
         var nonEntity = CreateFixture(targetCardType: "incantation", extraHandCount: 0);
         AssertDisabled(nonEntity, "no_playable_card", "Unsupported non-Entity enabled play_card.");
@@ -271,14 +273,15 @@ internal static class PlayCardTests
             "PLAY_CARD_PLAYER_INVALID");
 
         var phase = CreateFixture(extraHandCount: 0);
-        phase.State.Phase = "combat";
+        var phaseAction = PlayAction(phase.Session, "player_1");
+        phase.State.Phase = CanonicalPhaseIds.Incursion;
         EngineSession.ValidateState(phase.State);
         AssertRejectedImmutable(
             phase,
             "player_1",
-            PlayAction(phase.Session, "player_1"),
+            phaseAction,
             PlayPayload(phase.TargetCardInstanceId, "horizon", 0, []),
-            "PLAY_CARD_PHASE_INVALID");
+            "ACTION_NOT_FOUND");
 
         var stale = CreateFixture(extraHandCount: 0);
         AssertRejectedImmutable(
@@ -523,6 +526,8 @@ internal static class PlayCardTests
             Seed = 1,
             RuntimePackageId = "play-card-test-package",
             StateVersion = 0,
+            Phase = CanonicalPhaseIds.Manifestation,
+            StartingPlayerId = "player_1",
             ActivePlayerId = "player_1",
             PriorityPlayerId = "player_1",
         };

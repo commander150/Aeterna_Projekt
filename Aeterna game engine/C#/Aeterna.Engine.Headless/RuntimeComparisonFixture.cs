@@ -96,6 +96,7 @@ public sealed record RuntimeComparisonFixture(
         Seed,
         Players,
         StartingHandSize,
+        Players[0].PlayerId,
         new RuntimePackageSource(RuntimePackagePath));
 
     private static ImmutableArray<string> ReadStringArray(JsonElement root, string propertyName)

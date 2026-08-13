@@ -1,4 +1,5 @@
 using Aeterna.Engine.Contracts;
+using Aeterna.Engine.Rules;
 
 namespace Aeterna.Engine.State;
 
@@ -14,7 +15,11 @@ internal sealed class MatchState
 
     public int TurnNumber { get; set; } = 1;
 
-    public string Phase { get; set; } = "main";
+    public string Phase { get; set; } = CanonicalPhaseIds.Awakening;
+
+    internal bool LegacyPhaseCompatibility { get; init; }
+
+    public required string StartingPlayerId { get; init; }
 
     public required string ActivePlayerId { get; set; }
 

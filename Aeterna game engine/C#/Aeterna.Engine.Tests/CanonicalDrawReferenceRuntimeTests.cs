@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Aeterna.Engine;
 using Aeterna.Engine.Contracts;
+using Aeterna.Engine.Rules;
 using Aeterna.Engine.Runtime;
 using Aeterna.Engine.State;
 
@@ -323,7 +324,8 @@ internal static class CanonicalDrawReferenceRuntimeTests
             RuntimePackageId = "draw-reference-runtime",
             StateVersion = 0,
             TurnNumber = 1,
-            Phase = "main",
+            Phase = CanonicalPhaseIds.Manifestation,
+            StartingPlayerId = "player_1",
             ActivePlayerId = "player_1",
             PriorityPlayerId = "player_1",
         };
@@ -515,7 +517,8 @@ internal static class CanonicalDrawReferenceRuntimeTests
 
     private static ActionResponse EndTurn(Fixture fixture)
     {
-        var action = fixture.Session.ListLegalActions(fixture.State.ActivePlayerId).Actions.Single(item => item.ActionType == "end_turn");
+        fixture.State.Phase = CanonicalPhaseIds.Incursion;
+        var action = fixture.Session.ListLegalActions(fixture.State.ActivePlayerId).Actions.Single(item => item.ActionType == "advance_phase");
         return fixture.Session.SubmitAction(new ActionRequest(
             ContractSchemas.ActionRequest,
             "end-turn",

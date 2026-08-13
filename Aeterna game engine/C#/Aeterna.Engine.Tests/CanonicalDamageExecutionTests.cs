@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Aeterna.Engine;
 using Aeterna.Engine.Contracts;
+using Aeterna.Engine.Rules;
 using Aeterna.Engine.Runtime;
 using Aeterna.Engine.State;
 
@@ -191,7 +192,8 @@ internal static class CanonicalDamageExecutionTests
             [],
             [Board("survivor", "IGN-HAM-001", DomainRow.Horizon, 0, damageMarked: 1)],
             hpOverrides: new Dictionary<string, int> { ["IGN-HAM-001"] = 3 });
-        var action = fixture.Session.ListLegalActions("player_1").Actions.Single(item => item.ActionType == "end_turn");
+        fixture.State.Phase = CanonicalPhaseIds.Incursion;
+        var action = fixture.Session.ListLegalActions("player_1").Actions.Single(item => item.ActionType == "advance_phase");
         var response = fixture.Session.SubmitAction(new ActionRequest(
             ContractSchemas.ActionRequest,
             "end-turn-cleanup",
@@ -201,15 +203,16 @@ internal static class CanonicalDamageExecutionTests
             action.ActionId,
             action.ActionType,
             ContractJsonValue.EmptyObject()));
-        True(response.Accepted, "end_turn cleanup proxy was rejected.");
+        True(response.Accepted, "Incursion-to-Distribution cleanup was rejected.");
         Equal(0, fixture.State.GetCardInstance("survivor").DamageMarked, "Survivor damage was not removed.");
-        Equal("player_2", fixture.State.ActivePlayerId, "Player transition regressed during damage cleanup.");
+        Equal("player_1", fixture.State.ActivePlayerId, "Distribution cleanup changed the active player early.");
+        Equal(CanonicalPhaseIds.Distribution, fixture.State.Phase, "Cleanup did not enter Distribution.");
         SequenceEqual(
-            ["damage_removed", "turn_transition"],
+            ["phase_transition", "damage_removed"],
             response.Events.Select(item => item.EventType),
-            "Cleanup must precede player/turn transition.");
-        Equal(1, response.Events[0].Payload.GetProperty("removed_amount").GetInt32(), "Damage cleanup event amount is invalid.");
-        Equal("temporary_end_turn_dissipation_proxy", response.Events[0].Payload.GetProperty("cleanup_boundary").GetString(), "Migration boundary is undocumented in event payload.");
+            "Distribution entry/cleanup ordering is invalid.");
+        Equal(1, response.Events[1].Payload.GetProperty("removed_amount").GetInt32(), "Damage cleanup event amount is invalid.");
+        Equal("distribution_phase_cleanup", response.Events[1].Payload.GetProperty("cleanup_boundary").GetString(), "Distribution boundary is undocumented in event payload.");
     }
 
     internal static void DamageRequiresCanonicalStatsAndProjectionIsPublic()
@@ -284,7 +287,8 @@ internal static class CanonicalDamageExecutionTests
             RuntimePackageId = "damage-runtime",
             StateVersion = 0,
             TurnNumber = 1,
-            Phase = "main",
+            Phase = CanonicalPhaseIds.Manifestation,
+            StartingPlayerId = "player_1",
             ActivePlayerId = "player_1",
             PriorityPlayerId = "player_1",
         };

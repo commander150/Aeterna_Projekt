@@ -6,17 +6,17 @@ namespace Aeterna.Engine.Contracts;
 
 public static class ContractSchemas
 {
-    public const string CreateMatchRequest = "aeterna-create-match-request-v1";
+    public const string CreateMatchRequest = "aeterna-create-match-request-v2";
     public const string CreateMatchResponse = "aeterna-create-match-response-v1";
     public const string ActionRequest = "aeterna-action-request-v1";
     public const string ActionResponse = "minimal-action-response-v0";
-    public const string LegalActionSpace = "minimal-legal-action-space-v0";
-    public const string PlayerSnapshot = "engine-player-visible-snapshot-v3";
+    public const string LegalActionSpace = "aeterna-legal-action-space-v1";
+    public const string PlayerSnapshot = "engine-player-visible-snapshot-v4";
     public const string WellspringProjection = "aeterna-player-visible-wellspring-v1";
     public const string WellspringResourceSummary = "aeterna-wellspring-resource-summary-v1";
     public const string ResourceSummary = "aeterna-resource-summary-v1";
     public const string DomainBoardProjection = "aeterna-player-visible-domain-board-v1";
-    public const string DebugSnapshot = "aeterna-debug-match-snapshot-v3";
+    public const string DebugSnapshot = "aeterna-debug-match-snapshot-v4";
     public const string EngineEvent = "minimal-engine-event-v0";
     public const string EngineDiagnostic = "aeterna-engine-diagnostic-v1";
     public const string MatchResult = "aeterna-match-result-v1";
@@ -51,6 +51,7 @@ public sealed record CreateMatchRequest(
     [property: JsonPropertyName("seed")] int Seed,
     [property: JsonPropertyName("players")] ImmutableArray<PlayerSetup> Players,
     [property: JsonPropertyName("starting_hand_size")] int StartingHandSize,
+    [property: JsonPropertyName("starting_player_id")] string StartingPlayerId,
     [property: JsonPropertyName("runtime_package")] RuntimePackageSource RuntimePackage,
     [property: JsonPropertyName("canonical_data")]
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -368,6 +369,26 @@ public sealed record TurnTransitionPayload(
     [property: JsonPropertyName("phase_before")] string PhaseBefore,
     [property: JsonPropertyName("phase_after")] string PhaseAfter);
 
+public sealed record PhaseTransitionPayload(
+    [property: JsonPropertyName("source_action_id")] string SourceActionId,
+    [property: JsonPropertyName("source_action_type")] string SourceActionType,
+    [property: JsonPropertyName("active_player_id")] string ActivePlayerId,
+    [property: JsonPropertyName("turn_number")] int TurnNumber,
+    [property: JsonPropertyName("phase_before")] string PhaseBefore,
+    [property: JsonPropertyName("phase_after")] string PhaseAfter);
+
+public sealed record AwakeningCardReadiedPayload(
+    [property: JsonPropertyName("source_action_id")] string SourceActionId,
+    [property: JsonPropertyName("source_action_type")] string SourceActionType,
+    [property: JsonPropertyName("card_instance_id")] string CardInstanceId,
+    [property: JsonPropertyName("card_id")] string CardId,
+    [property: JsonPropertyName("owner_player_id")] string OwnerPlayerId,
+    [property: JsonPropertyName("controller_player_id")] string ControllerPlayerId,
+    [property: JsonPropertyName("zone")] string Zone,
+    [property: JsonPropertyName("activity_state_before")] string ActivityStateBefore,
+    [property: JsonPropertyName("activity_state_after")] string ActivityStateAfter,
+    [property: JsonPropertyName("phase")] string Phase);
+
 public sealed record EngineEvent(
     [property: JsonPropertyName("schema_version")] string SchemaVersion,
     [property: JsonPropertyName("event_id")] string EventId,
@@ -491,6 +512,7 @@ public sealed record PlayerSnapshot(
     [property: JsonPropertyName("state_version")] int StateVersion,
     [property: JsonPropertyName("turn_number")] int TurnNumber,
     [property: JsonPropertyName("phase")] string Phase,
+    [property: JsonPropertyName("starting_player_id")] string StartingPlayerId,
     [property: JsonPropertyName("active_player_id")] string ActivePlayerId,
     [property: JsonPropertyName("priority_player_id")] string PriorityPlayerId,
     [property: JsonPropertyName("players")] ImmutableArray<PlayerSnapshotEntry> Players,
@@ -578,6 +600,7 @@ public sealed record DebugSnapshot(
     int StateVersion,
     int TurnNumber,
     string Phase,
+    string StartingPlayerId,
     string ActivePlayerId,
     string PriorityPlayerId,
     ImmutableArray<DebugPlayerSnapshot> Players,

@@ -9,10 +9,6 @@ namespace Aeterna.Engine;
 
 public sealed class EngineSession
 {
-    // Transitional production migration boundary. The official phase name is
-    // Manifesztáció, but the current production state contract still uses "main".
-    private const string TransitionalMainPhase = "main";
-
     private static readonly ImmutableHashSet<string> SupportedAuraPaymentCardTypes =
         ImmutableHashSet.Create(
             StringComparer.Ordinal,
@@ -29,9 +25,15 @@ public sealed class EngineSession
         ImmutableArray<CanonicalTriggeredAbilityDiscovery>.Empty;
     private ImmutableArray<CanonicalAbilityResolutionRecord> _canonicalAbilityResolutions =
         ImmutableArray<CanonicalAbilityResolutionRecord>.Empty;
+    private readonly bool _legacyActionCompatibility;
 
     public EngineSession()
     {
+    }
+
+    internal EngineSession(bool legacyActionCompatibility)
+    {
+        _legacyActionCompatibility = legacyActionCompatibility;
     }
 
     internal EngineSession(MatchState initialState)
@@ -157,6 +159,7 @@ public sealed class EngineSession
             state.StateVersion,
             state.TurnNumber,
             state.Phase,
+            state.StartingPlayerId,
             state.ActivePlayerId,
             state.PriorityPlayerId,
             players,
@@ -173,61 +176,164 @@ public sealed class EngineSession
         var state = RequireState();
         ValidateState(state, _canonicalRuntime?.Cards, _canonicalRuntime?.Abilities);
         var player = RequireKnownPlayer(state, playerId);
+        var baseActions = _legacyActionCompatibility
+            ? BuildLegacyActions(state, player)
+            : BuildCanonicalPhaseActions(state, player);
         if (state.PendingTriggerWindow is not null)
         {
-            return BuildPendingTriggerLegalActionSpace(state, player, includeDisabled);
+            return BuildPendingTriggerLegalActionSpace(
+                state,
+                player,
+                baseActions,
+                includeDisabled);
         }
 
-        var active = string.Equals(playerId, state.ActivePlayerId, StringComparison.Ordinal);
-        var normalInflowUsed = player.NormalInflowUsedTurnNumber == state.TurnNumber;
-        var normalInflowEnabled = active
-            && !normalInflowUsed
-            && player.HandCardInstanceIds.Count > 0;
+        return BuildLegalActionSpace(state, player.PlayerId, baseActions, includeDisabled);
+    }
+
+    private ImmutableArray<LegalAction> BuildCanonicalPhaseActions(
+        MatchState state,
+        PlayerState player)
+    {
+        var active = string.Equals(player.PlayerId, state.ActivePlayerId, StringComparison.Ordinal);
+        var actions = ImmutableArray.CreateBuilder<LegalAction>();
+        actions.Add(new LegalAction(
+            $"advance_phase:{state.TurnNumber}:{state.StateVersion}:{state.Phase}:{player.PlayerId}",
+            "advance_phase",
+            player.PlayerId,
+            active,
+            100,
+            active ? null : "not_active_player",
+            ContractJsonValue.EmptyObject()));
+
+        if (string.Equals(state.Phase, CanonicalPhaseIds.Infusion, StringComparison.Ordinal))
+        {
+            var used = player.NormalInflowUsedTurnNumber == state.TurnNumber;
+            var enabled = active && !used && player.HandCardInstanceIds.Count > 0;
+            var disabledReason = !active
+                ? "not_active_player"
+                : used
+                    ? "normal_inflow_already_used"
+                    : player.HandCardInstanceIds.Count == 0
+                        ? "hand_empty"
+                        : null;
+            actions.Add(new LegalAction(
+                $"normal_inflow:{state.TurnNumber}:{state.StateVersion}:{player.PlayerId}",
+                "normal_inflow",
+                player.PlayerId,
+                enabled,
+                150,
+                disabledReason,
+                BuildNormalInflowPayloadSchema()));
+        }
+        else if (string.Equals(state.Phase, CanonicalPhaseIds.Manifestation, StringComparison.Ordinal))
+        {
+            var availability = EvaluatePlayCardAvailability(state, player, active);
+            actions.Add(new LegalAction(
+                $"play_card:{state.TurnNumber}:{state.StateVersion}:{player.PlayerId}",
+                "play_card",
+                player.PlayerId,
+                availability.Enabled,
+                175,
+                availability.DisabledReason,
+                BuildPlayCardPayloadSchema(state, player)));
+        }
+
+        return actions.ToImmutable();
+    }
+
+    private ImmutableArray<LegalAction> BuildLegacyActions(MatchState state, PlayerState player)
+    {
+        var active = string.Equals(player.PlayerId, state.ActivePlayerId, StringComparison.Ordinal);
+        var used = player.NormalInflowUsedTurnNumber == state.TurnNumber;
+        var normalInflowEnabled = active && !used && player.HandCardInstanceIds.Count > 0;
         var normalInflowDisabledReason = !active
             ? "not_active_player"
-            : normalInflowUsed
+            : used
                 ? "normal_inflow_already_used"
                 : player.HandCardInstanceIds.Count == 0
                     ? "hand_empty"
                     : null;
         var playCardAvailability = EvaluatePlayCardAvailability(state, player, active);
-        var actions = new[]
-        {
+        return
+        [
             new LegalAction(
-                $"end_turn:{state.TurnNumber}:{playerId}",
+                $"end_turn:{state.TurnNumber}:{player.PlayerId}",
                 "end_turn",
-                playerId,
+                player.PlayerId,
                 active,
                 100,
                 active ? null : "not_active_player",
                 ContractJsonValue.EmptyObject()),
             new LegalAction(
-                $"normal_inflow:{state.TurnNumber}:{state.StateVersion}:{playerId}",
+                $"normal_inflow:{state.TurnNumber}:{state.StateVersion}:{player.PlayerId}",
                 "normal_inflow",
-                playerId,
+                player.PlayerId,
                 normalInflowEnabled,
                 150,
                 normalInflowDisabledReason,
                 BuildNormalInflowPayloadSchema()),
             new LegalAction(
-                $"play_card:{state.TurnNumber}:{state.StateVersion}:{playerId}",
+                $"play_card:{state.TurnNumber}:{state.StateVersion}:{player.PlayerId}",
                 "play_card",
-                playerId,
+                player.PlayerId,
                 playCardAvailability.Enabled,
                 175,
                 playCardAvailability.DisabledReason,
                 BuildPlayCardPayloadSchema(state, player)),
             new LegalAction(
-                $"draw_card:{state.TurnNumber}:{state.StateVersion}:{playerId}",
+                $"draw_card:{state.TurnNumber}:{state.StateVersion}:{player.PlayerId}",
                 "draw_card",
-                playerId,
+                player.PlayerId,
                 active && player.DeckCardInstanceIds.Count > 0,
                 200,
                 active
                     ? player.DeckCardInstanceIds.Count > 0 ? null : "deck_empty"
                     : "not_active_player",
                 ContractJsonValue.EmptyObject()),
-        };
+        ];
+    }
+
+    private LegalActionSpace BuildPendingTriggerLegalActionSpace(
+        MatchState state,
+        PlayerState player,
+        ImmutableArray<LegalAction> baseActions,
+        bool includeDisabled)
+    {
+        // This remains the narrow mandatory-trigger gate. Phase advancement cannot
+        // bypass it, and no reaction/priority protocol is introduced here.
+        var window = state.PendingTriggerWindow
+            ?? throw new EngineStateException("Pending trigger legal action space requires a pending window.");
+        var isController = string.Equals(
+            player.PlayerId,
+            window.ControllerPlayerId,
+            StringComparison.Ordinal);
+        var actions = baseActions
+            .Select(action => action with
+            {
+                Enabled = false,
+                DisabledReason = "pending_trigger_resolution_required",
+            })
+            .Prepend(new LegalAction(
+                $"resolve_triggered_ability:{state.StateVersion}:{player.PlayerId}",
+                "resolve_triggered_ability",
+                player.PlayerId,
+                isController,
+                50,
+                isController ? null : "not_pending_trigger_controller",
+                isController
+                    ? BuildResolveTriggeredAbilityPayloadSchema(state, window)
+                    : BuildUnavailableResolveTriggeredAbilityPayloadSchema()))
+            .ToImmutableArray();
+        return BuildLegalActionSpace(state, player.PlayerId, actions, includeDisabled);
+    }
+
+    private static LegalActionSpace BuildLegalActionSpace(
+        MatchState state,
+        string playerId,
+        IEnumerable<LegalAction> actions,
+        bool includeDisabled)
+    {
         var ordered = actions
             .OrderBy(action => action.OrderRank)
             .ThenBy(action => action.ActionType, StringComparer.Ordinal)
@@ -244,82 +350,6 @@ public sealed class EngineSession
             state.ActivePlayerId,
             state.PriorityPlayerId,
             playerId,
-            ordered);
-    }
-
-    private LegalActionSpace BuildPendingTriggerLegalActionSpace(
-        MatchState state,
-        PlayerState player,
-        bool includeDisabled)
-    {
-        // Temporary production migration boundary: unresolved mandatory canonical
-        // triggers gate normal gameplay until the future reaction/priority engine
-        // replaces this narrow controller-only window.
-        var window = state.PendingTriggerWindow
-            ?? throw new EngineStateException("Pending trigger legal action space requires a pending window.");
-        var isController = string.Equals(
-            player.PlayerId,
-            window.ControllerPlayerId,
-            StringComparison.Ordinal);
-        var blockedReason = "pending_trigger_resolution_required";
-        var actions = new[]
-        {
-            new LegalAction(
-                $"resolve_triggered_ability:{state.StateVersion}:{player.PlayerId}",
-                "resolve_triggered_ability",
-                player.PlayerId,
-                isController,
-                50,
-                isController ? null : "not_pending_trigger_controller",
-                isController
-                    ? BuildResolveTriggeredAbilityPayloadSchema(state, window)
-                    : BuildUnavailableResolveTriggeredAbilityPayloadSchema()),
-            new LegalAction(
-                $"end_turn:{state.TurnNumber}:{player.PlayerId}",
-                "end_turn",
-                player.PlayerId,
-                Enabled: false,
-                100,
-                blockedReason,
-                ContractJsonValue.EmptyObject()),
-            new LegalAction(
-                $"normal_inflow:{state.TurnNumber}:{state.StateVersion}:{player.PlayerId}",
-                "normal_inflow",
-                player.PlayerId,
-                Enabled: false,
-                150,
-                blockedReason,
-                BuildNormalInflowPayloadSchema()),
-            new LegalAction(
-                $"play_card:{state.TurnNumber}:{state.StateVersion}:{player.PlayerId}",
-                "play_card",
-                player.PlayerId,
-                Enabled: false,
-                175,
-                blockedReason,
-                BuildPlayCardPayloadSchema(state, player)),
-            new LegalAction(
-                $"draw_card:{state.TurnNumber}:{state.StateVersion}:{player.PlayerId}",
-                "draw_card",
-                player.PlayerId,
-                Enabled: false,
-                200,
-                blockedReason,
-                ContractJsonValue.EmptyObject()),
-        };
-        var ordered = actions
-            .Where(action => includeDisabled || action.Enabled)
-            .Select(CloneLegalAction)
-            .ToImmutableArray();
-        return new LegalActionSpace(
-            ContractSchemas.LegalActionSpace,
-            state.MatchId,
-            state.StateVersion,
-            state.TurnNumber,
-            state.Phase,
-            state.ActivePlayerId,
-            state.PriorityPlayerId,
-            player.PlayerId,
             ordered);
     }
 
@@ -572,6 +602,7 @@ public sealed class EngineSession
 
         var response = request.ActionType switch
         {
+            "advance_phase" => ApplyAdvancePhase(state, request, stateVersionBefore),
             "draw_card" => ApplyDraw(state, request, stateVersionBefore),
             "normal_inflow" => ApplyNormalInflow(state, request, stateVersionBefore),
             "play_card" => ApplyPlayCard(state, request, stateVersionBefore),
@@ -591,9 +622,10 @@ public sealed class EngineSession
         ValidateState(state, _canonicalRuntime?.Cards, _canonicalRuntime?.Abilities);
         var triggerEvents = DiscoverCanonicalTriggers(state, response.Events);
         ValidateState(state, _canonicalRuntime?.Cards, _canonicalRuntime?.Abilities);
-        return triggerEvents.IsDefaultOrEmpty
+        var materializedResponse = triggerEvents.IsDefaultOrEmpty
             ? response
             : response with { Events = response.Events.AddRange(triggerEvents) };
+        return ProjectActionResponseForViewer(materializedResponse, request.PlayerId);
     }
 
     public ImmutableArray<EngineEvent> GetEvents(string viewerPlayerId, int afterSequence = 0)
@@ -622,6 +654,7 @@ public sealed class EngineSession
             state.StateVersion,
             state.TurnNumber,
             state.Phase,
+            state.StartingPlayerId,
             state.ActivePlayerId,
             state.PriorityPlayerId,
             state.Players.Select(player => new DebugPlayerSnapshot(
@@ -1106,9 +1139,11 @@ public sealed class EngineSession
             return new PlayCardAvailability(false, "not_active_player");
         }
 
-        if (!string.Equals(state.Phase, TransitionalMainPhase, StringComparison.Ordinal))
+        if (!string.Equals(state.Phase, CanonicalPhaseIds.Manifestation, StringComparison.Ordinal)
+            && !(_legacyActionCompatibility
+                 && string.Equals(state.Phase, CanonicalPhaseIds.LegacyMain, StringComparison.Ordinal)))
         {
-            return new PlayCardAvailability(false, "phase_not_main");
+            return new PlayCardAvailability(false, "phase_not_manifestation");
         }
 
         if (_runtimePackage is null)
@@ -1283,6 +1318,19 @@ public sealed class EngineSession
             throw new EngineInputException("STARTING_HAND_SIZE_INVALID", "Starting hand size cannot be negative.");
         }
 
+        if (string.IsNullOrWhiteSpace(request.StartingPlayerId)
+            || request.Players.IsDefault
+            || request.Players.Count(player => player is not null
+                && string.Equals(
+                    player.PlayerId,
+                    request.StartingPlayerId,
+                    StringComparison.Ordinal)) != 1)
+        {
+            throw new EngineInputException(
+                "STARTING_PLAYER_INVALID",
+                "Starting player must identify exactly one configured player.");
+        }
+
         if (request.RuntimePackage is null)
         {
             throw new EngineInputException(
@@ -1381,7 +1429,7 @@ public sealed class EngineSession
             abilities);
     }
 
-    private static MatchState BuildInitialState(CreateMatchRequest request, RuntimePackageCatalog package)
+    private MatchState BuildInitialState(CreateMatchRequest request, RuntimePackageCatalog package)
     {
         var state = new MatchState
         {
@@ -1389,8 +1437,13 @@ public sealed class EngineSession
             Seed = request.Seed,
             RuntimePackageId = package.PackageId,
             StateVersion = 0,
-            ActivePlayerId = request.Players[0].PlayerId,
-            PriorityPlayerId = request.Players[0].PlayerId,
+            Phase = _legacyActionCompatibility
+                ? CanonicalPhaseIds.LegacyMain
+                : CanonicalPhaseIds.Awakening,
+            LegacyPhaseCompatibility = _legacyActionCompatibility,
+            StartingPlayerId = request.StartingPlayerId,
+            ActivePlayerId = request.StartingPlayerId,
+            PriorityPlayerId = request.StartingPlayerId,
         };
         foreach (var setup in request.Players)
         {
@@ -1433,6 +1486,15 @@ public sealed class EngineSession
             }
 
             state.Players.Add(player);
+        }
+
+        if (!_legacyActionCompatibility)
+        {
+            var initialEntry = CanonicalPhaseLifecycle.PlanAwakeningEntry(
+                state,
+                state.StartingPlayerId,
+                drawCount: 0);
+            CanonicalPhaseLifecycle.ApplyAwakeningEntry(state, initialEntry);
         }
 
         return state;
@@ -2079,13 +2141,15 @@ public sealed class EngineSession
                 "refresh_projection");
         }
 
-        if (!string.Equals(state.Phase, TransitionalMainPhase, StringComparison.Ordinal))
+        if (!string.Equals(state.Phase, CanonicalPhaseIds.Manifestation, StringComparison.Ordinal)
+            && !(_legacyActionCompatibility
+                 && string.Equals(state.Phase, CanonicalPhaseIds.LegacyMain, StringComparison.Ordinal)))
         {
             throw PlayCardValidationException.Create(
                 "phase_invalid",
                 "PLAY_CARD_PHASE_INVALID",
                 "A card cannot be played in the current phase.",
-                $"The transitional production play_card action requires phase={TransitionalMainPhase}.",
+                $"The production play_card action requires phase={CanonicalPhaseIds.Manifestation}.",
                 "refresh_projection");
         }
 
@@ -2828,11 +2892,242 @@ public sealed class EngineSession
             "public",
             payload);
 
-    private ActionResponse ApplyEndTurn(MatchState state, ActionRequest request, int stateVersionBefore)
+    private ActionResponse ApplyAdvancePhase(
+        MatchState state,
+        ActionRequest request,
+        int stateVersionBefore)
+    {
+        if (!CanonicalPhaseIds.IsCanonical(state.Phase))
+        {
+            return RejectAction(
+                state,
+                request,
+                "phase_invalid",
+                Diagnostic(
+                    "ADVANCE_PHASE_STATE_INVALID",
+                    "transition_validation",
+                    "The current phase cannot be advanced.",
+                    "The authoritative state is outside the canonical phase vocabulary.",
+                    "refresh_projection"));
+        }
+
+        if (string.Equals(state.Phase, CanonicalPhaseIds.Incursion, StringComparison.Ordinal))
+        {
+            return ApplyDistributionEntry(state, request, stateVersionBefore);
+        }
+
+        if (string.Equals(state.Phase, CanonicalPhaseIds.Distribution, StringComparison.Ordinal))
+        {
+            try
+            {
+                return ApplyNextPlayerAwakening(state, request, stateVersionBefore);
+            }
+            catch (CanonicalAwakeningEntryException exception)
+            {
+                return RejectAction(
+                    state,
+                    request,
+                    "awakening_draw_unavailable",
+                    Diagnostic(
+                        exception.Code,
+                        "transition_validation",
+                        "The next Awakening cannot be completed.",
+                        exception.Message,
+                        "refresh_projection",
+                        new Dictionary<string, object?>
+                        {
+                            ["player_id"] = exception.PlayerId,
+                            ["required_draw_count"] = exception.RequiredDrawCount,
+                            ["available_deck_count"] = exception.AvailableDeckCount,
+                        }));
+            }
+        }
+
+        var phaseBefore = state.Phase;
+        state.Phase = CanonicalPhaseIds.Next(phaseBefore);
+        state.StateVersion += 1;
+        var transitionEvent = CreatePhaseTransitionEvent(
+            state,
+            request,
+            eventOffset: 0,
+            phaseBefore,
+            state.Phase);
+        state.Events.Add(transitionEvent);
+        return AcceptAction(state, request, stateVersionBefore, transitionEvent);
+    }
+
+    private ActionResponse ApplyDistributionEntry(
+        MatchState state,
+        ActionRequest request,
+        int stateVersionBefore)
+    {
+        var activePlayerId = state.ActivePlayerId;
+        var turnNumber = state.TurnNumber;
+        var cleanup = ApplyTurnEndCleanup(state);
+
+        state.Phase = CanonicalPhaseIds.Distribution;
+        state.StateVersion += 1;
+        var events = ImmutableArray.CreateBuilder<EngineEvent>();
+        events.Add(CreatePhaseTransitionEvent(
+            state,
+            request,
+            events.Count,
+            CanonicalPhaseIds.Incursion,
+            CanonicalPhaseIds.Distribution));
+        AppendTurnEndCleanupEvents(
+            state,
+            request,
+            turnNumber,
+            activePlayerId,
+            events,
+            cleanup,
+            "distribution_phase_cleanup");
+
+        var materializedEvents = events.ToImmutable();
+        state.Events.AddRange(materializedEvents);
+        return AcceptAction(state, request, stateVersionBefore, materializedEvents);
+    }
+
+    private static ActionResponse ApplyNextPlayerAwakening(
+        MatchState state,
+        ActionRequest request,
+        int stateVersionBefore)
     {
         var previousPlayerId = state.ActivePlayerId;
         var nextPlayerId = state.GetNextPlayerId(previousPlayerId);
         var turnBefore = state.TurnNumber;
+        var turnAfter = string.Equals(nextPlayerId, state.StartingPlayerId, StringComparison.Ordinal)
+            ? checked(turnBefore + 1)
+            : turnBefore;
+        var entryPlan = CanonicalPhaseLifecycle.PlanAwakeningEntry(
+            state,
+            nextPlayerId,
+            drawCount: 2);
+
+        state.TurnNumber = turnAfter;
+        state.ActivePlayerId = nextPlayerId;
+        state.PriorityPlayerId = nextPlayerId;
+        state.Phase = CanonicalPhaseIds.Awakening;
+        CanonicalPhaseLifecycle.ApplyAwakeningEntry(state, entryPlan);
+        state.StateVersion += 1;
+
+        var events = ImmutableArray.CreateBuilder<EngineEvent>();
+        var transitionSequence = state.Events.Count + 1;
+        events.Add(new EngineEvent(
+            ContractSchemas.EngineEvent,
+            $"event_{transitionSequence:000000}",
+            transitionSequence,
+            "turn_transition",
+            state.MatchId,
+            state.StateVersion,
+            state.TurnNumber,
+            previousPlayerId,
+            request.ActionType,
+            "public",
+            ContractJsonValue.From(new TurnTransitionPayload(
+                request.ActionId,
+                request.ActionType,
+                previousPlayerId,
+                nextPlayerId,
+                previousPlayerId,
+                nextPlayerId,
+                turnBefore,
+                state.TurnNumber,
+                CanonicalPhaseIds.Distribution,
+                CanonicalPhaseIds.Awakening))));
+
+        foreach (var cardInstanceId in entryPlan.ReadyCardInstanceIds)
+        {
+            var card = state.GetCardInstance(cardInstanceId);
+            var eventSequence = state.Events.Count + events.Count + 1;
+            events.Add(new EngineEvent(
+                ContractSchemas.EngineEvent,
+                $"event_{eventSequence:000000}",
+                eventSequence,
+                "card_readied",
+                state.MatchId,
+                state.StateVersion,
+                state.TurnNumber,
+                nextPlayerId,
+                request.ActionType,
+                "public",
+                ContractJsonValue.From(new AwakeningCardReadiedPayload(
+                    request.ActionId,
+                    request.ActionType,
+                    card.CardInstanceId,
+                    card.CardId,
+                    card.OwnerPlayerId,
+                    card.ControllerPlayerId,
+                    card.Zone,
+                    "exhausted",
+                    "active",
+                    CanonicalPhaseIds.Awakening))));
+        }
+
+        foreach (var draw in entryPlan.DrawTransitions)
+        {
+            var eventSequence = state.Events.Count + events.Count + 1;
+            events.Add(new EngineEvent(
+                ContractSchemas.EngineEvent,
+                $"event_{eventSequence:000000}",
+                eventSequence,
+                "zone_move",
+                state.MatchId,
+                state.StateVersion,
+                state.TurnNumber,
+                nextPlayerId,
+                request.ActionType,
+                "public",
+                ContractJsonValue.From(new ZoneMovePayload(
+                    request.ActionId,
+                    request.ActionType,
+                    draw.CardInstanceId,
+                    draw.CardId,
+                    draw.PlayerId,
+                    draw.PlayerId,
+                    "deck",
+                    "hand",
+                    draw.FromZoneIndex,
+                    draw.ToZoneIndex,
+                    draw.VisibilityBefore,
+                    draw.VisibilityAfter))));
+        }
+
+        var materializedEvents = events.ToImmutable();
+        state.Events.AddRange(materializedEvents);
+        return AcceptAction(state, request, stateVersionBefore, materializedEvents);
+    }
+
+    private static EngineEvent CreatePhaseTransitionEvent(
+        MatchState state,
+        ActionRequest request,
+        int eventOffset,
+        string phaseBefore,
+        string phaseAfter)
+    {
+        var eventSequence = state.Events.Count + eventOffset + 1;
+        return new EngineEvent(
+            ContractSchemas.EngineEvent,
+            $"event_{eventSequence:000000}",
+            eventSequence,
+            "phase_transition",
+            state.MatchId,
+            state.StateVersion,
+            state.TurnNumber,
+            state.ActivePlayerId,
+            request.ActionType,
+            "public",
+            ContractJsonValue.From(new PhaseTransitionPayload(
+                request.ActionId,
+                request.ActionType,
+                state.ActivePlayerId,
+                state.TurnNumber,
+                phaseBefore,
+                phaseAfter)));
+    }
+
+    private TurnEndCleanupResult ApplyTurnEndCleanup(MatchState state)
+    {
         var continuousEffectPlan = CanonicalContinuousEffects.BuildEndTurnPlan(
             state,
             _canonicalRuntime?.Cards,
@@ -2841,63 +3136,57 @@ public sealed class EngineSession
             .Select(mutation => mutation.TargetCardInstanceId)
             .ToHashSet(StringComparer.Ordinal);
         var damagedSurvivors = state.Players
-            .SelectMany(player => new[]
-            {
-                player.Domain.HorizonCardInstanceIds,
-                player.Domain.ZenithCardInstanceIds,
-            })
-            .SelectMany(row => row)
+            .SelectMany(player => player.Domain.HorizonCardInstanceIds
+                .Concat(player.Domain.ZenithCardInstanceIds))
             .Where(cardInstanceId => cardInstanceId is not null)
             .Select(cardInstanceId => state.GetCardInstance(cardInstanceId!))
             .Where(card => card.DamageMarked > 0
                            && !expiryLethalTargets.Contains(card.CardInstanceId))
-            .Select(card => (Card: card, DamageBefore: card.DamageMarked))
+            .Select(card => new TurnEndDamageCleanup(card, card.DamageMarked))
             .ToImmutableArray();
 
-        // Temporary until the explicit phase engine exists: today's end_turn is
-        // the end of the active player's complete turn, so it is the production
-        // proxy for the official Eloszlas boundary: contribution expiry and any
-        // resulting lethal transitions precede survivor-damage cleanup.
         CanonicalContinuousEffects.ApplyEndTurnPlan(state, continuousEffectPlan);
         foreach (var damaged in damagedSurvivors)
         {
             damaged.Card.DamageMarked = 0;
         }
 
-        if (string.Equals(nextPlayerId, state.Players[0].PlayerId, StringComparison.Ordinal))
-        {
-            state.TurnNumber += 1;
-        }
+        return new TurnEndCleanupResult(continuousEffectPlan, damagedSurvivors);
+    }
 
-        state.ActivePlayerId = nextPlayerId;
-        state.PriorityPlayerId = nextPlayerId;
-        state.StateVersion += 1;
-        var events = ImmutableArray.CreateBuilder<EngineEvent>();
-        foreach (var expiration in continuousEffectPlan.Expirations)
+    private static void AppendTurnEndCleanupEvents(
+        MatchState state,
+        ActionRequest request,
+        int turnNumber,
+        string activePlayerId,
+        ImmutableArray<EngineEvent>.Builder events,
+        TurnEndCleanupResult cleanup,
+        string damageRemovalReasonId)
+    {
+        foreach (var expiration in cleanup.ContinuousEffectPlan.Expirations)
         {
             AppendContinuousEffectExpirationEvent(
                 state,
                 request,
-                turnBefore,
-                previousPlayerId,
+                turnNumber,
+                activePlayerId,
                 events,
                 expiration);
         }
 
-        foreach (var lethal in continuousEffectPlan.LethalMutations)
+        foreach (var lethal in cleanup.ContinuousEffectPlan.LethalMutations)
         {
             AppendExpiryLethalEvents(
                 state,
                 request,
-                turnBefore,
-                previousPlayerId,
+                turnNumber,
+                activePlayerId,
                 events,
                 lethal);
         }
 
-        foreach (var damaged in damagedSurvivors)
+        foreach (var damaged in cleanup.DamagedSurvivors)
         {
-            var card = damaged.Card;
             var eventSequence = state.Events.Count + events.Count + 1;
             events.Add(new EngineEvent(
                 ContractSchemas.EngineEvent,
@@ -2906,13 +3195,13 @@ public sealed class EngineSession
                 "damage_removed",
                 state.MatchId,
                 state.StateVersion,
-                turnBefore,
-                previousPlayerId,
+                turnNumber,
+                activePlayerId,
                 request.ActionType,
                 "public",
                 ContractJsonValue.From(new DamageRemovedPayload(
                     $"damage_removal_{eventSequence:000000}",
-                    card.CardInstanceId,
+                    damaged.Card.CardInstanceId,
                     null,
                     damaged.DamageBefore,
                     damaged.DamageBefore,
@@ -2920,9 +3209,45 @@ public sealed class EngineSession
                     0,
                     false,
                     null,
-                    card.CardId,
-                    "temporary_end_turn_dissipation_proxy"))));
+                    damaged.Card.CardId,
+                    damageRemovalReasonId))));
         }
+    }
+
+    private sealed record TurnEndCleanupResult(
+        CanonicalEndTurnContinuousEffectPlan ContinuousEffectPlan,
+        ImmutableArray<TurnEndDamageCleanup> DamagedSurvivors);
+
+    private sealed record TurnEndDamageCleanup(
+        CardInstanceState Card,
+        int DamageBefore);
+
+    private ActionResponse ApplyEndTurn(MatchState state, ActionRequest request, int stateVersionBefore)
+    {
+        var previousPlayerId = state.ActivePlayerId;
+        var nextPlayerId = state.GetNextPlayerId(previousPlayerId);
+        var turnBefore = state.TurnNumber;
+        // The historical oracle action retains its event contract while sharing
+        // the same authoritative turn-end cleanup primitive as Distribution.
+        var cleanup = ApplyTurnEndCleanup(state);
+
+        if (string.Equals(nextPlayerId, state.StartingPlayerId, StringComparison.Ordinal))
+        {
+            state.TurnNumber += 1;
+        }
+
+        state.ActivePlayerId = nextPlayerId;
+        state.PriorityPlayerId = nextPlayerId;
+        state.StateVersion += 1;
+        var events = ImmutableArray.CreateBuilder<EngineEvent>();
+        AppendTurnEndCleanupEvents(
+            state,
+            request,
+            turnBefore,
+            previousPlayerId,
+            events,
+            cleanup,
+            "temporary_end_turn_dissipation_proxy");
 
         var transitionEventSequence = state.Events.Count + events.Count + 1;
         var payload = new TurnTransitionPayload(
@@ -3400,8 +3725,48 @@ public sealed class EngineSession
         Payload = ContractJsonValue.Clone(item.Payload),
     };
 
+    private static ActionResponse ProjectActionResponseForViewer(
+        ActionResponse response,
+        string viewerPlayerId) => response with
+        {
+            Events = response.Events
+                .Select(item => ProjectEventForViewer(item, viewerPlayerId))
+                .ToImmutableArray(),
+        };
+
     private static EngineEvent ProjectEventForViewer(EngineEvent item, string viewerPlayerId)
     {
+        if (string.Equals(item.EventType, "card_readied", StringComparison.Ordinal))
+        {
+            var readyOwnerPlayerId = ReadEventPayloadString(item.Payload, "owner_player_id");
+            var zone = ReadEventPayloadString(item.Payload, "zone");
+            if (string.Equals(readyOwnerPlayerId, viewerPlayerId, StringComparison.Ordinal)
+                || string.Equals(zone, "dominion", StringComparison.Ordinal))
+            {
+                return CloneEvent(item);
+            }
+
+            return item with
+            {
+                Payload = ContractJsonValue.From(new Dictionary<string, object?>
+                {
+                    ["source_action_type"] = ReadEventPayloadString(
+                        item.Payload,
+                        "source_action_type"),
+                    ["owner_player_id"] = readyOwnerPlayerId,
+                    ["zone"] = zone,
+                    ["activity_state_before"] = ReadEventPayloadString(
+                        item.Payload,
+                        "activity_state_before"),
+                    ["activity_state_after"] = ReadEventPayloadString(
+                        item.Payload,
+                        "activity_state_after"),
+                    ["phase"] = ReadEventPayloadString(item.Payload, "phase"),
+                    ["identity_redacted"] = true,
+                }),
+            };
+        }
+
         if (string.Equals(item.EventType, "aura_source_exhausted", StringComparison.Ordinal))
         {
             var sourceOwnerPlayerId = ReadEventPayloadString(item.Payload, "owner_player_id");
@@ -3532,14 +3897,14 @@ public sealed class EngineSession
                 "fix_request");
         }
 
-        if (request.ActionType is "draw_card" or "end_turn"
+        if (request.ActionType is "advance_phase" or "draw_card" or "end_turn"
             && request.Payload.EnumerateObject().Any())
         {
             return Diagnostic(
                 "ACTION_PAYLOAD_INVALID",
                 "request_validation",
                 "Action payload contains unsupported fields.",
-                $"The {request.ActionType} action requires an empty payload object in the C.5B scope.",
+                $"The {request.ActionType} action requires an empty payload object.",
                 "fix_request");
         }
 
@@ -4065,11 +4430,27 @@ public sealed class EngineSession
         CanonicalCardCatalog? canonicalCards = null,
         CanonicalAbilityCatalog? canonicalAbilities = null)
     {
+        if (state.TurnNumber <= 0)
+        {
+            throw new EngineStateException("Turn number must be positive.");
+        }
+
+        var isAllowedLegacyPhase = state.LegacyPhaseCompatibility
+            && string.Equals(state.Phase, CanonicalPhaseIds.LegacyMain, StringComparison.Ordinal);
+        if (!CanonicalPhaseIds.IsCanonical(state.Phase) && !isAllowedLegacyPhase)
+        {
+            throw new EngineStateException("Match phase must use the canonical phase vocabulary.");
+        }
+
         CanonicalContinuousEffects.ValidateState(state, canonicalCards, canonicalAbilities);
         var zoneIds = new HashSet<string>(StringComparer.Ordinal);
         var knownPlayerIds = state.Players
             .Select(player => player.PlayerId)
             .ToHashSet(StringComparer.Ordinal);
+        if (!knownPlayerIds.Contains(state.StartingPlayerId))
+        {
+            throw new EngineStateException("Starting player is unknown.");
+        }
         foreach (var player in state.Players)
         {
             if (player.NormalInflowUsedTurnNumber is int usedTurnNumber

@@ -14,14 +14,14 @@ internal static class VoidZoneTests
         True(response.Accepted, "Canonical fixture match creation failed.");
 
         var debug = session.GetDebugSnapshot();
-        Equal("aeterna-debug-match-snapshot-v3", debug.SchemaVersion, "Debug schema was not bumped.");
+        Equal("aeterna-debug-match-snapshot-v4", debug.SchemaVersion, "Debug schema is invalid.");
         True(debug.Players.All(player => player.VoidCardInstanceIds.IsEmpty), "Initial Void must be empty.");
         var debugJson = JsonSerializer.Serialize(debug);
         True(debugJson.Contains("\"VoidCardInstanceIds\"", StringComparison.Ordinal), "Debug output does not expose Void.");
         False(debugJson.Contains("DiscardCardInstanceIds", StringComparison.Ordinal), "Debug output exposes the retired discard zone field.");
 
         var snapshot = session.GetPlayerSnapshot("player_1");
-        Equal("engine-player-visible-snapshot-v3", snapshot.SchemaVersion, "Player snapshot schema was not bumped.");
+        Equal("engine-player-visible-snapshot-v4", snapshot.SchemaVersion, "Player snapshot schema is invalid.");
         foreach (var player in snapshot.Players)
         {
             Equal("void", player.Void.Zone, "Player snapshot Void zone token is invalid.");
@@ -94,6 +94,7 @@ internal static class VoidZoneTests
             Seed = 1,
             RuntimePackageId = "void-zone-test-package",
             StateVersion = 0,
+            StartingPlayerId = "player_1",
             ActivePlayerId = "player_1",
             PriorityPlayerId = "player_1",
         };

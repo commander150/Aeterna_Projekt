@@ -328,11 +328,11 @@ Canonical kapcsolat:
 
 ## 5. Snapshot és projection contractok
 
-### 5.1 Player-visible snapshot v3
+### 5.1 Player-visible snapshot v4
 
 Schema:
 
-- `engine-player-visible-snapshot-v3`
+- `engine-player-visible-snapshot-v4`
 
 Python státusz:
 
@@ -390,7 +390,7 @@ Production C#:
 
 Schema:
 
-- `aeterna-debug-match-snapshot-v2`
+- `aeterna-debug-match-snapshot-v4`
 
 Python státusz:
 
@@ -413,23 +413,37 @@ A fair AI továbbra is ugyanazt a player-visible observationt használja, mint a
 
 ## 6. Legal action contractok
 
-### 6.1 Minimal legal action space
+### 6.1 Production legal action space
 
 Python státusz:
 
 - `FOUNDATION_ONLY`
 
-Aktív referenciaactionök:
+Történeti referenciaactionök (runtime-comparison fixture only):
 
 - `draw_card`;
 - `end_turn`.
 
-C# candidate:
+C# production:
 
-- draw és end-turn legal actionök bizonyítottak;
+- authoritative `awakening -> infusion -> manifestation -> incursion -> distribution`
+  phase state machine;
+- célfázis nélküli `advance_phase`;
+- phase-specifikus `normal_inflow` és `play_card`;
+- a normál public action space-ben nincs `draw_card` vagy `end_turn`;
+- az internal historical oracle adapterben a draw/end-turn proof változatlanul megmarad;
+- a public `ActionResponse.Events` a requestet beküldő player viewer-projekcióját használja,
+  az internal event store full-fidelity marad;
 - stale action rejection bizonyított.
 
-**Státusz:** `PROVEN_CSHARP_CANDIDATE`
+Post-audit Godot 4.7.1 .NET acceptance:
+
+- pozitív production bridge headless smoke: PASS, canonical `advance_phase` flow, 5 state
+  transition és 7 sorrendhelyes event;
+- negatív production bridge headless smoke: PASS, 2 kontrollált create- és 4 kontrollált
+  action-rejection.
+
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
 Aktív production C# `LegalAction` minimum:
 
@@ -626,12 +640,17 @@ C# candidate:
 
 **Státusz:** `PROVEN_CSHARP_CANDIDATE`
 
-### 8.4 Későbbi typed eventek
+### 8.4 Phase lifecycle és későbbi typed eventek
 
-**Státusz:** `PLANNED_GAMEPLAY`
+- a `phase_transition`, `turn_transition`, `card_readied` és Awakening `zone_move`
+  események az explicit phase foundation aktív részei;
 
-- Wellspring/infusion transition;
-- activity state change;
+**Phase lifecycle státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
+
+Későbbi bővítések:
+
+- további Wellspring/infusion eseménybővítés;
+- további activity state change;
 - payment;
 - card played;
 - Entity entered Domain;
@@ -639,6 +658,8 @@ C# candidate:
 - seal break/restore;
 - victory/defeat;
 - ability resolution.
+
+**További bővítések státusza:** `PLANNED_GAMEPLAY`
 
 ---
 
@@ -813,19 +834,19 @@ A `minimal_draw_end_turn_v1` és a hozzá tartozó `650053262681f79d354867793194
 
 - schema: `engine-player-visible-snapshot-v1`;
 - státusz: `SUPERSEDED`;
-- felváltotta: v2, majd v3.
+- felváltotta: v2, v3, majd v4.
 
 ### 13.1.1 Player-visible snapshot v2
 
 - schema: `engine-player-visible-snapshot-v2`;
 - státusz: `SUPERSEDED`;
-- felváltotta: v3.
+- felváltotta: v3, majd v4.
 
 ### 13.1.2 Canonical match state v1 és debug snapshot v1
 
 - schema: `aeterna-canonical-match-state-v1`, `aeterna-debug-match-snapshot-v1`;
 - státusz: `SUPERSEDED`;
-- felváltotta: v2.
+- felváltotta: v2, majd v3 és v4.
 
 ### 13.2 Card instance record v0
 

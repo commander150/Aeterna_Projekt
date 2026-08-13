@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Aeterna.Engine;
 using Aeterna.Engine.Contracts;
+using Aeterna.Engine.Rules;
 using Aeterna.Engine.Runtime;
 using Aeterna.Engine.State;
 
@@ -512,6 +513,8 @@ internal static class CanonicalTemplateCollectionZoneTests
             MatchId = "template-zone-fixture",
             Seed = 1,
             RuntimePackageId = "runtime_fixture",
+            Phase = CanonicalPhaseIds.Manifestation,
+            StartingPlayerId = "player_1",
             ActivePlayerId = "player_1",
             PriorityPlayerId = "player_1",
         };

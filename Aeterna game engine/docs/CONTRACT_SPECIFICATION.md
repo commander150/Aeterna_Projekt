@@ -556,8 +556,8 @@ Normál Beáramlás:
 
 Legal action:
 
-- perform;
-- skip.
+- `normal_inflow`;
+- `advance_phase` az opcionális Beáramlás kihagyására vagy lezárására.
 
 Accepted transition:
 
@@ -822,6 +822,43 @@ Nem része:
 - play_card;
 - combat;
 - ability execution.
+
+### 24.1 Explicit phase foundation v1
+
+Az aktív production C# turn-flow authoritative fázisállapota:
+
+- `awakening`;
+- `infusion`;
+- `manifestation`;
+- `incursion`;
+- `distribution`.
+
+A normál sorrend kötött, és kizárólag célfázis nélküli `advance_phase` actionnel halad. A
+normál public action space nem hirdet `draw_card` vagy `end_turn` actiont. A Beáramlásban
+`normal_inflow`, a Manifesztációban az egyébként jogszerű `play_card` érhető el; a többi
+foundation fázisban a jelenlegi normál action az `advance_phase`.
+
+Az Ébredés entry egyszeri authoritative transition: az aktív játékos Domínium- és
+Ősforrás-lapjainak Visszaállítása után a meglévő canonical draw transitionnel két lapot
+húz. A `starting_player_id` explicit match-state authority; a kezdő játékos legelső
+Ébredése nulla húzásos kivétel. A Refresh Penalty hiányában a nem teljesíthető kötelező
+húzás `CANONICAL_DRAW_REFRESH_PENALTY_UNSUPPORTED` hibával, teljesen atomikusan áll meg.
+
+Az `incursion -> distribution` boundary végzi az end-of-turn modifier/keyword expiry és
+a túlélő Entitások sebzésének eltávolítását. A játékosváltás és az új Ébredés automatikus
+entry-je csak a `distribution -> awakening` transitionben történik.
+
+Az unresolved mandatory trigger továbbra is gate-eli a normál phase actionöket. Combat,
+reaction/priority és Refresh Penalty végrehajtás nem része ennek a foundationnek.
+
+A public `ActionResponse.Events` viewerje a requestet beküldő játékos akkor is, ha a
+transition közben az aktív játékos megváltozik. A response ugyanazt a viewer-specifikus
+eventprojekciót használja, mint a `GetEvents(viewer)`, miközben az internal authoritative
+event store teljes identitású eseményei változatlanul megmaradnak.
+
+Post-audit bizonyítás: a Godot 4.7.1 .NET pozitív production bridge headless smoke canonical
+`advance_phase` flow-val, öt state transitionnel és hét sorrendhelyes eventtel PASS; a
+negatív smoke két kontrollált create- és négy kontrollált action-rejectionnel PASS.
 
 ---
 

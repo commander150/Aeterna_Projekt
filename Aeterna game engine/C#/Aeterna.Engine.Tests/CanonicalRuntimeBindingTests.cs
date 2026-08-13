@@ -3,31 +3,33 @@ using System.Text.Json;
 using Aeterna.Engine;
 using Aeterna.Engine.Contracts;
 using Aeterna.Engine.Headless;
+using Aeterna.Engine.Rules;
 using Aeterna.Engine.Runtime;
 using Aeterna.Engine.State;
 
 internal static class CanonicalRuntimeBindingTests
 {
-    internal static void LegacyV1RequestRemainsCompatible()
+    internal static void CurrentV2RequestWithoutCanonicalDataRemainsSupported()
     {
-        var request = LegacyRequest();
+        var request = BaseV2Request();
+        Equal("aeterna-create-match-request-v2", request.SchemaVersion, "Current create-match request schema is invalid.");
         var json = JsonSerializer.Serialize(request);
-        False(json.Contains("canonical_data", StringComparison.Ordinal), "Legacy v1 JSON shape gained a null canonical_data field.");
+        False(json.Contains("canonical_data", StringComparison.Ordinal), "Current v2 JSON shape gained a null canonical_data field.");
         var roundTrip = JsonSerializer.Deserialize<CreateMatchRequest>(json)
-            ?? throw new InvalidOperationException("Legacy v1 request did not deserialize.");
+            ?? throw new InvalidOperationException("Current v2 request did not deserialize.");
         Equal(null, roundTrip.CanonicalData, "Omitted canonical_data must deserialize as not configured.");
 
         var session = new EngineSession();
         var response = session.CreateMatch(roundTrip);
-        True(response.Accepted, "Legacy-only v1 CreateMatch was rejected.");
-        False(session.GetDebugCanonicalAbilityRuntimeStatus().Available, "Legacy-only session partially enabled canonical runtime.");
+        True(response.Accepted, "Current v2 CreateMatch without canonical_data was rejected.");
+        False(session.GetDebugCanonicalAbilityRuntimeStatus().Available, "Runtime source omission partially enabled canonical runtime.");
     }
 
     internal static void ValidCanonicalSourceBindsCatalog()
     {
         using var packages = TemporaryCanonicalRuntimePackages.Create();
         var session = new EngineSession();
-        var response = session.CreateMatch(WithCanonicalSource(LegacyRequest(), packages));
+        var response = session.CreateMatch(WithCanonicalSource(BaseV2Request(), packages));
 
         True(response.Accepted, "Valid canonical source was rejected.");
         var status = session.GetDebugCanonicalAbilityRuntimeStatus();
@@ -41,7 +43,7 @@ internal static class CanonicalRuntimeBindingTests
     internal static void InvalidCanonicalPathsAreRejected()
     {
         using var packages = TemporaryCanonicalRuntimePackages.Create();
-        var missingRegistry = new EngineSession().CreateMatch(LegacyRequest() with
+        var missingRegistry = new EngineSession().CreateMatch(BaseV2Request() with
         {
             CanonicalData = new CanonicalRuntimeSource(
                 Path.Combine(packages.RootDirectory, "missing-registry"),
@@ -49,7 +51,7 @@ internal static class CanonicalRuntimeBindingTests
         });
         AssertRejected(missingRegistry, "CANONICAL_RUNTIME_LOAD_FAILED");
 
-        var missingCards = new EngineSession().CreateMatch(LegacyRequest() with
+        var missingCards = new EngineSession().CreateMatch(BaseV2Request() with
         {
             CanonicalData = new CanonicalRuntimeSource(
                 packages.RegistryDirectory,
@@ -61,7 +63,7 @@ internal static class CanonicalRuntimeBindingTests
     internal static void InvalidCanonicalSourceModeIsRejected()
     {
         using var packages = TemporaryCanonicalRuntimePackages.Create();
-        var response = new EngineSession().CreateMatch(LegacyRequest() with
+        var response = new EngineSession().CreateMatch(BaseV2Request() with
         {
             CanonicalData = new CanonicalRuntimeSource(
                 packages.RegistryDirectory,
@@ -75,7 +77,7 @@ internal static class CanonicalRuntimeBindingTests
     internal static void CanonicalDependencyMismatchIsRejected()
     {
         using var packages = TemporaryCanonicalRuntimePackages.Create(minimumRegistrySchemaVersion: "9.0.0");
-        var response = new EngineSession().CreateMatch(WithCanonicalSource(LegacyRequest(), packages));
+        var response = new EngineSession().CreateMatch(WithCanonicalSource(BaseV2Request(), packages));
         AssertRejected(response, "CANONICAL_RUNTIME_LOAD_FAILED");
         Contains(
             response.Diagnostics.Single().DeveloperMessage,
@@ -92,7 +94,7 @@ internal static class CanonicalRuntimeBindingTests
             "target_id",
             "missing_target");
         using var packages = TemporaryCanonicalRuntimePackages.Create(malformed);
-        var response = new EngineSession().CreateMatch(WithCanonicalSource(LegacyRequest(), packages));
+        var response = new EngineSession().CreateMatch(WithCanonicalSource(BaseV2Request(), packages));
 
         AssertRejected(response, "CANONICAL_RUNTIME_MATERIALIZATION_FAILED");
         Contains(
@@ -106,13 +108,13 @@ internal static class CanonicalRuntimeBindingTests
         using var packages = TemporaryCanonicalRuntimePackages.Create(minimumRegistrySchemaVersion: "9.0.0");
         var session = new EngineSession();
         AssertRejected(
-            session.CreateMatch(WithCanonicalSource(LegacyRequest(), packages)),
+            session.CreateMatch(WithCanonicalSource(BaseV2Request(), packages)),
             "CANONICAL_RUNTIME_LOAD_FAILED");
         False(session.GetDebugCanonicalAbilityRuntimeStatus().Available, "Failed setup retained a canonical runtime.");
 
-        var retry = session.CreateMatch(LegacyRequest());
-        True(retry.Accepted, "Failed canonical setup committed legacy match state.");
-        False(session.GetDebugCanonicalAbilityRuntimeStatus().Available, "Legacy retry unexpectedly enabled canonical runtime.");
+        var retry = session.CreateMatch(BaseV2Request());
+        True(retry.Accepted, "Failed canonical setup committed base-runtime match state.");
+        False(session.GetDebugCanonicalAbilityRuntimeStatus().Available, "Base-runtime retry unexpectedly enabled canonical runtime.");
     }
 
     internal static void EnteredPlayBridgeAndRealAbilityAreDiscovered()
@@ -274,7 +276,7 @@ internal static class CanonicalRuntimeBindingTests
     private static CanonicalAbilityCatalog Materialize() =>
         CanonicalAbilityMaterializer.Materialize(CanonicalAbilityCatalogTests.CreatePackage());
 
-    private static CreateMatchRequest LegacyRequest() =>
+    private static CreateMatchRequest BaseV2Request() =>
         RuntimeComparisonFixture.Load(FixtureLocator.LocateCanonicalFixture()).CreateMatchRequest();
 
     private static CreateMatchRequest WithCanonicalSource(
@@ -294,6 +296,8 @@ internal static class CanonicalRuntimeBindingTests
             Seed = 17,
             RuntimePackageId = "canonical-trigger-legacy-runtime",
             StateVersion = 0,
+            Phase = CanonicalPhaseIds.Manifestation,
+            StartingPlayerId = "player_1",
             ActivePlayerId = "player_1",
             PriorityPlayerId = "player_1",
         };

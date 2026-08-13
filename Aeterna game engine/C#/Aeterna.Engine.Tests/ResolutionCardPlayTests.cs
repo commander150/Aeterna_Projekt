@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Aeterna.Engine;
 using Aeterna.Engine.Contracts;
+using Aeterna.Engine.Rules;
 using Aeterna.Engine.Runtime;
 using Aeterna.Engine.State;
 
@@ -38,9 +39,12 @@ internal static class ResolutionCardPlayTests
 
         Equal("not_active_player", PlayAction(fixture, "player_2").DisabledReason, "Inactive-player reason is invalid.");
         var wrongPhase = CreateFixture();
-        wrongPhase.State.Phase = "combat";
+        wrongPhase.State.Phase = CanonicalPhaseIds.Incursion;
         EngineSession.ValidateState(wrongPhase.State);
-        Equal("phase_not_main", PlayAction(wrongPhase).DisabledReason, "Wrong-phase reason is invalid.");
+        False(
+            wrongPhase.Session.ListLegalActions("player_1", includeDisabled: true).Actions
+                .Any(item => item.ActionType == "play_card"),
+            "Resolution play_card was exposed outside Manifestation.");
 
         AssertUnavailable(CreateFixture(boardCards: []), "Resolution card with no legal target was enabled.");
         AssertUnavailable(CreateFixture(includeCanonicalRuntime: false), "Resolution card without canonical runtime was enabled.");
@@ -395,6 +399,8 @@ internal static class ResolutionCardPlayTests
             Seed = 71,
             RuntimePackageId = "resolution-card-play-runtime",
             StateVersion = 0,
+            Phase = CanonicalPhaseIds.Manifestation,
+            StartingPlayerId = "player_1",
             ActivePlayerId = "player_1",
             PriorityPlayerId = "player_1",
         };

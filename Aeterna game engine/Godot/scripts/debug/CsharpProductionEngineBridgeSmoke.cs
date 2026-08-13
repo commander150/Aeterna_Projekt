@@ -22,71 +22,77 @@ public partial class CsharpProductionEngineBridgeSmoke : Node
             var runtimePackagePath = ResolveRuntimePackagePath();
             var createRequest = new CreateMatchRequest(
                 ContractSchemas.CreateMatchRequest,
-                "RUNTIME-COMPARISON-MINIMAL-DRAW-END-TURN-V1",
+                "GODOT-CANONICAL-PHASE-SMOKE-V1",
                 Seed: 1,
                 ImmutableArray.Create(
                     new PlayerSetup("player_1", "FIXTURE-DECK-PLAYER-1"),
                     new PlayerSetup("player_2", "FIXTURE-DECK-PLAYER-2")),
                 StartingHandSize: 1,
+                StartingPlayerId: "player_1",
                 new RuntimePackageSource(runtimePackagePath));
             var createResponse = Deserialize<CreateMatchResponse>(
                 bridge.CreateMatchJson(JsonSerializer.Serialize(createRequest)));
             Require(createResponse.Accepted, "CREATE_MATCH_REJECTED", "Godot bridge could not create the fixture match.");
 
-            var drawPlayerOne = EnabledAction(bridge, "player_1", "draw_card");
-            var drawOneResponse = Submit(
+            var firstAdvance = EnabledAction(bridge, "player_1", "advance_phase");
+            var firstAdvanceResponse = Submit(
                 bridge,
                 createRequest.MatchId,
-                drawPlayerOne,
-                "godot_bridge_draw_player_1",
+                firstAdvance,
+                "godot_bridge_awakening_to_infusion",
                 expectedStateVersion: 0);
-            Require(drawOneResponse.Accepted, "DRAW_REJECTED", "Player one draw was rejected.");
+            Require(firstAdvanceResponse.Accepted, "PHASE_ADVANCE_REJECTED", "Awakening to Infusion was rejected.");
 
             var snapshotBeforeStale = bridge.GetPlayerSnapshotJson("player_1");
             var eventsBeforeStale = bridge.GetEventsJson("player_1");
-            var staleEndTurn = EnabledAction(bridge, "player_1", "end_turn");
+            var staleAdvance = EnabledAction(bridge, "player_1", "advance_phase");
             var staleResponse = Submit(
                 bridge,
                 createRequest.MatchId,
-                staleEndTurn,
-                "godot_bridge_stale_end_turn_player_1",
+                staleAdvance,
+                "godot_bridge_stale_phase_advance",
                 expectedStateVersion: 0);
             Require(!staleResponse.Accepted, "STALE_ACCEPTED", "Stale request was accepted.");
             Require(staleResponse.Reason == "stale_state_version", "STALE_REASON_INVALID", "Stale reason is invalid.");
             Require(snapshotBeforeStale == bridge.GetPlayerSnapshotJson("player_1"), "STALE_STATE_MUTATED", "Stale request changed a player projection.");
             Require(eventsBeforeStale == bridge.GetEventsJson("player_1"), "STALE_EVENTS_MUTATED", "Stale request changed the event log.");
 
-            var endTurn = EnabledAction(bridge, "player_1", "end_turn");
-            var endTurnResponse = Submit(
-                bridge,
-                createRequest.MatchId,
-                endTurn,
-                "godot_bridge_end_turn_player_1",
-                expectedStateVersion: 1);
-            Require(endTurnResponse.Accepted, "END_TURN_REJECTED", "Player one end turn was rejected.");
-
-            var drawPlayerTwo = EnabledAction(bridge, "player_2", "draw_card");
-            var drawTwoResponse = Submit(
-                bridge,
-                createRequest.MatchId,
-                drawPlayerTwo,
-                "godot_bridge_draw_player_2",
-                expectedStateVersion: 2);
-            Require(drawTwoResponse.Accepted, "SECOND_DRAW_REJECTED", "Player two draw was rejected.");
+            ActionResponse awakeningResponse = null!;
+            for (var stateVersion = 1; stateVersion < 5; stateVersion += 1)
+            {
+                var advance = EnabledAction(bridge, "player_1", "advance_phase");
+                awakeningResponse = Submit(
+                    bridge,
+                    createRequest.MatchId,
+                    advance,
+                    $"godot_bridge_phase_advance_{stateVersion + 1}",
+                    expectedStateVersion: stateVersion);
+                Require(awakeningResponse.Accepted, "PHASE_ADVANCE_REJECTED", "Canonical phase progression was rejected.");
+            }
 
             var playerOneSnapshot = Deserialize<PlayerSnapshot>(bridge.GetPlayerSnapshotJson("player_1"));
             var playerTwoSnapshot = Deserialize<PlayerSnapshot>(bridge.GetPlayerSnapshotJson("player_2"));
             ValidateVisibility(playerOneSnapshot, "player_1", "player_2");
             ValidateVisibility(playerTwoSnapshot, "player_2", "player_1");
-            var events = Deserialize<ImmutableArray<EngineEvent>>(bridge.GetEventsJson("player_1"));
-            var opponentEvents = Deserialize<ImmutableArray<EngineEvent>>(bridge.GetEventsJson("player_2"));
+            Require(playerOneSnapshot.ActivePlayerId == "player_2", "PLAYER_SWITCH_INVALID", "Distribution exit did not activate player two.");
+            Require(playerOneSnapshot.Phase == "awakening", "PHASE_INVALID", "Distribution exit did not enter Awakening.");
+            var playerOneEvents = Deserialize<ImmutableArray<EngineEvent>>(bridge.GetEventsJson("player_1"));
+            var playerTwoEvents = Deserialize<ImmutableArray<EngineEvent>>(bridge.GetEventsJson("player_2"));
             var matchResult = Deserialize<MatchResult>(bridge.GetMatchResultJson());
-            Require(events.Length == 3, "EVENT_COUNT_INVALID", "Godot bridge event count is invalid.");
-            Require(events.Select(item => item.EventSequence).SequenceEqual([1, 2, 3]), "EVENT_SEQUENCE_INVALID", "Godot bridge event sequence is invalid.");
-            var opponentDraw = opponentEvents.Single(item =>
-                item.EventType == "zone_move" && item.ActorPlayerId == "player_1");
-            Require(!opponentDraw.Payload.TryGetProperty("card_instance_id", out _), "EVENT_CARD_INSTANCE_LEAK", "Godot bridge leaked opponent card_instance_id.");
-            Require(!opponentDraw.Payload.TryGetProperty("card_id", out _), "EVENT_CARD_ID_LEAK", "Godot bridge leaked opponent card_id.");
+            Require(playerOneEvents.Length == 7, "EVENT_COUNT_INVALID", "Godot bridge event count is invalid.");
+            Require(playerOneEvents.Select(item => item.EventSequence).SequenceEqual(Enumerable.Range(1, 7)), "EVENT_SEQUENCE_INVALID", "Godot bridge event sequence is invalid.");
+            var playerOneDrawViews = playerOneEvents.Where(item =>
+                item.EventType == "zone_move" && item.ActorPlayerId == "player_2").ToArray();
+            Require(playerOneDrawViews.Length == 2, "AUTOMATIC_DRAW_COUNT_INVALID", "Player two Awakening draw count is invalid.");
+            Require(playerOneDrawViews.All(item => !item.Payload.TryGetProperty("card_instance_id", out _)), "EVENT_CARD_INSTANCE_LEAK", "Godot bridge leaked opponent card_instance_id.");
+            Require(playerOneDrawViews.All(item => !item.Payload.TryGetProperty("card_id", out _)), "EVENT_CARD_ID_LEAK", "Godot bridge leaked opponent card_id.");
+            var playerTwoDrawViews = playerTwoEvents.Where(item =>
+                item.EventType == "zone_move" && item.ActorPlayerId == "player_2").ToArray();
+            Require(playerTwoDrawViews.All(item => item.Payload.TryGetProperty("card_instance_id", out _)), "OWNER_EVENT_REDACTED", "Player two lost own card_instance_id.");
+            Require(playerTwoDrawViews.All(item => item.Payload.TryGetProperty("card_id", out _)), "OWNER_CARD_ID_REDACTED", "Player two lost own card_id.");
+            var responseDrawViews = awakeningResponse.Events.Where(item => item.EventType == "zone_move").ToArray();
+            Require(responseDrawViews.All(item => !item.Payload.TryGetProperty("card_instance_id", out _)), "ACTION_RESPONSE_INSTANCE_LEAK", "Submitting player ActionResponse leaked next-player card_instance_id.");
+            Require(responseDrawViews.All(item => !item.Payload.TryGetProperty("card_id", out _)), "ACTION_RESPONSE_CARD_ID_LEAK", "Submitting player ActionResponse leaked next-player card_id.");
             Require(!matchResult.Completed, "MATCH_RESULT_INVALID", "Minimal match unexpectedly completed.");
 
             var summary = new JsonObject
@@ -99,12 +105,14 @@ public partial class CsharpProductionEngineBridgeSmoke : Node
                 ["separate_engine_process"] = false,
                 ["python_process_started"] = false,
                 ["tcp_listener_used"] = false,
-                ["final_state_version"] = drawTwoResponse.StateVersionAfter,
-                ["event_count"] = events.Length,
-                ["event_sequences"] = new JsonArray(events.Select(item => JsonValue.Create(item.EventSequence)).ToArray()),
+                ["final_state_version"] = awakeningResponse.StateVersionAfter,
+                ["event_count"] = playerOneEvents.Length,
+                ["event_sequences"] = new JsonArray(playerOneEvents.Select(item => JsonValue.Create(item.EventSequence)).ToArray()),
                 ["stale_rejected"] = !staleResponse.Accepted,
                 ["stale_state_unchanged"] = true,
                 ["hidden_information_checks_passed"] = true,
+                ["canonical_phase_flow"] = true,
+                ["action_response_viewer_safe"] = true,
                 ["final_result"] = "PASS",
                 ["error_code"] = null,
                 ["error"] = null,

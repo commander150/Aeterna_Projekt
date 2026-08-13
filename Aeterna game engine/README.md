@@ -174,6 +174,13 @@ Aktív production projektek:
 
 A `Aeterna.Engine` Godottól és Pythontól független `net8.0` core. A headless host és a Godot production bridge ugyanazt az `EngineSession` implementációt használja.
 
+Az aktív production engine turn-flowja explicit öt-fázisú authoritative state machine:
+`awakening -> infusion -> manifestation -> incursion -> distribution`. A public progression
+action az `advance_phase`; az Awakening ready + draw automatikus, a kezdő játékos első
+Awakeningje explicit 0-draw kivétel, a Distribution cleanup után pedig külön transition
+vált játékost. A történeti draw/end-turn runtime-comparison proof internal adapteren marad
+reprodukálható.
+
 ### `Godot/`
 
 Aktív és bizonyított szerepek:

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Aeterna.Engine;
 using Aeterna.Engine.Contracts;
+using Aeterna.Engine.Rules;
 using Aeterna.Engine.Runtime;
 using Aeterna.Engine.State;
 
@@ -83,7 +84,7 @@ internal static class CanonicalAbilityExecutionTests
         Equal("ci_target_selected", response.Events[0].Payload.GetProperty("card_instance_id").GetString(), "Activity event target is invalid.");
         Equal(CanonicalEffectExecutor.AppliedOutcome, response.Events[1].Payload.GetProperty("resolution_outcome").GetString(), "Resolution outcome is invalid.");
         True(
-            fixture.Session.ListLegalActions("player_1", includeDisabled: false).Actions.Any(item => item.ActionType == "end_turn"),
+            fixture.Session.ListLegalActions("player_1", includeDisabled: false).Actions.Any(item => item.ActionType == "advance_phase"),
             "Normal action space did not return after the pending window closed.");
     }
 
@@ -128,7 +129,7 @@ internal static class CanonicalAbilityExecutionTests
             response.Events[^1].Payload.GetProperty("resolution_outcome").GetString(),
             "No-target lifecycle outcome is invalid.");
         True(
-            fixture.Session.ListLegalActions("player_1", includeDisabled: false).Actions.Any(item => item.ActionType == "end_turn"),
+            fixture.Session.ListLegalActions("player_1", includeDisabled: false).Actions.Any(item => item.ActionType == "advance_phase"),
             "No-target lifecycle did not restore normal gameplay.");
     }
 
@@ -142,7 +143,7 @@ internal static class CanonicalAbilityExecutionTests
         foreach (var playerId in new[] { "player_1", "player_2" })
         {
             var actionSpace = fixture.Session.ListLegalActions(playerId, includeDisabled: true);
-            foreach (var actionType in new[] { "end_turn", "normal_inflow", "play_card", "draw_card" })
+            foreach (var actionType in new[] { "advance_phase", "play_card" })
             {
                 var action = actionSpace.Actions.Single(item => item.ActionType == actionType);
                 Equal("pending_trigger_resolution_required", action.DisabledReason, $"{actionType} has the wrong pending gate reason.");
@@ -396,6 +397,8 @@ internal static class CanonicalAbilityExecutionTests
             Seed = 53,
             RuntimePackageId = "canonical-ability-execution-runtime",
             StateVersion = 0,
+            Phase = CanonicalPhaseIds.Manifestation,
+            StartingPlayerId = "player_1",
             ActivePlayerId = "player_1",
             PriorityPlayerId = "player_1",
         };

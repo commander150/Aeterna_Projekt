@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Aeterna.Engine;
 using Aeterna.Engine.Contracts;
+using Aeterna.Engine.Rules;
 using Aeterna.Engine.Runtime;
 using Aeterna.Engine.State;
 
@@ -82,10 +83,10 @@ internal static class CanonicalModifierKeywordDurationTests
                                          && item.Payload.GetProperty("entity_instance_id").GetString() == "lethal"),
             "Destroyed Entity incorrectly received survivor damage cleanup.");
         SequenceEqual(
-            ["modifier_removed", "keyword_removed", "entity_destroyed", "card_zone_changed", "turn_transition"],
+            ["phase_transition", "modifier_removed", "keyword_removed", "entity_destroyed", "card_zone_changed"],
             response.Events.Select(item => item.EventType),
             "Expiry/lethal/cleanup/turn ordering is invalid.");
-        Equal("destruction_cause_kind_rule_state_consequence", response.Events[2].Payload.GetProperty("destruction_cause_kind_id").GetString(), "Expiry-lethal destruction cause is invalid.");
+        Equal("destruction_cause_kind_rule_state_consequence", response.Events[3].Payload.GetProperty("destruction_cause_kind_id").GetString(), "Expiry-lethal destruction cause is invalid.");
     }
 
     internal static void IgnHam036And041ShareGenericModifierGrantRuntime()
@@ -177,7 +178,7 @@ internal static class CanonicalModifierKeywordDurationTests
         True(Play(first, [new CanonicalTargetSelectionPayload(Ham036TargetId, ["target"])]).Accepted, "First deterministic fixture failed.");
         True(Play(second, [new CanonicalTargetSelectionPayload(Ham036TargetId, ["target"])]).Accepted, "Second deterministic fixture failed.");
         var debug = first.Session.GetDebugSnapshot();
-        Equal("aeterna-debug-match-snapshot-v3", debug.SchemaVersion, "Debug contribution contract version is invalid.");
+        Equal("aeterna-debug-match-snapshot-v4", debug.SchemaVersion, "Debug contribution contract version is invalid.");
         Equal(1, debug.ModifierInstances.Length, "Debug modifier registry is missing.");
         Equal(1, debug.KeywordGrantInstances.Length, "Debug grant registry is missing.");
         Equal("ability_ign_ham_036_01", debug.ModifierInstances[0].SourceAbilityId, "Debug source identity is invalid.");
@@ -296,7 +297,8 @@ internal static class CanonicalModifierKeywordDurationTests
             RuntimePackageId = "modifier-keyword-runtime",
             StateVersion = 0,
             TurnNumber = 1,
-            Phase = "main",
+            Phase = CanonicalPhaseIds.Manifestation,
+            StartingPlayerId = "player_1",
             ActivePlayerId = "player_1",
             PriorityPlayerId = "player_1",
         };
@@ -433,7 +435,8 @@ internal static class CanonicalModifierKeywordDurationTests
 
     private static ActionResponse EndTurn(Fixture fixture)
     {
-        var action = fixture.Session.ListLegalActions("player_1").Actions.Single(item => item.ActionType == "end_turn");
+        fixture.State.Phase = CanonicalPhaseIds.Incursion;
+        var action = fixture.Session.ListLegalActions("player_1").Actions.Single(item => item.ActionType == "advance_phase");
         return fixture.Session.SubmitAction(new ActionRequest(
             ContractSchemas.ActionRequest,
             "end-turn",
