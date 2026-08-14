@@ -2,31 +2,20 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.4\
-**Dátum:** 2026-07-22\
-**Státusz:** aktív prototípus- és technikai bizonyíték státusztérkép  
-**Felváltott fájl:** `CURRENT_PROTOTYPE_STATUS.md`  
-**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
+**Dokumentumverzió:** 1.5
+**Dátum:** 2026-08-14
+**Státusz:** aktív prototípus- és technikai bizonyíték státusztérkép
+**Felváltott verzió:** `PROTOTYPE_STATUS.md` 1.4
+**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 
-Ez a dokumentum azt rögzíti, hogy:
+Ez a dokumentum rögzíti:
 
-- mely prototípusok készültek el;
+- mely proofok készültek el;
 - melyek váltak aktív rendszeralappá;
-- melyek maradnak referencia- vagy történeti proofok;
-- mely technológiai döntések zárultak le;
-- mi a következő implementációs lépés;
+- melyek maradnak referencia/történeti proofok;
+- milyen production rétegek készültek el;
+- mi a következő implementáció előtti döntési kapu;
 - mit nem szabad kész production rendszerként kezelni.
-
-Kapcsolódó aktív dokumentumok:
-
-- `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
-- `ARCHITECTURE.md`
-- `TECHNOLOGY_DECISIONS.md`
-- `DECISION_MAP.md`
-- `CONTRACT_STATUS.md`
-- `OPEN_QUESTIONS.md`
-- `checkpoints/ENGINE_CHECKPOINT.md`
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.4.md`
 
 ---
 
@@ -34,375 +23,262 @@ Kapcsolódó aktív dokumentumok:
 
 | Státusz | Jelentés |
 |---|---|
-| `COMPLETE_AND_ACCEPTED` | A proof célját teljesítette, a döntés elfogadott. |
-| `COMPLETE_AND_FROZEN` | A proof működőképes, de nem fejlesztendő tovább production főágként. |
-| `PROMOTED_TO_ACTIVE_SYSTEM` | A prototípusból aktív tooling-, runtime- vagy contract-réteg lett. |
-| `COMPLETED_FOUNDATION` | Az alapozási cél teljesült, a réteg megtartandó. |
-| `REFERENCE_ORACLE` | Összehasonlítási és regressziós referencia. |
-| `READY_FOR_IMPLEMENTATION` | A feladat specifikált és implementálható. |
-| `PAUSED_CODEX_QUOTA` | A feladat nem technikai okból, hanem Codex-keret miatt szünetel. |
-| `QUEUED_AFTER_C5B` | A production C# foundation után következik. |
-| `RESEARCH_ONLY_DEFERRED` | Későbbi kutatási irány, nem aktív production feladat. |
-| `HISTORICAL_REFERENCE` | Történeti bizonyíték, nem aktív task queue. |
-| `NOT_STARTED` | Még nincs implementálva. |
+| `COMPLETE_AND_ACCEPTED` | A proof/mérföldkő célját teljesítette és elfogadott. |
+| `COMPLETE_AND_FROZEN` | Működő proof, de production főágként nem fejlesztendő. |
+| `PROMOTED_TO_ACTIVE_SYSTEM` | Aktív tooling/runtime/contract réteg lett. |
+| `COMPLETED_FOUNDATION` | Az alapozási cél teljesült. |
+| `REFERENCE_ORACLE` | Összehasonlítási/regressziós referencia. |
+| `IMPLEMENTED_AND_ACTIVE` | Productionben létező, tovább bővíthető réteg. |
+| `RULES_CONTRACT_PREP` | Következő feladat, de implementáció előtt rules/contract munka kell. |
+| `RESEARCH_ONLY_DEFERRED` | Későbbi kutatási irány. |
+| `HISTORICAL_REFERENCE` | Történeti bizonyíték. |
+| `NOT_IMPLEMENTED` | Productionben még nincs megvalósítva. |
+
+A korábbi `QUEUED_AFTER_C5B` jelölés a C.5B utáni gameplay-sor nagy részére már elavult.
 
 ---
 
 ## 2. Runtime package és adatpipeline
 
-### 2.1 Runtime package generator és publish pipeline
+### Runtime package generator/publish
+`PROMOTED_TO_ACTIVE_SYSTEM`
 
-**Státusz:** `PROMOTED_TO_ACTIVE_SYSTEM`
+### Godot runtime loader
+`PROMOTED_TO_ACTIVE_SYSTEM`
 
-Bizonyított:
+### Sample contract/debug nézetek
+`COMPLETED_FOUNDATION`
 
-- package build;
-- manifest és többfájlos package;
-- cards/decks/lookups/aliases/diagnostics;
-- candidate validation;
-- Godot consumption copy;
-- valós adatméret;
-- determinisztikus és auditálható export.
+### Canonical workbook/runtime binding
+`IMPLEMENTED_AND_ACTIVE`
 
-A Python adatpipeline aktív és megtartandó.
+Tartalmaz:
 
-### 2.2 Godot runtime package loader
-
-**Státusz:** `PROMOTED_TO_ACTIVE_SYSTEM`
-
-Bizonyított:
-
-- package betöltés;
-- card/deck/lookup registry;
-- ability és diagnostics adat;
-- headless smoke;
-- consumption path: `res://runtime_package`.
-
-### 2.3 Sample contract loader és debug nézetek
-
-**Státusz:** `COMPLETED_FOUNDATION`
-
-Ide tartozik:
-
-- sample snapshot;
-- sample legal action;
-- sample event log;
-- snapshot viewer;
-- legal action debug panel;
-- event log debug view;
-- unified dashboard;
-- card reference resolver;
-- consistency smoke.
-
-Ezek debug- és kliensintegrációs alapok.
+- canonical workbook export;
+- `CARDDATABASE.xlsx`;
+- `REGISTRY.xlsx`;
+- canonical package loader;
+- runtime lookup/card binding.
 
 ---
 
 ## 3. Python minimal rules-engine referencia
 
-**Státusz:** `REFERENCE_ORACLE`
+`REFERENCE_ORACLE`
 
-A Python engine bizonyítottan tartalmaz:
+Megmarad:
 
-- MatchState és PlayerState;
-- session és environment;
-- expected state version guard;
-- card instance registry;
-- draw transition;
-- end-turn transition;
-- generic typed event envelope;
-- `zone_move` és `turn_transition` event;
-- player-visible snapshot;
-- hidden-information redakció;
-- AI episode trajectory;
-- Domain topology;
-- Domain occupancy;
-- public board projection;
-- structural Entity placement options;
-- card instance activity state;
-- izolált Wellspring state és resource summary.
+- comparison fixture;
+- expected-output forrás;
+- AI/batch/regressziós oracle.
 
-Döntés:
-
-- nem törlendő;
-- nem automatikusan archiválandó;
-- comparison fixture és expected-output forrás;
-- AI-, batch- és regressziós orákulum;
-- production C# migráció ellenőrző alap.
-
-Nem tekintendő a végleges production authoritative runtime-nak.
+Nem production authority.
 
 ---
 
 ## 4. Python–Godot sidecar proof
 
-**Státusz:** `COMPLETE_AND_FROZEN`
+`COMPLETE_AND_FROZEN`
 
 Lezáró commit:
-
-`d1fb7aaa23d58f166a30f9e0241799f35f5ac14e` – `Fix Godot sidecar cancellation race warnings`
-
-Bizonyított:
-
-- külön Python engine-processz;
-- localhost TCP;
-- handshake;
-- request/response framing;
-- timeout és cancellation;
-- kontrollált shutdown;
-- Emergency Shutdown;
-- F8 parent watchdog;
-- orphan-processz elleni védelem;
-- helyes canonical output;
-- warning-, error- és crashmentes manuális futás.
-
-Döntés:
-
-- proofként megmarad;
-- production főmotorként nem folytatandó;
-- nem készül hozzá új TCP-, watchdog-, launcher- vagy packaging-fejlesztés.
+`d1fb7aaa23d58f166a30f9e0241799f35f5ac14e`
 
 ---
 
-## 5. C# minimal in-process runtime proof
+## 5. C# RuntimeCandidate proof
 
-**Státusz:** `COMPLETE_AND_ACCEPTED`
+`COMPLETE_AND_ACCEPTED`
 
 Lezáró commit:
+`8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
-`8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
-
-Környezet:
-
-- Godot `4.7.1.stable.mono.official.a13da4feb`;
-- .NET SDK `8.0.423`;
-- `Microsoft.NETCore.App 8.0.29`;
-- target framework `net8.0`.
-
-Bizonyított:
-
-- pure C# runtime candidate;
-- Godot .NET in-process futás;
-- nincs külön engine-processz;
-- nincs Python-processz;
-- nincs TCP/listener;
-- Debug és Release build;
-- headless proof;
-- visual proof;
-- két manuális PASS;
-- újrafuttatható Run gomb;
-- 100-run determinisztika;
-- mutation negative proof;
-- GDScript regressziók;
-- nulla warning/error;
-- F8 után szabályos bezárás;
-- nincs crash.
-
-Közös canonical SHA:
-
+Történeti canonical SHA:
 `650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`
 
-Döntés:
-
-- C# lesz a production authoritative runtime;
-- a candidate proof regressziós bizonyítékként megmarad;
-- nem nevezendő át közvetlenül production motorrá.
-
 ---
 
-## 6. Runtime engine language decision gate
+## 6. Runtime language decision gate
 
-**Státusz:** `COMPLETE_AND_ACCEPTED`
+`COMPLETE_AND_ACCEPTED`
 
-Lezárt döntés:
-
-- Godot/GDScript: vizuális kliensréteg;
-- C#/.NET: egyetlen authoritative production runtime;
-- Python: külső adat-, audit-, AI-, batch- és elemzőeszközréteg.
-
-Nem készül további GDScript authoritative proof.
+- Godot/GDScript = visual client;
+- C#/.NET = production authority;
+- Python = external tooling/reference.
 
 Embedded Python:
-
 `RESEARCH_ONLY_DEFERRED`
 
 ---
 
-## 7. C.5A – Production C# architecture plan
+## 7. C.5A – Production architecture
 
-**Státusz:** `COMPLETE_AND_ACCEPTED`
-
-Rögzítve:
-
-- `Aeterna.Engine`;
-- `Aeterna.Engine.Headless`;
-- `Aeterna.Engine.Tests`;
-- typed public contractok;
-- EngineSession;
-- Godot production bridge;
-- Python headless tooling kapcsolat;
-- fixture-alapú migráció;
-- egyetlen C# authoritative MatchState.
+`COMPLETE_AND_ACCEPTED`
 
 ---
 
-## 8. C.5B – Production C# engine foundation
+## 8. C.5B – Production engine foundation
 
-**Státusz:** `COMPLETE_AND_ACCEPTED`
+`COMPLETE_AND_ACCEPTED`
 
-**Lezáró commit:** `931bf5571d541c752aa421a9f0626768bd8ffbe7`
+Lezáró commit:
+`931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
-Megvalósult scope:
+Történeti acceptance:
 
-- pure C# production engine;
-- headless host;
-- test runner;
-- core contractok;
-- EngineSession;
-- minimum runtime package loader;
-- draw/end-turn production reprodukció;
-- production fixture adapter;
-- Godot production bridge;
-- RuntimeCandidate regresszió.
+- Debug/Release `13/13`;
+- canonical SHA;
+- determinism `100/100`;
+- Godot bridge smoke.
 
-Bizonyíték:
-
-- production tesztek Debug és Release: `13/13`;
-- canonical SHA-egyezés és `100/100` determinisztika;
-- viewer-safe snapshot és event projection;
-- strukturált negatív JSON-boundary viselkedés;
-- Godot pozitív és negatív production bridge smoke.
-
-Nem része:
-
-- Wellspring gameplay;
-- Beáramlás;
-- Aura;
-- Magnitúdó;
-- `play_card`;
-- harc;
-- effect engine;
-- trigger;
-- HTTP;
-- gRPC;
-- végleges Windows packaging.
+Az akkori hiánylista történeti; nem használható jelenlegi queue-ként.
 
 ---
 
-## 9. Gameplay-engine queue
+## 9. C.5B utáni production gameplay vertical slice
 
-**Státusz:** `QUEUED_AFTER_C5B`
-
-Sorrend:
-
-1. Wellspring PlayerState- és MatchState-integráció.
-2. Player-visible Wellspring summary.
-3. Beáramlás precondition.
-4. Beáramlás transition és typed event.
-5. Magnitúdó-preflight.
-6. Aura-source és payment contract.
-7. Activity mutation transition.
-8. Entitás kijátszási precondition.
-9. `play_card`.
-10. Hand → Domain transition.
-11. Entry-state.
-12. Teljesebb phase és priority.
-13. Reaction.
-14. Combat.
-15. Ability execution.
-16. Win/loss.
+- Wellspring: `IMPLEMENTED_AND_ACTIVE`
+- player-visible Wellspring: `IMPLEMENTED_AND_ACTIVE`
+- normal Infusion: `IMPLEMENTED_AND_ACTIVE`
+- Magnitúdó-preflight: `IMPLEMENTED_AND_ACTIVE`
+- Aura-payment preflight: `IMPLEMENTED_AND_ACTIVE`
+- activity mutation: `IMPLEMENTED_AND_ACTIVE`
+- Domain / placement: `IMPLEMENTED_AND_ACTIVE`
+- `play_card`: `IMPLEMENTED_AND_ACTIVE`
+- canonical zone transition / Void: `IMPLEMENTED_AND_ACTIVE`
+- canonical card/runtime binding: `IMPLEMENTED_AND_ACTIVE`
 
 ---
 
-## 10. Python–C# headless kapcsolat
+## 10. Ability/effect runtime foundation
 
-**Státusz:** elfogadott irány, még nem production implementáció
+- ability catalog: `IMPLEMENTED_AND_ACTIVE`
+- ability template compiler: `IMPLEMENTED_AND_ACTIVE`
+- condition evaluator: `IMPLEMENTED_AND_ACTIVE`
+- target filter/resolver: `IMPLEMENTED_AND_ACTIVE`
+- trigger resolver foundation: `IMPLEMENTED_AND_ACTIVE`
+- effect executor: `IMPLEMENTED_AND_ACTIVE`
+- continuous effects: `IMPLEMENTED_AND_ACTIVE`
+- modifier/keyword/duration: `IMPLEMENTED_AND_ACTIVE`
+- damage/vitals/lethal: `IMPLEMENTED_AND_ACTIVE`
+- draw/reference runtime: `IMPLEMENTED_AND_ACTIVE`
 
-Első forma:
+Korlát: a teljes kártyaállomány teljes ability coverage-e nincs kész.
 
-```text
-Python
-  ↓ subprocess + JSON/JSONL
-Aeterna.Engine.Headless
-  ↓ canonical JSON/JSONL
-Python
-```
+---
 
-Használat:
+## 11. Explicit Phase Foundation v1
+
+`COMPLETE_AND_ACCEPTED`
+
+Lezáró commit:
+`2608345b61526097fc0b118f05461f92cfed0a95`
+
+Canonical fázisok:
+
+- awakening;
+- infusion;
+- manifestation;
+- incursion;
+- distribution.
+
+Megvalósult:
+
+- `advance_phase`;
+- explicit `StartingPlayerId`;
+- first-turn Awakening draw exception;
+- automatic ready/draw;
+- Distribution cleanup;
+- player switch;
+- retired production `draw_card`/`end_turn`;
+- viewer-safe ActionResponse;
+- Godot production bridge migration.
+
+Lezáró acceptance:
+
+- Debug `222/222 PASS`;
+- Release `222/222 PASS`;
+- oracle/reference PASS;
+- determinism `100/100 PASS`;
+- Godot build/smoke PASS.
+
+---
+
+## 12. Következő production réteg
+
+### Reaction / Priority Foundation v1
+
+`RULES_CONTRACT_PREP`
+
+Még nem kész implementation task.
+
+Előbb:
+
+- official rules audit;
+- OQ-frissítés;
+- pending/reaction contract;
+- pass;
+- resolution ordering;
+- exact public state/event boundary.
+
+Combat nem része ennek az első slice-nak.
+
+---
+
+## 13. Még nem teljes production
+
+- teljes Reaction/Priority runtime;
+- combat;
+- attack/block;
+- Pecsétfeltörés;
+- teljes Pecsét state/visibility;
+- Refresh Penalty;
+- prevention/replacement teljes runtime;
+- teljes multi-trigger ordering;
+- teljes ability coverage;
+- victory/defeat;
+- replay;
+- production AI-vs-AI;
+- final Windows packaging;
+- full player UI.
+
+---
+
+## 14. Python–C# headless kapcsolat
+
+Elfogadott irány:
 
 - fixture;
 - scenario;
 - AI-vs-AI;
 - batch;
 - balanszelemzés;
-- CI;
-- regresszió.
+- CI/regresszió.
 
-Localhost HTTP vagy gRPC:
-
+HTTP/gRPC:
 `RESEARCH_ONLY_DEFERRED`
 
-Csak mérési szükség esetén vizsgálható.
+---
+
+## 15. Dokumentumkezelési hatás
+
+Ez a fájl továbbra is az aktív `PROTOTYPE_STATUS.md`.
+
+A `CURRENT_PROTOTYPE_STATUS.md` nem aktív authority.
+
+A dokumentum célja státusztérkép, nem teljes roadmap vagy contract-specifikáció.
 
 ---
 
-## 11. Elhalasztott vagy nem blokkoló tételek
+## 16. Rövid aktuális összefoglaló
 
-- production C# Windows packaging;
-- self-contained vagy prerequisite modell;
-- runtime diagnostic log;
-- hosszú soak teszt;
-- production AI-vs-AI;
-- replay;
-- Godot stretch és maximized-window policy;
-- Python unittest monolitikus discovery adósság;
-- GDScript-fájlok szerepkategorizálása;
-- sidecar proof archiválási stratégia;
-- C# whitespace-megfigyelés.
-
----
-
-## 12. C# whitespace-megfigyelés
-
-**Státusz:** `OBSERVE_ONLY_NON_BLOCKING`
-
-A `CsharpMinimalRuntimeProof.cs` összehasonlított változatai logikailag azonosak voltak.
-
-Eltérés:
-
-- 4 szóközös behúzás;
-- tabulátoros behúzás.
-
-Nincs azonnali javítás vagy whitespace-only commit.
-
----
-
-## 13. Dokumentumkezelési hatás
-
-Ez a fájl a `CURRENT_PROTOTYPE_STATUS.md` utódja.
-
-A repository aktuális állapota:
-
-1. az aktív név `PROTOTYPE_STATUS.md`;
-2. a régi `CURRENT_PROTOTYPE_STATUS.md` nem aktív authority;
-3. az aktív hivatkozások az utódfájlra mutatnak.
-
-Általános szabály:
-
-- `CURRENT_*` csak akkor maradhat ideiglenesen, amíg az összevonási vagy átnevezési audit tart;
-- ahol nincs párfájl, a `CURRENT_` előtag nem használható aktív fájlnévként;
-- ahol van párfájl, tartalmi összevetés és lehetőség szerint merge szükséges;
-- minden aktív utódfájlnak verzióblokkot, dátumot és státuszt kell kapnia.
-
----
-
-## 14. Rövid aktuális összefoglaló
-
-- Runtime package és Godot kliensalap működik.
-- A Python minimal engine referencia és comparison oracle.
-- A Python sidecar proof lezárt és befagyasztott.
-- A C# in-process proof lezárt és elfogadott.
-- A production authoritative runtime C#.
-- A production C# engine foundation elkészült, de a teljes gameplay-engine még nem.
-- A C.5B kész és elfogadott.
-- A következő kódolási munka a Wellspring production state és player-visible Wellspring.
+- Runtime package/Godot alap: aktív.
+- Python reference: `REFERENCE_ORACLE`.
+- Python sidecar: `COMPLETE_AND_FROZEN`.
+- C# RuntimeCandidate: `COMPLETE_AND_ACCEPTED`.
+- Production authority: C#.
+- C.5B: `COMPLETE_AND_ACCEPTED`.
+- Első production gameplay vertical slice: elkészült.
+- Ability/effect runtime foundation: aktív.
+- Explicit Phase Foundation v1: `COMPLETE_AND_ACCEPTED`.
+- Következő fókusz: Reaction / Priority rules/contract előkészítés.
+- Combat: még nem következő implementation slice.

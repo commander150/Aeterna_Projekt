@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.1
-**Dátum:** 2026-08-14
-**Státusz:** aktív kanonikus runtime package-specifikáció
-**Aktuális státuszfájl:** `RUNTIME_PACKAGE_STATUS.md`
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Dokumentumverzió:** 2.0  
+**Dátum:** 2026-07-20  
+**Státusz:** aktív kanonikus runtime package-specifikáció  
+**Aktuális státuszfájl:** `RUNTIME_PACKAGE_STATUS.md`  
+**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
 Ez a dokumentum az AETERNA statikus runtime package rétegének kötelező jelentését, határait és buildelveit rögzíti.
 
@@ -44,41 +44,35 @@ A runtime package nem írhatja felül a hivatalos játékszabályokat.
 
 Adat- és szabályi elsőbbség:
 
-1. `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`;
-2. `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`;
-3. elfogadott, verziózott emberi döntések;
-4. emberi szerkesztési források / Google Sheets / aktív XLSX munkaforrás;
+1. hivatalos 1.4v szabályfőforrások;
+2. elfogadott, verziózott emberi döntések;
+3. Google Sheets szerkesztési forrás;
+4. lokális XLSX munkaforrás;
 5. külön `LOOKUPS.xlsx`;
-6. Python normalizálás, validáció és canonical export;
-7. derived canonical workbook réteg (`CARDDATABASE.xlsx`, `REGISTRY.xlsx`);
-8. runtime package;
-9. Godot-, C#- és Python-fogyasztók.
+6. Python normalizálás és validáció;
+7. runtime package;
+8. Godot-, C#- és Python-fogyasztók.
 
-A derived/canonical workbook és a runtime package generált programadat. Egyik sem írhatja felül a hivatalos szabályforrást vagy az elfogadott emberi szerkesztési authorityt.
-
-Eltérés esetén a build álljon meg vagy adjon blocking diagnosticot; a builder nem találgathat új szabályt.
-
+Eltérés esetén a package build álljon meg vagy adjon blocking diagnosticot; a builder nem találgathat új szabályt.
 
 ---
 
 ## 2. Elfogadott adatút
 
 ```text
-Google Sheets / emberi szerkesztési forrás
+Google Sheets
         ↓
-lokális XLSX munkaforrások + LOOKUPS
+lokális XLSX munkaforrások
         ↓
-Python export, normalizálás és validáció
+Python export és source adapterek
         ↓
-canonical workbook export
-        ├── CARDDATABASE.xlsx
-        └── REGISTRY.xlsx
+normalizálás és validáció
         ↓
-runtime package candidate / canonical package binding
+runtime package candidate
         ↓
 blocking publish gate
         ↓
-Godot consumption copy + production C# engine input
+Godot consumption copy / C# engine input
 ```
 
 Aktív források:
@@ -87,10 +81,6 @@ Aktív források:
   `Aeterna dokumentációk/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
 - runtime lookupok:
   `Aeterna dokumentációk/LOOKUPS.xlsx`;
-- canonical derived workbookok:
-  `CARDDATABASE.xlsx`, `REGISTRY.xlsx`;
-- canonical/export tooling:
-  Python exporter/normalizáló réteg;
 - fő kártyalap:
   `7. EXPORT_RUNTIME`;
 - aktív lookup-lapok:
@@ -99,7 +89,6 @@ Aktív források:
   `RUNTIME_LEGACY_ALIAS`.
 
 A builder több külön forrásból dolgozhat. Nem feltételezheti, hogy minden adat egyetlen workbookban található.
-
 
 ---
 
@@ -291,9 +280,9 @@ A builder a forrásfájlt nem írja vissza automatikusan emberi jóváhagyás n�
 
 ## 10. Ability registry és engine support
 
-Az `ability_registry.json` és `engine_support.json` package-fájlok support/coverage metadata-contractok. Nem azonosak a production C# engine belső ability/effect capability-jével.
+Az `ability_registry.json` és `engine_support.json` nem jelent működő ability executort.
 
-Minimum package-szerep:
+Minimum szerep:
 
 - ability és module ID;
 - source card;
@@ -313,20 +302,9 @@ Javasolt support státuszok:
 - `fallback_required`;
 - `manual_review_required`.
 
-Kötelező elv:
+A production executor C#-ban készül.
 
-- unsupported vagy not-checked tartalom nem futhat csendben;
-- aktív deckben az ilyen tartalom a buildprofil szerint blocking lehet;
-- package support státusz csak explicit support/coverage audit alapján módosítható.
-
-Aktuális elhatárolás:
-
-- a statikus sample/runtime package metadata még `runtime_executes_abilities: false` / declared-only jellegű állapotot hordozhat;
-- a production C# engine-ben ettől függetlenül már létezik canonical ability/effect execution foundation;
-- a két réteg külön migráció nélkül nem tekinthető azonos coverage-állapotúnak.
-
-A production ability/effect authority C#.
-
+Aktív deckben szereplő unsupported vagy not-checked tartalom a buildprofil szerint blocking lehet.
 
 ---
 
@@ -405,39 +383,25 @@ A Godot:
 
 ## 14. Production C# engine-fogyasztás
 
-A production `Aeterna.Engine` validált package/canonical adatot fogyaszt.
+A production `Aeterna.Engine` ugyanazt a validált package-et fogyasztja.
 
-### Történeti C.5B minimum loader
-
-A C.5B többek között bizonyította:
+C.5B minimum loader:
 
 - kötelező fájlok;
 - biztonságos relatív path;
-- manifest/package identity;
+- manifest és package identity;
 - egyedi card/deck ID;
 - deck count;
 - deck → card referenciák;
 - kért deckek létezése;
 - stabil diagnostics.
 
-### Aktuális production canonical fogyasztás
-
-A post-C.5B rétegben aktív:
-
-- `CanonicalPackageLoader`;
-- canonical card catalog;
-- runtime lookup catalog;
-- canonical runtime binding;
-- canonical ability catalog és kapcsolódó derived data használat.
-
 A C# engine:
 
-- nem olvas közvetlenül emberi szerkesztési XLSX-et;
+- nem olvas közvetlenül XLSX-et;
 - nem írja át a runtime package-et;
-- statikus definitionből authoritative card instance-eket hoz létre;
-- nem kezeli a package-et MatchState-ként;
-- package/canonical adatot nem használhat szabályi authorityként a hivatalos forrással szemben.
-
+- statikus definitionből saját authoritative card instance-eket hoz létre;
+- nem kezeli a package-et MatchState-ként.
 
 ---
 
@@ -524,36 +488,21 @@ Működik:
 - Godot consumption copy;
 - loader és registry;
 - diagnostics;
-- publish pipeline;
-- canonical workbook export;
-- production C# canonical/package loader és runtime binding.
+- publish pipeline.
 
 Nem végleges:
 
 - package identity;
 - source fingerprint;
 - release policy;
-- package support/coverage matrix;
+- production C# loader;
+- ability coverage;
 - tamper resistance.
 
-Ability elhatárolás:
+Következő technikai kapcsolat:
 
-- package support metadata még nem teljes ability-support matrix;
-- production C# ability/effect foundation már létezik;
-- teljes card/keyword coverage külön audit és package-support migráció.
-
-Következő package-specifikus feladat csak akkor szükséges, ha:
-
-- support/coverage metadata migráció;
-- release profile;
-- compatibility/version policy;
-- source fingerprint/hash;
-- packaging/integrity
-
-kerül ténylegesen implementációs fókuszba.
-
-A Reaction/Priority gameplay contract nem runtime-package feladat.
-
+- C.5B minimum C# runtime package loader;
+- utána Wellspring és player-facing gameplay-contractok.
 
 ---
 

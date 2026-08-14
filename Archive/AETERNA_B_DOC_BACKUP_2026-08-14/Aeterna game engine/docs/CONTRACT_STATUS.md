@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.4
-**Dátum:** 2026-08-14
-**Státusz:** aktív megvalósítási contract-státusz
-**Felváltott fájl:** `CURRENT_CONTRACT_STATUS.md`
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Dokumentumverzió:** 1.3\
+**Dátum:** 2026-08-10\
+**Státusz:** aktív megvalósítási contract-státusz  
+**Felváltott fájl:** `CURRENT_CONTRACT_STATUS.md`  
+**Aktuális repository-bázis:** `1ac3095509a4953bee79ae2acc76623ad693d117`
 
 Ez a dokumentum röviden rögzíti:
 
@@ -58,7 +58,7 @@ Fontos elhatárolás:
 - a Python contract aktív lehet a referenciaengine-ben anélkül, hogy production C# contract lenne;
 - a C# candidate proofban használt fixture-specifikus contract nem válik automatikusan production API-vá;
 - a C.5B contractok a `931bf5571d541c752aa421a9f0626768bd8ffbe7` commit és tesztlánca alapján aktív production foundation státuszt kaptak;
-- a C.5B történeti minimuma nem tartalmazta a Wellspring, Beáramlás, payment, `play_card` vagy ability execution réteget; a `931bf... → 2608345b...` production szakaszban ezek közül több már megvalósult. Combat és teljes Reaction/Priority továbbra sincs productionben.
+- ez nem jelenti a Wellspring, Beáramlás, payment, `play_card`, combat vagy ability contractok elkészültét.
 
 ---
 
@@ -179,19 +179,26 @@ Python státusz:
 
 - `ACTIVE_REFERENCE_RUNTIME`
 
-Történeti referenciahasználat:
+Aktív referenciahasználat:
 
 - draw: deck → hand.
 
-Production C# használat többek között:
+Későbbi használat:
 
-- draw: deck → hand;
-- normál Beáramlás: hand → Wellspring;
-- `play_card`: hand → Domain;
-- canonical Void-tranzíciók;
-- ability/effect runtime által végrehajtott támogatott canonical zónamozgások.
+- hand → Wellspring;
+- hand → Domain;
+- Domain → Void;
+- más zónamozgások.
 
-A ZoneMove/typed `zone_move` jelentés a production transitionök közös alapja. Ez nem jelenti azt, hogy minden jövőbeli zónamozgás vagy replacement szabály már támogatott.
+C# candidate:
+
+- a comparison fixture draw-láncában bizonyított.
+
+**Státusz:** `PROVEN_CSHARP_CANDIDATE`
+
+Production C#:
+
+- draw transition és typed `zone_move` event alapként aktív.
 
 **Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
@@ -230,21 +237,19 @@ Python referencia:
 - deck: `ACTIVE_REFERENCE_RUNTIME`;
 - hand: `ACTIVE_REFERENCE_RUNTIME`;
 - void: `ACTIVE_REFERENCE_RUNTIME`;
-- Wellspring: referenciaoldalon megvalósított resource/zónaalap.
+- Wellspring: `ACTIVE_ISOLATED`.
 
-Production C#:
+Production C# C.5B:
 
 - deck;
 - hand;
-- void;
+- void.
+
+Későbbi gameplay:
+
 - Wellspring;
-- Domainhoz kapcsolódó authoritative board/occupancy állapot;
-- zónánként és activity szerint konzisztens card-instance registry.
-
-A teljes jövőbeli zónakészlet és minden resolution/intermediate zone ettől még nincs lezárva.
-
-**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
-
+- Domain occupancy kapcsolatok;
+- további zónák.
 
 ---
 
@@ -252,66 +257,72 @@ A teljes jövőbeli zónakészlet és minden resolution/intermediate zone ettől
 
 ### 4.1 Domain position
 
-Schema/reference:
+Schema:
 
 - `minimal-domain-position-v0`
 
-Python referencia:
+Python státusz:
 
 - `ACTIVE_REFERENCE_RUNTIME`
 
-Támogatott történeti pozíciótípusok:
+Támogatott pozíciótípusok:
 
 - horizon;
 - zenith;
 - seal.
 
-Production C#:
+Production C# státusz:
 
-- typed Domain position/topology foundation aktív;
-- Domain placement a canonical `play_card` flow része;
-- a Pecsét pozíció nem hagyományos HP-objektum és nem tekintendő normál card-occupancy slotnak.
+- nem része a minimal draw/end-turn C.5B bizonyítás kötelező működési scope-jának;
+- később typed production modellként migrálandó.
 
-**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
+**Státusz:** `PLANNED_GAMEPLAY`
 
 ### 4.2 Player Domain topology
 
-Schema/reference:
+Schema:
 
 - `minimal-player-domain-topology-v0`
 
-Python referencia:
+Python státusz:
 
 - `ACTIVE_REFERENCE_RUNTIME`
 
-A Domain stabil topology/position reference elve productionben is megmarad.
+Játékosonként:
 
-**Production státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
+- 6 current;
+- 6 horizon;
+- 6 zenith;
+- 6 seal position;
+- 18 stabil position reference.
 
-A teljes combat- és Pecsét-state semantics külön későbbi rules/contract réteg.
+**Production státusz:** `PLANNED_GAMEPLAY`
 
 ### 4.3 Domain occupancy
 
-Schema/reference:
+Schema:
 
 - `minimal-domain-position-occupancy-v0`;
 - `minimal-player-domain-occupancy-v0`.
 
-Python referencia:
+Python státusz:
 
 - `ACTIVE_REFERENCE_RUNTIME`
 
-Production C#:
+Játékosonként:
 
-- Domain occupancy/placement authoritative state-ben aktív;
-- az occupant card instance a registryvel konzisztens;
-- `play_card` validálja a támogatott placementet;
-- viewer-safe Domain board projection aktív foundation.
+- 12 occupancy slot;
+- 6 horizon;
+- 6 zenith;
+- seal nem card occupancy slot.
 
-**Production státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
+Canonical kapcsolat:
 
-A combat, attack/block és teljes Pecsétmodell nem következik automatikusan ebből.
+- occupancy `position_id`;
+- `occupant_card_instance_id`;
+- card instance registry.
 
+**Production státusz:** `PLANNED_GAMEPLAY`
 
 ---
 
@@ -360,7 +371,7 @@ Production C#:
 
 ### 5.2 Player-visible Domain board
 
-Schema/reference:
+Schema:
 
 - `minimal-player-visible-domain-board-v0`
 
@@ -370,11 +381,10 @@ Python státusz:
 
 Production C#:
 
-- a Domain board viewer-safe player snapshot/projection részeként production foundation;
-- nem teljes MatchState dump;
-- az occupancy és card reference a public visibility szabály szerint jelenik meg.
+- nem szükséges a C.5B draw/end-turn minimumhoz;
+- az első valódi card-play vertical slice előtt migrálandó.
 
-**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
+**Státusz:** `PLANNED_GAMEPLAY`
 
 ### 5.3 Debug snapshot
 
@@ -405,44 +415,37 @@ A fair AI továbbra is ugyanazt a player-visible observationt használja, mint a
 
 ### 6.1 Production legal action space
 
-A production C# engine authoritative phase state machine-je:
+Python státusz:
 
-`awakening -> infusion -> manifestation -> incursion -> distribution`
+- `FOUNDATION_ONLY`
 
-Canonical public progression action:
-
-- `advance_phase`.
-
-Aktuális minimum fázismátrix:
-
-- Awakening: `advance_phase`;
-- Infusion: `normal_inflow`, `advance_phase`;
-- Manifestation: `play_card`, `advance_phase`;
-- Incursion: `advance_phase`;
-- Distribution: `advance_phase`.
-
-A normál production public action space-ben nincs:
+Történeti referenciaactionök (runtime-comparison fixture only):
 
 - `draw_card`;
 - `end_turn`.
 
-A historical runtime-comparison adapter a régi draw/end-turn proofot izoláltan megtarthatja.
+C# production:
 
-Direct hand-crafted production requesttel:
+- authoritative `awakening -> infusion -> manifestation -> incursion -> distribution`
+  phase state machine;
+- célfázis nélküli `advance_phase`;
+- phase-specifikus `normal_inflow` és `play_card`;
+- a normál public action space-ben nincs `draw_card` vagy `end_turn`;
+- az internal historical oracle adapterben a draw/end-turn proof változatlanul megmarad;
+- a public `ActionResponse.Events` a requestet beküldő player viewer-projekcióját használja,
+  az internal event store full-fidelity marad;
+- stale action rejection bizonyított.
 
-- `draw_card`;
-- `end_turn`;
-- rossz fázisú `normal_inflow`
+Post-audit Godot 4.7.1 .NET acceptance:
 
-stabilan elutasított és nem mutál authoritative state-et vagy event historyt.
-
-A pending-trigger gate továbbra is authoritative.
-
-A public `ActionResponse.Events` viewerje a requestet beküldő `player_id`; player switch nem cserélheti át a viewer identitását. Az internal event store full-fidelity.
+- pozitív production bridge headless smoke: PASS, canonical `advance_phase` flow, 5 state
+  transition és 7 sorrendhelyes event;
+- negatív production bridge headless smoke: PASS, 2 kontrollált create- és 4 kontrollált
+  action-rejection.
 
 **Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
-Aktív `LegalAction` minimum:
+Aktív production C# `LegalAction` minimum:
 
 - `action_id`;
 - `action_type`;
@@ -452,46 +455,47 @@ Aktív `LegalAction` minimum:
 - `disabled_reason`;
 - `payload` vagy `payload_schema`.
 
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
+
 ### 6.2 Structural Entity Domain placement options
 
-A történeti structural placement reference a production Domain/`play_card` flow előkészítő proofja volt.
+Sémák:
 
-Production C#-ban a támogatott placement:
+- `minimal-entity-domain-placement-option-v0`;
+- `minimal-entity-domain-placement-options-v0`.
 
-- authoritative state alapján számított;
-- phase- és source-validált;
-- Domain occupancy invariánssal ellenőrzött;
-- player-facing legal action/play request része.
+Python státusz:
 
-Nem jelenti a combat vagy minden card-type placement szabály teljes támogatását.
+- `ACTIVE_ISOLATED`
 
-**Production státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
+Nem teljes legal play result.
+
+Nem ellenőrzi:
+
+- timing;
+- priority;
+- phase;
+- Magnitúdó;
+- Aura-payment;
+- card-text restriction;
+- entry state.
+
+**Production státusz:** `PLANNED_GAMEPLAY`
 
 ### 6.3 `play_card`
 
-**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
+**Státusz:** `PLANNED_GAMEPLAY`
 
-Production minimum:
+Előfeltételek:
 
-- Manifestation phase legality;
-- hand source;
-- canonical card/runtime binding;
-- Magnitúdó-preflight;
-- Aura-payment preflight;
-- támogatott source selection;
-- Domain placement;
-- atomikus state mutation;
-- typed eventek;
-- canonical ability/effect hook;
-- rejection esetén változatlan state/event history.
-
-Továbbra sem jelenti:
-
-- teljes kártyaállomány teljes ability coverage-ét;
-- Reaction/Priority implementációt;
-- combatot;
-- minden alternate/temporary payment mechanikát.
-
+- production Wellspring;
+- Beáramlás;
+- Magnitúdó;
+- Aura-payment;
+- timing és priority;
+- placement;
+- entry-state;
+- atomikus transition és event.
 
 ---
 
@@ -636,29 +640,28 @@ C# candidate:
 
 **Státusz:** `PROVEN_CSHARP_CANDIDATE`
 
-### 8.4 Production event lifecycle és további typed eventek
+### 8.4 Phase lifecycle és későbbi typed eventek
 
-Aktív production foundation:
+- a `phase_transition`, `turn_transition`, `card_readied` és Awakening `zone_move`
+  események az explicit phase foundation aktív részei;
 
-- `phase_transition`;
-- `turn_transition`;
-- `card_readied`;
-- canonical `zone_move`;
-- támogatott activity/payment transitionök structured eventjei;
-- támogatott card-play és canonical ability/effect resolution eventcsalád.
+**Phase lifecycle státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
-Az explicit phase foundation eventjei viewer-safe public projectionön keresztül érhetők el; az internal event store full-fidelity marad.
+Későbbi bővítések:
 
-További későbbi event-réteg:
-
-- Reaction/Priority;
-- combat attack/block/combat-damage;
-- Pecsét-feltörés és restore;
+- további Wellspring/infusion eseménybővítés;
+- további activity state change;
+- payment;
+- card played;
+- Entity entered Domain;
+- attack/block/damage;
+- seal break/restore;
 - victory/defeat;
-- további még nem támogatott ability/replacement események.
+- ability resolution.
 
-**Aktív alap státusza:** `ACTIVE_PRODUCTION_FOUNDATION`
-**További eventcsaládok:** `PLANNED_GAMEPLAY`
+**További bővítések státusza:** `PLANNED_GAMEPLAY`
+
+---
 
 ## 9. Diagnostics contract
 
@@ -776,31 +779,18 @@ Nem implementált:
 
 ### 11.3 Production C# Wellspring
 
-**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
+Nem része a C.5B scope-jának.
 
-Megvalósult:
+Első gameplay-migrációs feladat a C.5B után:
 
 - PlayerState-integráció;
 - initial üres Wellspring;
 - listás zónatagság;
-- card-instance registry invariáns;
-- Wellspring resource summary;
-- player-visible/viewer-safe projection;
-- normál `normal_inflow`;
-- once-per-turn usage guard;
-- face-down + active entry;
-- Magnitúdó/Aura preflight kapcsolódás;
-- `active -> exhausted` payment mutation foundation;
-- Awakening ready kapcsolódás.
+- registry-invariáns;
+- resource summary;
+- player-visible projection.
 
-Nem tekintendő teljes supportnak többek között:
-
-- temporary Aura;
-- Rezonancia teljes production mechanikája;
-- Aura-égés;
-- Magnitúdó-override;
-- alternate cost/replacement.
-
+**Státusz:** `PLANNED_GAMEPLAY`
 
 ---
 
@@ -880,64 +870,55 @@ A production C# API tervezésénél felhasználhatók bizonyítékként, de nem 
 
 ## 14. Production C# contract-lánc
 
-### C.5B – implementált történeti foundation
+### C.5B – implementált foundation
+
+1. runtime package descriptor vagy source;
+2. `CreateMatchRequest`;
+3. `CreateMatchResponse`;
+4. `ActionRequest`;
+5. `ActionResponse`;
+6. `LegalAction`;
+7. `PlayerSnapshot`;
+8. `EngineEvent`;
+9. `EngineDiagnostic`;
+10. `MatchResult`;
+11. EngineSession API;
+12. draw;
+13. end-turn;
+14. stale rejection;
+15. canonical serializer;
+16. fixture adapter;
+17. Godot production bridge.
 
 Lezáró commit:
 
 `931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
-A C.5B bizonyította többek között:
+Ellenőrzött bizonyíték:
 
-1. runtime package minimum loader;
-2. `CreateMatchRequest`;
-3. authoritative MatchState minimum;
-4. player snapshot;
-5. legal action;
-6. action request/response;
-7. draw;
-8. stale rejection;
-9. viewer-safe event projection;
-10. Godot production bridge.
+- production tesztek Debug és Release: `13/13`;
+- canonical expected és actual SHA: `650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`;
+- canonical méret: `210730` byte;
+- determinisztika: `100/100`;
+- a canonical snapshot és eventösszegzés a production player projectionből és viewer-safe event API-ból származik;
+- Godot pozitív és negatív production bridge smoke: PASS.
 
-Ez történeti scope-határ, nem a jelenlegi production maximum.
+### C.5B után
 
-### C.5B utáni production gameplay/ability foundation
-
-A `931bf... -> 2608345b...` szakaszban aktív production foundation lett többek között:
-
-1. Wellspring state és projection;
-2. normal Infusion;
-3. Magnitúdó-preflight;
-4. Aura-payment preflight;
-5. activity mutation;
-6. Domain/placement;
-7. `play_card`;
-8. canonical zone/Void transition;
-9. canonical card/runtime binding;
-10. ability catalog/template compiler;
-11. condition/target/trigger/effect execution foundation;
-12. continuous effects;
-13. modifier/keyword/duration;
-14. damage/vitals/lethal lifecycle;
-15. draw/reference runtime;
-16. explicit phase lifecycle.
-
-### Explicit Phase Foundation v1
-
-Lezáró commit:
-
-`2608345b61526097fc0b118f05461f92cfed0a95`
-
-Státusz:
-
-`COMPLETE_AND_ACCEPTED`
-
-### Következő contract-kapu
-
-`Reaction / Priority Foundation v1`
-
-Előbb rules/OQ/contract audit szükséges. Combat külön későbbi slice.
-
+1. Wellspring state;
+2. Wellspring projection;
+3. infusion precondition;
+4. infusion transition;
+5. Magnitúdó-preflight;
+6. Aura-source selection;
+7. payment;
+8. activity mutation;
+9. Entity play precondition;
+10. `play_card`;
+11. Entity entry;
+12. phase/priority/reaction;
+13. combat;
+14. ability execution.
 
 ---
 
@@ -1006,10 +987,12 @@ A repository aktuális állapota:
 
 ## 18. Rövid státuszösszegzés
 
-**Python aktív referencia state:** card instance v1, MatchState, Domain topology és occupancy
-**Python aktív player projection:** snapshot és public Domain board reference
-**Python aktív action/event:** történeti reference draw/end-turn és zone/turn eventek
-**C# candidate proof:** draw, stale rejection, end-turn, snapshot, event és legal action
-**Production C# contractok:** C.5B foundation + post-C.5B gameplay/ability + Explicit Phase Foundation aktív
-**Aktív production gameplay foundation:** Wellspring, normal Infusion, payment preflight, Domain, `play_card`, canonical ability/effect runtime foundation
-**Nem teljes production:** Reaction/Priority, combat, teljes Pecsétmodell, Refresh Penalty, teljes ability coverage, victory/defeat
+**Python aktív referencia state:** card instance v1, MatchState, Domain topology és occupancy  
+**Python aktív player projection:** snapshot v2 és public Domain board  
+**Python aktív action:** draw, end turn  
+**Python aktív event:** zone move, turn transition  
+**Python aktív AI contract:** episode v1  
+**C# candidate proof:** draw, stale rejection, end-turn, snapshot, event és legal action  
+**Production C# contractok:** C.5B foundationben aktívak\
+**Izolált következő gameplay-alap:** Wellspring state és resource summary  
+**Nem aktív production gameplay:** infusion, payment, play_card, combat, ability execution

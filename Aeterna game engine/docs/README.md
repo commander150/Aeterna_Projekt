@@ -2,301 +2,154 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.0\
-**Dátum:** 2026-07-22\
-**Státusz:** aktív engine-dokumentációs index  
-**Ellenőrzött C.5B kódbázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`\
-**Aktuális C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
+**Dokumentumverzió:** 2.1
+**Dátum:** 2026-08-14
+**Státusz:** aktív engine-dokumentációs index
+**Ellenőrzött production kódbázis:** `2608345b61526097fc0b118f05461f92cfed0a95`
 
 Ez a fájl az `Aeterna game engine/docs/` aktív dokumentumainak szerepét, elsőbbségét és kapcsolatát rögzíti.
 
 ## Aktuális főállítások
 
-- A runtime-nyelvi döntési kapu lezárult.
-- A production authoritative runtime C#/.NET.
-- A Godot/GDScript a vizuális kliens- és adapterréteg.
-- A Python külső adat-, audit-, fixture-, AI-, batch- és elemzőtooling, valamint referenciaimplementáció.
-- A Python-sidecar proof `COMPLETE_AND_FROZEN`.
-- A C# in-process runtime proof `COMPLETE_AND_ACCEPTED`.
-- A production C# engine foundation elkészült és elfogadott; a teljes gameplay-engine még nem.
-- Az `OPEN_QUESTIONS.md` és `OPEN_QUESTIONS_DECISIONS.md` aktív kanonikus kérdés–válasz dokumentumpár.
-- A korábbi `CURRENT_OPEN_QUESTIONS.md` tartalma a 2.0-s párba beolvadt.
-- Az aktív dokumentumokból az indokolatlan `CURRENT_` előtag kikerült; a felváltott elődök nem aktív authority-k.
+- C#/.NET = production authority;
+- Godot/GDScript = visual client;
+- Python = external tooling/reference;
+- sidecar proof = `COMPLETE_AND_FROZEN`;
+- C# RuntimeCandidate = `COMPLETE_AND_ACCEPTED`;
+- C.5B = `COMPLETE_AND_ACCEPTED`;
+- első production gameplay vertical slice = elkészült;
+- Explicit Phase Foundation v1 = `COMPLETE_AND_ACCEPTED`;
+- teljes gameplay-engine még nincs kész.
 
 ---
 
-## 1. Elsődleges folytatási és irányító dokumentumok
+## 1. Elsődleges folytatási dokumentumok
 
-### 1.1 Aktív technikai checkpoint
+- `checkpoints/ENGINE_CHECKPOINT.md`;
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.5.md`;
+- `../../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.8.md`;
+- `AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`.
 
-- `checkpoints/ENGINE_CHECKPOINT.md`
-
-Szerepe:
-
-- elsődleges technikai folytatási pont;
-- bizonyított Python-, sidecar- és C# állapot;
-- lezárt architektúradöntés;
-- C.5A/C.5B státusz;
-- dokumentációs átadás és következő biztonságos lépés.
-
-### 1.2 Aktuális projektterv
-
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.4.md`
-- `../../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.7.md`
-
-Szerepe:
-
-- projektirány;
-- prioritások;
-- roadmap;
-- Codex nélküli munkasáv;
-- dokumentációs konszolidáció.
-
-### 1.3 Hosszú távú termékcél
-
-- `AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`
-
-Szerepe:
-
-- az első zárt, használható és játszható tesztkiadás célállapota;
-- nem napi tasklista;
-- nem írja felül a hivatalos szabályforrásokat.
+Az első három aktuális folytatás; a 0.0.1 dokumentum hosszú távú termékcél.
 
 ---
 
-## 2. Kanonikus architektúra- és technológiai dokumentumok
+## 2. Architektúra és döntések
 
-### `ARCHITECTURE.md`
-
-Az aktív rendszerarchitektúra:
-
-- Godot/GDScript visual client;
-- C# authoritative engine;
-- Python external tooling;
-- authority-, projection-, determinism- és packaging-határok.
-
-### `TECHNOLOGY_DECISIONS.md`
-
-Az elfogadott technológiai döntések nyilvántartása:
-
-- contract-first;
-- egyetlen authority;
-- C# runtime;
-- Python-sidecar befagyasztása;
-- Python tartós tooling-szerepe;
-- Python–C# headless kapcsolat;
-- dokumentumkezelési szabály.
-
-### `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
-
-Lezárt technológiai döntési kapu:
-
-- a két fő proof eredménye;
-- canonical fixture és SHA;
-- döntési indok;
-- újranyitási feltételek;
-- production C# migrációs szabályok.
-
-### `DECISION_MAP.md`
-
-Rövid operatív döntési és prioritástérkép.
+- `ARCHITECTURE.md`;
+- `TECHNOLOGY_DECISIONS.md`;
+- `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
+- `DECISION_MAP.md`.
 
 ---
 
-## 3. Aktív státuszdokumentumok
+## 3. Aktív státusz
 
-### `PROTOTYPE_STATUS.md`
-
-Elkülöníti:
-
-- runtime package/Godot alap;
-- Python reference engine;
-- befagyasztott sidecar proof;
-- elfogadott C# candidate proof;
-- aktív production C# engine foundation és a még hiányzó gameplay-rétegek.
-
-Felváltja:
-
-- felváltott előd: `CURRENT_PROTOTYPE_STATUS.md` – nem aktív
-
-### `RUNTIME_PACKAGE_STATUS.md`
-
-Rögzíti:
-
-- XLSX/LOOKUPS forrásokat;
-- Python build/publish útvonalat;
-- Godot consumption copyt;
-- canonical `wellspring` és `infusion` értékeket;
-- package identity és payment-adat nyitott feladatait.
-
-Felváltja:
-
-- felváltott előd: `CURRENT_RUNTIME_PACKAGE_STATUS.md` – nem aktív
-
-### `CONTRACT_STATUS.md`
-
-Rögzíti:
-
-- Python reference contractokat;
-- C# candidate proofban bizonyított contractokat;
-- aktív C.5B production foundation contractokat;
-- későbbi gameplay-contractokat.
-
-Felváltja:
-
-- felváltott előd: `CURRENT_CONTRACT_STATUS.md` – nem aktív
+- `PROTOTYPE_STATUS.md`;
+- `RUNTIME_PACKAGE_STATUS.md`;
+- `CONTRACT_STATUS.md`.
 
 ---
 
-## 4. Open Questions kérdés–válasz rendszer
+## 4. Open Questions
 
-### `OPEN_QUESTIONS.md`
+- `OPEN_QUESTIONS.md`;
+- `OPEN_QUESTIONS_DECISIONS.md`.
 
-**Státusz:** aktív kanonikus kérdésregiszter  
-**Verzió:** 2.0
-
-Tartalmaz:
-
-- 74 egyedi OQ-azonosítót;
-- aktuális `open`, `partly_answered`, `deferred` vagy `answered` státuszt;
-- rövid fennmaradó döntési kaput;
-- hivatkozást a válasznaplóra.
-
-### `OPEN_QUESTIONS_DECISIONS.md`
-
-**Státusz:** aktív kanonikus válasz- és döntésnapló  
-**Verzió:** 2.0
-
-Tartalmaz:
-
-- lezárt runtime-architektúradöntést;
-- dokumentációs és pipeline-döntéseket;
-- projection-, payment-, infusion-, event-, diagnostics-, ability-, AI- és rules-audit irányokat;
-- a korábbi current triázs `CQ-*` döntéseit.
-
-### Megszüntetendő átmeneti fájl
-
-- beolvasztott előd: `CURRENT_OPEN_QUESTIONS.md` – nem aktív
-
-Csak az új kérdés–válasz pár és minden belső hivatkozás ellenőrzése után távolítható el.
+A Reaction/Priority OQ-réteg a hivatalos 1.4.3v alapelveihez igazítva lett; a következő lépés a részletes minimal rules/contract audit.
 
 ---
 
-## 5. Contract- és specification dokumentumok
+## 5. Contract/specification
 
-### `CONTRACT_SPECIFICATION.md`
+- `CONTRACT_SPECIFICATION.md`;
+- `RUNTIME_PACKAGE_SPECIFICATION.md`;
+- `ABILITY_MODULE_SYSTEM.md`;
+- `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`;
+- `RUNTIME_COMPARISON_FIXTURE_SPEC.md`.
 
-Technológiafüggetlen, hosszú formájú contract-specifikáció.
-
-Aktuális megvalósítási státusz:
-
-- `CONTRACT_STATUS.md`
-
-### `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`
-
-Történeti konszolidációs és migrációs referencia.
-
-A végső dokumentumauditban újra ellenőrizendő, hogy maradt-e aktív szerepe vagy történeti státuszt kapjon.
-
-### `RUNTIME_PACKAGE_SPECIFICATION.md`
-
-A statikus runtime package hosszú formájú specifikációja.
-
-Aktuális státusz:
-
-- `RUNTIME_PACKAGE_STATUS.md`
-
-### `ABILITY_MODULE_SYSTEM.md`
-
-A későbbi ability registry, support, module és execution plan rendszer referenciája.
-
-Jelenleg nincs production ability executor.
-
-### `RUNTIME_COMPARISON_FIXTURE_SPEC.md`
-
-A lezárt runtime comparison közös fixture-specifikációja.
-
-Megmarad regressziós és production C# migrációs referenciaként.
+Az `ABILITY_MODULE_SYSTEM.md` implementációs státusza frissítve lett a meglévő production ability/effect foundationhöz.
 
 ---
 
-## 6. Proof-, audit- és történeti dokumentumok
+## 6. Proof- és történeti réteg
 
-### Runtime proofok
+Megmarad:
 
-- `RUNTIME_COMPARISON_FIXTURE_SPEC.md`
-- Python-sidecar proof dokumentumok és artifactok
-- C# RuntimeCandidate proof dokumentumok és artifactok
+- Python reference;
+- sidecar proof;
+- C# RuntimeCandidate proof;
+- runtime comparison artifactok;
+- `checkpoints/CHECKPOINTS.md`.
 
-### Tanulóprogram-audit
-
-- `LEARNING_PROJECT_AUDIT_AND_LICENSE_TEMPLATE.md`
-- `LEARNING_PROJECT_AUDIT_QUEUE.md`
-
-A runtime-nyelvi döntés és a C.5B foundation lezárult, ezért ezek nem blokkolják az első production gameplay-migrációt. Történeti, licenc- és clean-room referenciaértékük megmarad.
-
-### Checkpointnapló
-
-- `checkpoints/CHECKPOINTS.md`
-
-Történeti mérföldkőnapló; nem írhatja felül az aktív `ENGINE_CHECKPOINT.md` fájlt.
+A történeti proof nem írhatja felül az aktív checkpointot.
 
 ---
 
 ## 7. Dokumentumelsőbbség
 
-Technikai folytatásnál:
+Szabályi kérdésben:
 
-1. hivatalos 1.4v szabályforrások;
-2. `AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`;
-3. `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
-4. `checkpoints/ENGINE_CHECKPOINT.md`;
-5. `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.4.md`;
-6. `ARCHITECTURE.md`;
-7. `TECHNOLOGY_DECISIONS.md`;
-8. `DECISION_MAP.md`;
-9. `CONTRACT_STATUS.md`;
-10. `RUNTIME_PACKAGE_STATUS.md`;
-11. `PROTOTYPE_STATUS.md`;
-12. `OPEN_QUESTIONS.md` + `OPEN_QUESTIONS_DECISIONS.md`;
-13. hosszú specificationök;
-14. történeti checkpointok, prooftervek és régi dokumentumok.
+1. hivatalos 1.4.3v alapjáték-forrás;
+2. kiegészítő főforrás;
+3. explicit emberi döntés;
+4. Open Questions decision log;
+5. contract/specification;
+6. implementáció mint technikai bizonyíték.
 
-A működő kód és tesztek technikai tényt bizonyíthatnak, de nem írhatják felül a hivatalos játékszabályt.
+Technikai folytatásban:
+
+1. `checkpoints/ENGINE_CHECKPOINT.md`;
+2. aktuális projektterv;
+3. projekt-térkép;
+4. architecture/technology;
+5. status/contract;
+6. Open Questions;
+7. történeti checkpoint/proof.
 
 ---
 
 ## 8. Dokumentumkezelési szabály
 
-- Meglévő aktív fájlt frissítünk.
-- Új fájl csak önálló canonical szerep esetén készül.
-- Minden aktív fájlnak van verziója, dátuma és státusza.
-- `CURRENT_` előtag nem marad aktív fájlnévben indokolatlanul.
-- Párhuzamos fájloknál előbb tartalmi összevetés és merge-döntés kell.
-- Nyitott kérdés vagy korábbi döntés nem veszhet el.
-- Törlés/archiválás csak teljes audit és jóváhagyás után.
-- Az engine-dokumentáció után az `Aeterna dokumentációk/` mappát is auditálni kell.
-- A két mappa után keresztmappa-ellenőrzés szükséges.
+- meglévő aktív fájlt frissítünk;
+- új fájl csak új önálló szerephez;
+- verzió/dátum/státusz kötelező;
+- párhuzamos fájl előtt tartalmi összevetés;
+- nyitott kérdés és fontos döntés nem veszhet el;
+- nem frissítünk mindent minden kisebb commit után.
 
 ---
 
-## 9. Aktuális dokumentációs állapot
+## 9. Aktuális technikai állapot
 
-A nagy dokumentációs és archiválási rendezés lezárult. Az aktív engine-dokumentumok, státuszfájlok, Open Questions-pár és checkpointok kijelölt utódai a repositoryban vannak; a felváltott elődök nem aktív authority-k.
+Production C#-ban már megvan:
 
-A továbbiakban dokumentumfrissítés csak akkor szükséges, ha:
+- Wellspring / Beáramlás;
+- Magnitúdó / Aura preflight;
+- Domain / `play_card`;
+- canonical ability/effect foundation;
+- damage/vitals;
+- continuous effects / modifier / keyword / duration;
+- draw/reference runtime;
+- explicit phase lifecycle.
 
-- technikai mérföldkő teljesül;
-- contract- vagy authority-határ változik;
-- fontos nyitott kérdés lezárul;
-- biztonságos folytatási checkpoint szükséges.
+Aktuális HEAD:
+
+`2608345b61526097fc0b118f05461f92cfed0a95`
+
+Lezáró tesztállapot:
+
+- Debug `222/222 PASS`;
+- Release `222/222 PASS`;
+- determinism `100/100 PASS`;
+- Godot smoke PASS.
 
 ---
 
 ## 10. Aktuális technikai folytatás
 
-- C.5B production C# foundation: `COMPLETE_AND_ACCEPTED`;
-- lezáró commit: `931bf5571d541c752aa421a9f0626768bd8ffbe7`;
-- következő kódolási szakasz: Wellspring production state és player-visible Wellspring;
-- részletes folytatási pont: `checkpoints/ENGINE_CHECKPOINT.md`;
-- projekt- és fájlszintű állapot: `../../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.7.md`.
+**Reaction / Priority Foundation v1 – rules és contract előkészítés**
+
+Nem közvetlen Codex-kódolással indul.
+
+Combat külön későbbi slice.

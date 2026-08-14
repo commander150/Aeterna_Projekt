@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.1
-**Dátum:** 2026-08-14
-**Státusz:** aktív kanonikus válasz- és döntésnapló
-**Kapcsolódó kérdésregiszter:** `OPEN_QUESTIONS.md`
-**Beolvasztott átmeneti fájl:** `CURRENT_OPEN_QUESTIONS.md`
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Dokumentumverzió:** 2.0  
+**Dátum:** 2026-07-20  
+**Státusz:** aktív kanonikus válasz- és döntésnapló  
+**Kapcsolódó kérdésregiszter:** `OPEN_QUESTIONS.md`  
+**Beolvasztott átmeneti fájl:** `CURRENT_OPEN_QUESTIONS.md`  
+**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
 Ez a fájl az `OPEN_QUESTIONS.md` OQ-tételeihez tartozó elfogadott, részleges vagy elhalasztó döntéseket rögzíti.
 
@@ -56,23 +56,20 @@ A 2.0-s konszolidáció:
 
 ## OQ-DOC-001 / OQ-DOC-002 / OQ-DOC-003 – Dokumentáció
 
-**Aktív döntés – frissítve 2026-08-14:**
+**Aktív döntés:**
 
 - Az engine-dokumentáció aktív formátuma Markdown.
-- A hivatalos szabályauthority DOCX formában marad:
-  - `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`;
-  - `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`.
+- A hivatalos 1.4v szabályfőforrások egyelőre DOCX formában maradnak.
 - Egy aktív technikai checkpoint marad: `docs/checkpoints/ENGINE_CHECKPOINT.md`.
 - A történeti mérföldkőnapló külön `CHECKPOINTS.md`.
 - Új dokumentum csak önálló canonical szerep esetén készülhet.
 - Minden aktív dokumentum kap verziót, dátumot, státuszt és egyértelmű szerepet.
+- A `CURRENT_` előtag eltávolítandó, ha nincs indokolt párfájl.
 - Párfájl esetén előbb tartalmi összevetés és merge-döntés szükséges.
-- Törlés/archiválás csak ellenőrzött utóddal történhet.
-- A nagy dokumentációs és archív cleanup lezárult.
-- A `2608345b...` mérföldkő után célzott active-document consistency pass indokolt; ez nem új tömeges cleanup.
+- Törlés és archiválás csak teljes audit, érvényes utódfájl és felhasználói jóváhagyás után történhet.
+- Az engine-dokumentáció után az `Aeterna dokumentációk/` mappa külön auditja, majd keresztmappa-ellenőrzés következik.
 
-**Státusz:** OQ-DOC-002 és OQ-DOC-003 `answered`; OQ-DOC-001 `partly_answered` az opcionális olvasói/exportált DOCX/PDF réteg miatt.
-
+**Státusz:** OQ-DOC-002 és OQ-DOC-003 `answered`; OQ-DOC-001 `partly_answered`.
 
 ---
 
@@ -127,7 +124,7 @@ A 2.0-s konszolidáció:
 - Az authoritative MatchState nem player-facing contract.
 - Két alapnézet: viewer-specifikus `player_visible_snapshot` és külön `debug_snapshot`.
 - A fair AI ugyanazt a player-visible snapshotot használja, mint az emberi játékos.
-- Saját kéz owner-visible; ellenfél kéz count/redacted; deck count-only; canonical Void és Domain public az aktív szabály szerint.
+- Saját kéz owner-visible; ellenfél kéz count/redacted; deck count-only; discard és Domain public az aktív szabály szerint.
 - A teljes Magnitúdó és az Ősforrás Aktív/Kimerült darabszáma publikus.
 - A saját Ősforrás-lapok kártyaazonossága owner-visible.
 - Az ellenfél nem láthatja a face-down Ősforrás-lapok kártyaazonosságát.
@@ -199,15 +196,15 @@ A 2.0-s konszolidáció:
 - Az első implementációban túlfizetés nem engedélyezett.
 - Hiba esetén nincs részleges Kimerítés, mozgás, state-version növekedés vagy gameplay event.
 
-**Nyitva marad:** cost modifier, temporary Aura, alternate cost, wildcard/replacement és összetett payment choice. A base Magnitúdó-preflight és Aura-payment preflight production foundation már megvalósult.
+**Nyitva marad:** cost modifier, temporary Aura, alternate cost, wildcard és teljes Magnitúdó-preflight result.
 
 ---
 
 ## CQ-INFLOW-001…006 – Normál Beáramlás
 
-A `CURRENT_OPEN_QUESTIONS.md` CQ-azonosítói ebben a válasznaplóban történeti döntésazonosítóként megmaradnak; nem kapnak párhuzamos OQ-azonosítót.
+A `CURRENT_OPEN_QUESTIONS.md` CQ-azonosítói e válasznaplóban megőrzött, már elfogadott döntések. A kérdésregiszterben nem kapnak új párhuzamos OQ-azonosítót; a production gameplay-spec során a megfelelő phase/action contracthoz kapcsolódnak.
 
-**Canonical szabályi döntések:**
+**Aktív döntések:**
 
 - A Beáramlás a kör második, opcionális fázisa.
 - Normál Beáramlással körönként legfeljebb 1 kézlap kerül az Ősforrásba.
@@ -215,53 +212,27 @@ A `CURRENT_OPEN_QUESTIONS.md` CQ-azonosítói ebben a válasznaplóban történe
 - Már ugyanabban a körben használható Aura fizetésére.
 - Azonnal növeli a Magnitúdót és az elérhető Aurát.
 - Fizetéskor Kimerül.
-- A normál Beáramlás nem nyit automatikusan reaction windowt.
+- Ez az aktív állapotra vonatkozó Core-döntés a hivatalos főforrás következő verziójába átvezetendő.
+- A normál Beáramlás nem váltakozó priority-ablak és nem nyit automatikusan reakciót.
+- Legal actionök: `perform_inflow` és `skip_inflow`.
+- Turn-scoped státusz: `pending | performed | skipped`.
+- Accepted action atomikus: hand → wellspring, owner-only visibility, active state, status update, summary recalc, egyszeri state-version növekedés, determinisztikus eventek.
+- Első eventmodell: `zone_move` + `phase_transition`; külön duplikált inflow event nem szükséges.
 
-**Aktuális production technikai mapping – 2026-08-14:**
-
-- canonical phase ID: `infusion`;
-- végrehajtás: `normal_inflow`;
-- kihagyás/továbblépés: `advance_phase`;
-- külön public `skip_inflow` action nincs;
-- a once-per-turn szabály turn-scoped/turn-number guarddal érvényesül;
-- külön `pending | performed | skipped` gameplay tri-state nem szükséges a public production contracthoz;
-- accepted `normal_inflow` hand → Wellspring, face-down + active, usage-state/resource frissítést és viewer-safe eventet hajt végre;
-- a fázis a `normal_inflow` után `infusion` marad, amíg külön `advance_phase` nem történik.
-
-A régi `perform_inflow` / `skip_inflow` és tri-state megnevezések történeti design-előzmények, nem az aktuális production action contract.
-
-A szabályi jelentés változatlan; a fenti eltérés technikai contract-migráció.
-
+**Megjegyzés:** a canonical technikai fázisnév `infusion`; a korábbi `inflow` contractnevek terminológiai migrációt igényelnek.
 
 ---
 
 ## OQ-LA-002 / OQ-AR-005 / OQ-ABIL-004 – Reaction
 
-**Aktív döntés – frissítve a hivatalos 1.4.3v alapján 2026-08-14:**
+**Aktív irány:**
 
-- A core rules engine nyitja és zárja a reaction windowt.
-- Az ability hook reaction/trigger/prevention/replacement lehetőséget és payloadot jelez, de nem tart saját timing authorityt.
-- Ha mindkét játékos reagálhat, először az eseményt nem kezdeményező játékos kap válaszlehetőséget.
-- A játékos passzolhat.
-- Két egymást követő passz lezárja az aktuális reaction windowt.
-- Reakciók egymásra épülhetnek.
-- A feloldás visszafelé történik: a legutóbbi reakció oldódik fel először.
-- Feloldáskor a célpontot, feltételeket és a forrás relevanciáját a szabály szerint újra kell ellenőrizni.
-- Lezárt eseményre nincs visszamenőleges reakció.
-- A frontend nem nyit és nem zár saját reaction windowt; csak a core által kiadott legal action/pending state alapján működik.
-
-**Nyitva marad:**
-
-- prevention/replacement exact ordering és contract;
-- multi-trigger ordering;
-- optional/mandatory trigger viszony;
-- nested pending decision/reaction;
-- részleges resolution;
-- exact public reaction-state/event schema;
-- combat-specifikus reaction pontok production integrációja.
-
-**Státusz:** továbbra is `partly_answered`; az alapmodell jelentős része már canonical, de a teljes Reaction/Priority runtime contract még nincs lezárva.
-
+- A core rules engine nyitja/zárja a reaction windowt.
+- Az ability hook jelzi az elérhető reaction/trigger/prevention/replacement lehetőséget.
+- A snapshot pending state és a legal action lista együtt írja le a döntést.
+- Nincs valódi döntés esetén az ablak automatikusan átugorható.
+- Burst és Jel ugyanabba a reaction keretrendszerbe kerülhet külön subtype-pal.
+- A stack/chain, prevention/replacement és trigger-sorrend nem lezárt; rules audit és prototype szükséges.
 
 ---
 
@@ -312,36 +283,21 @@ A szabályi jelentés változatlan; a fenti eltérés technikai contract-migrác
 
 ## OQ-ABIL-001…008 – Ability module rendszer
 
-**Aktív döntés – frissítve 2026-08-14:**
+**Aktív döntés:**
 
 - A kártyaszöveg emberi szabályszöveg.
 - A structured ability és ability registry programlogikai köztes réteg.
-- Effect tag önmagában nem executable logika.
+- Hatáscímke önmagában nem executable modul.
+- Új structured mező csak ismétlődő végrehajtási igény alapján.
+- Nem kell korán minden kártyához teljes execution plan.
 - Card-local fallback csak explicit, diagnosztizált átmeneti kivétel.
 - Reaction core timing + ability hook modellben működik.
 - Keyword registry és support státusz szükséges; nem minden keyword korai support.
-- `ability_registry.json` a runtime package support/metadata foundationje.
+- `ability_registry.json` a runtime package része/foundationje.
 - Unsupported modul szerepelhet registryben, de nem futhat csendben.
-- A production authoritative ability/effect runtime C#.
+- A production executor C#-ban készül.
 
-**Aktuális production tény:**
-
-A canonical C# ability/effect foundation már megvalósult többek között ability catalog, template compiler, condition evaluator, target filter/resolver, trigger resolver foundation, effect executor, continuous effect, modifier/keyword/duration, damage/vitals és draw/reference integrációval.
-
-**Fontos elhatárolás:**
-
-A statikus runtime package support metadata ettől külön réteg, és továbbra is declared-only/not-evaluated állapotot hordozhat. Ez nem írható át automatikusan teljes supporttá.
-
-**Nyitva marad:**
-
-- package support/coverage matrix migráció;
-- teljes card/keyword coverage;
-- Reaction/Priority integráció;
-- prevention/replacement;
-- multi-trigger ordering;
-- komplex choice/target;
-- execution plan végleges szerepe és coverage-policy.
-
+**Nyitva marad:** C# module schema, első támogatott effectek/keywordök, execution plan és coverage.
 
 ---
 
@@ -352,7 +308,7 @@ A statikus runtime package support metadata ettől külön réteg, és továbbra
 - OQ-TECH-003: `answered` – Godot + C# + Python hibrid, egyetlen authority.
 - OQ-TECH-004: `answered` – runtime package statikus adatcontract.
 - OQ-TECH-005: `partly_answered` – headless/visual proof működik; CI/export/release policy későbbi.
-- OQ-TECH-006: `answered` – Codex csak feltétlenül szükséges technikai feladathoz használható (programozás, build/test/smoke, vagy GitHubról nem látható lokális worktree/fájl elemzés). Projekttervezés, dokumentáció, rules/contract döntés és rutin Git-kezelés alapértelmezésben nem Codex-feladat; szabályi és projektirányítási döntést nem hoz.
+- OQ-TECH-006: `answered` – Codex szűk, tesztelhető scope-ot kap; szabályi és projektirányítási döntést nem hoz.
 
 ---
 

@@ -2,10 +2,10 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.3\
-**Dátum:** 2026-07-22\
-**Státusz:** aktív checkpoint-index  
-**Ellenőrzött C.5B kódbázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
+**Dokumentumverzió:** 1.4
+**Dátum:** 2026-08-14
+**Státusz:** aktív checkpoint-index
+**Ellenőrzött production kódbázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 
 Ez a dokumentum elválasztja az aktív technikai folytatási pontot, a történeti mérföldkőnaplót és a hosszú távú termékcélt.
 
@@ -17,13 +17,16 @@ Ez a dokumentum elválasztja az aktív technikai folytatási pontot, a történe
 
 Szerepe:
 
-- elsődleges folytatási pont;
-- Python reference, sidecar, C# proof és production foundation állapot;
+- elsődleges technikai folytatási pont;
+- Python reference, sidecar, C# proof és production folytonosság;
 - lezárt runtime-döntés;
 - C.5A/C.5B státusz;
-- következő biztonságos gameplay-migrációs lépés.
+- production gameplay vertical slice;
+- Explicit Phase Foundation;
+- megőrzendő invariánsok;
+- következő biztonságos technikai lépés.
 
-A korábbi checkpointelődök archív/történeti állapotban maradnak; nem aktív authority-k.
+A korábbi checkpointelődök történeti állapotban maradnak; nem aktív authority-k.
 
 ---
 
@@ -31,21 +34,21 @@ A korábbi checkpointelődök archív/történeti állapotban maradnak; nem akt�
 
 - `CHECKPOINTS.md`
 
-Szerepe:
+Szerepe a fő technikai mérföldkövek időrendi rövid megőrzése:
 
 - runtime package;
 - exporter;
 - Godot loader;
-- sample contract;
-- Python reference engine;
+- Python reference;
 - sidecar proof;
 - C# proof;
 - runtime-döntés;
-- C.5A, C.5B és későbbi mérföldkövek
+- C.5A;
+- C.5B;
+- első production gameplay vertical slice / Explicit Phase Foundation;
+- későbbi fő mérföldkövek.
 
-időrendi rövid megőrzése.
-
-Nem aktív tasklista és nem írhatja felül az `ENGINE_CHECKPOINT.md` fájlt.
+Nem aktív tasklista.
 
 ---
 
@@ -63,8 +66,8 @@ Az aktív `ENGINE_CHECKPOINT.md` frissítendő, amikor:
 
 - érdemi technikai szakasz lezárult;
 - authority vagy architecture döntés változott;
-- fontos dokumentációs cleanup vagy átadás történt;
-- új beszélgetés előtt biztonságos folytatási pont szükséges;
+- fontos dokumentációs átadás történt;
+- új beszélgetés előtt biztonságos folytatási pont kell;
 - production mérföldkő teljesült.
 
 Nem készül új dátumozott checkpoint minden kisebb feladathoz.
@@ -75,14 +78,17 @@ A `CHECKPOINTS.md` csak nagy, lezárt mérföldkő után kap új történeti bej
 
 ## 5. Dokumentumelsőbbség
 
-1. `ENGINE_CHECKPOINT.md`;
-2. aktuális projektterv és projekt-térkép;
-3. `ARCHITECTURE.md` és `TECHNOLOGY_DECISIONS.md`;
-4. aktuális státuszdokumentumok;
-5. `OPEN_QUESTIONS.md` + `OPEN_QUESTIONS_DECISIONS.md`;
-6. `CHECKPOINTS.md` történeti napló.
+Technikai folytatás:
 
-A hivatalos játékszabályforrás mindegyik fölött áll szabályi kérdésben.
+1. `ENGINE_CHECKPOINT.md`;
+2. aktuális projektterv;
+3. aktuális projekt-térkép;
+4. `ARCHITECTURE.md` és `TECHNOLOGY_DECISIONS.md`;
+5. aktuális status/contract dokumentumok;
+6. Open Questions;
+7. `CHECKPOINTS.md`.
+
+Szabályi kérdésben a hivatalos játékszabályforrás mindegyik fölött áll.
 
 ---
 
@@ -90,8 +96,12 @@ A hivatalos játékszabályforrás mindegyik fölött áll szabályi kérdésben
 
 Aktív:
 
-- `README.md`;
-- `ENGINE_CHECKPOINT.md`;
-- `CHECKPOINTS.md`.
+- jelen `README.md`;
+- `ENGINE_CHECKPOINT.md` v1.6;
+- `CHECKPOINTS.md` v1.3.
 
-A három fájl szerepe különböző, ezért nem tartalmi duplikáció. A C.5B production foundation mérföldkő a naplóban és az aktív checkpointban is rögzített.
+Aktuális implementation-bázis:
+
+`2608345b61526097fc0b118f05461f92cfed0a95`
+
+A három fájl szerepe eltérő, ezért a mérföldkő részleges ismétlése nem fölösleges tartalmi duplikáció.

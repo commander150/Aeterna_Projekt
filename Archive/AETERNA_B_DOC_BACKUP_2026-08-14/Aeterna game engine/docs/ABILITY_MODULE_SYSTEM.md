@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.3
-**Dátum:** 2026-08-14
-**Státusz:** aktív, hosszú távú ability-architektúra és a meglévő production ability/effect foundation továbbfejlesztési kerete
-**Production authority:** C#/.NET
-**Adat- és buildréteg:** Python
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Dokumentumverzió:** 1.2  
+**Dátum:** 2026-07-20  
+**Státusz:** aktív, hosszú távú ability-architektúra; production implementáció a core gameplay-alapok után  
+**Production authority:** C#/.NET  
+**Adat- és buildréteg:** Python  
+**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
 Ez a dokumentum az AETERNA kártyaképesség-, keyword-, trigger-, effect- és ability-execution rendszerének hosszú távú felépítését rögzíti.
 
@@ -18,7 +18,7 @@ Nem:
 - runtime package-specifikáció;
 - kártyaaudit-napló;
 - a következő közvetlen programozási feladat;
-- a teljes production ability coverage vagy minden kártyaképesség végleges executor-specifikációja.
+- működő ability executor leírása.
 
 Kapcsolódó aktív dokumentumok:
 
@@ -35,51 +35,30 @@ Kapcsolódó aktív dokumentumok:
 
 ## 1. Jelenlegi tényleges állapot
 
-Két külön réteget kell megkülönböztetni.
-
-### 1.1 Runtime package support metadata
-
-A statikus runtime package jelenleg:
+A runtime package jelenleg:
 
 - tartalmaz `ability_registry.json` fájlt;
 - tartalmaz `engine_support.json` fájlt;
-- deklarált ability modulokat kezel;
-- metadata-szinten `declared_only` / `not_evaluated` állapotot hordozhat;
-- `runtime_executes_abilities: false` értéket deklarál.
+- két deklarált ability modult kezel;
+- a modulok státusza `declared_only`;
+- a kártyák supportja `not_evaluated`;
+- diagnostics- és loader-foundationt biztosít;
+- nem futtat kártyaképességet.
 
-Ez a package support/coverage metadata állapota.
+Manifestállítás:
 
-### 1.2 Production C# ability/effect runtime foundation
+- `runtime_executes_abilities: false`.
 
-A production C# engine-ben már megvalósult foundation többek között:
+Nincs még:
 
-- `CanonicalAbilityCatalog`;
-- `CanonicalAbilityTemplateCompiler`;
-- effect condition evaluator;
-- target filter evaluator;
-- `CanonicalTargetResolver`;
-- `CanonicalTriggerResolver`;
-- `CanonicalEffectExecutor`;
-- template/collection/zone effect runtime;
-- continuous effect state;
-- modifier/keyword/duration runtime;
-- damage/vitals/lethal integration;
-- draw/reference integration.
+- production ability executor;
+- trigger resolver;
+- target/choice/cost/effect pipeline;
+- reaction, prevention vagy replacement runtime;
+- teljes keyword support;
+- teljes kártyafedettség.
 
-Ez nem teljes kártyafedettség.
-
-### 1.3 Ami továbbra sincs teljesen kész
-
-- teljes card ability coverage;
-- teljes keyword coverage;
-- Reaction/Priority runtime;
-- prevention/replacement;
-- teljes multi-trigger ordering;
-- minden komplex target/choice forma;
-- package support matrix teljes migrációja.
-
-A package-ben szereplő teljes kártyaszám nem jelent ugyanennyi engine-supported képességet.
-
+A package-ben szereplő 814 kártya nem jelent 814 engine-supported képességet.
 
 ---
 
@@ -130,37 +109,26 @@ Nem értelmezhet önállóan kártyaszöveget és nem futtathat párhuzamos abil
 
 ---
 
-## 3. Előfeltételek és jelenlegi dependency-k
+## 3. Kötelező előfeltételek
 
-Az első production ability/effect foundation már nem jövőbeli feladat.
+Az ability executor nem a következő gameplay-feladat.
 
-### Teljesült dependency-k
+Előbb szükséges:
 
-- C.5B production C# engine foundation;
-- Wellspring production state;
-- player-visible Wellspring;
-- canonical `infusion`;
-- Magnitúdó-preflight;
-- Aura-payment preflight;
-- activity mutation;
-- `play_card`;
-- Domain placement;
-- explicit phase foundation;
-- target resolver foundation;
-- typed event és projection;
-- canonical card/ability runtime binding.
+1. C.5B production C# engine foundation;
+2. Wellspring production state;
+3. player-visible Wellspring;
+4. `infusion` transition;
+5. Magnitúdó-preflight;
+6. Aura-payment;
+7. activity mutation;
+8. `play_card`;
+9. Entity Domain-placement;
+10. phase és priority minimum;
+11. target és choice contract minimum;
+12. stabil typed event és projection.
 
-### Következő nagy ability-bővítés előtt szükséges
-
-- Reaction/Priority minimum contract;
-- pending reaction/choice state;
-- prevention/replacement szabályi döntés;
-- multi-trigger ordering pontosítása;
-- package support/coverage matrix migráció;
-- első hivatalosan támogatott effect/keyword készletek explicit coverage-listája.
-
-Az ability runtime továbbfejlesztése csak ezek közül a ténylegesen szükséges dependency-k lezárása után terjeszthető ki.
-
+Csak ezután indulhat az első production ability vertical slice.
 
 ---
 
@@ -421,35 +389,22 @@ Az effect tag sorrendje nem execution order.
 
 ## 13. Reaction, prevention és replacement
 
-A hivatalos 1.4.3v alapján már rögzített reaction-alapok:
+Elfogadott irány:
 
-- a reaction windowt az authoritative core engine nyitja és zárja;
-- ha mindkét játékos reagálhat, először az eseményt nem kezdeményező játékos kap lehetőséget;
-- a játékos passzolhat;
-- két egymást követő passz lezárja az ablakot;
-- reakciók egymásra épülhetnek;
-- feloldás visszafelé történik;
-- feloldáskor a releváns target/feltételek újraellenőrizendők;
-- lezárt eseményre nincs visszamenőleges reakció.
-
-Ability-modul szerepe:
-
-- trigger/reaction jogosultság és payload deklarálása;
-- a core timing state-et nem helyettesíti;
-- a modul nem tarthat saját párhuzamos priority/stack authorityt.
+- reaction windowt a core engine kezeli;
+- Burst és Jel ugyanazon keretrendszerben, eltérő subtype-pal kezelhető;
+- prevention és replacement ugyanahhoz a timingrendszerhez kapcsolódik;
+- nincs korai kötelező teljes stack/chain;
+- az első modell pending reaction queue lehet.
 
 Nyitott:
 
-- prevention/replacement exact contract;
-- multi-trigger ordering;
-- optional/mandatory trigger viszony;
-- nested pending decision/reaction;
-- partial resolution;
-- exact public reaction-state/event projection;
-- combat-specifikus reaction pontok production integrációja.
-
-Az első Reaction/Priority foundation nem keverendő össze a combat implementációval.
-
+- több trigger sorrendjének játékosi választása;
+- nested reaction;
+- replacement prioritás;
+- prevention és replacement lánc;
+- optional trigger timeout/pass;
+- részleges resolution.
 
 ---
 
@@ -573,44 +528,28 @@ A Godot megjeleníti, de nem authoritative executor.
 
 ---
 
-## 18. Production ability foundation és következő coverage-szakasz
+## 18. Első production ability vertical slice
 
-Az első production ability/effect vertical slice már megvalósult foundation szinten.
+Csak core gameplay után.
 
-Aktív production komponensek többek között:
-
-- ability catalog;
-- template compiler;
-- condition evaluation;
-- target filter/resolver;
-- trigger resolver foundation;
-- effect executor;
-- continuous effects;
-- modifier/keyword/duration;
-- damage/vitals/lethal;
-- draw/reference integration.
-
-Következő coverage-bővítésnél jó jelöltek továbbra is lehetnek:
+Jó első module-jelöltek lehetnek:
 
 - egyszerű kártyahúzás;
 - Entitás sebzése;
 - Entitás gyógyítása;
-- egyszerű keyword adása meghatározott durationnel;
-- támogatott token/collection/zone effect;
-- ward effect csak a Pecsét-spec után.
+- egyszerű keyword adása kör végéig;
+- egyszerű token létrehozás;
+- ward restore vagy break prevention, ha a Pecsét-spec kész.
 
 Kiválasztási feltétel:
 
 - auditált kártya;
-- egyértelmű canonical szabály;
-- ismert target/condition;
-- támogatott timing;
-- nincs tisztázatlan reaction/replacement;
-- positive/negative fixture;
-- deterministic invariant teszt.
-
-A következő általános ability-bővítés jelenleg a Reaction/Priority contracttól függ, nem a már elkészült Wellspring/`play_card` alaptól.
-
+- egyértelmű szabály;
+- kevés target;
+- nincs reaction stack;
+- nincs replacement;
+- nincs összetett duration;
+- teljes positive/negative fixture.
 
 ---
 
@@ -655,18 +594,20 @@ A teljes kártyafedettséget coverage report méri.
 
 ## 21. Következő lépések
 
-A production ability/effect foundation már létezik; nem kell újra végigjárni a C.5B → Wellspring → Infusion → `play_card` történeti sort.
+Közvetlenül nem ability executor következik.
 
-Következő dependency-sorrend:
+Sorrend:
 
-1. Reaction / Priority hivatalos rules audit;
-2. minimal pending/reaction contract;
-3. prevention/replacement és multi-trigger fennmaradó kapuk pontosítása;
-4. Reaction/Priority production foundation;
-5. ezután célzott ability coverage-bővítés;
-6. package support/coverage matrix fokozatos migrációja.
-
-Combat-specifikus ability support csak a külön combat foundation után bővíthető.
+1. C.5B production engine foundation;
+2. Wellspring;
+3. infusion;
+4. Magnitúdó;
+5. payment;
+6. play_card;
+7. Entity placement;
+8. phase/priority;
+9. target/choice minimum;
+10. első simple ability vertical slice.
 
 A pontos nyitott kérdések:
 

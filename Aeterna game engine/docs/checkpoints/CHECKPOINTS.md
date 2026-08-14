@@ -2,9 +2,9 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.2\
-**Dátum:** 2026-07-22\
-**Státusz:** történeti technikai mérföldkőnapló  
+**Dokumentumverzió:** 1.3
+**Dátum:** 2026-08-14
+**Státusz:** történeti technikai mérföldkőnapló
 **Aktív folytatási checkpoint:** `ENGINE_CHECKPOINT.md`
 
 Ez a fájl az AETERNA Game Engine fő technikai mérföldköveinek időrendi összefoglalója.
@@ -16,7 +16,7 @@ Nem:
 - contract-status;
 - Open Questions-regiszter.
 
-Régi „következő lépés” megjegyzés nem írhatja felül az aktív `ENGINE_CHECKPOINT.md` vagy projektterv állapotát.
+Régi „következő lépés” nem írhatja felül az aktív `ENGINE_CHECKPOINT.md` vagy projektterv állapotát.
 
 ---
 
@@ -28,14 +28,7 @@ Bizonyította:
 - manifest/cards/decks/lookups/aliases/ability/support/diagnostics;
 - Python unit test;
 - Godot loader és registry;
-- headless smoke;
-- explicit Godot logfájl.
-
-Korlát:
-
-- nem rules engine;
-- nem action runtime;
-- nem player UI.
+- headless smoke.
 
 ---
 
@@ -43,30 +36,18 @@ Korlát:
 
 Bizonyította:
 
-- snapshot loader;
-- legal action loader;
-- event loader;
-- snapshot viewer;
-- legal action panel;
-- event log view;
-- unified debug dashboard;
+- snapshot/legal action/event loader;
+- debug nézetek;
+- unified dashboard;
 - card reference resolution.
 
-Korlát:
-
-- statikus fixture;
-- nem authoritative state.
+Korlát: statikus fixture, nem authoritative state.
 
 ---
 
 ## v0.3 – XLSX exporter migration
 
-Bizonyította:
-
-- exporter Python tooling alá helyezését;
-- explicit source/output;
-- XLSX → JSONL;
-- unit/smoke futást.
+Bizonyította az exporter Python tooling alá helyezését és az XLSX → JSONL utat.
 
 ---
 
@@ -74,14 +55,10 @@ Bizonyította:
 
 Bizonyította:
 
-- valós kártya/deck/lookup build;
-- külön LOOKUPS-forrás;
-- candidate build;
+- valós card/deck/lookup build;
 - blocking validation;
 - Godot consumption copy;
-- diagnostics és report.
-
-A runtime package–Godot alap aktív rendszer lett.
+- diagnostics/report.
 
 ---
 
@@ -89,51 +66,31 @@ A runtime package–Godot alap aktív rendszer lett.
 
 Meghatározó bázis:
 
-- `84a7e8f42d313ed58689bbb975c7d6c85ab6e87b`
-- `Add minimal Wellspring resource contracts`
+`84a7e8f42d313ed58689bbb975c7d6c85ab6e87b` – `Add minimal Wellspring resource contracts`
 
 Elkészült:
 
-- expected state version;
-- card instance registry;
-- draw;
-- end turn;
+- state version;
+- card instance;
+- draw/end-turn reference flow;
 - typed event;
 - player snapshot;
-- Domain topology/occupancy;
-- Entity placement option;
-- activity state;
-- isolated Wellspring;
+- Domain;
+- activity;
+- Wellspring;
 - deterministic AI trajectory.
 
-Aktuális szerepe:
-
-- reference implementation;
-- comparison oracle;
-- AI/batch tooling base.
+Aktuális szerepe: reference/oracle.
 
 ---
 
 ## Runtime comparison fixture
 
-Fixture:
-
-- `minimal_draw_end_turn_v1`.
-
-Canonical SHA:
+Történeti canonical SHA:
 
 `650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`
 
-Bizonyította:
-
-- draw;
-- stale reject;
-- end turn;
-- second draw;
-- snapshot;
-- legal actions;
-- typed events;
-- deterministic canonical output.
+Bizonyította a determinisztikus közös comparison contractot.
 
 ---
 
@@ -141,21 +98,11 @@ Bizonyította:
 
 Lezáró commit:
 
-- `d1fb7aaa23d58f166a30f9e0241799f35f5ac14e`.
+`d1fb7aaa23d58f166a30f9e0241799f35f5ac14e`
 
 Státusz:
 
-- `COMPLETE_AND_FROZEN`.
-
-Bizonyította:
-
-- localhost TCP;
-- request/response;
-- shutdown;
-- emergency shutdown;
-- parent watchdog;
-- orphan cleanup;
-- canonical comparison.
+`COMPLETE_AND_FROZEN`
 
 Nem production főmotor.
 
@@ -165,22 +112,13 @@ Nem production főmotor.
 
 Lezáró commit:
 
-- `8e5ee64e42e1657e10f3413444bb870524ee07f9`.
+`8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
 Státusz:
 
-- `COMPLETE_AND_ACCEPTED`.
+`COMPLETE_AND_ACCEPTED`
 
-Bizonyította:
-
-- pure C# candidate;
-- Godot .NET bridge;
-- nincs Python/TCP/külön engine-processz;
-- Debug/Release;
-- headless/visual;
-- 100-run determinism;
-- mutation negative proof;
-- canonical SHA.
+Bizonyította a pure C# + Godot .NET in-process irányt, determinisztikát és regressziós proofot.
 
 ---
 
@@ -192,25 +130,13 @@ Elfogadott:
 - C# authoritative production engine;
 - Python external tooling/reference.
 
-A nyelvi döntési kapu lezárult.
-
 ---
 
 ## C.5A – Production C# architecture
 
 Státusz:
 
-- `COMPLETE_AND_ACCEPTED`.
-
-Rögzítve:
-
-- `Aeterna.Engine`;
-- `Aeterna.Engine.Headless`;
-- `Aeterna.Engine.Tests`;
-- EngineSession;
-- typed contracts;
-- Godot bridge;
-- Python headless kapcsolat.
+`COMPLETE_AND_ACCEPTED`
 
 ---
 
@@ -218,45 +144,94 @@ Rögzítve:
 
 Státusz:
 
-- `COMPLETE_AND_ACCEPTED`.
+`COMPLETE_AND_ACCEPTED`
 
 Lezáró commit:
 
-- `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`.
+`931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
-Scope:
+Történeti acceptance:
 
-- pure C# engine;
-- headless host;
-- tests;
-- package loader;
-- draw/end-turn;
-- stale reject;
-- canonical fixture;
-- Godot production bridge.
+- Debug/Release `13/13`;
+- canonical artifact `210730` byte;
+- SHA-egyezés;
+- determinism `100/100`;
+- pozitív/negatív Godot bridge smoke.
 
-Bizonyította:
+---
 
-- pure `net8.0` production core;
-- ugyanazt az `EngineSession` implementációt használó headless és Godot út;
-- viewer-safe snapshot- és eventprojekció;
-- strukturált JSON boundary rejection;
-- Debug/Release `13/13` production teszt;
-- expected és actual canonical SHA-egyezés;
-- `210730` byte canonical artifact;
-- `100/100` determinisztika;
-- pozitív és negatív Godot production bridge smoke.
+## Első production gameplay vertical slice
+
+Szakasz:
+
+`931bf5571d541c752aa421a9f0626768bd8ffbe7`
+→
+`2608345b61526097fc0b118f05461f92cfed0a95`
+
+Összesen: `39 commit`
+
+Megvalósult fő rétegek:
+
+- alapjáték főforrás `1.4.3v`;
+- canonical workbook, `CARDDATABASE.xlsx`, `REGISTRY.xlsx`;
+- Wellspring;
+- Beáramlás;
+- Magnitúdó;
+- Aura-payment;
+- activity;
+- Domain / `play_card`;
+- zone transition / Void;
+- canonical card/runtime binding;
+- ability catalog/template compiler;
+- condition / target / trigger / effect foundation;
+- continuous effects;
+- modifier/keyword/duration;
+- damage/vitals/lethal;
+- draw/reference runtime.
+
+### Explicit Phase Foundation v1
+
+Lezáró commit:
+
+`2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+
+Megvalósult:
+
+- `awakening`;
+- `infusion`;
+- `manifestation`;
+- `incursion`;
+- `distribution`;
+- `advance_phase`;
+- `StartingPlayerId`;
+- Awakening draw exception és auto ready/draw;
+- Distribution cleanup és player switch;
+- viewer-safe ActionResponse;
+- Godot bridge migráció.
+
+Lezáró acceptance:
+
+- Debug `222/222 PASS`;
+- Release `222/222 PASS`;
+- oracle/reference PASS;
+- canonical byte count `210676`;
+- canonical SHA `97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8`;
+- determinism `100/100 PASS`;
+- Godot build/smoke PASS.
+
+Státusz:
+
+`COMPLETE_AND_ACCEPTED`
 
 ---
 
 ## Következő mérföldkőnapló-bejegyzés
 
-Új történeti bejegyzés akkor készül, amikor:
+Új történeti bejegyzés csak következő nagy, lezárt production mérföldkőnél készül, például:
 
-- első production gameplay vertical slice;
-- jelentős packaging proof;
+- Reaction / Priority foundation;
+- jelentős combat foundation;
+- production AI/replay/packaging proof;
 - 0.0.1 fő mérföldkő.
 
 Kisebb dokumentum- vagy egyedi commit nem igényel külön történeti checkpointbejegyzést.
-
-A részletes régi checkpointszövegek a Git-történetben megmaradnak.

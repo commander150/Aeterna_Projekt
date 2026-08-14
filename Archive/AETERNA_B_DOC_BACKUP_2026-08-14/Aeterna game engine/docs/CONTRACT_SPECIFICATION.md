@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.8
-**Dátum:** 2026-08-14
-**Státusz:** aktív, technológiafüggetlen contract-specifikáció
-**Aktuális megvalósítási státusz:** `CONTRACT_STATUS.md`
-**Production authority:** C#/.NET
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Dokumentumverzió:** 1.7\
+**Dátum:** 2026-08-10\
+**Státusz:** aktív, technológiafüggetlen contract-specifikáció  
+**Aktuális megvalósítási státusz:** `CONTRACT_STATUS.md`  
+**Production authority:** C#/.NET  
+**Aktuális repository-bázis:** `1ac3095509a4953bee79ae2acc76623ad693d117`
 
 Ez a dokumentum az AETERNA Game Engine contract-first rétegének aktív szerkezeti specifikációja.
 
@@ -89,7 +89,7 @@ A működő kód technikai tényt bizonyíthat, de nem írhatja felül a hivatal
 | `debug_fixture` | Loader/UI/comparison tesztadat. |
 | `reference_only` | Történeti vagy összehasonlító referencia. |
 
-Az aktuális státuszokat a `CONTRACT_STATUS.md` tartalmazza. A `planned_c5b` és más korábbi planning jelölések történeti tervezési státuszok; nem írhatják felül a későbbi production implementációt.
+Az aktuális státuszokat a `CONTRACT_STATUS.md` tartalmazza.
 
 ---
 
@@ -120,32 +120,24 @@ Nem:
 
 A belső igaz állapot.
 
-Tartalmazhat/production foundationben már tartalmaz többek között:
+Tartalmazhat:
 
 - match ID;
 - seed;
 - state version;
-- turn number;
-- canonical phase;
-- `starting_player_id`;
+- turn és phase;
 - active player;
 - priority player;
 - player state-ek;
 - card instance registry;
-- deck/hand/Void/Wellspring zónák;
-- Domain topology/occupancy;
-- turn-scoped usage state;
-- pending trigger/decision state;
-- continuous effect state;
-- modifier/keyword/duration state;
+- zónák;
+- Domain topology és occupancy;
+- Wellspring;
+- turn-scoped decision state;
+- pending decision;
 - event sequence és log;
-- match result.
-
-Későbbi bővítés:
-
-- teljes Reaction/Priority state;
-- teljes combat state;
-- további pending choice/replacement state.
+- match result;
+- később effect, duration és reaction state.
 
 Nem adható ki módosítható player-facing objektumként.
 
@@ -213,18 +205,10 @@ Minimum:
 - accepted;
 - reason;
 - state version before/after;
-- viewer-safe events;
+- events;
 - diagnostics;
 - opcionális transition summary;
 - opcionális pending decision.
-
-Visibility invariáns:
-
-- a public `ActionResponse.Events` viewerje a requestet beküldő játékos;
-- a transition közbeni `ActivePlayerId`-váltás nem változtathatja át a response viewerjét;
-- a public response viewer-specifikusan projektált;
-- az internal authoritative event store full-fidelity marad;
-- az ugyanazon viewerre kért későbbi event projection szemantikailag konzisztens a direct response-zal.
 
 ### 4.7 Event
 
@@ -264,7 +248,7 @@ Minimum:
 
 ## 5. EngineSession publikus határ
 
-Aktív production API:
+Tervezett production API:
 
 - `CreateMatch`;
 - `GetPlayerSnapshot`;
@@ -565,33 +549,23 @@ Normál Beáramlás:
 - kéz → Wellspring;
 - face-down;
 - active;
-- azonnal növeli a Magnitúdót és az elérhető Aurát;
-- nem nyit automatikusan reaction windowt.
-
-Production usage state:
-
-- az engine turn-scoped/turn-number alapú guarddal tartja nyilván, hogy a normál Beáramlás megtörtént-e;
-- külön `skipped` gameplay-state nem szükséges;
-- a Beáramlás kihagyása a canonical phase progression része.
+- azonnal növeli Magnitúdót és elérhető Aurát;
+- nem nyit automatikusan reaction windowt;
+- turn-scoped status:
+  `pending | performed | skipped`.
 
 Legal action:
 
-- `normal_inflow`, ha az adott körben még legális;
-- `advance_phase` az opcionális Beáramlás kihagyására vagy a fázisból továbblépésre.
+- `normal_inflow`;
+- `advance_phase` az opcionális Beáramlás kihagyására vagy lezárására.
 
-Accepted `normal_inflow` transition:
+Accepted transition:
 
 - atomikus;
-- hand → Wellspring;
-- face-down + active;
-- usage guard frissül;
-- resource summary frissül;
 - egyszeri state-version növelés;
-- viewer-safe typed eventek;
-- a phase `infusion` marad mindaddig, amíg külön `advance_phase` nem történik.
-
-Az Infusion → Manifestation váltás kizárólag canonical phase transitionnel történik.
-
+- zone move;
+- phase transition;
+- visibility-safe snapshot/event.
 
 ---
 
@@ -618,24 +592,19 @@ Aktív reference eventek:
 - `zone_move`;
 - `turn_transition`.
 
-Aktív production event foundation többek között:
+Későbbi:
 
-- phase és turn transition;
-- zone move;
-- card ready/activity state;
-- támogatott payment transition;
-- támogatott card-play transition;
-- canonical ability/effect resolution.
-
-Későbbi contract-bővítés:
-
-- Reaction/Priority;
+- activity state changed;
+- payment;
+- card played;
+- Entity entered Domain;
+- reaction;
 - combat;
-- Pecsét-feltörés/restore;
+- ward break/restore;
 - victory/defeat;
-- további replacement/prevention és nem támogatott ability-resolution esetek.
+- ability resolution.
 
-A pontos event-type lista és payload mindig az aktuális `CONTRACT_STATUS.md` és production contract szerint értelmezendő.
+---
 
 ## 17. Aeternal és Pecsét contract
 
@@ -791,7 +760,7 @@ A comparison fixture canonical SHA csak explicit contractváltozás után módos
 
 ## 24. Production C# C.5B minimum
 
-**Megvalósítási státusz:** `COMPLETE_AND_ACCEPTED`
+**Megvalósítási státusz:** `COMPLETE_AND_ACCEPTED`\
 **Lezáró commit:** `931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
 Contractok:
@@ -854,8 +823,6 @@ Nem része:
 - combat;
 - ability execution.
 
-A fenti lista a C.5B lezáráskori történeti scope-határt rögzíti. Nem a jelenlegi production állapotot írja le; a későbbi foundationt a 24.2 fejezet rögzíti.
-
 ### 24.1 Explicit phase foundation v1
 
 Az aktív production C# turn-flow authoritative fázisállapota:
@@ -892,48 +859,6 @@ event store teljes identitású eseményei változatlanul megmaradnak.
 Post-audit bizonyítás: a Godot 4.7.1 .NET pozitív production bridge headless smoke canonical
 `advance_phase` flow-val, öt state transitionnel és hét sorrendhelyes eventtel PASS; a
 negatív smoke két kontrollált create- és négy kontrollált action-rejectionnel PASS.
-
----
-
-### 24.2 C.5B utáni production gameplay és ability contract foundation
-
-A C.5B történeti minimum után a production C# contract-réteg kibővült.
-
-Aktív foundation többek között:
-
-- Wellspring state és viewer-safe projection;
-- `normal_inflow`;
-- Magnitúdó-preflight;
-- Aura-payment preflight;
-- activity mutation;
-- Domain topology/occupancy és placement;
-- `play_card`;
-- canonical zone transition és Void;
-- canonical package/card/runtime binding;
-- canonical ability catalog;
-- ability-template compiler;
-- effect condition evaluator;
-- target filter és target resolver;
-- trigger resolver foundation;
-- effect executor;
-- template/collection/zone effect runtime;
-- continuous effects;
-- modifier/keyword/duration state;
-- damage/vitals/lethal lifecycle;
-- canonical draw/reference runtime;
-- Explicit Phase Foundation v1.
-
-Ez `foundation` státusz:
-
-- nem jelent teljes kártyacoverage-et;
-- nem jelent teljes keyword supportot;
-- nem jelent Reaction/Priority implementációt;
-- nem jelent combat implementációt;
-- nem jelenti a Refresh Penalty vagy teljes victory/defeat lifecycle elkészültét.
-
-Aktuális implementation-bázis:
-
-`2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 
 ---
 

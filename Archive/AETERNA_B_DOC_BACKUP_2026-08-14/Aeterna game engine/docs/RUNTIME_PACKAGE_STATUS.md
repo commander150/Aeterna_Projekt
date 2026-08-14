@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.3
-**Dátum:** 2026-08-14
-**Státusz:** aktív runtime package-, lookup- és publish-pipeline státuszdokumentum
-**Felváltott fájl:** `CURRENT_RUNTIME_PACKAGE_STATUS.md`
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Dokumentumverzió:** 1.2  
+**Dátum:** 2026-07-20  
+**Státusz:** aktív runtime package-, lookup- és publish-pipeline státuszdokumentum  
+**Felváltott fájl:** `CURRENT_RUNTIME_PACKAGE_STATUS.md`  
+**Aktuális repository-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
 
 Ez a dokumentum a runtime package, a kártyaadatforrás, a külön LOOKUPS-forrás és a Godot-fogyasztási út tényleges állapotát rögzíti.
 
@@ -22,7 +22,7 @@ Kapcsolódó aktív dokumentumok:
 - `RUNTIME_PACKAGE_SPECIFICATION.md`
 - `PROTOTYPE_STATUS.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.5.md`
+- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.2.md`
 
 ---
 
@@ -33,15 +33,19 @@ A runtime package–Godot alapozási mérföldkő elkészült és működik.
 Bizonyított adatút:
 
 ```text
-Szerkesztési XLSX / LOOKUPS
+Google Sheets / lokális XLSX
         ↓
-Python export, normalizálás és validáció
+Python export és adapterek
         ↓
-canonical workbook / runtime package candidate
+validáció és normalizáció
         ↓
-blocking publish validation
+runtime package candidate
         ↓
-Godot consumption + production C# package/canonical loader
+publish validation
+        ↓
+Godot/runtime_package consumption copy
+        ↓
+Godot loader, registry, debug nézet és smoke teszt
 ```
 
 Aktuális minősítés:
@@ -50,19 +54,12 @@ Aktuális minősítés:
 - valós adatokból package build: `WORKING`;
 - Godot consumption copy: `WORKING`;
 - Godot loader és smoke: `WORKING`;
-- canonical workbook export: `WORKING`;
-- production C# canonical/package consumption: `WORKING`;
 - package identity és production schema: `NOT_FINAL`;
-- runtime package ability-support metadata: `DECLARED_ONLY / NOT_MIGRATED_TO_FULL_SUPPORT_MATRIX`;
-- production C# canonical ability/effect runtime foundation: `IMPLEMENTED_AND_ACTIVE`;
+- ability execution: `NOT_IMPLEMENTED`;
+- production C# engine package consumption: `PLANNED_FOR_C5B`;
 - végleges player-facing kliensintegráció: `NOT_IMPLEMENTED`.
 
-Fontos elhatárolás:
-
-A statikus package `engine_support.json` jelenlegi metadata-állapota nem ugyanaz, mint a production C# engine tényleges capability-je. A package support matrix külön migrációt igényel; a metadata nem írható át automatikusan pusztán azért, mert az engine-ben már van ability/effect foundation.
-
-A runtime package továbbra sem szabálymotor és nem authoritative mérkőzésállapot.
-
+A runtime package nem szabálymotor és nem authoritative mérkőzésállapot.
 
 ---
 
@@ -113,39 +110,12 @@ A kártyaadatbázis munkaforrás saját `5A. LOOKUPS_RUNTIME` lapja munkafájl-v
 
 Szabályi elsőbbség:
 
-1. hivatalos alapjáték-főforrás 1.4.3v;
+1. hivatalos alapjáték-főforrás 1.4v;
 2. hivatalos kiegészítő-főforrás 1.4v;
 3. explicit emberi döntések és verziózott átvezetések;
 4. aktív engine-contractok és fixture-ek;
 5. Python referenciaimplementáció;
 6. production C# implementáció.
-
----
-
-### 2.4 Canonical workbook és production C# fogyasztási réteg
-
-A szerkesztési munkaforrás és a statikus Godot runtime package mellett aktív derived/canonical programadat-réteg is létezik:
-
-- `CARDDATABASE.xlsx`;
-- `REGISTRY.xlsx`;
-- canonical workbook exporter;
-- production `CanonicalPackageLoader`;
-- runtime lookup/card binding.
-
-Szerepük:
-
-- programfogyasztásra stabilabb canonical adatút;
-- determinisztikus mapping;
-- card/ability/runtime binding;
-- production C# loader input.
-
-Nem:
-
-- új emberi szerkesztési authority;
-- hivatalos játékszabályforrás;
-- a `LOOKUPS.xlsx` automatikus felülírója.
-
-Eltérés esetén a hivatalos szabályforrás és az elfogadott emberi adat-/contract-döntés az elsődleges.
 
 ---
 
@@ -187,7 +157,7 @@ Godot útvonal:
 
 - `res://runtime_package`
 
-A production C# engine validált package/canonical adatot fogyaszt, és nem olvas közvetlenül szerkesztési XLSX-et.
+A későbbi production C# engine ugyanezt a validált package-et fogyasztja, és nem olvas közvetlenül XLSX-et.
 
 ---
 
@@ -403,62 +373,17 @@ Ezek ability executor és effect-state nélkül nem nevezhetők támogatottnak.
 
 ---
 
-**Aktuális production megjegyzés – 2026-08-14:**
-A base Magnitúdó-preflight és az Aura-payment preflight production C# foundationje megvalósult. A temporary Aura, card abilityből származó cost modifier, free cast, alternate cost és replacement továbbra sem tekintendő teljesen támogatottnak.
-
----
-
 ## 7. Ability és engine-support állapot
 
-### 7.1 Runtime package support metadata
-
-A jelenlegi statikus package továbbra is:
+A jelenlegi package:
 
 - deklarál ability modulokat;
-- `ability_registry.json` és `engine_support.json` fájlt tartalmaz;
-- a modulok metadata-státuszát `declared_only` formában hordozza;
-- a card supportot jelenleg `not_evaluated` állapotban tarthatja;
-- `runtime_executes_abilities: false` értéket deklarál.
+- jelzi a support státuszt;
+- nem futtatja a kártyaképességeket;
+- `runtime_executes_abilities: false`;
+- a kártyák supportja jelenleg `not_evaluated`.
 
-Ez a package-support metadata tényleges jelenlegi állapota, és külön support-matrix/package migráció nélkül nem írható át.
-
-### 7.2 Production C# ability/effect capability
-
-A production C# engine-ben ugyanakkor már aktív foundation többek között:
-
-- canonical ability catalog;
-- ability-template compiler;
-- effect condition evaluator;
-- target filter/resolver;
-- trigger resolver foundation;
-- effect executor;
-- template/collection/zone effect runtime;
-- continuous effects;
-- modifier/keyword/duration;
-- damage/vitals;
-- draw/reference integration.
-
-**Státusz:** `IMPLEMENTED_AND_ACTIVE`
-
-### 7.3 Fontos elhatárolás
-
-A következő állítások egyszerre igazak:
-
-1. a statikus runtime package support metadata még nem deklarál teljes ability-execution supportot;
-2. a production C# engine capability már tartalmaz ability/effect execution foundationt.
-
-A 814 kártya package-ben való jelenléte továbbra sem jelent 814 teljesen támogatott kártyaképességet.
-
-Nyitott:
-
-- package support matrix migráció;
-- teljes card coverage;
-- teljes keyword coverage;
-- Reaction/Priority integráció;
-- prevention/replacement;
-- teljes trigger ordering;
-- komplex choice/target support.
-
+A 814 kártya package-ben való jelenléte nem jelent 814 működő kártyaképességet.
 
 ---
 
@@ -510,7 +435,7 @@ A production C# engine minimum loaderének validálnia kell:
 - kért deckek létezése;
 - biztonságos relatív útvonalak.
 
-A C.5B történeti minimum nem változtatta meg a package teljes production identityját, és azon a checkpointon még nem implementált ability executiont. Ez történeti scope-határ; a jelenlegi production `CanonicalPackageLoader` és ability/effect foundation állapotát az 1., 2.4 és 7. fejezet rögzíti.
+A C.5B nem változtatja meg a package teljes production identityját, és nem implementál ability executiont.
 
 ---
 
@@ -536,20 +461,13 @@ A C.5B történeti minimum nem változtatta meg a package teljes production iden
 
 ### 10.3 Godot- és engine-integráció
 
-Már működő foundation:
-
-- production C# canonical/package loader;
-- viewer-safe snapshot és event API;
-- legal action/action request/response engine-határ;
-- Godot production C# bridge és smoke.
-
-Továbbra is nyitott:
-
-- végleges player-facing UI-integráció;
-- package support/coverage metadata megjelenítése és diagnosztikája;
+- production C# package loader;
+- valódi player-visible snapshot;
+- legal action megjelenítés;
+- action request bridge;
+- action response és event stream;
 - save/replay/bug-report package;
-- release diagnostics és support workflow;
-- végleges packaging/compatibility UX.
+- production diagnostics.
 
 ### 10.4 Release és integritás
 
@@ -565,22 +483,23 @@ Továbbra is nyitott:
 
 A runtime package alapozás nem a jelenlegi kritikus blokkoló.
 
-A projekt aktuális szakmai fókusza:
+Sorrend:
 
-1. Reaction / Priority rules audit;
-2. minimal Reaction / Priority contract;
-3. csak ezután production implementation.
-
-Runtime-package-specifikus későbbi prioritások:
-
-- package support/coverage matrix migráció;
-- production package identity;
-- engine/package compatibility policy;
-- source fingerprint/hash;
-- development/release profile;
-- Windows release packaging.
+1. engine-dokumentáció rendezése és átnevezése;
+2. C.5B production C# engine foundation;
+3. C# minimum runtime package loader;
+4. Wellspring production integráció;
+5. player-visible Wellspring;
+6. `infusion` action és phase transition;
+7. Magnitúdó-preflight;
+8. base payment source selection;
+9. `play_card`;
+10. későbbi ability/effect execution;
+11. production package identity és release packaging.
 
 A kártyaadatbázis és a külön LOOKUPS munkaforrás e dokumentumfrissítés során nem módosult.
+
+---
 
 ## 12. Dokumentumkezelési hatás
 
@@ -597,16 +516,15 @@ Repository alkalmazásakor:
 
 ## 13. Rövid összefoglaló
 
-**Runtime package build:** működik
-**Godot consumption copy:** működik
-**Legutóbbi rögzített kártyaszám:** 814
-**Legutóbbi rögzített deckszám:** 28
-**Aktív canonical Wellspring-zóna:** `wellspring`
-**Aktív canonical Beáramlás-fázis:** `infusion`
-**Canonical Realm formátum:** lowercase ASCII
-**Nyomtatott Aura-költségforrás:** card definition `Aura` mező
-**Executable payment override schema:** még nem teljes
-**Runtime package ability-support metadata:** declared-only / nem teljes support matrix
-**Production C# ability/effect runtime foundation:** `IMPLEMENTED_AND_ACTIVE`
-**Production C# canonical/package consumption:** `WORKING`
-**LOOKUPS/workbook módosítás:** e dokumentációs körben nem történt
+**Runtime package build:** működik  
+**Godot consumption copy:** működik  
+**Legutóbbi rögzített kártyaszám:** 814  
+**Legutóbbi rögzített deckszám:** 28  
+**Aktív canonical Wellspring-zóna:** `wellspring`  
+**Aktív canonical Beáramlás-fázis:** `infusion`  
+**Canonical Realm formátum:** lowercase ASCII  
+**Nyomtatott Aura-költségforrás:** card definition `Aura` mező  
+**Executable payment override schema:** még nincs  
+**Ability execution:** nincs  
+**Production C# package loader:** C.5B scope  
+**LOOKUPS/workbook módosítás:** nem történt

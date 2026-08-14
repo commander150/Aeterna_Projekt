@@ -2,10 +2,10 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.4
-**Dátum:** 2026-08-14
-**Státusz:** aktív kanonikus rendszerarchitektúra
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Dokumentumverzió:** 2.3\
+**Dátum:** 2026-07-22\
+**Státusz:** aktív kanonikus rendszerarchitektúra  
+**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 
 Ez a dokumentum az AETERNA digitális rendszerének aktív architektúráját, réteghatárait és authority-szabályait rögzíti.
 
@@ -27,7 +27,7 @@ Kapcsolódó aktív dokumentumok:
 - `OPEN_QUESTIONS.md`
 - `OPEN_QUESTIONS_DECISIONS.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.5.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.4.md`
 
 ---
 
@@ -89,22 +89,20 @@ A játékosnál futó normál Godot kliens nem igényel Python-processzt.
 
 Elsődleges szabályforrások:
 
-- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`;
-- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`.
+- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4v.docx`
+- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`
 
-A kód, structured mező, learning projekt vagy régi Python-implementáció nem írhatja felül ezeket emberi döntés nélkül.
+A kód, structured mező, tanulóprojekt vagy régi Python-implementáció nem írhatja felül ezeket emberi döntés nélkül.
 
-Szabályi/contract prioritás:
+Implementációs prioritás:
 
 1. hivatalos szabályforrás;
-2. elfogadott, verziózott emberi döntés;
-3. aktív Open Questions decision log;
-4. aktív contract/specification;
-5. elfogadott fixture/reference;
-6. production implementáció mint technikai bizonyíték.
+2. aktív contract vagy specifikáció;
+3. elfogadott fixture;
+4. Python referencia;
+5. C# production implementáció.
 
-A Python referencia nem automatikus szabályspecifikáció. A működő production kód technikai tényt bizonyíthat, de új játékszabályt nem.
-
+A Python referencia nem automatikus szabályspecifikáció.
 
 ---
 
@@ -283,7 +281,7 @@ Pure C# class library:
 - TCP/HTTP/gRPC nélkül;
 - operációsrendszer-processz kezelés nélkül.
 
-Státusz: aktív `net8.0` production authoritative core. A C.5B történeti foundationben a MatchState/PlayerState minimum, typed contractok, `EngineSession`, runtime package minimum loader, draw, end-turn és stale rejection valósult meg. A `931bf... → 2608345b...` szakaszban ehhez production Wellspring/Infusion, payment preflight, Domain/`play_card`, canonical ability/effect foundation, damage/vitals, continuous/modifier/keyword/duration, draw/reference runtime és Explicit Phase Foundation társult.
+Státusz: aktív `net8.0` production foundation. A C.5B-ben a MatchState/PlayerState minimum, typed contractok, `EngineSession`, runtime package minimum loader, draw, end-turn és stale rejection valósult meg.
 
 #### Aeterna.Engine.Headless
 
@@ -427,7 +425,7 @@ A candidate projekt proofként megőrzendő, nem közvetlenül átnevezendő pro
 
 ## 9. MatchState és PlayerState
 
-A production C# modell aktív fő elemei:
+A production C# modell tervezett fő elemei:
 
 ### MatchState
 
@@ -435,18 +433,15 @@ A production C# modell aktív fő elemei:
 - seed;
 - state version;
 - turn number;
-- canonical phase;
-- `StartingPlayerId`;
+- phase;
 - active player;
 - priority player;
 - player state-ek;
 - card instance registry;
 - Domain;
 - Wellspring;
-- pending trigger/decision state;
-- continuous effect state;
-- modifier/keyword/duration state;
-- event sequence és event log;
+- event sequence;
+- event log;
 - match result.
 
 ### PlayerState
@@ -455,35 +450,12 @@ A production C# modell aktív fő elemei:
 - deck ID;
 - deck card instance ID-k;
 - hand card instance ID-k;
-- canonical Void card instance ID-k;
+- discard card instance ID-k;
 - Wellspring card instance ID-k;
 - erőforrás-summary;
-- turn-scoped usage state;
-- player-specifikus runtime state.
+- player-specifikus state.
 
 A MatchState belső authoritative adat, normál kliensnek nem exportálható közvetlenül.
-
-### 9.1 Canonical phase lifecycle
-
-A phase az authoritative state része, nem dekoratív label.
-
-Canonical sorrend:
-
-`awakening -> infusion -> manifestation -> incursion -> distribution`
-
-Elvek:
-
-- public progression: `advance_phase`;
-- Awakening entry automatikus ready/draw logikát futtat;
-- a kezdő játékos első Awakeningje explicit 0-draw kivétel;
-- Distribution explicit, megfigyelhető state;
-- `incursion -> distribution` turn-end cleanup boundary;
-- `distribution -> awakening` vált aktív játékost;
-- legal action space phase-specifikus;
-- automatic phase entry logic a C# core feladata.
-
-A következő architecture expansion a Reaction/Priority pending state; combat külön későbbi layer.
-
 
 ---
 
@@ -505,19 +477,17 @@ Card instance fő adatai:
 - zone sequence;
 - runtime metadata.
 
-Canonical/aktív zónák:
+Tervezett aktív zónák:
 
 - deck;
 - hand;
+- discard;
 - wellspring;
 - domain;
 - void;
-- szükség szerinti explicit resolution/intermediate zone.
+- szükség szerinti átmeneti resolution zóna.
 
-A `discard` nem canonical C# zónanév: eldobás művelet/ok lehet, normál canonical célzónája a `void`, ha replacement szabály másként nem rendelkezik.
-
-A Domain pozíció nem egyszerű listaindex, hanem topology és occupancy alapján kezelt authoritative state.
-
+A Domain pozíció nem egyszerű listaindexként kezelendő, hanem topology és occupancy alapján.
 
 ---
 
@@ -546,7 +516,7 @@ A Pecsét állapota külön authoritative modell, nem hagyományos card occupanc
 - saját kéz látható;
 - ellenfél kéz redacted;
 - deck count-only;
-- canonical Void public;
+- discard public;
 - Domain board public;
 - Wellspring owner-specifikusan rejtett;
 - legal action lista;
@@ -714,78 +684,59 @@ A végleges Windows packaging production engine mellett még külön bizonyítan
 
 ---
 
-## 17. Migrációs és production mérföldkő-sorrend
+## 17. Migrációs sorrend
 
 ### C.5A
 
-`COMPLETE_AND_ACCEPTED`
+**Státusz:** `COMPLETE`
 
-Rögzítette a production C# architecture tervet.
+Production architecture és project-határok rögzítve.
 
 ### C.5B
+
+**Státusz:** `COMPLETE_AND_ACCEPTED`
 
 Lezáró commit:
 
 `931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
-`COMPLETE_AND_ACCEPTED`
-
-Történeti foundation:
+Feladata:
 
 - `Aeterna.Engine`;
 - `Aeterna.Engine.Headless`;
 - `Aeterna.Engine.Tests`;
-- `EngineSession`;
+- `Aeterna.Engine.sln`;
+- core contractok;
+- EngineSession;
 - runtime package minimum loader;
-- draw/end-turn proof;
+- draw/end-turn production reprodukció;
 - Godot production bridge;
-- RuntimeCandidate/Python regresszió.
+- candidate regresszió.
 
-Történeti acceptance:
+Ellenőrzött minimum:
 
-- Debug/Release `13/13`;
-- canonical SHA-egyezés;
-- `100/100` determinisztika;
-- Godot pozitív/negatív smoke.
+- Debug/Release production build és `13/13` teszt;
+- canonical SHA-egyezés és `100/100` determinisztika;
+- viewer-safe event projection;
+- strukturált JSON boundary rejection;
+- Godot pozitív és negatív production bridge smoke.
 
-### C.5B utáni production gameplay vertical slice
+### Következő gameplay-sorrend
 
-`COMPLETE_AND_ACCEPTED`
+1. Wellspring production integráció;
+2. player-visible Wellspring;
+3. Beáramlás;
+4. Magnitúdó;
+5. Aura-payment;
+6. `play_card`;
+7. Entity Domain placement;
+8. phase és priority;
+9. reaction;
+10. combat;
+11. ability execution;
+12. win/loss.
 
-Megvalósult:
-
-- Wellspring;
-- player-visible Wellspring;
-- Beáramlás;
-- Magnitúdó/Aura payment preflight;
-- `play_card`;
-- Domain placement;
-- canonical ability/effect foundation;
-- damage/vitals;
-- continuous/modifier/keyword/duration;
-- draw/reference runtime.
-
-### Explicit Phase Foundation v1
-
-Lezáró commit:
-
-`2608345b61526097fc0b118f05461f92cfed0a95`
-
-`COMPLETE_AND_ACCEPTED`
-
-Canonical lifecycle:
-
-`awakening -> infusion -> manifestation -> incursion -> distribution`
-
-### Következő architecture expansion
-
-1. Reaction / Priority minimal contract;
-2. Reaction / Priority production foundation;
-3. külön combat contract/foundation;
-4. Pecsét/Refresh/victory rétegek a saját rules gate-jeik után;
-5. replay/AI/UI/packaging későbbi mérföldkövek.
-
-A korábbi Wellspring-first migrációs sor történeti, nem current roadmap.
+---
 
 ## 18. Elvetett architektúrák
 
@@ -817,35 +768,33 @@ A projekt dokumentumkezelésének célja:
 
 - kevés aktív fődokumentum;
 - egyértelmű dokumentumszerepek;
-- verzióblokk, dátum és státusz minden aktív dokumentumban;
+- verzióblokk minden aktív dokumentumban;
+- státusz és dátum minden aktív dokumentumban;
 - történeti fájlok elkülönítése;
 - tartalomvesztés nélküli merge;
-- nyitott kérdések és proof-folytonosság megőrzése.
+- nyitott kérdések megőrzése.
 
 Alapszabály:
 
-- meglévő aktív dokumentumot frissítünk;
-- új dokumentum csak önálló canonical szerep esetén készül;
-- `CURRENT_*` előd nem aktív authority;
-- párhuzamos aktív authority nem maradhat;
-- törlés/archiválás csak ellenőrzött utóddal történhet;
-- minden nagy mérföldkőnél célzott, nem tömeges consistency audit történhet.
+- meglévő aktív dokumentum frissítendő;
+- új dokumentum csak önálló canonical szerep esetén készülhet;
+- verzió nélküli aktív dokumentumokat a későbbi teljes auditban verzióval kell ellátni;
+- párhuzamos current dokumentumok később összevonandók;
+- törlés vagy archiválás csak teljes audit és jóváhagyás után történhet.
 
-A `2608345b...` mérföldkőhöz tartozó A+B consistency pass lezárult.
+---
 
 ## 20. Rövid aktuális összefoglaló
 
 - A hivatalos játékszabályok az elsődleges források.
-- A Python adatpipeline, audittooling és reference/oracle megmarad.
+- A Python adatpipeline és audittooling megmarad.
+- A Python minimal engine referencia és comparison oracle.
 - A Godot/GDScript a vizuális kliensréteg.
-- A C#/.NET az egyetlen aktív authoritative production runtime.
+- A C#/.NET az egyetlen tervezett authoritative runtime.
 - A Godot és a C# közvetlenül, ugyanazon processzen belül kommunikál.
 - A Python a C# headless interfészt használhatja AI-, batch- és elemzési célra.
 - A Python-sidecar proof lezárt és befagyasztott.
 - A C# in-process proof lezárt és elfogadott.
-- A C.5B production engine foundation lezárt.
-- A post-C.5B gameplay/ability vertical slice lezárt.
-- Az Explicit Phase Foundation v1 lezárt.
-- A `2608345b...` dokumentációs consistency pass lezárt.
-- A következő szakmai engine-fókusz Reaction / Priority rules és minimal contract.
-- Combat külön későbbi architecture/rules slice.
+- A C.5B production engine foundation elkészült és elfogadott.
+- A következő kódolási szakasz a Wellspring production state és player-visible Wellspring.
+- A nem programozási aktív sáv dokumentáció, audit, projektirány, LOOKUPS- és kártyaadatmunka.
