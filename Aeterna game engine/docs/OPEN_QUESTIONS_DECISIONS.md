@@ -2,422 +2,742 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.1
-**Dátum:** 2026-08-14
-**Státusz:** aktív kanonikus válasz- és döntésnapló
-**Kapcsolódó kérdésregiszter:** `OPEN_QUESTIONS.md`
-**Beolvasztott átmeneti fájl:** `CURRENT_OPEN_QUESTIONS.md`
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Dokumentumverzió:** 2.2  
+**Dátum:** 2026-08-15  
+**Státusz:** review draft – az OQ-regiszter 2.2 párdokumentuma  
+**Kapcsolódó kérdésregiszter:** `OPEN_QUESTIONS.md`  
+**Dokumentációs remote bázis:** `b7c5a51a921d11779e50a127171b49166dd80b96`  
+**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95`
 
-Ez a fájl az `OPEN_QUESTIONS.md` OQ-tételeihez tartozó elfogadott, részleges vagy elhalasztó döntéseket rögzíti.
+Ez a fájl az `OPEN_QUESTIONS.md` tételeihez tartozó current canonical/default,
+részleges, deferred, extension és superseding döntéseket rögzíti.
 
-A 2.0-s konszolidáció:
-- megőrzi a kérdés–válasz dokumentumpárt;
-- beolvasztja a `CURRENT_OPEN_QUESTIONS.md` újabb döntéseit;
-- felülírja a korábbi, már elavult Python–GDScript vagy nyitott runtime-jelölti irányokat;
-- nem törli a történeti indoklást a Git-történetből;
-- egyértelműen elválasztja az eldöntött irányt a még hiányzó implementációtól.
+## 1. Általános döntési elvek
 
-## Általános döntési elvek
+1. A hivatalos játékszabályforrás az elsődleges rules authority.
+2. Egy meccsnek pontosan egy authoritative state-je lehet.
+3. Production authoritative runtime: C#/.NET.
+4. Godot/GDScript: vizuális kliens/adapter/presentation.
+5. Python: külső adat-, audit-, fixture-, AI-, batch-, build- és referencia-tooling.
+6. UI és fair AI nem találgathat legalitást; a C# engine legal actiont ad és minden requestet újravalidál.
+7. Player-facing output nem szivárogtathat hidden informationt.
+8. Runtime package statikus, validált derived programadat, nem rules authority és nem MatchState.
+9. Silent fallback/guessing/partial canonical commit tilos.
+10. A dokumentáció elsősorban meglévő aktív fájl frissítésével és történetmegőrző verziózással fejlődik.
 
-1. A hivatalos játékszabályforrás az elsődleges.
-2. Az aktuális canonical szabály az engine és a tesztek számára kötelező.
-3. Playtesteredmény önmagában nem módosít szabályt; explicit, verziózott emberi döntés szükséges.
-4. Egy meccsnek pontosan egy authoritative state-je lehet.
-5. A production authoritative runtime C#/.NET.
-6. A Godot/GDScript vizuális kliens- és adapterréteg.
-7. A Python külső adat-, audit-, fixture-, AI-, batch- és elemzőtooling, valamint referenciaimplementáció.
-8. A UI és az AI nem találgathat legalitást; a C# engine legal actiont ad és minden requestet újra validál.
-9. A player-facing output nem szivárogtathat rejtett információt.
-10. A runtime package statikus, validált programadat, nem MatchState és nem rules engine.
-11. A dokumentációt meglévő aktív fájlok frissítésével, egységes verziózással és későbbi tartalomvesztés nélküli konszolidációval kell kezelni.
+### 1.1 Evolving-design elv
 
----
+Az elfogadott döntés **current canonical/default**, nem metafizikailag örök.
 
-## OQ-ARCH-001 / OQ-ARCH-002 / OQ-ARCH-003 – Runtime és réteghatárok
+Playtest, Expansion, meta vagy bizonyított design hiba esetén még foundation-szintű döntés is
+módosítható, de magasabb változtatási küszöbbel:
 
-**Aktív döntés – 2026-07-20:**
+```text
+new evidence
+→ explicit human decision
+→ impact analysis
+→ rules/contract migration
+→ implementation
+→ regression/playtest/audit
+→ history preserved
+```
 
-- `Aeterna.Engine` lesz az egyetlen production authoritative rules runtime.
-- A Godot/GDScript feladata a scene, input, UI, animáció, hang, debugnézet és a C#-eredmények megjelenítése.
-- A Python marad runtime package builder, validátor, audit-, AI-, batch-, scenario- és elemzőtooling.
-- A Python minimal engine referencia és comparison oracle.
-- A Python-sidecar proof `COMPLETE_AND_FROZEN`.
-- A C# in-process proof `COMPLETE_AND_ACCEPTED`.
-- A GDScript authoritative proof nem szükséges.
-- A Godot és C# közvetlen in-process kapcsolatot használ; köztük nincs TCP/HTTP/gRPC.
-- A Python a C# headless hostot kezdetben subprocess + JSON/JSONL interfészen használja.
-- Két külön production authoritative rules engine fenntartása tilos.
-- A bridge nem tartalmazhat játékszabályt.
+A korábbi döntés kapcsolatjelöléssel megmarad:
 
-**Státusz:** mindhárom OQ `answered`.
+```text
+EXTENDED
+SCOPED
+SUPERSEDED
+REPLACED
+```
 
----
-
-## OQ-DOC-001 / OQ-DOC-002 / OQ-DOC-003 – Dokumentáció
-
-**Aktív döntés – frissítve 2026-08-14:**
-
-- Az engine-dokumentáció aktív formátuma Markdown.
-- A hivatalos szabályauthority DOCX formában marad:
-  - `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`;
-  - `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`.
-- Egy aktív technikai checkpoint marad: `docs/checkpoints/ENGINE_CHECKPOINT.md`.
-- A történeti mérföldkőnapló külön `CHECKPOINTS.md`.
-- Új dokumentum csak önálló canonical szerep esetén készülhet.
-- Minden aktív dokumentum kap verziót, dátumot, státuszt és egyértelmű szerepet.
-- Párfájl esetén előbb tartalmi összevetés és merge-döntés szükséges.
-- Törlés/archiválás csak ellenőrzött utóddal történhet.
-- A nagy dokumentációs és archív cleanup lezárult.
-- A `2608345b...` mérföldkő után célzott active-document consistency pass indokolt; ez nem új tömeges cleanup.
-
-**Státusz:** OQ-DOC-002 és OQ-DOC-003 `answered`; OQ-DOC-001 `partly_answered` az opcionális olvasói/exportált DOCX/PDF réteg miatt.
-
+Reserved future extension önmagában nem tesz egy current-default OQ-t `partly_answered` státuszúvá.
 
 ---
 
-## OQ-DATA-001 / OQ-DATA-002 / OQ-DATA-005 / OQ-DATA-006 / OQ-TECH-004B – Runtime package és pipeline
+## 2. Decision coverage index
 
-**Aktív döntés:**
+Minden OQ explicit módon visszakereshető ebben a dokumentumban.
 
-- A validált, manifestes runtime package a program kötelező statikus adatinputja.
-- Godot és a production C# engine nem olvas közvetlenül XLSX-et.
-- A Python pipeline végzi az XLSX exportot, normalizálást, validációt, diagnosticsot, package buildet és publish-t.
-- A nyers JSONL/CSV/TSV köztes vagy audit-output.
-- A Godot `runtime_package/` consumption copy.
-- A publish előtt candidate build és blocking validation szükséges.
-- A teljes újragenerálás az elsődleges correctness-path; hash/cache/fingerprint csak későbbi optimalizáció.
-- A TEMP staging rövid távon elfogadható, de nem végleges buildarchitektúra.
-- A történeti sample package mappák nem canonical források; végleges archiválásuk/eltávolításuk dokumentumaudit része.
-
-**Nyitva marad:**
-
-- production package identity;
-- schema/ruleset version policy;
-- source fingerprint;
-- release output mappaszerkezet;
-- rollback és integritásvédelem.
-
----
-
-## OQ-DATA-003 / OQ-DATA-004 / OQ-DIAG-001 / OQ-DIAG-002 / OQ-DIAG-005 / OQ-AR-007 – Diagnostics és support
-
-**Aktív döntés:**
-
-- A `severity` és a `blocking` külön mező.
-- Alap severity-k: `info`, `audit_note`, `warning`, `error`, `critical`, `balance_suspicion`.
-- `critical` alapból blocking.
-- `warning` és `audit_note` alapból nem blocking.
-- `balance_suspicion` nem engine-hiba és nem blokkol.
-- Development, publish és runtime/action execution külön szigorúsági profil.
-- Publish előtt blokkol az aktív runtime schemahiba, ismeretlen enum, veszélyes alias, visibility-hiba és futtathatóként jelölt unsupported tartalom.
-- Runtime közben unsupported logikát az engine nem találgathat és nem hajthat végre részlegesen: reject/not_executable + diagnostics.
-- Biztonságos alias auto-normalizálható; veszélyes vagy kétértelmű alias emberi review.
-- Aktív runtime mezőben unknown/inactive/workflow-only érték publish előtt blocking.
-- Engine support státuszok: `supported`, `partial`, `unsupported`, `not_checked`, `fallback_required`, `manual_review_required`.
-
-**Nyitva marad:** a teljes production C# code-lista, coverage-policy és részletes hibamátrix.
-
----
-
-## OQ-SNAP-001 / OQ-SNAP-003 / OQ-SNAP-004 / OQ-SNAP-005 / OQ-SNAP-006 – Projection és visibility
-
-**Aktív döntés:**
-
-- Az authoritative MatchState nem player-facing contract.
-- Két alapnézet: viewer-specifikus `player_visible_snapshot` és külön `debug_snapshot`.
-- A fair AI ugyanazt a player-visible snapshotot használja, mint az emberi játékos.
-- Saját kéz owner-visible; ellenfél kéz count/redacted; deck count-only; canonical Void és Domain public az aktív szabály szerint.
-- A teljes Magnitúdó és az Ősforrás Aktív/Kimerült darabszáma publikus.
-- A saját Ősforrás-lapok kártyaazonossága owner-visible.
-- Az ellenfél nem láthatja a face-down Ősforrás-lapok kártyaazonosságát.
-- Player-facing output nem tartalmaz technikai card instance ID-t.
-- A snapshot külön pending/priority állapotot hordozhat.
-- A snapshot nem tartalmazza a teljes event logot; rövid visible/recent ablak és index megengedett.
-- A debug output teljesebb lehet, de egyértelműen elkülönített.
-
-**Nyitva marad:** Pecsét-láthatóság, face-down Jel, spectator/replay és teljes pending-window schema.
-
----
-
-## OQ-SNAP-002 / OQ-ABIL-006 / OQ-RULES-007 – Aeternal és Pecsét
-
-**Rögzített szabályi döntés:**
-
-- Az Aeternal maga a játékos.
-- Az Aeternalnak nincs HP-ja.
-- Nem kaphat sebzést és nem gyógyítható.
-- A Pecsét nem HP-alapú objektum.
-- A Pecsét feltörési/visszaállítási eseményként kezelendő.
-- Ha sem Entitás, sem fennálló Pecsét nem véd, egy célba érő támadás azonnali vereséget okoz.
-- Aeternal nem általános damage/heal target.
-- Pecsétre csak explicit ward effectek alkalmazhatók.
-- Kerülendő: `player_damage`, `aeternal_damage`, `heal_aeternal`, `seal_damage`, `ward_damage`.
-- Preferált események: `ward_broken`, `ward_restored`, `ward_break_prevented`, `aeternal_unprotected`, `direct_attack_victory`, `player_defeated`.
-
-**Nyitva marad:** Pecsét létrehozása, visibility, snapshot-state, combat/effect payload és restore actionmodell.
-
----
-
-## OQ-LA-001 / OQ-LA-007 / OQ-AR-002 / OQ-AR-003 – Legal action authority
-
-**Aktív döntés:**
-
-- A legal action listát kizárólag az authoritative engine számítja.
-- Normál player-facing és fair AI nézetben enabled actionök jelennek meg.
-- Debug nézet disabled actiont is adhat strukturált reasonnel.
-- A fair AI nem kap rejtett információt vagy külön authoritative legalitást.
-- Minden action request tartalmaz match/player/request/action/state contextet.
-- Az expected state version kötelező authority-guard.
-- Stale request reject; nem változik state version, event sequence vagy request.
-- Az action ID csak az adott state version/legal action lista kontextusában érvényes.
-- A frontend és AI nem küld authoritative költséget vagy legalitásdöntést.
+| OQ | Current status | Döntési blokk |
+|---|---|---|
+| `OQ-ARCH-001` | `answered` | Runtime és réteghatárok |
+| `OQ-ARCH-002` | `answered` | Runtime és réteghatárok |
+| `OQ-ARCH-003` | `answered` | Runtime és réteghatárok |
+| `OQ-DOC-001` | `answered` | Dokumentáció |
+| `OQ-DOC-002` | `answered` | Dokumentáció |
+| `OQ-DOC-003` | `answered` | Dokumentáció |
+| `OQ-DATA-001` | `answered` | Runtime package, build és provenance |
+| `OQ-DATA-002` | `answered` | Runtime package, build és provenance |
+| `OQ-DATA-003` | `answered` | Diagnostics, support és source correction |
+| `OQ-DATA-004` | `answered` | Diagnostics, support és source correction |
+| `OQ-TECH-004B` | `answered` | Runtime package, build és provenance |
+| `OQ-DATA-005` | `answered` | Runtime package, build és provenance |
+| `OQ-DATA-006` | `answered` | Runtime package, build és provenance |
+| `OQ-SNAP-001` | `answered` | Projection és visibility |
+| `OQ-SNAP-002` | `partly_answered` | Aeternal és Pecsét |
+| `OQ-SNAP-003` | `answered` | Projection és visibility |
+| `OQ-SNAP-004` | `answered` | Projection és visibility |
+| `OQ-SNAP-005` | `partly_answered` | Reaction, timing és pending state |
+| `OQ-SNAP-006` | `answered` | Projection és visibility |
+| `OQ-LA-001` | `answered` | Legal action és request authority |
+| `OQ-LA-002` | `partly_answered` | Reaction, timing és pending state |
+| `OQ-LA-003` | `partly_answered` | Combat |
+| `OQ-LA-004` | `partly_answered` | Aura és payment |
+| `OQ-LA-005` | `partly_answered` | Targeting, choice és partial resolution |
+| `OQ-LA-006` | `partly_answered` | Legal action és request authority |
+| `OQ-LA-007` | `answered` | Legal action és request authority |
+| `OQ-AR-001` | `partly_answered` | Legal action és request authority |
+| `OQ-AR-002` | `answered` | Legal action és request authority |
+| `OQ-AR-003` | `answered` | Legal action és request authority |
+| `OQ-AR-004` | `partly_answered` | Targeting, choice és partial resolution |
+| `OQ-AR-005` | `answered` | Reaction, timing és pending state |
+| `OQ-AR-006` | `partly_answered` | Targeting, choice és partial resolution |
+| `OQ-AR-007` | `answered` | Diagnostics, support és source correction |
+| `OQ-EVENT-001` | `answered` | Event, replay és balance event |
+| `OQ-EVENT-002` | `answered` | Event, replay és balance event |
+| `OQ-EVENT-003` | `answered` | Event, replay és balance event |
+| `OQ-EVENT-004` | `answered` | Event, replay és balance event |
+| `OQ-EVENT-005` | `deferred` | Event, replay és balance event |
+| `OQ-EVENT-006` | `deferred` | Event, replay és balance event |
+| `OQ-DIAG-001` | `answered` | Diagnostics, support és source correction |
+| `OQ-DIAG-002` | `answered` | Diagnostics, support és source correction |
+| `OQ-DIAG-003` | `answered` | Diagnostics output |
+| `OQ-DIAG-004` | `answered` | Diagnostics output |
+| `OQ-DIAG-005` | `answered` | Diagnostics, support és source correction |
+| `OQ-DIAG-006` | `deferred` | Diagnostics output |
+| `OQ-DIAG-007` | `answered` | Diagnostics output |
+| `OQ-ABIL-001` | `answered` | Ability/effect rendszer |
+| `OQ-ABIL-002` | `answered` | Ability/effect rendszer |
+| `OQ-ABIL-003` | `answered` | Ability/effect rendszer |
+| `OQ-ABIL-004` | `partly_answered` | Reaction, timing és pending state |
+| `OQ-ABIL-005` | `partly_answered` | Ability/effect rendszer |
+| `OQ-ABIL-006` | `partly_answered` | Aeternal és Pecsét |
+| `OQ-ABIL-007` | `answered` | Ability/effect rendszer |
+| `OQ-ABIL-008` | `answered` | Ability/effect rendszer |
+| `OQ-TECH-001` | `answered` | Technológia, acceptance és product runtime |
+| `OQ-TECH-002` | `answered` | Technológia, acceptance és product runtime |
+| `OQ-TECH-003` | `answered` | Technológia, acceptance és product runtime |
+| `OQ-TECH-004` | `answered` | Technológia, acceptance és product runtime |
+| `OQ-TECH-005` | `answered` | Technológia, acceptance és product runtime |
+| `OQ-TECH-006` | `answered` | Technológia, acceptance és product runtime |
+| `OQ-AI-001` | `answered` | AI, simulation és balance |
+| `OQ-AI-002` | `answered` | AI, simulation és balance |
+| `OQ-AI-003` | `answered` | AI, simulation és balance |
+| `OQ-AI-004` | `partly_answered` | AI, simulation és balance |
+| `OQ-AI-005` | `partly_answered` | AI, simulation és balance |
+| `OQ-AI-006` | `deferred` | AI, simulation és balance |
+| `OQ-AI-007` | `deferred` | AI, simulation és balance |
+| `OQ-RULES-001` | `answered` | Rules- és kártyaaudit |
+| `OQ-RULES-002` | `deferred` | Rules- és kártyaaudit |
+| `OQ-RULES-003` | `partly_answered` | Rules- és kártyaaudit |
+| `OQ-RULES-004` | `deferred` | Rules- és kártyaaudit |
+| `OQ-RULES-005` | `answered` | Rules- és kártyaaudit |
+| `OQ-RULES-006` | `answered` | Rules- és kártyaaudit |
+| `OQ-RULES-007` | `partly_answered` | Aeternal és Pecsét |
 
 ---
 
-## OQ-LA-004 / CQ-RES-002 / CQ-RES-003 – Aura és payment
+## 3. Runtime és réteghatárok
 
-**Aktív Core-döntés:**
+**OQ-ARCH-001 / OQ-ARCH-002 / OQ-ARCH-003**
 
-- Magnitúdó küszöb, nem költődik el.
-- Alapesetben a Magnitúdó az Ősforrás-lapok száma.
-- Minden Aktív Ősforrás-lap 1 Aurát ad; Kimerült nem.
-- Aura fizetése Aktív forráslapok Kimerítésével történik.
-- A forrás Aura-identitása alapesetben a forráslap Birodalma.
-- Entitás saját Birodalmi és AETHER támogató Aurából vagy kombinációból fizethető.
-- Ige, Rituálé, Jel és Sík alapból csak saját Birodalmi Aurából fizethető.
-- AETHER más Birodalom nem-Entitását alapból nem fizeti.
-- Soft Penalty nem aktív Core-szabály.
+**Döntési állapot:** `FOUNDATION_GUARDRAIL`
 
-**Engine-döntés:**
+- `Aeterna.Engine` az egyetlen production authoritative rules runtime.
+- Godot/GDScript scene/input/UI/animáció/hang/presentation/debug layer.
+- Python runtime-package builder, validátor, audit/AI/batch/scenario tooling és referencia/oracle.
+- Godot ↔ C# közvetlen in-process kapcsolat; Python headless use case külön külső interfész.
+- Két párhuzamos production canonical rules engine nincs.
+- Bridge/client nem tartalmaz rules authorityt.
 
-- A payment a `play_card` request atomikus része.
-- A legal action payment contextet ad.
-- Selection mode: `none`, `forced`, `choice`.
-- `choice` módban játékosi megerősítés szükséges.
-- Az engine validálja a források tulajdonát, activityjét, egyediségét, Aura-identitását és pontos költségét.
-- Az első implementációban túlfizetés nem engedélyezett.
-- Hiba esetén nincs részleges Kimerítés, mozgás, state-version növekedés vagy gameplay event.
-
-**Nyitva marad:** cost modifier, temporary Aura, alternate cost, wildcard/replacement és összetett payment choice. A base Magnitúdó-preflight és Aura-payment preflight production foundation már megvalósult.
+Mindhárom OQ: `answered`.
 
 ---
 
-## CQ-INFLOW-001…006 – Normál Beáramlás
+## 4. Dokumentáció
 
-A `CURRENT_OPEN_QUESTIONS.md` CQ-azonosítói ebben a válasznaplóban történeti döntésazonosítóként megmaradnak; nem kapnak párhuzamos OQ-azonosítót.
+**OQ-DOC-001 / OQ-DOC-002 / OQ-DOC-003**
 
-**Canonical szabályi döntések:**
+- Official rules authority DOCX:
+  - `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`
+  - `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`
+- Engine/project docs aktív formátuma Markdown.
+- Nem tartunk kézzel párhuzamos canonical MD + DOCX másolatot ugyanarról a technical tartalomról.
+- Reader/export PDF/DOCX csak konkrét publishing/audience use case esetén készül; ez `RESERVED_EXTENSION_POINT`, nem current blocker.
+- Egy aktív `ENGINE_CHECKPOINT.md` + történeti `CHECKPOINTS.md`.
+- Új dokumentum csak önálló canonical szerep esetén; verzió/dátum/státusz kötelező.
+- Cleanup/archive csak ellenőrzött utóddal.
 
-- A Beáramlás a kör második, opcionális fázisa.
-- Normál Beáramlással körönként legfeljebb 1 kézlap kerül az Ősforrásba.
-- A lap face-down és Aktív állapotban érkezik.
-- Már ugyanabban a körben használható Aura fizetésére.
-- Azonnal növeli a Magnitúdót és az elérhető Aurát.
-- Fizetéskor Kimerül.
-- A normál Beáramlás nem nyit automatikusan reaction windowt.
-
-**Aktuális production technikai mapping – 2026-08-14:**
-
-- canonical phase ID: `infusion`;
-- végrehajtás: `normal_inflow`;
-- kihagyás/továbblépés: `advance_phase`;
-- külön public `skip_inflow` action nincs;
-- a once-per-turn szabály turn-scoped/turn-number guarddal érvényesül;
-- külön `pending | performed | skipped` gameplay tri-state nem szükséges a public production contracthoz;
-- accepted `normal_inflow` hand → Wellspring, face-down + active, usage-state/resource frissítést és viewer-safe eventet hajt végre;
-- a fázis a `normal_inflow` után `infusion` marad, amíg külön `advance_phase` nem történik.
-
-A régi `perform_inflow` / `skip_inflow` és tri-state megnevezések történeti design-előzmények, nem az aktuális production action contract.
-
-A szabályi jelentés változatlan; a fenti eltérés technikai contract-migráció.
-
+**Státusz:** mindhárom `answered`.
 
 ---
 
-## OQ-LA-002 / OQ-AR-005 / OQ-ABIL-004 – Reaction
+## 5. Runtime package, build és provenance
 
-**Aktív döntés – frissítve a hivatalos 1.4.3v alapján 2026-08-14:**
+**OQ-DATA-001 / OQ-DATA-002 / OQ-DATA-005 / OQ-DATA-006 / OQ-TECH-004B**
 
-- A core rules engine nyitja és zárja a reaction windowt.
-- Az ability hook reaction/trigger/prevention/replacement lehetőséget és payloadot jelez, de nem tart saját timing authorityt.
-- Ha mindkét játékos reagálhat, először az eseményt nem kezdeményező játékos kap válaszlehetőséget.
-- A játékos passzolhat.
-- Két egymást követő passz lezárja az aktuális reaction windowt.
-- Reakciók egymásra épülhetnek.
-- A feloldás visszafelé történik: a legutóbbi reakció oldódik fel először.
-- Feloldáskor a célpontot, feltételeket és a forrás relevanciáját a szabály szerint újra kell ellenőrizni.
-- Lezárt eseményre nincs visszamenőleges reakció.
-- A frontend nem nyit és nem zár saját reaction windowt; csak a core által kiadott legal action/pending state alapján működik.
+### Current default
 
-**Nyitva marad:**
+- Validált manifestes runtime package a program kötelező statikus adatinputja.
+- Godot és production C# nem olvas közvetlenül authoring XLSX-et.
+- Python pipeline: export → normalize → validate → diagnostics → candidate package → publish.
+- Godot `runtime_package/` consumption copy.
+- Full deterministic rebuild = correctness path.
+- Cache/delta/incremental build = opcionális performance optimization.
+- Fingerprint/hash **nem pusztán optimalizáció**; provenance, package identity, compatibility, integrity, replay/save/bug reproduction és release manifest célja is lehet.
+- Runtime package derived/rebuildable; nem human authoring authority.
+- Historical/sample package mappák nem canonical források; konkrét cleanup repository-task.
 
-- prevention/replacement exact ordering és contract;
-- multi-trigger ordering;
-- optional/mandatory trigger viszony;
-- nested pending decision/reaction;
-- részleges resolution;
-- exact public reaction-state/event schema;
-- combat-specifikus reaction pontok production integrációja.
+### Reserved/evolúciós rész
 
-**Státusz:** továbbra is `partly_answered`; az alapmodell jelentős része már canonical, de a teljes Reaction/Priority runtime contract még nincs lezárva.
+- konkrét hash algorithm;
+- manifest exact mezők;
+- output folder layout;
+- incremental caching;
+- signing/rollback mechanika.
 
+Ezek változhatnak anélkül, hogy az elvi OQ-k újranyílnának.
 
----
-
-## OQ-LA-005 / OQ-AR-004 / OQ-AR-006 – Targeting és részleges feloldás
-
-**Aktív irány:**
-
-- Egyszerű target a play/action request payload része lehet.
-- Többlépcsős vagy többcélpontos választás authoritative pending state.
-- A frontend csak az engine targeting adataiból emel ki; nem dönt legalitásról.
-- Alap response fogalmak használhatók: accepted, rejected, resolved, partially_resolved, pending_decision, pending_reaction, prevented, replaced, cancelled, failed, not_executable.
-
-**Nyitva marad:** retarget, invalid target, partial resolution, prevention és replacement pontos szabálypéldái.
+**Státusz:** minden felsorolt OQ `answered`.
 
 ---
 
-## OQ-EVENT-001…006 – Event log
+## 6. Diagnostics, support és source correction
 
-**Aktív döntés:**
+**OQ-DATA-003 / OQ-DATA-004 / OQ-DIAG-001 / OQ-DIAG-002 / OQ-DIAG-005 / OQ-AR-007**
 
-- A snapshot az állapot; az event log a történet.
-- Typed, determinisztikus eventek szükségesek.
-- Player-visible módban gameplay-szintű, visibility-szűrt események.
-- Debug/system részletek külön réteg.
-- Egy belső történetből viewer-specifikus event projection készül.
-- Fair AI ugyanazt a visible logot kapja, mint a játékos.
-- Diagnostics és event külön réteg, opcionális kölcsönös hivatkozással.
-- A teljes replay nem MVP-követelmény, de event index/state version/correlation előkészítendő.
-- A balance suspicion nem gameplay event; futás utáni report.
+### Capability vs coverage
 
-**Nyitva marad:** teljes taxonomy, explanation/localization schema, replay runner és balance report.
+```text
+Engine Capability
+!=
+Content Coverage
+```
+
+A production C# executable semantics authority külön kezelendő a package support/coverage
+metadata rétegtől.
+
+### Diagnostics
+
+- `severity` és `blocking` külön.
+- Development, publish/acceptance és runtime külön strictness profile.
+- Publish előtt schema/unknown enum/dangerous alias/visibility/mandatory unsupported tartalom blokkolhat.
+- Runtime unsupported requirement: no guessing, no silent fallback, no partial commit; controlled reject/not_executable + safe diagnostic.
+- Invariant/internal fault külön kategória.
+
+### Alias/source correction – OQ-DATA-004 current default
+
+- safe alias auto-normalizálható;
+- dangerous/ambiguous emberi review;
+- derived/runtime output **nem ír automatikusan vissza** a human authoring source-ba;
+- correction diagnostic/proposal → explicit human edit vagy explicit migration tool → rebuild/revalidate.
+
+### LOOKUPS
+
+Blocking policy answered; full enum/alias inventory és correction pass audit-task.
+
+**Státusz:** a felsorolt OQ-k `answered`.
 
 ---
 
-## OQ-DIAG-003 / OQ-DIAG-004 / OQ-DIAG-006 / OQ-DIAG-007 – Diagnostics output
+## 7. Projection és visibility
 
-**Aktív döntés:**
+**OQ-SNAP-001 / OQ-SNAP-003 / OQ-SNAP-004 / OQ-SNAP-006**
 
-- Elsődleges gépi forma JSON.
-- Emberi olvasásra Markdown summary.
-- Player-facing csak safe, rövid üzenet.
-- Debug/developer részlet elkülönítve.
-- Diagnostics nem szivárogtathat hidden informationt.
-- Checkpoint csak összesítést és lényeges problémát tartalmaz; teljes dump külön report.
-- Balance suspicion nem automatikus szabálymódosítás.
+### Current default
+
+```text
+one authoritative MatchState
+→ viewer-specific PlayerSnapshot
+→ trusted DebugSnapshot külön
+```
+
+- Fair AI player-visible projectiont használ.
+- Saját hidden identity csak jogosult viewernek.
+- Opponent hidden identity redacted.
+- Snapshot current state, nem teljes historical event dump.
+- Full event history külön stream/API.
+- Optional recent-visible summary/cursor presentation use case lehet.
+
+Future:
+- `AIObservation`;
+- `SpectatorProjection`;
+- `ReplayProjection`
+
+külön projectionként bővíthető; nem kell ugyanazt a DTO-t minden consumerre ráerőltetni.
+
+**Státusz:** `OQ-SNAP-001`, `003`, `004`, `006` answered.
 
 ---
 
-## OQ-ABIL-001…008 – Ability module rendszer
+## 8. Aeternal és Pecsét
 
-**Aktív döntés – frissítve 2026-08-14:**
+**OQ-SNAP-002 / OQ-ABIL-006 / OQ-RULES-007**
 
-- A kártyaszöveg emberi szabályszöveg.
-- A structured ability és ability registry programlogikai köztes réteg.
-- Effect tag önmagában nem executable logika.
-- Card-local fallback csak explicit, diagnosztizált átmeneti kivétel.
-- Reaction core timing + ability hook modellben működik.
-- Keyword registry és support státusz szükséges; nem minden keyword korai support.
-- `ability_registry.json` a runtime package support/metadata foundationje.
-- Unsupported modul szerepelhet registryben, de nem futhat csendben.
-- A production authoritative ability/effect runtime C#.
+### Official Core már rögzíti
 
-**Aktuális production tény:**
+- Aeternal = játékos; nincs HP, nem damage/heal target.
+- Kezdő Pecsét-réteg: pakli felső 6 lapja, face-down, a hat Áramlathoz kötve.
+- Pecsét állapot: fennáll/feltört; nem HP-alapú.
+- Feltörés/felfedés/Surge és védtelen Aeternal elleni direct victory Core szabályai léteznek.
 
-A canonical C# ability/effect foundation már megvalósult többek között ability catalog, template compiler, condition evaluator, target filter/resolver, trigger resolver foundation, effect executor, continuous effect, modifier/keyword/duration, damage/vitals és draw/reference integrációval.
+### Active gates
 
-**Fontos elhatárolás:**
+- exact owner/opponent Seal identity visibility;
+- snapshot schema;
+- combat integration;
+- special ward break/prevent/restore effect payload;
+- Expansion interaction.
 
-A statikus runtime package support metadata ettől külön réteg, és továbbra is declared-only/not-evaluated állapotot hordozhat. Ez nem írható át automatikusan teljes supporttá.
+Ezért:
+- `OQ-SNAP-002` `partly_answered`;
+- `OQ-ABIL-006` `partly_answered`;
+- `OQ-RULES-007` `partly_answered`.
 
-**Nyitva marad:**
+A régi általános „Pecsét létrehozása nyitott” megfogalmazás **superseded** a Core source újraolvasása miatt.
 
-- package support/coverage matrix migráció;
-- teljes card/keyword coverage;
-- Reaction/Priority integráció;
+---
+
+## 9. Reaction, timing és pending state
+
+**OQ-SNAP-005 / OQ-LA-002 / OQ-AR-005 / OQ-ABIL-004**
+
+### Official reaction foundation
+
+- reaction window esemény és final resolution között;
+- nem minden event nyit windowt;
+- mindkét játékos eligible esetén non-initiator first;
+- pass;
+- két egymást követő passz zárja a két-player windowt;
+- reaction egymásra épülhet;
+- LIFO resolution;
+- resolution-time revalidation;
+- lezárt event nem nyílik újra visszamenőleg;
+- simultaneous-effect default ordering és mandatory/optional trigger semantics official 4.1-ben már definiált.
+
+A korábbi decision-log `multi-trigger ordering` és `optional/mandatory trigger` általános
+nyitott gate-je **stale és superseded**.
+
+### Reaction current technical defaults – D1–D5
+
+- public actions: `react`, `pass_priority`;
+- engine-issued `reaction_option_id`;
+- typed `response_policy_id`;
+- authoritative reaction/pending state a `MatchState` része;
+- snapshotban a meglévő `pending_decision_summary` bővül viewer-safe reaction adatokkal.
+
+### RC1 current default
+
+Single eligible responder:
+- egy opportunity;
+- `pass_priority` az ablakot lezárja;
+- nincs fake második pass.
+
+### RC2 current default – formálható
+
+Ordinary trigger:
+
+```text
+committed event
+→ trigger created/discovered immediately
+→ pending queued trigger
+→ current reaction/effect resolution cycle continues
+→ current cycle fully unwinds
+→ post-resolution trigger checkpoint
+→ queued trigger processing
+```
+
+Different-timing trigger batch current default:
+
+```text
+chronological FIFO by originating committed-event sequence
+```
+
+Same-timing batch: official AETERNA simultaneous ordering.
+
+### Reserved timing extensions
+
+Az RC2 current default tudatosan nem zárja ki:
+
+- `strict_event_window`;
+- `reaction_window`;
+- `delayed_effect`;
+- explicit immediate timing override;
+- future `TriggerActivationPolicy`;
+- future `TriggerBatchOrderPolicy`.
+
+A Yu-Gi-Oh implicit `when/if` / missed-timing nyelvi szabálya nincs globálisan importálva.
+Ha strict timing később szükséges, explicit typed policy legyen.
+
+### Státusz
+
+- `OQ-AR-005`: `answered` – action response + reaction pending authority current default lezárt.
+- `OQ-SNAP-005`: `partly_answered` – compound non-reaction pending choices maradnak.
+- `OQ-LA-002`: `partly_answered` – prevention/replacement, combat/special timing és komplex nested integration marad.
+- `OQ-ABIL-004`: `partly_answered` – prevention/replacement, coverage és special timing integration marad.
+
+---
+
+## 10. Legal action és request authority
+
+**OQ-LA-001 / OQ-LA-006 / OQ-LA-007 / OQ-AR-001 / OQ-AR-002 / OQ-AR-003**
+
+### Current defaults
+
+- legal action kizárólag engine authority;
+- player/fair-AI enabled actions; debug structured disabled reason;
+- fair AI nem kap hidden legality advantage;
+- `expected_state_version` authority guard;
+- stale request state-mutation nélkül reject;
+- action ID csak current legal-action/state contextben él;
+- frontend/AI nem küld authoritative cost/legality döntést.
+
+### OQ-LA-006 explicit anchor
+
+Current rule:
+- UI/presentation metadata advisory, nem authority;
+- legal action semantic mezők engine-owned;
+- localization/presentation hints bővíthetők.
+
+**Active gate:** végleges minimal presentation/UI hint mezők és consumer-specific projection.
+
+### OQ-AR-001 explicit anchor
+
+Current:
+- `request_id` correlation része a request contractnak;
+- `expected_state_version` kötelező;
+- request ID nem azonos automatikusan network idempotency key-jel.
+
+**Active gate:** future online/retry/idempotency exact policy.
+
+### Státusz
+
+- LA-001/LA-007/AR-002/AR-003 `answered`.
+- LA-006 és AR-001 `partly_answered`.
+
+---
+
+## 11. Combat
+
+**OQ-LA-003**
+
+Az official 1.4.3 Core már szabályozza:
+- attack eligibility;
+- attacker Exhaust;
+- target declaration;
+- Oltalom;
+- block;
+- simultaneous combat damage;
+- Pecsét break;
+- Surge;
+- unprotected Aeternal direct victory.
+
+Ezért a régi `open` státusz **superseded**.
+
+**Active gate:** production combat action/event/pending-state contract és Reaction-integráció.
+
+**Státusz:** `partly_answered`.
+
+---
+
+## 12. Aura és payment
+
+**OQ-LA-004**
+
+Base current Core:
+- Magnitúdó threshold, nem expenditure;
+- Aktív Ősforrás Aura;
+- payment = selected source Exhaust;
+- engine validates ownership/activity/identity/exact cost;
+- payment a `play_card` atomikus része;
+- no partial mutation on reject.
+
+**Active/future gate:**
+- temporary Aura;
+- alternate cost;
+- modifier;
+- wildcard/replacement;
+- compound choice.
+
+**Státusz:** `partly_answered`.
+
+Ezeket nem kell előre mind implementálni; future content/Expansion igény aktiválhatja.
+
+---
+
+## 13. Targeting, choice és partial resolution
+
+**OQ-LA-005 / OQ-AR-004 / OQ-AR-006**
+
+Official/current alap:
+- simple target requestben lehet;
+- complex multi-step authoritative pending state;
+- final resolution target/source/condition revalidation;
+- ha effect teljesen invalid targetre épül, nincs érdemi resolution;
+- önállóan végrehajtható részek a rule/card text szerint kezelendők.
+
+A régi generic `invalid target` / `partial resolution` open gate **szűkítve**.
+
+Active gates:
+- retarget;
+- cancel/backtracking;
+- option invalidation;
+- auto-collapse;
+- nested target/payment;
 - prevention/replacement;
-- multi-trigger ordering;
-- komplex choice/target;
-- execution plan végleges szerepe és coverage-policy.
+- complex card-specific partial semantics.
 
-
----
-
-## OQ-TECH-001…006 – Technológiai döntések
-
-- OQ-TECH-001: `answered` – Python external tooling/reference.
-- OQ-TECH-002: `answered` – Godot/GDScript visual layer.
-- OQ-TECH-003: `answered` – Godot + C# + Python hibrid, egyetlen authority.
-- OQ-TECH-004: `answered` – runtime package statikus adatcontract.
-- OQ-TECH-005: `partly_answered` – headless/visual proof működik; CI/export/release policy későbbi.
-- OQ-TECH-006: `answered` – Codex csak feltétlenül szükséges technikai feladathoz használható (programozás, build/test/smoke, vagy GitHubról nem látható lokális worktree/fájl elemzés). Projekttervezés, dokumentáció, rules/contract döntés és rutin Git-kezelés alapértelmezésben nem Codex-feladat; szabályi és projektirányítási döntést nem hoz.
+Mindhárom `partly_answered`.
 
 ---
 
-## OQ-AI-001…007 – AI, simulation és balance
+## 14. Event, replay és balance event
 
-**Aktív döntés:**
+**OQ-EVENT-001…006**
 
-- A Python koordinálja a C# headless engine futásait.
-- A C# engine az authority; az AI csak legal actionből választ.
-- Fair AI játékosnézetet használ; debug AI külön fejlesztői mód.
-- AI decision policy külön, verziózott réteg.
-- Nehézség nem jelenthet hidden-information hozzáférést.
-- Balance suspicion több metrikából és futás utáni elemzésből keletkezik.
-- Nem cél minden matchup 50/50-re húzása; a klánidentitás védendő.
-- Tanuló AI csak későbbi kutatás, nem módosíthat szabályt vagy kártyaadatot.
-- Valódi balanszméréshez stabil gameplay, deckvalidáció, visibility, diagnostics, event log és fair AI szükséges.
+### Current event architecture
 
----
+- snapshot = current projected state;
+- event stream = transition/history;
+- typed deterministic internal canonical events;
+- one internal history → viewer-specific event projection;
+- fair AI player-visible event projectiont kap;
+- diagnostics/log/trace külön réteg;
+- optional correlation IDs csak tényleges use case esetén.
 
-## OQ-RULES-001…007 – Rules- és kártyaaudit
+### Event presentation
 
-**Aktív döntés:**
+Canonical event semantic data; localization/explanation külön presentation projection.
 
-- A teljes főforrás- és kártyaaudit rétegezve történik.
-- LOOKUPS/structured critical audit megelőzheti a teljes kártyaauditot.
-- Később külön, MD-alapú engine/AI-barát szabályspec szükséges, a hivatalos főforrásból származtatva.
-- A játékosbarát szabálykönyv külön, későbbi magyarázó dokumentum.
-- A motor nem találgathat kártyaszöveg és structured adat eltérésekor.
-- Runtime-supported státusz csak auditált, konzisztens adatnál adható.
-- Az Aeternal/Pecsét HP nélküli alapmodell canonical; a részletes engine-spec későbbi.
+### Current statuses
 
-**Aktuális auditirány:**
-
-1. runtime package és source-inventory;
-2. LOOKUPS/structured critical audit;
-3. diagnostics és support report;
-4. ability registry;
-5. engine-barát rules spec;
-6. Aeternal/Pecsét/timing/target/payment részspec;
-7. scenario és smoke;
-8. korábbi javítások visszaellenőrzése;
-9. teljes kártyaaudit;
-10. játékosbarát szabálykönyv.
+- `OQ-EVENT-001` answered – taxonomy evolúciós.
+- `OQ-EVENT-002` answered – semantic event != presentation sentence.
+- `OQ-EVENT-003` answered – event vs diagnostic boundary.
+- `OQ-EVENT-004` answered – hidden-info viewer projection current default.
+- `OQ-EVENT-005` deferred – full replay runner későbbi.
+- `OQ-EVENT-006` deferred – balance-event/report needs stable gameplay/AI.
 
 ---
 
-## Termékruntime-döntések a korábbi current triázsból
+## 15. Diagnostics output
 
-- Elsődleges platform: 64 bites Windows 10+ asztali rendszer.
-- Proof és zárt teszt: portable, kibontott mappa; telepítő nem szükséges.
-- Normál futtatáshoz ne kelljen adminjog, Python, Godot Editor vagy .NET SDK.
-- Kevés, közismert runtime prerequisite elfogadható.
-- Mentések, logok és beállítások felhasználói írható helyre kerülnek.
-- Linux, kódaláírás, pontos log retention és installer későbbi, nem blokkoló feladat.
-- A production Windows packaging még bizonyítandó; ez nem nyitja újra automatikusan a C# nyelvi döntést.
+**OQ-DIAG-003 / OQ-DIAG-004 / OQ-DIAG-006 / OQ-DIAG-007**
+
+- machine-primary diagnostics: JSON/JSONL structured;
+- human summary: Markdown/text;
+- player/public safe diagnostic külön;
+- trusted developer detail külön;
+- hidden information protection kötelező;
+- checkpoint summary, full report külön artifact;
+- balance suspicion nem gameplay event és nem automatikus rules change.
+
+Státusz:
+- DIAG-003 `answered`
+- DIAG-004 `answered`
+- DIAG-006 `deferred`
+- DIAG-007 `answered`
 
 ---
 
-## Dokumentumkezelési hatás
+## 16. Ability/effect rendszer
 
-A repositoryba történő beillesztéskor:
+**OQ-ABIL-001 / 002 / 003 / 005 / 007 / 008**
 
-1. ez a fájl lecseréli a meglévő `OPEN_QUESTIONS_DECISIONS.md` tartalmát;
-2. az új `OPEN_QUESTIONS.md` vele együtt kerül be;
-3. a `CURRENT_OPEN_QUESTIONS.md` csak a két fájl és minden hivatkozás ellenőrzése után távolítható el;
-4. a régi, részletes döntésnapló a Git-történetben megmarad;
-5. új döntés mindig meglévő OQ-azonosítóhoz vagy új, egyedi OQ-azonosítóhoz kerüljön;
-6. ugyanahhoz az OQ-hoz későbbi felülíró döntés dátummal és indoklással kerüljön be, a korábbi döntés nyomának elvesztése nélkül.
+### Current model
+
+```text
+structured canonical ability/effect graph
+→ compiled typed template/executor
+→ rare explicit typed exception_module
+→ unsupported/fail-closed
+```
+
+- Kártyaszöveg emberi rules text.
+- Effect tag metadata/classification, nem executable semantics.
+- Structured field csak repeated semantic/runtime/validation/test need esetén.
+- Nincs kötelező universal persisted `AbilityExecutionPlan`.
+- `CanonicalAbilityGraph` + runtime context + szükség esetén ephemeral typed plan.
+- Silent fallback tilos.
+- Ritka explicit typed `exception_module` production-supported lehet azonos safety contracttal.
+- Ability registry/definition, EngineCapability és ContentCoverage külön layer.
+- Package support metadata nem írja felül a production C# executable authorityt.
+
+### Státusz
+
+- ABIL-001 answered
+- ABIL-002 answered
+- ABIL-003 answered – korábbi „csak átmeneti card-local fallback” megfogalmazást a typed exception-module current default **supersede-eli**
+- ABIL-005 partly_answered – concrete keyword support priority content/gameplay függő
+- ABIL-007 answered
+- ABIL-008 answered
+
+---
+
+## 17. Technológia, acceptance és product runtime
+
+**OQ-TECH-001…006**
+
+- TECH-001 answered – Python external tooling/reference.
+- TECH-002 answered – Godot/GDScript visual layer.
+- TECH-003 answered – Godot+C#+Python hybrid, one authority.
+- TECH-004 answered – runtime package static boundary.
+- TECH-005 answered current default:
+  - canonical local acceptance pipeline first;
+  - build/tests/determinism/package/bridge/client/smoke ugyanabban a proofban;
+  - CI később ugyanennek automation hostja;
+  - export/signing/installer külön release maturity.
+- TECH-006 answered – minimal Codex policy.
+
+### Korábbi orphan „Termékruntime-döntések” áthelyezése
+
+Ezek most **OQ-TECH-005 release/product runtime current-default** alatt élnek:
+
+- primary desktop target: 64-bit Windows 10+;
+- proof/closed test portable folder elfogadható;
+- normal runhoz ne kelljen admin, Python, Godot Editor, .NET SDK;
+- kevés ismert runtime prerequisite elfogadható;
+- saves/logs/settings user-writable helyre;
+- Linux/signing/installer/log-retention későbbi;
+- packaging proof hiánya nem nyitja újra a C# authority döntést.
+
+Így nincs OQ-ID nélküli orphan decision block.
+
+---
+
+## 18. AI, simulation és balance
+
+**OQ-AI-001…007**
+
+Current guardrails:
+- Python koordinál C# headless futásokat;
+- AI legal actionből választ;
+- fair AI player-visible observation;
+- trusted/debug AI explicit külön capability;
+- AI policy verziózott és nem rules authority;
+- balance suspicion több metrikából;
+- nem cél steril minden-matchup 50/50;
+- faction/clan identity és meta számít;
+- AI nem módosíthat szabályt/adatot.
+
+Státusz:
+- AI-001/002/003 `answered`;
+- AI-004/005 `partly_answered` – konkrét metrikák/küszöbök playtest/AI/meta után;
+- AI-006/007 `deferred`.
+
+---
+
+## 19. Rules- és kártyaaudit
+
+**OQ-RULES-001…006**
+
+- Official main source audit szükséges és rétegezett.
+- LOOKUPS/structured critical audit külön korai lépcső.
+- Motor nem találgathat text/structured mismatchnél.
+- Derived/runtime nem ír silent módon vissza human authorityba.
+- Runtime-supported csak auditált konzisztens tartalomnál.
+- Engine/AI-friendly derived rules spec szükséges, de exact schema/authoring/version-sync még aktív kérdés.
+- Player-friendly rulebook későbbi, stabil gameplay után.
+- Full card audit feltételekhez kötött későbbi mérföldkő.
+
+Text/structured mismatch current flow:
+
+```text
+authority source
+→ structured comparison
+→ diagnostic/block
+→ explicit human correction
+→ rebuild
+→ revalidation
+```
+
+Státusz:
+- RULES-001 answered
+- RULES-002 deferred
+- RULES-003 partly_answered
+- RULES-004 deferred
+- RULES-005 answered
+- RULES-006 answered
+
+---
+
+## 20. Historical CQ-INFLOW decision IDs
+
+A `CQ-INFLOW-001…006` történeti decision IDs továbbra is megmaradnak, nem kapnak
+párhuzamos OQ-ID-t.
+
+Canonical technical mapping:
+- phase `infusion`;
+- public actions `normal_inflow`, `advance_phase`;
+- no separate `skip_inflow`;
+- max 1 normal inflow per turn;
+- hand → Wellspring, face-down + active;
+- same turn usable;
+- phase stays `infusion` until explicit `advance_phase`.
+
+A régi `perform_inflow` / `skip_inflow` tri-state technikai contract történeti előzmény.
+
+---
+
+## 21. Aktív nyitott döntési kapuk összefoglalása
+
+A 17 `partly_answered` OQ:
+
+```text
+OQ-SNAP-002
+OQ-SNAP-005
+OQ-LA-002
+OQ-LA-003
+OQ-LA-004
+OQ-LA-005
+OQ-LA-006
+OQ-AR-001
+OQ-AR-004
+OQ-AR-006
+OQ-ABIL-004
+OQ-ABIL-005
+OQ-ABIL-006
+OQ-AI-004
+OQ-AI-005
+OQ-RULES-003
+OQ-RULES-007
+```
+
+A 7 `deferred`:
+
+```text
+OQ-EVENT-005
+OQ-EVENT-006
+OQ-DIAG-006
+OQ-AI-006
+OQ-AI-007
+OQ-RULES-002
+OQ-RULES-004
+```
+
+`open`: 0.
+
+---
+
+## 22. Változásnapló
+
+### 2.2 – 2026-08-15
+
+- Az OQ-regiszterrel együtt teljes páros consistency review.
+- Minden 74 OQ explicit decision coverage indexet kapott.
+- Három korábban hiányzó explicit anchor rendezve: `OQ-LA-003`, `OQ-LA-006`, `OQ-AR-001`.
+- Reaction stale multi-trigger/mandatory-optional gate eltávolítva az official 4.1 alapján.
+- Target/partial-resolution stale gate szűkítve.
+- Pecsét Core creation/state scope pontosítva.
+- Data build/fingerprint policy pontosítva.
+- Derived→human source automatic backwrite tiltás current defaultként rögzítve.
+- Typed exception-module current default rögzítve; silent fallback továbbra is tiltott.
+- Reaction D1–D5, RC1 és formálható RC2 default adminisztrálva.
+- RC2 strict timing/missed timing future explicit extension pointként fenntartva.
+- Event/projection/diagnostic current defaults lezárva.
+- Product runtime orphan blokk TECH-005 alá visszakötve.
+- `answered` fogalom current-default jelentése és superseding/evolving-design elv bevezetve.
+- Új státuszösszesítés: 50 answered / 17 partly_answered / 7 deferred / 0 open.
+
+A 2.1 tartalma és korábbi indoklásai a Git-történetben megmaradnak.

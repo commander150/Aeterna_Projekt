@@ -2,600 +2,706 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.1
-**Dátum:** 2026-08-14
-**Státusz:** aktív kanonikus kérdés- és döntésikapu-regiszter
-**Kapcsolódó válasznapló:** `OPEN_QUESTIONS_DECISIONS.md`
-**Beolvasztott átmeneti fájl:** `CURRENT_OPEN_QUESTIONS.md`
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Dokumentumverzió:** 2.2  
+**Dátum:** 2026-08-15  
+**Státusz:** review draft – A0–A4 páros OQ-audit és a rugalmas current-default tervezési elv szerint újraszinkronizálva  
+**Kapcsolódó válasznapló:** `OPEN_QUESTIONS_DECISIONS.md`  
+**Dokumentációs remote bázis:** `b7c5a51a921d11779e50a127171b49166dd80b96` – `docs: align active documentation with explicit phase foundation`  
+**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 
-Ez a fájl az AETERNA Game Engine összes nyitott, részben megválaszolt, elhalasztott és már lezárt OQ-tételének központi indexe.
+Ez a fájl az AETERNA Game Engine 74 OQ-tételének központi kérdés- és döntésikapu-regisztere.
 
-A részletes döntések az `OPEN_QUESTIONS_DECISIONS.md` fájlban maradnak. A lezárt kérdések nem törlődnek: `answered` státusszal megmaradnak a döntések visszakereshetősége érdekében.
+A részletes döntések, superseding/extension információk és indoklások az
+`OPEN_QUESTIONS_DECISIONS.md` fájlban maradnak.
 
-A korábbi `CURRENT_OPEN_QUESTIONS.md` külön prioritásrétege megszűnik. A benne lévő:
-- kérdések és fennmaradó kapuk ebbe a regiszterbe;
-- elfogadott válaszok és döntések a válasznaplóba;
-- elavult prioritások a Git-történetbe
-
-kerülnek.
-
-## Státuszok
+## 1. Státuszok
 
 | Státusz | Jelentés |
 |---|---|
-| `open` | Nincs még elégséges döntés vagy bizonyíték. |
-| `partly_answered` | Az alapirány eldőlt, de maradt részletes döntési vagy implementációs kapu. |
-| `deferred` | Valós kérdés, de későbbi mérföldkőhöz tartozik. |
-| `answered` | Megválaszolva; a részletes döntés a válasznaplóban és/vagy célfájlban szerepel. |
+| `open` | Aktív scope-ban nincs még használható döntés vagy elégséges bizonyíték. |
+| `partly_answered` | Van current default/alapirány, de az aktív fejlesztéshez tényleges döntési kapu maradt. |
+| `deferred` | Valós kérdés, de a jó döntéshez későbbi mérföldkő, playtest, meta, content vagy más bizonyíték szükséges. |
+| `answered` | Van visszakereshető current canonical/default válasz. Ez nem jelenti, hogy a döntés örökre megváltoztathatatlan. |
 
-## Összesítés
+## 2. Döntési állapotok és rugalmasság
 
-- `open`: 2
-- `partly_answered`: 43
+Az OQ-státusz és a döntés permanenciája nem ugyanaz.
+
+Használt döntési állapotok:
+
+- `FOUNDATION_GUARDRAIL` – nagy stabilitásra tervezett alapelv; csak explicit redesign/impact/migration/audit útvonalon módosítandó.
+- `CURRENT_CANONICAL_DEFAULT` – a jelenlegi ruleset/engine elfogadott működése; későbbi explicit döntéssel bővíthető vagy supersede-elhető.
+- `CURRENT_DEFAULT + ACTIVE_GATE` – jelentős rész eldőlt, de current scope-ban még konkrét döntési kapu maradt.
+- `DEFERRED_BY_EVIDENCE` – a jó döntéshez későbbi gameplay/playtest/meta/content bizonyíték kell.
+- `RESERVED_EXTENSION_POINT` – jövőbeli bővítési hely; önmagában nem tart egy OQ-t nyitva, ha a current default elegendő.
+
+A projekt célja nem egy örökre lefagyasztott architektúra, hanem:
+
+```text
+világos current canonical state
++ tesztelhetőség
++ visszakövethető döntéstörténet
++ kontrollált újratervezhetőség
+```
+
+Playtest, Expansion, meta vagy bizonyított design hiba indokolhat akár mély alapváltoztatást is.
+Ilyenkor a régi döntés nem tűnik el: `EXTENDED`, `SCOPED`, `SUPERSEDED` vagy `REPLACED`
+kapcsolattal történetileg megmarad.
+
+## 3. Összesítés
+
+- `open`: 0
+- `partly_answered`: 17
 - `deferred`: 7
-- `answered`: 22
+- `answered`: 50
 - összes OQ: 74
 
-## Használati szabály
+## 4. Használati szabály
 
 1. Új kérdés csak egyedi OQ-azonosítóval vehető fel.
-2. Az eredeti kérdés és a fennmaradó döntési kapu itt marad.
-3. A döntés és indoklás az `OPEN_QUESTIONS_DECISIONS.md` fájlba kerül.
-4. `answered` státusz csak akkor adható, ha a döntés visszakereshető.
-5. Implementációs hiány nem nyitja újra automatikusan a már eldöntött szabályi vagy architektúrakérdést.
-6. Playtest új bizonyíték alapján felülvizsgálatot indíthat, de csak explicit, verziózott emberi döntés módosít canonical szabályt.
-7. A végső dokumentumaudit során minden OQ-hivatkozást és célfájlt újra ellenőrizni kell.
+2. Minden OQ-nak legyen egyértelmű visszakereshető decision anchorja a válasznaplóban.
+3. `answered` akkor adható, ha a **current scope számára** egyértelmű válasz van; future extension önmagában nem ok a `partly_answered` fenntartására.
+4. Implementációs, audit-, migration- vagy cleanup-hiány nem nyitja újra automatikusan az eldöntött elvi kérdést.
+5. Reserved extension point nem egyenlő aktív döntési kapuval.
+6. Új playtest/meta/Expansion bizonyíték explicit review-t indíthat.
+7. Canonical döntést csak explicit, verziózott emberi döntés módosíthat.
+8. Ha egy korábbi döntés változik, az új döntés jelölje a kapcsolatot (`extends`, `supersedes`, `scopes`, `replaces`).
+9. A végső dokumentumaudit során minden OQ-hivatkozást, célfájlt és státuszösszesítést ellenőrizni kell.
 
 ---
 
 ## 1. Projektirány és architektúra
+
 ### OQ-ARCH-001 – Régi és új Python motor szerepe
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** A production authoritative runtime C#; a Python referencia-, adat-, audit-, AI- és batch-tooling. A régi motorból csak célzott, auditált logika emelhető át.
+**Státusz:** `answered`  
+**Döntési állapot:** `FOUNDATION_GUARDRAIL`  
+**Aktuális válasz / fennmaradó kapu:** Production authority C#/.NET; Python referencia-, adat-, audit-, AI- és batch-tooling. Legacy motorból csak célzott, auditált logika emelhető át.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ARCH-001`
 
 ### OQ-ARCH-002 – Runtime nyelv és integrációs modell
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** Godot/GDScript vizuális kliens, C# egyetlen authority, Python külső tooling. Két párhuzamos kanonikus motor nem tartható fenn.
+**Státusz:** `answered`  
+**Döntési állapot:** `FOUNDATION_GUARDRAIL`  
+**Aktuális válasz / fennmaradó kapu:** Godot/GDScript vizuális kliens; C# az egyetlen authoritative runtime; Python külső tooling. Párhuzamos canonical motor nincs.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ARCH-002`
 
 ### OQ-ARCH-003 – UI és rules engine szétválasztása
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** A UI action requestet küld; a C# engine validál és mutál. A Godot bridge nem tartalmazhat játékszabályt.
+**Státusz:** `answered`  
+**Döntési állapot:** `FOUNDATION_GUARDRAIL`  
+**Aktuális válasz / fennmaradó kapu:** A UI requestet küld; a C# engine validál és mutál. A bridge/presentation réteg nem tartalmaz rules authorityt.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ARCH-003`
 
-
 ## 2. Dokumentáció és fájlstátusz
+
 ### OQ-DOC-001 – DOCX → Markdown migráció
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Az engine-dokumentáció Markdown-alapú, a hivatalos szabályfőforrások DOCX authorityk. A nagy mappa- és archívaudit lezárult; jelenleg célzott active-document consistency pass fut. Nyitva marad az esetleges olvasói/exportált DOCX/PDF réteg.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Current default: official rules authority DOCX, engine/project docs Markdown. Külön reader/export DOCX/PDF csak konkrét publishing/use case esetén; nem tartunk kézzel párhuzamos canonical másolatokat.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DOC-001`
 
 ### OQ-DOC-002 – Checkpointok kezelése
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** Egy aktív `ENGINE_CHECKPOINT.md` és külön történeti `CHECKPOINTS.md` marad a `docs/checkpoints/` mappában.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Egy aktív `ENGINE_CHECKPOINT.md` és külön történeti `CHECKPOINTS.md` modell.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DOC-002`
 
 ### OQ-DOC-003 – Dokumentumszaporodás elkerülése
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** Elsődlegesen meglévő aktív fájlt frissítünk. Új dokumentum csak önálló canonical szerep esetén készülhet. Minden aktív dokumentum verziót, dátumot és státuszt kap.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Elsődlegesen meglévő aktív dokumentum frissül; új canonical dokumentum csak önálló szerep esetén. Verzió/dátum/státusz kötelező.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DOC-003`
 
-
 ## 3. Runtime package és adatút
+
 ### OQ-DATA-001 – Compiled runtime package szükségessége
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** A validált, manifestes runtime package a program kötelező adatinputja; a nyers export köztes, audit- vagy debug-output.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** A validált manifestes runtime package kötelező statikus programadat; nyers export köztes/audit output.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DATA-001`
 
 ### OQ-DATA-002 – Google Sheets → XLSX → runtime package adatút
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Az adatút és publish pipeline működik. Hátralévő kapu: végleges package identity, build/output mappaszerkezet, source fingerprint és release policy.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Current default: derived, validált, verziózott, rebuildelhető és fingerprintelt runtime package; release manifest/provenance külön réteg. Konkrét layout/hash algoritmus evolúciós.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DATA-002`
 
 ### OQ-DATA-003 – Engine support státusz és blokkolás
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** A support státusz és futási mód szerinti blocking alapmodell elfogadott. Hátralévő kapu: production C# support checker és kártyacoverage-policy.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Engine capability és konkrét content coverage külön fogalom; unsupported/fail-closed és publish gate elve lezárt. A checker/coverage tooling implementációs feladat.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DATA-003`
 
 ### OQ-DATA-004 – Legacy alias és canonical értékek
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** `normalization_aliases.json` és a LOOKUPS legacy réteg iránya rögzített. Hátralévő kapu: dangerous/audit_required esetek teljes auditja és visszavezetési policy.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Safe alias normalizálható; dangerous/ambiguous emberi review. Derived/runtime output nem ír automatikusan vissza a human authoring source-ba; korrekció explicit human edit vagy kontrollált migration.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DATA-004`
 
 ### OQ-TECH-004B – Python build pipeline hosszú távú szerepe
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** A Python marad az export, normalizálás, validáció, package build, diagnostics, fixture-, AI- és batch-tooling elsődleges rétege.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Python marad export/normalizálás/validáció/package build/diagnostics/fixture/AI/batch tooling.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-004B`
 
 ### OQ-DATA-005 – Build pipeline és változásérzékelés
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Az explicit teljes build helyes első lépés. Hash/fingerprint és cache csak későbbi optimalizáció; a correctness elsődleges.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Full deterministic rebuild a correctness path; cache/delta/incremental optimalizáció. Fingerprint/hash provenance, identity, compatibility és reprodukálhatóság célra is használható.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DATA-005`
 
 ### OQ-DATA-006 – Duplikált sample/runtime package mappák
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Canonical szerkesztési forrás egyik sem. A Godot-mappa consumption copy. Hátralévő kapu: a történeti sample mappák végleges archiválása vagy eltávolítása.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Historical/sample package nem authority; Godot `runtime_package/` consumption copy. Maradék archive/delete cleanup repository-task.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DATA-006`
 
-
 ## 4. Snapshot és visibility
+
 ### OQ-SNAP-001 – Snapshot típusok
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Aktív alap: viewer-specifikus player-visible snapshot és külön debug snapshot. Spectator-, replay- és külön AI-contract későbbi feladat.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Current contract: viewer-specifikus `PlayerSnapshot` + trusted `DebugSnapshot`. AI/spectator/replay külön projection lehet később.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-001`
 
 ### OQ-SNAP-002 – Pecsétmodell snapshotban
 
-**Státusz:** `open`
-**Aktuális kérdés / fennmaradó kapu:** Döntendő a Pecsét létrehozási, láthatósági és állapotmodellje; HP-mező nem használható.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Official Core már meghatározza a 6 face-down Pecsétet, Áramlat-kapcsolatot és fennáll/feltört állapotot. Nyitott: exact owner/opponent visibility és digitális snapshot schema.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-002`
 
 ### OQ-SNAP-003 – Ősforrás láthatóság és állapot
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** A Magnitúdó, az Aktív/Kimerült darabszám és activity publikus; a saját kártyaazonosság owner-visible; az ellenfélnek redacted.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Magnitúdó és Aktív/Kimerült forrásállapot publikus; saját forrásidentity owner-visible, ellenfélnek redacted.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-003`
 
 ### OQ-SNAP-004 – Rejtett információ és visibility
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** A viewer-specifikus projection és fair-AI elv elfogadott. Hátralévő kapu: face-down Jel, spectator, replay és PvP visibility-audit.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Egy authoritative stateből viewer-specifikus projection készül; hidden information nem kerülhet player/fair-AI outputba. Spectator/replay új consumerként bővíthető.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-004`
 
 ### OQ-SNAP-005 – Pending decision és döntési ablak
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Az explicit phase és pending-trigger foundation már létezik. A fennmaradó kapu a Reaction/Priority, komplex targeting/choice/payment és combat pending-state pontos schema/projection contractja.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Reaction pending state iránya kialakult. Nyitott: compound target/payment/choice, cancel/back, combat és nested nem-reaction decision pontos schema/projection.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-005`
 
 ### OQ-SNAP-006 – Event log a snapshotban
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** A snapshot nem teljes történeti dump; csak rövid recent/visible event ablakot és indexet tartalmazhat. A teljes log külön contract.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Snapshot=current projected state; teljes canonical event history külön stream/API. Recent visible summary/cursor opcionális presentation részlet.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-006`
 
-
 ## 5. Legal actions
+
 ### OQ-LA-001 – Enabled és disabled actionök
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** Player-facing és fair AI nézetben enabled actionök; debugban disabled actionök strukturált reasonnel is megjelenhetnek.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Player/fair-AI nézet enabled actionöket kap; debug structured disabled-reason adatot is kaphat.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-001`
 
 ### OQ-LA-002 – Reakcióablak modell
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** A hivatalos 1.4.3v már rögzíti a reaction window alapját, a nem kezdeményező játékos első válaszlehetőségét, a pass-t, a két egymást követő passz általi lezárást, az egymásra épülő reakciókat, a visszafelé történő feloldást és azt, hogy lezárt eseményre nincs visszamenőleges reakció. Nyitva marad prevention/replacement, multi-trigger ordering, optional/mandatory trigger, nested pending decision és a pontos public reaction-state contract.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Official reaction alap, pass/LIFO/ordering és current RC1/RC2 default rögzített. Nyitott: prevention/replacement, complex nested choice, combat timing/integration és future explicit special timing policyk.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-002`
 
 ### OQ-LA-003 – Combat actionök
 
-**Státusz:** `open`
-**Aktuális kérdés / fennmaradó kapu:** A támadás, célpont, blokkolás és Pecsétfeltörés action/event modellje combat rules spec után dönthető el.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Official Core már rögzíti attack/target/block/simultaneous damage/Pecsét/Aeternal alapot. Nyitott: production combat action/event/pending-state contract.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-003`
 
 ### OQ-LA-004 – Fizetés és Aura
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** A base Magnitúdó-preflight, Aura-payment preflight és explicit engine-validált source selection production foundationje megvalósult. Nyitva marad temporary Aura, alternate cost, cost modifier, wildcard/replacement és az összetett payment choice.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Base Magnitúdó/Aura payment production foundation megvan. Nyitott: temporary Aura, alternate/modifier/wildcard/replacement és compound payment choice.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-004`
 
 ### OQ-LA-005 – Targeting
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Canonical target filter/resolver foundation már productionben létezik; egyszerű target a request része lehet, komplex target külön pending döntést igényel. Nyitva marad retarget, invalid-target resolution, partial resolution és az összetett multi-step choice.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Basic target validation/revalidation és partial-resolution alap official. Nyitott: retarget, complex multi-step choice és card-specific complex semantics.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-005`
 
 ### OQ-LA-006 – UI mezők a legal actionben
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Minimális UI-hint megengedett, de nem szabályforrás. Hosszú távon lokalizációs kulcs és paraméterezés szükséges.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Engine authority és UI non-authority elv adott. Nyitott: végleges minimal UI hint/localization/presentation mezők és a külön consumer contract pontosítása.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-006`
 
 ### OQ-LA-007 – AI legal action mezők
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** A fair AI ugyanazt az enabled legal action listát kapja. Heurisztika külön policy-réteg, nem canonical rules mező.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Fair AI ugyanazt az authoritative legal action surface-t használja, rejtett legalitási előny nélkül.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-007`
 
+## 6. Action request és response
 
-## 6. Action request / response
 ### OQ-AR-001 – Request azonosítás
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Request ID szükséges; a pontos idempotencia és hálózati policy a későbbi interaktív/PvP réteghez tartozik.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** `request_id` és `expected_state_version` current request contract része. Nyitott: future network idempotency/retry/correlation exact semantics.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-001`
 
 ### OQ-AR-002 – Snapshot frissesség és state_version
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** Az expected state version kötelező authority-guard; stale request reject és nem mutálhat állapotot.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** `state_version` authority guard; stale request state-mutation nélkül reject.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-002`
 
 ### OQ-AR-003 – Action ID élettartama
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** Az action ID az adott state version/legal action lista kontextusában érvényes; állapotváltozáskor érvénytelen.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Action ID csak az adott legal-action/state-version kontextusban érvényes.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-003`
 
 ### OQ-AR-004 – Többlépcsős targeting és pending állapot
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** A komplex választás authoritative pending state-ben tárolandó. Invalidáció, cancel és visszakérdezés részletes szabályai nyitottak.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Authoritative pending state és engine-generated option elv adott. Nyitott: cancel/backtracking, invalidation, auto-collapse és nested choice semantics.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-004`
 
 ### OQ-AR-005 – Action response és reakcióablak
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** A response és az új snapshot jelezheti a pending reactiont; a teljes reaction resolution contract későbbi feladat.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Current default: submit→canonical transition→viewer-safe snapshot/events; Reaction esetén engine-owned pending state és `react`/`pass_priority` legal actions. Future transport nem változtatja ezt az authority-határt.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-005`
 
 ### OQ-AR-006 – Partial resolution státuszok
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Alap státuszszókészlet rögzített, de a `partially_resolved`, `prevented`, `replaced`, `cancelled` pontos szabálypéldái hiányoznak.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Basic invalid-target/partial-resolution elv official. Nyitott: prevention/replacement/cancel és complex multi-part exact response semantics.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-006`
 
 ### OQ-AR-007 – Unsupported feature action közben
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Az engine nem találgathat; reject/not_executable és diagnostics szükséges. A player-safe event és release blocking részletes policy későbbi.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Unsupported canonical requirement: no guess/no silent fallback/no partial commit; controlled reject/block + safe diagnostic. Code coverage tooling task.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AR-007`
 
-
 ## 7. Event log
+
 ### OQ-EVENT-001 – Event részletesség
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Typed, gameplay-szintű eventek és külön debug/system réteg az irány. A teljes event taxonomy gameplay-migrációval bővül.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Typed deterministic canonical events, külön debug/system réteggel. Taxonomy és opcionális correlation mezők evolúciósak.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-EVENT-001`
 
 ### OQ-EVENT-002 – Explanation log
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Rövid távon player-safe message használható; hosszú távon localization key + params. Nem minden event igényel magyarázatot.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Canonical event semantic adat, nem presentation sentence; UI localization key+params/fallback külön projection/presentation réteg.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-EVENT-002`
 
 ### OQ-EVENT-003 – Debug, audit és diagnostics kapcsolat
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Az event és diagnostics külön réteg, kölcsönös hivatkozással. A teljes correlation/schema még nyitott.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Gameplay `EngineEvent` és diagnostic/log/trace külön fogalom; szükség esetén explicit correlation.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-EVENT-003`
 
 ### OQ-EVENT-004 – Rejtett információ event logban
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Egy belső történetből viewer-specifikus, szűrt nézet készül. PvP előtt külön visibility-audit szükséges.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Egy belső canonical event historyból viewer-specific redacted projection készül; hidden event-existence eset future explicit policyvel bővíthető.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-EVENT-004`
 
 ### OQ-EVENT-005 – Replay-kompatibilitás
 
-**Státusz:** `deferred`
-**Aktuális kérdés / fennmaradó kapu:** Az eventek készítsék elő a replayt, de teljes replay-rendszer nem korai mérföldkő.
+**Státusz:** `deferred`  
+**Döntési állapot:** `DEFERRED_BY_EVIDENCE`  
+**Aktuális válasz / fennmaradó kapu:** Replay architecture későbbi mérföldkő; current event/state identity ezt előkészíti, de teljes replay runner nem current blocker.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-EVENT-005`
 
 ### OQ-EVENT-006 – Balance test eventek
 
-**Státusz:** `deferred`
-**Aktuális kérdés / fennmaradó kapu:** A balanszgyanú futás utáni elemzés és külön report; a szükséges metrikák a stabil gameplay után véglegesíthetők.
+**Státusz:** `deferred`  
+**Döntési állapot:** `DEFERRED_BY_EVIDENCE`  
+**Aktuális válasz / fennmaradó kapu:** Balance-specifikus event/report igény stabil gameplay és AI után döntendő.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-EVENT-006`
 
-
 ## 8. Diagnostics
+
 ### OQ-DIAG-001 – Severity és blocking
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** A severity és blocking külön mező. A critical alapból blokkoló; warning/audit_note alapból nem; balance_suspicion nem engine-hiba.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Severity és blocking külön mező/policy; `critical` alapból blocking, balance suspicion nem engine-hiba.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-001`
 
 ### OQ-DIAG-002 – Blocking szabályok futási módonként
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Development, publish és runtime külön szigorúságú. A production C# és release policy részletes kódmátrixa még hátra van.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Development, publish/acceptance és runtime külön strictness profile; konkrét code-by-code matrix bővíthető.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-002`
 
 ### OQ-DIAG-003 – Diagnostics report formátum
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Elsődleges gépi JSON és emberi Markdown summary. A végleges schema és output-elhelyezés nyitott.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Machine-primary structured JSON/JSONL diagnostics + human Markdown/text summary; konkrét artifact layout evolúciós.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-003`
 
 ### OQ-DIAG-004 – Runtime visibility
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Player-facing csak rövid, safe hiba; developer/debug részlet külön. A konkrét UI és localization policy későbbi.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Public-safe diagnostic és trusted developer diagnostic külön projection; production UI nem kap automatikusan belső részletet.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-004`
 
 ### OQ-DIAG-005 – LOOKUPS diagnostics
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Unknown/inactive/workflow-only aktív runtime érték publish előtt blokkol. A teljes enum- és alias-hibamátrix auditálandó.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** LOOKUPS blocking/alias policy lezárt; teljes enum/alias inventory és javítás audit-task.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-005`
 
 ### OQ-DIAG-006 – Balance suspicion
 
-**Státusz:** `deferred`
-**Aktuális kérdés / fennmaradó kapu:** Nem blokkoló, emberi review-t igénylő futás utáni jelzés. Mintaszámok és küszöbök stabil AI/gameplay után.
+**Státusz:** `deferred`  
+**Döntési állapot:** `DEFERRED_BY_EVIDENCE`  
+**Aktuális válasz / fennmaradó kapu:** Balance suspicion metrikák/statisztikai policy stabil gameplay/AI után.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-006`
 
 ### OQ-DIAG-007 – Diagnostics és checkpointok kapcsolata
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** Checkpoint csak rövid summaryt és lényeges hibákat tartalmaz; a teljes diagnostics külön generált report.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Checkpoint összesítést és lényeges problémát tartalmaz; teljes diagnostic dump külön report.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-DIAG-007`
 
+## 9. Ability module rendszer
 
-## 9. Ability module system
 ### OQ-ABIL-001 – Structured mezők részletessége
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** A structured mezők audit- és köztes réteg. Új oszlop csak ismétlődő executable igény alapján.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Structured mező csak ismétlődő semantic/runtime/validation/test igény esetén bővül. Nem minden kártyaszöveghez új oszlop.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-001`
 
 ### OQ-ABIL-002 – Execution plan
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Nem kötelező minden laphoz korán. Előbb simple plan néhány képességhez; később generált, verziózott plan.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Current default: `CanonicalAbilityGraph` + runtime `ResolutionContext` + szükség esetén ephemeral typed execution/transition plan; nincs kötelező persisted univerzális execution-plan artifact.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-002`
 
 ### OQ-ABIL-003 – Card-local fallback
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Csak átmeneti, explicit diagnostics/support státusszal; release-ben nem futhat csendben.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Silent fallback tilos. Ritka explicit typed `exception_module` production-supported lehet azonos validation/atomicity/event/projection/test contracttal.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-003`
 
 ### OQ-ABIL-004 – Reaction system ability szinten
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** A core timing engine nyitja/zárja a reaction windowt, az ability hook csak jogosultságot/payloadot ad. Az 1.4.3v pass- és visszafelé feloldási alapja rögzített. Nyitva: prevention/replacement, multi-trigger ordering, optional/mandatory trigger és nested pending reaction.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Reaction ability-hook nem timing authority. Current default trigger/reaction processing rögzített; nyitott: prevention/replacement, complex nested choice, combat/special timing és coverage.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-004`
 
 ### OQ-ABIL-005 – Keywordök MVP-támogatása
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Keyword registry és support státusz szükséges; a támogatott első keyword-készlet gameplay-prioritás alapján döntendő.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Keyword registry/support policy szükséges; konkrét támogatási sorrend Base card coverage és gameplay priority függő.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-005`
 
 ### OQ-ABIL-006 – Pecsét/Aeternal targetek
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Aeternal nem damage/heal target; Pecsét csak explicit ward effectekhez. A részletes target és event payload nyitott.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Aeternal/Pecsét no-HP és Core target/combat szabály jelentős része official. Nyitott: exact special effect/event payload és future interaction contract.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-006`
 
 ### OQ-ABIL-007 – Hatáscímkék szerepe
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Effect tag önmagában nem executable modul. Modul csak schema, target/condition, diagnostics, event és teszt után.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Effect tag metadata/classification, nem executable semantics. Mapping/migration/coverage task.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-007`
 
 ### OQ-ABIL-008 – Ability registry és runtime package
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** A package `ability_registry.json`/support metadata foundationje és a production C# ability/effect execution foundation is létezik, de külön rétegek. Nyitva marad a package support-matrix migráció, module schema/coverage policy és a teljes kártyafedettség.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Ability definition/registry, engine capability és content coverage külön réteg; package metadata nem írja felül a C# executable authorityt.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-008`
 
-## 10. Technology decisions
+## 10. Technológiai döntések
+
 ### OQ-TECH-001 – Python hosszú távú szerepe
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** Python külső tooling, referencia és AI/batch controller; nem production gameplay authority.
+**Státusz:** `answered`  
+**Döntési állapot:** `FOUNDATION_GUARDRAIL`  
+**Aktuális válasz / fennmaradó kapu:** Python external tooling/reference szerep canonical.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-001`
 
 ### OQ-TECH-002 – GDScript/Godot runtime alkalmassága
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** Godot/GDScript vizuális kliens- és adapterréteg; nem authoritative rules runtime.
+**Státusz:** `answered`  
+**Döntési állapot:** `FOUNDATION_GUARDRAIL`  
+**Aktuális válasz / fennmaradó kapu:** Godot/GDScript visual/client layer canonical; nem rules authority.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-002`
 
 ### OQ-TECH-003 – Python + GDScript/C# hibrid modell
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** Elfogadott hibrid: Godot visual + C# authority + Python external tooling. Nincs megosztott kanonikus szabálymotor.
+**Státusz:** `answered`  
+**Döntési állapot:** `FOUNDATION_GUARDRAIL`  
+**Aktuális válasz / fennmaradó kapu:** Godot + C# + Python hibrid, egyetlen C# authority.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-003`
 
 ### OQ-TECH-004 – Runtime package mint technológiai határ
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** Statikus, validált programadat; nem MatchState és nem rules engine. A Python és C# is ezt fogyasztja.
+**Státusz:** `answered`  
+**Döntési állapot:** `FOUNDATION_GUARDRAIL`  
+**Aktuális válasz / fennmaradó kapu:** Runtime package statikus technológiai adatboundary.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-004`
 
 ### OQ-TECH-005 – Godot headless/smoke stratégia
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Headless és visual proof működik. A végleges CI, export és warning policy production szakaszban zárandó.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Current default: canonical local acceptance runner/pipeline először; CI később ugyanennek automation hostja. Export/signing/installer külön release maturity.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-005`
 
 ### OQ-TECH-006 – Codex-feladatok bontása
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** Codex csak feltétlenül szükséges technikai feladathoz használható, tipikusan programozásra, build/test/smoke futtatásra vagy GitHubról nem látható lokális worktree/fájl elemzésére. Projekttervezés, dokumentáció, rules/contract döntés és rutin Git-kezelés alapértelmezésben a felhasználó és az asszisztens közös feladata.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Codex csak szükséges implementation/execution vagy GitHubról nem látható local worktree feladatra; rules/project/document döntés nem Codex authority.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-TECH-006`
 
-## 11. AI / simulation / balance
+## 11. AI, simulation és balance
+
 ### OQ-AI-001 – AI-vs-AI helye
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** A Python vezérli a C# headless authoritative engine-t; Godot nem kap külön párhuzamos AI rules motort.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Python koordinálhat C# headless AI-vs-AI futásokat; C# marad authority.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-001`
 
 ### OQ-AI-002 – Fair AI és debug AI
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** Fair AI játékosnézetet kap és balanszmérés alapja; debug AI külön fejlesztői mód.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Fair AI player-visible observationt használ; trusted/debug analyzer külön explicit capability.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-002`
 
 ### OQ-AI-003 – AI heurisztika és legal actions
 
-**Státusz:** `answered`
-**Aktuális kérdés / fennmaradó kapu:** AI a C# legal action listából választ; policy külön réteg; engine minden requestet validál.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** AI csak engine legal actionsből választ; heuristic/policy külön verziózott layer.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-003`
 
 ### OQ-AI-004 – Balance suspicion forrása
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Több metrikából, nem csak winrate-ből. A konkrét modellek stabil gameplay és adatgyűjtés után.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Elv: balance suspicion több metrikából, nem puszta winrateből. Nyitott: konkrét metrikák/küszöbök/sample size stabil gameplay és adatok után.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-004`
 
 ### OQ-AI-005 – Winrate és klánidentitás
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Nem cél steril 50/50; identitás védendő. Mintaszámok és auditküszöbök később.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Nem cél steril 50/50; klánidentitás és matchup/meta distribution számít. Nyitott: elfogadható sávok emberi playtest/AI/meta alapján.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-005`
 
 ### OQ-AI-006 – Balance report
 
-**Státusz:** `deferred`
-**Aktuális kérdés / fennmaradó kapu:** Később gépi JSON + emberi Markdown summary, stabil fair AI és gameplay után.
+**Státusz:** `deferred`  
+**Döntési állapot:** `DEFERRED_BY_EVIDENCE`  
+**Aktuális válasz / fennmaradó kapu:** Balance report teljes contractja stabil AI/gameplay után.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-006`
 
 ### OQ-AI-007 – Korábbi kártyajavítások visszaellenőrzése
 
-**Státusz:** `deferred`
-**Aktuális kérdés / fennmaradó kapu:** Fair AI-vs-AI, deckvalidáció, support report és teljesebb gameplay után.
+**Státusz:** `deferred`  
+**Döntési állapot:** `DEFERRED_BY_EVIDENCE`  
+**Aktuális válasz / fennmaradó kapu:** Korábbi kártyajavítások teljes visszaellenőrzése későbbi full audit/fair-AI szakasz.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-AI-007`
 
-
 ## 12. Rules- és kártyaaudit
+
 ### OQ-RULES-001 – Hivatalos főforrás-audit
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Szükséges, de rétegezett és célzott formában. A teljes audit előtt stabilabb validation és engine-barát rules spec kell.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Official main-source audit szükséges, rétegezett authority-preserving workflowval. Fennmaradó audit végrehajtási workstream.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-001`
 
 ### OQ-RULES-002 – Játékosbarát szabálykönyv
 
-**Státusz:** `deferred`
-**Aktuális kérdés / fennmaradó kapu:** Külön, későbbi magyarázó dokumentum; főforrás-audit és stabil gameplay után.
+**Státusz:** `deferred`  
+**Döntési állapot:** `DEFERRED_BY_EVIDENCE`  
+**Aktuális válasz / fennmaradó kapu:** Játékosbarát rulebook stabil szabály/gameplay után.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-002`
 
 ### OQ-RULES-003 – Engine/AI-barát szabályspecifikáció
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Kell külön MD-alapú, hivatalos forrásból származtatott spec. A részletes szerkezet és elkészítés időzítése nyitott.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Külön engine/AI-friendly derived rules spec szükséges. Nyitott: tényleges schema/authoring/version-sync modell.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-003`
 
 ### OQ-RULES-004 – Új teljes kártyaaudit időzítése
 
-**Státusz:** `deferred`
-**Aktuális kérdés / fennmaradó kapu:** Előbb structured/LOOKUPS, diagnostics, support report, deckvalidáció és legalább részleges tesztmotor.
+**Státusz:** `deferred`  
+**Döntési állapot:** `DEFERRED_BY_EVIDENCE`  
+**Aktuális válasz / fennmaradó kapu:** Új teljes card audit feltételekhez kötött későbbi mérföldkő.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-004`
 
 ### OQ-RULES-005 – LOOKUPS és structured audit
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** Lépcsőzetesen indítható critical enumokkal és dangerous/legacy értékekkel. A teljes munkalista későbbi auditfeladat.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** LOOKUPS/structured critical audit korai külön lépcső; teljes worklist végrehajtási feladat.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-005`
 
 ### OQ-RULES-006 – Kártyaszöveg és structured eltérés
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** A motor nem találgathat; eltérés diagnostics és szükség esetén blocking audit. A konkrét javítási workflow részletezendő.
+**Státusz:** `answered`  
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`  
+**Aktuális válasz / fennmaradó kapu:** Text/structured mismatchnél engine nem találgat; diagnostic/block + explicit human correction + rebuild/revalidation. Nincs silent derived→human backwrite.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-006`
 
 ### OQ-RULES-007 – Aeternal/Pecsét engine-spec
 
-**Státusz:** `partly_answered`
-**Aktuális kérdés / fennmaradó kapu:** A HP nélküli alapmodell rögzített. A snapshot, combat, target, ward-break/restore és victory event payloadok részletesítendők.
+**Státusz:** `partly_answered`  
+**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
+**Aktuális válasz / fennmaradó kapu:** Official Core jelentős Aeternal/Pecsét szabályt ad. Nyitott: combat integration, special break/restore, snapshot/event/action payload és Expansion-interakciók.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-007`
 
+
 ---
 
-## Dokumentumkezelési hatás
+## 13. Változásnapló
 
-A repositoryba történő beillesztéskor:
+### 2.2 – 2026-08-15
 
-1. ez a fájl lecseréli a meglévő `OPEN_QUESTIONS.md` tartalmát;
-2. az új `OPEN_QUESTIONS_DECISIONS.md` vele együtt kerül be;
-3. a `CURRENT_OPEN_QUESTIONS.md` csak a két új fájl és minden hivatkozás ellenőrzése után távolítható el;
-4. az `OPEN_QUESTIONS.md` és az `OPEN_QUESTIONS_DECISIONS.md` szándékos kérdés–válasz dokumentumpárként megmarad;
-5. új `CURRENT_OPEN_QUESTIONS.md` vagy más párhuzamos current OQ-fájl nem készülhet.
+- A `OPEN_QUESTIONS.md` és `OPEN_QUESTIONS_DECISIONS.md` páros Stage-1/Stage-2 auditja alapján újraszinkronizálva.
+- A0: stale official-rules gate-ek szűkítve; `OQ-SNAP-002` és `OQ-LA-003` `open` → `partly_answered`.
+- A1: öt elvi kérdés `answered`, a maradék munka task/audit rétegbe választva.
+- A2: data/ability current defaults, Reaction D1–D5, RC1 és formálható RC2 current-default irány rögzítve.
+- RC2: ordinary trigger default immediate discovery + post-resolution processing; different-timing batch default FIFO; future strict timing reserved extension.
+- A3: projection/event/diagnostics/package témák jelentős része current-default szinten lezárva.
+- A4: structured ability, registry és text/structured mismatch current-default lezárva; balance/playtest/content kérdések tudatosan nyitva/deferred állapotban maradnak.
+- Új rugalmassági elv: `answered` nem jelent örök változtathatatlanságot.
+- Repository-bázis mező kettéválasztva dokumentációs remote bázisra és production engine mérföldkőre.
+- Új összesítés: 50 answered / 17 partly_answered / 7 deferred / 0 open.
+
+A 2.1 és korábbi verziók történeti tartalma a Git-történetben megmarad.
