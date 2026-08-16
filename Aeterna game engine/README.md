@@ -2,10 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.3
-**Dátum:** 2026-08-14
+**Dokumentumverzió:** 2.4
+**Dátum:** 2026-08-16
 **Státusz:** aktív programegység-README
-**Ellenőrzött production kódbázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
+**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95`
 **C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
 Az **AETERNA Game Engine** az AETERNA fizikai kártyajáték contract-first digitális programegysége.
@@ -223,17 +224,11 @@ Lezáró acceptance:
 
 ## 7. Következő technikai irány
 
-**Reaction / Priority Foundation v1**
+**Reaction / Priority Foundation v1** – `NEXT – MINIMAL_CONTRACT_FINALIZATION`.
 
-Előbb:
+A rules/source audit, OQ v2.2 és clean-room research elkészült. Most a minimal ReactionWindow/ResolutionStack contract, `react`/`pass_priority`, RC1, RC2 + trigger checkpoint/FIFO, event/projection és unsupported paths következik.
 
-- rules audit;
-- OQ-frissítés;
-- minimal contract.
-
-Csak ezután C# implementáció.
-
-Combat külön későbbi slice.
+Csak ezután C# implementáció. Combat külön későbbi slice.
 
 ---
 
@@ -264,4 +259,4 @@ A nagy dokumentációs cleanup lezárult.
 
 A `2608345b...` mérföldkőhöz tartozó célzott A+B active-document consistency pass is lezárult.
 
-A következő szakmai fókusz a Reaction / Priority rules- és contract-előkészítés.
+A 2026-08-15/16-i learning/synthesis/OQ és targeted governance recovery handoff commitolva. Current OQ: `50/17/7/0`. A következő szakmai fókusz a Reaction / Priority minimal v1 contract finalizálása.

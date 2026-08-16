@@ -2,12 +2,13 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.2
-**Dátum:** 2026-08-14
+**Dokumentumverzió:** 2.3
+**Dátum:** 2026-08-16
 **Státusz:** aktív dokumentációs mappaindex
-**Felváltott dokumentum:** `README.md` 2.1
-**Ellenőrzött repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
-**Kapcsolódó fájlstátusz-térkép:** `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.8.md`
+**Felváltott dokumentum:** `README.md` 2.2
+**Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
+**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95`
+**Kapcsolódó fájlstátusz-térkép:** `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.9.md`
 
 Ez a mappa az AETERNA projekt hivatalos szabály-, adat-, projektirányítási és munkafolyamat-dokumentumainak elsődleges helye.
 
@@ -44,8 +45,8 @@ A program validált runtime/canonical adatot fogyaszt; a programkimenet nem vál
 
 ### 1.3 Aktív projektirányító dokumentumok
 
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.5.md`;
-- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.8.md`;
+- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`;
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.9.md`;
 - jelen `README.md`;
 - `../Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md`.
 
@@ -85,8 +86,8 @@ Az archív példány nem aktív authority.
 
 Aktív:
 
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.5.md`;
-- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.8.md`.
+- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`;
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.9.md`.
 
 A felváltott verziók az archív projekt-guidance rétegbe kerülnek.
 
@@ -186,9 +187,11 @@ Az előző C.5B foundation óta elkészült többek között:
 
 A régi Wellspring-first fejlesztési sor már történeti.
 
+Learning/OQ current: `59/58/30`; synthesis/blueprint committed; OQ `50/17/7/0`.
+
 Következő engine-fókusz:
 
-`Reaction / Priority Foundation v1` rules- és contract-előkészítése.
+`Reaction / Priority Foundation v1` minimal contract finalizálása. A source/OQ/research előkészítés kész.
 
 ---
 
@@ -224,7 +227,7 @@ Dokumentációs frissítés lezárása előtt ellenőrizni kell:
 
 1. projektterv/projekt-térkép/checkpoint összhang;
 2. hivatalos 1.4.3v hivatkozások;
-3. elavult v6.4/v1.7/931bf „aktuális” hivatkozások;
+3. elavult v6.5/v1.8 vagy régebbi „aktuális” hivatkozások;
 4. Wellspring-first stale roadmapok;
 5. `CURRENT_*` authority-hivatkozások;
 6. archív fájl aktívként hivatkozása;

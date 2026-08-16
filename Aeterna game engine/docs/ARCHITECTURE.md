@@ -2,10 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.4
-**Dátum:** 2026-08-14
+**Dokumentumverzió:** 2.5
+**Dátum:** 2026-08-16
 **Státusz:** aktív kanonikus rendszerarchitektúra
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
+**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 
 Ez a dokumentum az AETERNA digitális rendszerének aktív architektúráját, réteghatárait és authority-szabályait rögzíti.
 
@@ -27,9 +28,17 @@ Kapcsolódó aktív dokumentumok:
 - `OPEN_QUESTIONS.md`
 - `OPEN_QUESTIONS_DECISIONS.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.5.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`
 
 ---
+
+### Blueprint- és evolving-design határ
+
+A `docs/blueprints/` AETERNA architecture proposal/current-foundation expansion réteg. Learning/synthesis evidence-ből táplálkozhat, de önmagában nem rules authority.
+
+Current canonical architecture explicit reviewed döntéssel később módosítható, ha playtest, Expansion, meta vagy bizonyított architecture probléma indokolja. A lezárt runtime-language gate ettől nem nyílik újra automatikusan.
+
+Történeti változás: `EXTENDED / SCOPED / SUPERSEDED / REPLACED`.
 
 ## 1. Stabil architektúra-alapelvek
 

@@ -2,10 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.1
-**Dátum:** 2026-08-14
+**Dokumentumverzió:** 2.2
+**Dátum:** 2026-08-16
 **Státusz:** aktív engine-dokumentációs index
-**Ellenőrzött production kódbázis:** `2608345b61526097fc0b118f05461f92cfed0a95`
+**Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
+**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95`
 
 Ez a fájl az `Aeterna game engine/docs/` aktív dokumentumainak szerepét, elsőbbségét és kapcsolatát rögzíti.
 
@@ -19,6 +20,9 @@ Ez a fájl az `Aeterna game engine/docs/` aktív dokumentumainak szerepét, els�
 - C.5B = `COMPLETE_AND_ACCEPTED`;
 - első production gameplay vertical slice = elkészült;
 - Explicit Phase Foundation v1 = `COMPLETE_AND_ACCEPTED`;
+- learning/synthesis/blueprint handoff = committed;
+- OQ v2.2 = `50/17/7/0`;
+- Reaction implementation = `NOT_STARTED`;
 - teljes gameplay-engine még nincs kész.
 
 ---
@@ -26,8 +30,8 @@ Ez a fájl az `Aeterna game engine/docs/` aktív dokumentumainak szerepét, els�
 ## 1. Elsődleges folytatási dokumentumok
 
 - `checkpoints/ENGINE_CHECKPOINT.md`;
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.5.md`;
-- `../../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.8.md`;
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`;
+- `../../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.9.md`;
 - `AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`.
 
 Az első három aktuális folytatás; a 0.0.1 dokumentum hosszú távú termékcél.
@@ -56,7 +60,7 @@ Az első három aktuális folytatás; a 0.0.1 dokumentum hosszú távú termékc
 - `OPEN_QUESTIONS.md`;
 - `OPEN_QUESTIONS_DECISIONS.md`.
 
-A Reaction/Priority OQ-réteg a hivatalos 1.4.3v alapelveihez igazítva lett; a következő lépés a részletes minimal rules/contract audit.
+A Reaction/Priority OQ-réteg a hivatalos 1.4.3v alapelveihez igazítva lett. Current OQ: `50/17/7/0`. A következő lépés a minimal Reaction/Priority v1 contract finalizálása; nem új általános rules audit.
 
 ---
 
@@ -133,7 +137,11 @@ Production C#-ban már megvan:
 - draw/reference runtime;
 - explicit phase lifecycle.
 
-Aktuális HEAD:
+Szinkronizációs documentation/evidence base:
+
+`14e315d3f04f5baddb547dcb767c8b156b02551f`
+
+Production implementation base:
 
 `2608345b61526097fc0b118f05461f92cfed0a95`
 
@@ -148,7 +156,7 @@ Lezáró tesztállapot:
 
 ## 10. Aktuális technikai folytatás
 
-**Reaction / Priority Foundation v1 – rules és contract előkészítés**
+**Reaction / Priority Foundation v1 – minimal contract finalizálás**
 
 Nem közvetlen Codex-kódolással indul.
 

@@ -5,7 +5,7 @@
 **Dokumentumverzió:** 2.7
 **Dátum:** 2026-08-16
 **Státusz:** aktív rövid döntési és iránytérkép
-**Szinkronizációs repository-bázis:** `743c00d85ddc60bbbc70715fefab8ffc9dacbdae` – `docs: synchronize open questions and current decisions`
+**Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f` – `docs: recover governance and sync current engine decisions`
 **Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 
 Ez a dokumentum röviden rögzíti:
@@ -27,7 +27,7 @@ Kapcsolódó aktív dokumentumok:
 - `OPEN_QUESTIONS.md`
 - `OPEN_QUESTIONS_DECISIONS.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.5.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`
 
 ---
 

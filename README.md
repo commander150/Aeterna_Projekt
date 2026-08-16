@@ -2,11 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.3
-**Dátum:** 2026-08-14
+**Dokumentumverzió:** 2.4
+**Dátum:** 2026-08-16
 **Státusz:** aktív repository-szintű belépési dokumentum
-**Felváltott verzió:** `README.md` 2.2
-**Ellenőrzött repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Felváltott verzió:** `README.md` 2.3
+**Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
+**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95`
 
 Az **AETERNA** saját fejlesztésű fizikai és digitális gyűjtögetős kártyajáték-projekt.
 
@@ -45,8 +46,8 @@ Aktív adatút:
 
 ## 3. Aktuális projektirány
 
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.5.md`;
-- `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.8.md`;
+- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`;
+- `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.9.md`;
 - `Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md`.
 
 Aktuális engine-státusz és döntések:
@@ -66,7 +67,8 @@ Aktuális engine-státusz és döntések:
 
 - `Aeterna dokumentációk/` – szabály-, adat-, projekt- és munkafolyamat-források.
 - `Aeterna game engine/` – C# engine, Python tooling/reference, Godot kliens, docs és fixture-ök.
-- `learning/` – clean-room tanulási és architektúraelemzési réteg.
+- `learning/` – clean-room source registry, izolált project analyses és cross-project synthesis.
+- `Aeterna game engine/docs/blueprints/` – AETERNA architecture proposal réteg.
 - `Archive/` – történeti anyagok.
 
 Az archívum és a learning réteg nem aktív authority.
@@ -105,6 +107,8 @@ Legutóbbi lezáró acceptance:
 - determinism `100/100 PASS`;
 - Godot production build/smoke PASS.
 
+Dokumentációs/evidence állapot: learning `59/58/30`, synthesis/blueprints committed, OQ v2.2 `50/17/7/0`, targeted governance recovery committed.
+
 Még nincs teljes production Reaction/Priority, combat, Pecsétmodell, Refresh Penalty, victory/defeat, replay, production AI vagy végleges UI/packaging.
 
 ---
@@ -125,10 +129,10 @@ A továbbiakban célzottan frissítendő:
 
 ## 7. Következő lépés
 
-1. hivatalos 1.4.3v Reaction / Priority rules audit;
-2. az érintett Open Questions döntések végső contract-elhatárolása;
-3. minimal Reaction / Priority Foundation v1 contract;
+1. Reaction / Priority minimal v1 contract véglegesítése;
+2. OQ/blueprint/contract consistency review;
+3. explicit non-goals és unsupported paths;
 4. csak az elfogadott contract után production C# implementáció;
-5. implementáció után adversarial audit és regresszió.
+5. implementáció után teszt, adversarial audit és regresszió.
 
 Combat külön későbbi slice.

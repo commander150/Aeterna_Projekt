@@ -2,11 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.3
-**Dátum:** 2026-08-14
+**Dokumentumverzió:** 1.4
+**Dátum:** 2026-08-16
 **Státusz:** aktív runtime package-, lookup- és publish-pipeline státuszdokumentum
 **Felváltott fájl:** `CURRENT_RUNTIME_PACKAGE_STATUS.md`
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
+**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 
 Ez a dokumentum a runtime package, a kártyaadatforrás, a külön LOOKUPS-forrás és a Godot-fogyasztási út tényleges állapotát rögzíti.
 
@@ -22,7 +23,7 @@ Kapcsolódó aktív dokumentumok:
 - `RUNTIME_PACKAGE_SPECIFICATION.md`
 - `PROTOTYPE_STATUS.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.5.md`
+- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`
 
 ---
 
@@ -65,6 +66,12 @@ A runtime package továbbra sem szabálymotor és nem authoritative mérkőzés�
 
 
 ---
+
+### 1.1 Current package/data decision sync
+
+OQ v2.2 current default: full deterministic rebuild = correctness path; cache/delta = optional optimization; fingerprint/hash provenance/identity/compatibility/integrity szerepű is; derived/runtime/canonical output nem ír automatikusan vissza a human editing source-ba; `EngineCapability` és `ContentCoverage` külön fogalom; unsupported/not-evaluated content nem futhat silent implicit fallbackkal.
+
+A `package identity = NOT_FINAL` az exact hash/layout/release identity contract nyitottságát jelenti, nem az authority/provenance alapelvét.
 
 ## 2. Aktív források
 
