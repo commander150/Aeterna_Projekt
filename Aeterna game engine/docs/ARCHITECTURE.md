@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.5
+**Dokumentumverzió:** 2.6
 **Dátum:** 2026-08-16
 **Státusz:** aktív kanonikus rendszerarchitektúra
 **Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
@@ -28,7 +28,7 @@ Kapcsolódó aktív dokumentumok:
 - `OPEN_QUESTIONS.md`
 - `OPEN_QUESTIONS_DECISIONS.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.7.md`
 
 ---
 

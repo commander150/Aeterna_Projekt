@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.7
+**Dokumentumverzió:** 1.8
 **Dátum:** 2026-08-16
 **Státusz:** aktív elsődleges technikai folytatási checkpoint
-**Felváltott verzió:** `ENGINE_CHECKPOINT.md` 1.6
-**Szinkronizációs repository-bázis:** `743c00d85ddc60bbbc70715fefab8ffc9dacbdae` – `docs: synchronize open questions and current decisions`
+**Felváltott verzió:** `ENGINE_CHECKPOINT.md` 1.7
+**Szinkronizációs repository-bázis:** `7af5bf7fec7b762ec41d1368b072ff6a3d818f5e` – `docs: update project guidance after OQ and learning sync`
 **Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 **Előző checkpoint-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 **C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
@@ -617,43 +617,49 @@ alapértelmezésben.
 
 ## 13. Következő biztonságos technikai lépés
 
-**Reaction / Priority Foundation v1 – minimal production contract finalizálás**
+**Reaction / Priority Foundation v1 – production implementation**
 
-A rules/source/OQ/research előkészítés már elkészült.
+Aktív contract:
 
-A contractnak current v1-re explicit módon rögzítenie kell:
+`Aeterna game engine/docs/REACTION_PRIORITY_CONTRACT.md` v1.0
 
-1. `ReactionWindowState` minimum contract;
-2. `ResolutionStackEntry` minimum contract;
-3. eligible responder/current priority;
-4. `react`;
-5. `pass_priority`;
-6. `reaction_option_id`;
-7. `response_policy_id`;
-8. RC1 single-responder closure;
-9. two-player pass lifecycle;
-10. LIFO resolution;
-11. final revalidation;
-12. RC2 ordinary trigger queue;
-13. post-resolution trigger checkpoint;
-14. different-timing FIFO batch default;
-15. event/correlation és viewer-safe projection;
-16. unsupported/non-goal behavior.
+Státusz:
 
-Az első slice-ba nem kerül:
+`ACCEPTED_FOR_IMPLEMENTATION`
 
-- combat;
-- attack/block;
-- teljes Pecsétmodell;
-- Refresh Penalty;
-- generic prevention/replacement;
-- teljes compound choice framework;
-- every future timing policy;
-- általános architecture rewrite.
+Pre-implementation audit:
 
-A contract consistency review után:
-Codex implementation → Debug/Release tests → determinism/reference/Godot smoke →
-adversarial audit → PASS → felhasználói commit/push.
+`PASS_WITH_RC1_CORRECTIONS`
+
+A következő lépés most indokolt Codex production munka, mert:
+
+- production C# state/contract/runtime módosítás szükséges;
+- local build/test/smoke futtatás szükséges;
+- a contract döntési kapui már lezártak.
+
+Kötelező implementation freeze-gate:
+
+1. underlying canonical ability resolution a stack alján;
+2. `ReactionSubjectId` külön az `EngineEvent.EventId`-től;
+3. `ReactionWindowState`;
+4. canonical ability resolution stack entry;
+5. typed response policy;
+6. RC1;
+7. RC2 queue/checkpoint + first-slice trigger boundary;
+8. compound/nested choice/window kizárás.
+
+Implementation után:
+
+```text
+Debug/Release tests
+→ determinism/reference regression
+→ Godot smoke
+→ adversarial read-only audit
+→ PASS
+→ user commit/push
+```
+
+Combat nem része ennek a slice-nak.
 
 ---
 
@@ -675,7 +681,8 @@ adversarial audit → PASS → felhasználói commit/push.
 - Project analyses: `30`.
 - Synthesis/blueprint program: `COMMITTED`.
 - OQ: `50 answered / 17 partly_answered / 7 deferred / 0 open`.
-- Reaction source/OQ/research preparation: `COMPLETE_FOR_V1_CONTRACT_DRAFTING`.
-- Reaction implementation: `NOT_STARTED`.
-- Következő engine-fókusz: Reaction / Priority minimal v1 contract finalizálás.
+- Reaction source/OQ/research preparation: `COMPLETE`.
+- Reaction contract: `ACCEPTED_FOR_IMPLEMENTATION`.
+- Reaction implementation: `NOT_STARTED / NEXT`.
+- Következő engine-fókusz: Reaction / Priority v1 production implementation.
 - Combat: külön későbbi implementation slice.

@@ -2,10 +2,10 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.7
+**Dokumentumverzió:** 2.8
 **Dátum:** 2026-08-16
 **Státusz:** aktív rövid döntési és iránytérkép
-**Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f` – `docs: recover governance and sync current engine decisions`
+**Szinkronizációs repository-bázis:** `7af5bf7fec7b762ec41d1368b072ff6a3d818f5e` – `docs: update project guidance after OQ and learning sync`
 **Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 
 Ez a dokumentum röviden rögzíti:
@@ -27,7 +27,7 @@ Kapcsolódó aktív dokumentumok:
 - `OPEN_QUESTIONS.md`
 - `OPEN_QUESTIONS_DECISIONS.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.7.md`
 
 ---
 
@@ -204,7 +204,9 @@ Public progression:
 
 ### Reaction / Priority Foundation v1
 
-**Státusz:** `NEXT – MINIMAL_CONTRACT_FINALIZATION`
+**Aktív contract:** `REACTION_PRIORITY_CONTRACT.md` v1.0 – `ACCEPTED_FOR_IMPLEMENTATION`
+
+**Státusz:** `ACCEPTED_FOR_IMPLEMENTATION / NEXT – PRODUCTION_IMPLEMENTATION`
 
 A source/OQ/research előkészítés ehhez a v1 slice-hoz már megtörtént:
 
@@ -407,7 +409,7 @@ Továbbra is tilos:
 
 ## 14. Rövid irány
 
-**Most:** Reaction / Priority minimal v1 contract finalizálás.
+**Most:** Reaction / Priority v1 production implementation az elfogadott contract alapján.
 **Ezután:** csak elfogadott contract alapján szükséges Codex implementation.
 **Combat:** külön későbbi slice.
 **Dokumentáció:** learning/synthesis/OQ handoff commitolva; current admin-sync célzott, history-aware szerkesztéssel folytatandó.

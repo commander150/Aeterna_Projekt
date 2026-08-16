@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.4
+**Dokumentumverzió:** 2.5
 **Dátum:** 2026-08-16
 **Státusz:** aktív repository-szintű belépési dokumentum
 **Felváltott verzió:** `README.md` 2.3
@@ -46,8 +46,8 @@ Aktív adatút:
 
 ## 3. Aktuális projektirány
 
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`;
-- `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.9.md`;
+- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.7.md`;
+- `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.10.md`;
 - `Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md`.
 
 Aktuális engine-státusz és döntések:
@@ -129,7 +129,7 @@ A továbbiakban célzottan frissítendő:
 
 ## 7. Következő lépés
 
-1. Reaction / Priority minimal v1 contract véglegesítése;
+1. Reaction / Priority v1 production implementation;
 2. OQ/blueprint/contract consistency review;
 3. explicit non-goals és unsupported paths;
 4. csak az elfogadott contract után production C# implementáció;

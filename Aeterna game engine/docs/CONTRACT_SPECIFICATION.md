@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.8
+**Dokumentumverzió:** 1.9
 **Dátum:** 2026-08-14
 **Státusz:** aktív, technológiafüggetlen contract-specifikáció
 **Aktuális megvalósítási státusz:** `CONTRACT_STATUS.md`
 **Production authority:** C#/.NET
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Aktuális repository-bázis:** `7af5bf7fec7b762ec41d1368b072ff6a3d818f5e` – `docs: update project guidance after OQ and learning sync`
 
 Ez a dokumentum az AETERNA Game Engine contract-first rétegének aktív szerkezeti specifikációja.
 
@@ -26,6 +26,7 @@ Kapcsolódó dokumentumok:
 - `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`
 - `OPEN_QUESTIONS.md`
 - `OPEN_QUESTIONS_DECISIONS.md`
+- `REACTION_PRIORITY_CONTRACT.md`
 - `ARCHITECTURE.md`
 - `TECHNOLOGY_DECISIONS.md`
 - `RUNTIME_PACKAGE_SPECIFICATION.md`
@@ -467,6 +468,27 @@ Minimum:
 - optional safe prompt key/params.
 
 A frontend nem tárolhat egyedüli igaz pending állapotot.
+
+### Reaction / Priority v1 accepted specialization
+
+Az első production Reaction slice külön aktív contractja:
+
+`REACTION_PRIORITY_CONTRACT.md` v1.0 – `ACCEPTED_FOR_IMPLEMENTATION`.
+
+Megőrzi a jelen top-level public contractot, és erre specializál:
+
+- `react`;
+- `pass_priority`;
+- engine-issued `reaction_option_id`;
+- typed `response_policy_id`;
+- MatchState-owned `ReactionWindow`;
+- canonical ability resolution stack;
+- viewer-safe `pending_decision_summary`;
+- existing `expected_state_version` stale guard;
+- RC1 single-responder closure;
+- RC2 queued trigger + post-resolution checkpoint.
+
+A részletes first-slice non-goal és acceptance szabályokat a specializált contract tartalmazza.
 
 ---
 

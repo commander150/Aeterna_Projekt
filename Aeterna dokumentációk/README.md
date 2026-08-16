@@ -2,13 +2,13 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.3
+**Dokumentumverzió:** 2.4
 **Dátum:** 2026-08-16
 **Státusz:** aktív dokumentációs mappaindex
 **Felváltott dokumentum:** `README.md` 2.2
 **Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
 **Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95`
-**Kapcsolódó fájlstátusz-térkép:** `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.9.md`
+**Kapcsolódó fájlstátusz-térkép:** `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.10.md`
 
 Ez a mappa az AETERNA projekt hivatalos szabály-, adat-, projektirányítási és munkafolyamat-dokumentumainak elsődleges helye.
 
@@ -45,8 +45,8 @@ A program validált runtime/canonical adatot fogyaszt; a programkimenet nem vál
 
 ### 1.3 Aktív projektirányító dokumentumok
 
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`;
-- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.9.md`;
+- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.7.md`;
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.10.md`;
 - jelen `README.md`;
 - `../Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md`.
 
@@ -86,8 +86,8 @@ Az archív példány nem aktív authority.
 
 Aktív:
 
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`;
-- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.9.md`.
+- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.7.md`;
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.10.md`.
 
 A felváltott verziók az archív projekt-guidance rétegbe kerülnek.
 
@@ -191,7 +191,7 @@ Learning/OQ current: `59/58/30`; synthesis/blueprint committed; OQ `50/17/7/0`.
 
 Következő engine-fókusz:
 
-`Reaction / Priority Foundation v1` minimal contract finalizálása. A source/OQ/research előkészítés kész.
+`Reaction / Priority Foundation v1` production implementációja. A source/OQ/research előkészítés kész.
 
 ---
 

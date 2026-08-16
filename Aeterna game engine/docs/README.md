@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.2
+**Dokumentumverzió:** 2.3
 **Dátum:** 2026-08-16
 **Státusz:** aktív engine-dokumentációs index
 **Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
@@ -22,7 +22,7 @@ Ez a fájl az `Aeterna game engine/docs/` aktív dokumentumainak szerepét, els�
 - Explicit Phase Foundation v1 = `COMPLETE_AND_ACCEPTED`;
 - learning/synthesis/blueprint handoff = committed;
 - OQ v2.2 = `50/17/7/0`;
-- Reaction implementation = `NOT_STARTED`;
+- Reaction contract = `ACCEPTED_FOR_IMPLEMENTATION`; Reaction implementation = `NOT_STARTED / NEXT`;
 - teljes gameplay-engine még nincs kész.
 
 ---
@@ -30,8 +30,8 @@ Ez a fájl az `Aeterna game engine/docs/` aktív dokumentumainak szerepét, els�
 ## 1. Elsődleges folytatási dokumentumok
 
 - `checkpoints/ENGINE_CHECKPOINT.md`;
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`;
-- `../../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.9.md`;
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.7.md`;
+- `../../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.10.md`;
 - `AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`.
 
 Az első három aktuális folytatás; a 0.0.1 dokumentum hosszú távú termékcél.
@@ -60,12 +60,13 @@ Az első három aktuális folytatás; a 0.0.1 dokumentum hosszú távú termékc
 - `OPEN_QUESTIONS.md`;
 - `OPEN_QUESTIONS_DECISIONS.md`.
 
-A Reaction/Priority OQ-réteg a hivatalos 1.4.3v alapelveihez igazítva lett. Current OQ: `50/17/7/0`. A következő lépés a minimal Reaction/Priority v1 contract finalizálása; nem új általános rules audit.
+A Reaction/Priority OQ-réteg a hivatalos 1.4.3v alapelveihez igazítva lett. Current OQ: `50/17/7/0`. A minimal Reaction/Priority v1 contract elfogadott; következő lépés a production C# implementation.
 
 ---
 
 ## 5. Contract/specification
 
+- `REACTION_PRIORITY_CONTRACT.md` – accepted Reaction/Priority v1 implementation contract.
 - `CONTRACT_SPECIFICATION.md`;
 - `RUNTIME_PACKAGE_SPECIFICATION.md`;
 - `ABILITY_MODULE_SYSTEM.md`;
@@ -156,7 +157,7 @@ Lezáró tesztállapot:
 
 ## 10. Aktuális technikai folytatás
 
-**Reaction / Priority Foundation v1 – minimal contract finalizálás**
+**Reaction / Priority Foundation v1 – production implementation**
 
 Nem közvetlen Codex-kódolással indul.
 

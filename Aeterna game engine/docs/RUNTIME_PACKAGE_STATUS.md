@@ -2,7 +2,7 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.4
+**Dokumentumverzió:** 1.5
 **Dátum:** 2026-08-16
 **Státusz:** aktív runtime package-, lookup- és publish-pipeline státuszdokumentum
 **Felváltott fájl:** `CURRENT_RUNTIME_PACKAGE_STATUS.md`
@@ -23,7 +23,7 @@ Kapcsolódó aktív dokumentumok:
 - `RUNTIME_PACKAGE_SPECIFICATION.md`
 - `PROTOTYPE_STATUS.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.6.md`
+- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.7.md`
 
 ---
 
