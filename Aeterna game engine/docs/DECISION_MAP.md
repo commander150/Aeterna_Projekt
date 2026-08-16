@@ -2,10 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.6
-**Dátum:** 2026-08-14
+**Dokumentumverzió:** 2.7
+**Dátum:** 2026-08-16
 **Státusz:** aktív rövid döntési és iránytérkép
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Szinkronizációs repository-bázis:** `743c00d85ddc60bbbc70715fefab8ffc9dacbdae` – `docs: synchronize open questions and current decisions`
+**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 
 Ez a dokumentum röviden rögzíti:
 
@@ -45,6 +46,35 @@ A digitális programegység célja:
 - 0.0.1 zárt tesztkiadás.
 
 A digitális rendszer nem írhatja felül a hivatalos szabályforrást emberi döntés nélkül.
+
+### 1.1 Playtest, Expansion és szabályfelülvizsgálat
+
+Ez az elv történetileg már a Decision Map korábbi v2.3/v2.5 változatában is szerepelt,
+és továbbra is érvényes.
+
+Projektirányítási szabály:
+
+- az elfogadott döntés az aktuális rulesetben canonical/current default;
+- az engine, AI és tesztek ezt kötelesek követni;
+- a „playtestre vár” vagy „később bővíthető” megjelölés nem teszi a current szabályt opcionálissá;
+- szabályhű playtest, Expansion-követelmény, meta vagy bizonyított design/architecture probléma alapján
+  bármely szabály, számérték, identitás vagy akár foundation-szintű döntés felülvizsgálható;
+- új bizonyíték önmagában nem módosít automatikusan szabályt;
+- változtatáshoz explicit emberi döntés, hatásvizsgálat és szükség esetén migration/regression kell;
+- a korábbi döntés, a bizonyíték és a módosítás indoka visszakereshető marad;
+- stabil engine-contract csak az új canonical/current-default döntés elfogadása után módosítható.
+
+Változási kapcsolatként használható:
+
+```text
+EXTENDED
+SCOPED
+SUPERSEDED
+REPLACED
+```
+
+Az `answered` Open Question ezért current canonical/default választ jelent,
+nem örök megváltoztathatatlanságot.
 
 ---
 
@@ -174,33 +204,88 @@ Public progression:
 
 ### Reaction / Priority Foundation v1
 
-**Státusz:** `NEXT – RULES_AND_CONTRACT_FIRST`
+**Státusz:** `NEXT – MINIMAL_CONTRACT_FINALIZATION`
 
-Mielőtt implementáció indul:
+A source/OQ/research előkészítés ehhez a v1 slice-hoz már megtörtént:
 
-1. 1.4.3v reaction/timing audit;
-2. Open Questions aktualizálás;
-3. minimal pending/reaction contract;
-4. pass és resolution semantics;
-5. explicit non-goals.
+- hivatalos `1.4.3v` reaction/timing audit;
+- OQ A0–A4 felülvizsgálat;
+- `OPEN_QUESTIONS.md` + `OPEN_QUESTIONS_DECISIONS.md` v2.2;
+- Reaction/Priority blueprint és cross-engine clean-room research.
 
-Már hivatalos forrásból rögzített alapok közé tartozik:
+Hivatalos/current alap:
 
-- reaction window;
-- nem kezdeményező első válaszlehetősége;
+- csak meghatározott esemény nyit reaction windowt;
+- ha mindkét játékos eligible, a non-initiator kapja az első lehetőséget;
 - pass;
-- két egymást követő passz;
-- egymásra épülő reakciók;
-- visszafelé történő feloldás;
-- lezárt eseményre nincs visszamenőleges reakció.
+- két egymást követő passz zárja a két-player windowt;
+- reakciók egymásra épülhetnek;
+- LIFO feloldás;
+- resolution-time target/condition/source revalidation;
+- lezárt eseményre nincs visszamenőleges reakció;
+- simultaneous trigger ordering általános szabálya official;
+- mandatory/optional trigger semantics official.
 
-Még külön döntési/auditkapu többek között:
+Current technical default:
 
-- prevention/replacement;
-- multi-trigger ordering;
-- optional/mandatory trigger;
-- nested pending decision;
-- exact public reaction-state contract.
+```text
+react
+pass_priority
+engine-issued reaction_option_id
+typed response_policy_id
+authoritative reaction state in MatchState
+viewer-safe pending_decision_summary
+```
+
+RC1:
+
+```text
+1 eligible responder
+→ one opportunity
+→ pass closes that window
+```
+
+RC2 ordinary trigger:
+
+```text
+committed event
+→ trigger created/discovered immediately
+→ queued pending trigger
+→ current reaction/effect resolution cycle fully unwinds
+→ post-resolution trigger checkpoint
+→ queued trigger processing
+```
+
+Külön timing batch current default:
+chronological FIFO by originating committed-event sequence.
+
+Same-timing batch:
+az official simultaneous-ordering szabály.
+
+Reserved extension point:
+
+- `strict_event_window`;
+- delayed effect;
+- explicit immediate timing override;
+- future `TriggerActivationPolicy`;
+- future `TriggerBatchOrderPolicy`.
+
+Az első Reaction v1 contractnak még pontosítania kell:
+
+- exact ReactionWindow/ResolutionStack minimum mezőket;
+- eligible responder/current priority representationt;
+- pass counter/reset semanticsot;
+- event/correlation és viewer-safe projection mezőket;
+- final revalidation result behavior;
+- unsupported content behavior.
+
+Az első slice nem oldja meg automatikusan:
+
+- generic prevention/replacement;
+- teljes compound non-reaction choice frameworköt;
+- combat-specifikus Reaction integrációt;
+- every future special timing policyt;
+- teljes card/ability coverage-et.
 
 ---
 
@@ -277,12 +362,33 @@ A nagy dokumentációs/archív cleanup lezárult.
 
 A `2608345b...` mérföldkőhöz tartozó célzott A+B aktív consistency pass szintén lezárult.
 
+A 2026-08-15-i dokumentációs handoff:
+
+- `ae7d284...` – learning registry + analysis corpus;
+- `b0e4d9d...` – cross-project synthesis + AETERNA blueprints;
+- `743c00d...` – Open Questions v2.2 szinkron.
+
+Aktuális learning/OQ állapot:
+
+```text
+59 registry project record
+58 current local source
+30 project analysis
+
+50 answered
+17 partly_answered
+7 deferred
+0 open
+74 total
+```
+
 Továbbra is tilos:
 
 - indokolatlan párhuzamos authority-dokumentum;
 - tartalomvesztés;
 - nyitott kérdés elvesztése;
-- aktív és történeti forrás összekeverése.
+- aktív és történeti forrás összekeverése;
+- learning/synthesis/blueprint automatikus rules authorityként kezelése.
 
 ## 13. Nyitott, de nem blokkoló tételek
 
@@ -301,7 +407,7 @@ Továbbra is tilos:
 
 ## 14. Rövid irány
 
-**Most:** Reaction / Priority rules + minimal contract.
+**Most:** Reaction / Priority minimal v1 contract finalizálás.
 **Ezután:** csak elfogadott contract alapján szükséges Codex implementation.
 **Combat:** külön későbbi slice.
-**Dokumentáció:** a `2608345b...` consistency pass lezárva.
+**Dokumentáció:** learning/synthesis/OQ handoff commitolva; current admin-sync célzott, history-aware szerkesztéssel folytatandó.

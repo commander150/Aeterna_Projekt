@@ -2,12 +2,13 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.3
-**Dátum:** 2026-08-14
+**Dokumentumverzió:** 1.4
+**Dátum:** 2026-08-16
 **Státusz:** aktív, hosszú távú ability-architektúra és a meglévő production ability/effect foundation továbbfejlesztési kerete
 **Production authority:** C#/.NET
 **Adat- és buildréteg:** Python
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Szinkronizációs repository-bázis:** `743c00d85ddc60bbbc70715fefab8ffc9dacbdae`
+**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95`
 
 Ez a dokumentum az AETERNA kártyaképesség-, keyword-, trigger-, effect- és ability-execution rendszerének hosszú távú felépítését rögzíti.
 
@@ -74,7 +75,7 @@ Ez nem teljes kártyafedettség.
 - teljes keyword coverage;
 - Reaction/Priority runtime;
 - prevention/replacement;
-- teljes multi-trigger ordering;
+- speciális timing/trigger activation policy és batch-order kivételek;
 - minden komplex target/choice forma;
 - package support matrix teljes migrációja.
 
@@ -94,7 +95,8 @@ Feladata:
 - normalizálás;
 - support-status számítás;
 - diagnostics;
-- execution plan generálás, ha később szükséges;
+- CanonicalAbilityGraph/registry build és validáció;
+- ephemeral execution/transition plan tooling támogatása csak ott, ahol erre ténylegesen szükség van;
 - coverage és audit report.
 
 Nem futtat production gameplayt.
@@ -154,8 +156,8 @@ Az első production ability/effect foundation már nem jövőbeli feladat.
 
 - Reaction/Priority minimum contract;
 - pending reaction/choice state;
-- prevention/replacement szabályi döntés;
-- multi-trigger ordering pontosítása;
+- az adott bővítési slice által ténylegesen igényelt prevention/replacement contract;
+- speciális timing/activation/batch-order policy, ha konkrét content igényli;
 - package support/coverage matrix migráció;
 - első hivatalosan támogatott effect/keyword készletek explicit coverage-listája.
 
@@ -193,11 +195,20 @@ Audit-, keresési és coverage-címke.
 
 Az effect tag önmagában nem executable module.
 
-### Execution plan
+### CanonicalAbilityGraph, ResolutionContext és execution plan
 
-Az ability modulok, paraméterek, sorrendek és kapcsolatok normalizált végrehajtási terve.
+A persisted canonical ability-definíció alapja a `CanonicalAbilityGraph`.
 
-Korai MVP-ben nem kötelező minden kártyához.
+Futás közben az ability/effect végrehajtás contextje a `ResolutionContext`
+és az authoritative MatchState.
+
+Nem kötelező univerzális, persisted `AbilityExecutionPlan` minden abilityhez.
+
+Egyszerű effect közvetlen typed executionnel futhat.
+Komplex effectnél az engine készíthet immutable, ephemeral typed execution/transition plant,
+ha az atomic preflight vagy a determinisztikus feloldás ezt igényli.
+
+Az ephemeral plan runtime részlet, nem új rules authority.
 
 ---
 
@@ -242,14 +253,19 @@ Javasolt support státuszok:
 - `fallback_required`;
 - `manual_review_required`.
 
-Javasolt execution mode:
+Current execution-architecture kategóriák:
 
-- `fully_modular`;
-- `partially_modular`;
-- `card_local_fallback`;
-- `manual_only`;
+- `canonical_graph`;
+- `compiled_template`;
+- `exception_module`;
 - `unsupported`;
-- `not_checked`.
+- `not_evaluated`.
+
+A konkrét registry enumok később schema-verzióval változhatnak,
+de productionben silent/implicit fallback nem megengedett.
+
+A `fallback_required` külön migration/coverage diagnostic lehet;
+nem production execution mode.
 
 Elvek:
 
@@ -275,7 +291,7 @@ A structured mezők rövid távú szerepe:
 - diagnostics;
 - registry build;
 - module-jelölt képzés;
-- későbbi execution plan.
+- CanonicalAbilityGraph-, template- vagy module-jelölt képzés.
 
 A structured mező nem válik automatikusan executable logikává.
 
@@ -438,41 +454,51 @@ Ability-modul szerepe:
 - a core timing state-et nem helyettesíti;
 - a modul nem tarthat saját párhuzamos priority/stack authorityt.
 
-Nyitott:
+Current official/current-default elhatárolás:
+
+- simultaneous trigger ordering általános alapja official;
+- mandatory/optional trigger semantics official;
+- ordinary trigger RC2 current defaultja queued trigger + post-resolution checkpoint;
+- same-timing batch az official simultaneous ordering szerint rendeződik.
+
+Továbbra is részleges/nyitott technikai kapu:
 
 - prevention/replacement exact contract;
-- multi-trigger ordering;
-- optional/mandatory trigger viszony;
 - nested pending decision/reaction;
-- partial resolution;
+- komplex multi-part resolution, retarget és replacement/prevention részletei;
 - exact public reaction-state/event projection;
-- combat-specifikus reaction pontok production integrációja.
+- combat-specifikus reaction pontok production integrációja;
+- jövőbeli special timing/strict-event policy.
 
 Az első Reaction/Priority foundation nem keverendő össze a combat implementációval.
 
 
 ---
 
-## 14. Card-local fallback
+## 14. Exception module és migration fallback
 
-A card-local fallback egyedi, kártyaspecifikus C# logika.
+Silent vagy implicit runtime fallback tilos.
 
-Státusza:
+A `fallback_required` jelölés használható migration/coverage diagnosticsként,
+amikor egy kártya még nem írható le a production structured execution modellel.
+Ez önmagában nem jogosít futás közbeni ad hoc fallbackra.
 
-- átmeneti kivétel;
-- nem hosszú távú alap;
-- explicit diagnostics;
-- support report;
-- migrációs lista.
+Ritka, tartós kivételként explicit typed C# `exception_module` megengedhető,
+ha mind teljesül:
 
-Release-ben nem futhat csendben.
+- stabil registry/module ID;
+- explicit scope;
+- deterministic behavior;
+- ugyanaz a validation/atomicity/event/projection contract, mint más production executionnél;
+- positive és negative fixture;
+- látható coverage/support státusz;
+- nincs arbitrary reflection/eval/script;
+- nincs rejtett global mutable API.
 
-Development/debug módban csak akkor engedhető, ha:
+Ha egy exception pattern ismétlődik,
+shared primitive/template/graph irányba kell migrálni.
 
-- külön jelölt;
-- tesztelt;
-- nem szivárogtat rejtett információt;
-- nem torzít fair balance futást észrevétlenül.
+A historical `card_local_fallback` fogalom ezért nem current production execution mode.
 
 ---
 
