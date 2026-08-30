@@ -2,10 +2,10 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.8
-**Dátum:** 2026-08-16
+**Dokumentumverzió:** 2.9
+**Dátum:** 2026-08-17
 **Státusz:** aktív rövid döntési és iránytérkép
-**Szinkronizációs repository-bázis:** `7af5bf7fec7b762ec41d1368b072ff6a3d818f5e` – `docs: update project guidance after OQ and learning sync`
+**Szinkronizációs repository-bázis:** `70cabb59bd5e3f6f290dd1045b767df19483c8f8` – `docs: accept Reaction Priority v1 implementation contract`
 **Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 
 Ez a dokumentum röviden rögzíti:
@@ -204,7 +204,7 @@ Public progression:
 
 ### Reaction / Priority Foundation v1
 
-**Aktív contract:** `REACTION_PRIORITY_CONTRACT.md` v1.0 – `ACCEPTED_FOR_IMPLEMENTATION`
+**Aktív contract:** `REACTION_PRIORITY_CONTRACT.md` v1.1 – `ACCEPTED_FOR_IMPLEMENTATION`
 
 **Státusz:** `ACCEPTED_FOR_IMPLEMENTATION / NEXT – PRODUCTION_IMPLEMENTATION`
 
@@ -212,7 +212,7 @@ A source/OQ/research előkészítés ehhez a v1 slice-hoz már megtörtént:
 
 - hivatalos `1.4.3v` reaction/timing audit;
 - OQ A0–A4 felülvizsgálat;
-- `OPEN_QUESTIONS.md` + `OPEN_QUESTIONS_DECISIONS.md` v2.2;
+- `OPEN_QUESTIONS.md` v2.2 + `OPEN_QUESTIONS_DECISIONS.md` v2.3;
 - Reaction/Priority blueprint és cross-engine clean-room research.
 
 Hivatalos/current alap:
@@ -238,6 +238,21 @@ typed response_policy_id
 authoritative reaction state in MatchState
 viewer-safe pending_decision_summary
 ```
+
+Played Ige / egyszeri Rituálé current lifecycle:
+
+```text
+hand
+→ shared `resolution` zone
+→ own resolution attempt
+→ void
+```
+
+- a fizikai „Feloldási Sáv” csak munkanév, nem végleges elnevezés;
+- `resolution` nem Domain/Zenit/Horizont/Ősforrás/Üresség;
+- current default szerint nincs külön resolution-slot capacity legality gate;
+- a döntés `CURRENT_CANONICAL_DEFAULT / PLAYTEST_REVIEWABLE`;
+- tartós Rituálé külön future decision.
 
 RC1:
 

@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.0
-**Dátum:** 2026-08-16
+**Dokumentumverzió:** 1.1
+**Dátum:** 2026-08-17
 **Státusz:** `ACCEPTED_FOR_IMPLEMENTATION`
 **Javasolt repository-útvonal:** `Aeterna game engine/docs/REACTION_PRIORITY_CONTRACT.md`
-**Repository-bázis:** `7af5bf7fec7b762ec41d1368b072ff6a3d818f5e` – `docs: update project guidance after OQ and learning sync`
+**Repository-bázis:** `70cabb59bd5e3f6f290dd1045b767df19483c8f8` – `docs: accept Reaction Priority v1 implementation contract`
 **Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 **Rules authority:** `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`
 **Current decision authority:** `OPEN_QUESTIONS_DECISIONS.md` v2.2
@@ -512,32 +512,87 @@ Underlying entrynél `null`.
 
 ## 10.6 Source relevance – v1
 
-A first slice egyetlen támogatott policy-ja:
+A first slice **reaction option source** egyetlen támogatott policy-ja:
 
 ```text
 same_zone_presence
 ```
 
-Ezért tárolandó:
+Ezért reaction entrynél tárolandó:
 
 ```text
 SourceCardInstanceId
 SourceZoneSequenceAtDeclaration
 ```
 
-Resolutionkor a source ugyanazon authoritative zone-presence objektum kell legyen.
+Resolutionkor a reaction source ugyanazon authoritative zone-presence objektum kell legyen.
 
-Ez tudatos first-slice scope:
+Ez tudatos first-slice scope a reaction source-ra:
 
 - public/in-play source ability;
 - nincs Burst;
 - nincs Jel;
-- nincs hand-spell source-lifecycle;
-- nincs olyan reaction source, amelynek szabályos működése declarationkor
+- nincs kézből kijátszott reaction-card lifecycle az első implementation slice-ban;
+- nincs olyan reaction option source, amelynek szabályos működése declarationkor
   kötelező zónaváltást igényel.
+
+**Ez a policy nem azonos az underlying kijátszott Ige/egyszeri Rituálé lifecycle-jával.**
+Az underlying played-card source a 10.7 fejezet szerinti `resolution` zónába kerül.
 
 Future source policies külön typed extensiont kapnak,
 nem a `same_zone_presence` szabály lazításával.
+
+## 10.7 Played Ige / egyszeri Rituálé pending-resolution lifecycle
+
+**Kapcsolat:** `EXTENDS` v1.0.
+
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT / PLAYTEST_REVIEWABLE`.
+
+A fizikai közös terület jelenlegi munkaneve „Feloldási Sáv”.
+Ez nem végleges rules term.
+
+Technical current zone ID:
+
+```text
+resolution
+```
+
+A `resolution`:
+
+- közös authoritative zóna;
+- player-facing értelemben nyilvános a szabályosan kijátszott lap számára;
+- nem Domínium;
+- nem Horizont;
+- nem Zenit;
+- nem Ősforrás;
+- nem Üresség;
+- nem számít Domain `entered_play` állapotnak;
+- current v1 default szerint nincs külön slot-capacity legality gate-je.
+
+Played Ige / egyszeri vagy feloldódó Rituálé:
+
+```text
+hand
+→ resolution
+→ resolution attempt completes
+→ void
+```
+
+Követelmények:
+
+- accepted play után már nem ordinary hand card és nem játszható ki újra;
+- reactable subject esetén ReactionWindow a `resolution` állapot alatt nyílik;
+- az underlying canonical resolution stack entry a lap `resolution` object-contextjére hivatkozik;
+- resolved és invalidated/fizzled resolution attempt után is `resolution → void`
+  történik, hacsak explicit későbbi replacement/destination szabály mást nem mond;
+- non-reactable played resolution card ugyanilyen szemantikát követ, de a
+  `resolution` állapot lehet egyetlen atomikus `SubmitAction` belső intermediate state-je.
+
+Nem v1/current döntés:
+
+- tartós Rituálé final placement;
+- generic hand-reaction/Burst/Jel source lifecycle;
+- final physical layout vagy final Hungarian zone name.
 
 # 11. Declared target state
 
@@ -586,6 +641,9 @@ Nyitási sorrend:
 2 obtain explicit ReactionOpeningPlan from ReactionPolicyResolver
 3 commit only those prerequisite transitions that rules szerint
   a reaction timing ELŐTT történnek
+   - played Ige / egyszeri Rituálé esetén:
+     hand → `resolution` transition a declaration/payment elfogadása után
+   - NEM: `resolution → void`; ez csak a saját resolution attempt után történhet
 4 allocate ReactionSubjectId
 5 allocate canonical ResolutionId
 6 create bottom underlying ResolutionStackEntry
@@ -608,6 +666,16 @@ apply underlying ability effects
 ha a reaction szabály szerint a final resolution előtt történik.
 
 A v1 nem foglal le előre egy jövőbeli gameplay `EngineEvent.EventId`-t.
+
+Played Ige / egyszeri Rituálé underlying entry lezárásakor:
+
+```text
+resolve / invalidate underlying canonical ability resolution
+→ complete played-card resolution lifecycle
+→ `resolution → void`
+```
+
+A `void` transition nem előzheti meg a saját resolution attempt lezárását.
 
 # 13. Response policy registry – v1
 
@@ -2620,3 +2688,17 @@ Nem kell újraírni teljes dokumentumokat.
 - implementation: `NOT_STARTED / NEXT`;
 - pre-implementation audit: `PASS_WITH_RC1_CORRECTIONS`;
 - P0/P1/P2 unresolved blocker: `0 / 0 / 0`.
+
+# 78. v1.1 extension – played Ige / Rituálé lifecycle
+
+**Dátum:** 2026-08-17
+**Kapcsolat:** `EXTENDS` v1.0
+**Human decision:** accepted current default; playtest-reviewable.
+
+- working physical name „Feloldási Sáv” = `NOT_FINAL`;
+- technical zone = `resolution`;
+- Ige + egyszeri/feloldódó Rituálé: `hand → resolution → resolution attempt → void`;
+- `resolution` nem Domain és nem normal board slot;
+- current default: nincs resolution-slot capacity legality gate;
+- tartós Rituálé külön future decision;
+- v1 reaction-source `same_zone_presence` scope változatlanul public/in-play source.

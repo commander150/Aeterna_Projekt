@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.2  
-**Dátum:** 2026-08-15  
-**Státusz:** review draft – az OQ-regiszter 2.2 párdokumentuma  
-**Kapcsolódó kérdésregiszter:** `OPEN_QUESTIONS.md`  
-**Dokumentációs remote bázis:** `b7c5a51a921d11779e50a127171b49166dd80b96`  
+**Dokumentumverzió:** 2.3
+**Dátum:** 2026-08-17
+**Státusz:** aktív current-decision kiegészítés – az OQ-regiszter 2.2 státuszait nem módosítja
+**Kapcsolódó kérdésregiszter:** `OPEN_QUESTIONS.md`
+**Dokumentációs remote bázis:** `70cabb59bd5e3f6f290dd1045b767df19483c8f8`
 **Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95`
 
 Ez a fájl az `OPEN_QUESTIONS.md` tételeihez tartozó current canonical/default,
@@ -318,6 +318,56 @@ A régi általános „Pecsét létrehozása nyitott” megfogalmazás **superse
 
 A korábbi decision-log `multi-trigger ordering` és `optional/mandatory trigger` általános
 nyitott gate-je **stale és superseded**.
+
+### Ige / egyszeri Rituálé kijátszási és feloldási lifecycle – current default
+
+**Kapcsolat:** `EXTENDS` – a hivatalos 1.4.3v „feloldás után Üresség” szabályát
+és a Reaction/Priority current defaultot pontosítja.
+
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT / PLAYTEST_REVIEWABLE`
+
+A fizikai terület jelenlegi munkaneve **„Feloldási Sáv”**.
+Ez `WORKING_NAME_ONLY / NOT_FINAL`; a későbbi végleges elnevezés nem gameplay authority.
+
+Current rules default:
+
+```text
+kéz
+→ kijátszás / költség / szükséges declaration
+→ közös resolution terület
+→ saját feloldási kísérlet
+→ Üresség
+```
+
+Részletesen:
+
+- az Ige és az **egyszeri / feloldódó Rituálé** elfogadott kijátszáskor elhagyja
+  a normál kézállapotot;
+- a lap a két játékos által közösen használt, nyilvános `resolution` zónába kerül;
+- a `resolution` zóna nem Domínium, nem Horizont, nem Zenit, nem Ősforrás és nem Üresség;
+- a lap ettől nem számít Domain értelemben „játékba került” objektumnak;
+- a pending lap ugyanabból a kézből nem játszható ki újra;
+- ha a subject reagálható, a ReactionWindow a lap `resolution` állapota alatt nyílik meg;
+- a lap csak a **saját feloldási kísérletének lezárása után** kerül Ürességbe;
+- ez akkor is igaz, ha a feloldás érdemi hatás nélkül / invalidated állapotban zárul,
+  hacsak későbbi explicit replacement/destination szabály mást nem mond;
+- current default szerint a közös resolution terület **nem vezet be külön slot- vagy
+  férőhely-korlátot** a kijátszhatóságra;
+- non-reactable Ige/egyszeri Rituálé ugyanezt a szemantikai lifecycle-t követi,
+  csak a `resolution` állapot egyetlen atomikus engine transition belső része is lehet;
+- a fizikai grafikai kialakítás, a munkanév és a későbbi esetleges kapacitási szabály
+  playtest/design review során explicit döntéssel módosítható.
+
+**Nem része ennek a döntésnek:**
+
+- tartósan játékban maradó Rituálé pontos zónája/lifecycle-ja;
+- Burst;
+- Jel;
+- replacement/prevention;
+- a fizikai játéktér végleges mérete és grafikai kialakítása.
+
+Az OQ-státuszösszesítés ettől nem változik:
+`50 answered / 17 partly_answered / 7 deferred / 0 open`.
 
 ### Reaction current technical defaults – D1–D5
 
