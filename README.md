@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.5
-**Dátum:** 2026-08-16
+**Dokumentumverzió:** 2.6
+**Dátum:** 2026-08-30
 **Státusz:** aktív repository-szintű belépési dokumentum
 **Felváltott verzió:** `README.md` 2.3
-**Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
-**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95`
+**Szinkronizációs repository-bázis:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
+**Production engine mérföldkő:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
 
 Az **AETERNA** saját fejlesztésű fizikai és digitális gyűjtögetős kártyajáték-projekt.
 
@@ -46,8 +46,8 @@ Aktív adatút:
 
 ## 3. Aktuális projektirány
 
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.7.md`;
-- `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.10.md`;
+- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.8.md`;
+- `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.11.md`;
 - `Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md`.
 
 Aktuális engine-státusz és döntések:
@@ -90,7 +90,9 @@ Elkészült többek között:
 - damage/vitals;
 - continuous effects és modifier/keyword/duration;
 - draw/reference runtime;
-- Explicit Phase Foundation v1.
+- Explicit Phase Foundation v1;
+- Reaction / Priority Foundation v1;
+- Ige/egyszeri Rituálé shared `resolution` lifecycle.
 
 Aktuális canonical phase flow:
 
@@ -98,18 +100,18 @@ Aktuális canonical phase flow:
 
 Aktuális mérföldkő:
 
-`2608345b61526097fc0b118f05461f92cfed0a95`
+`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
 
 Legutóbbi lezáró acceptance:
 
-- Debug `222/222 PASS`;
-- Release `222/222 PASS`;
+- Debug `246/246 PASS`;
+- Release `246/246 PASS`;
 - determinism `100/100 PASS`;
 - Godot production build/smoke PASS.
 
 Dokumentációs/evidence állapot: learning `59/58/30`, synthesis/blueprints committed, OQ v2.2 `50/17/7/0`, targeted governance recovery committed.
 
-Még nincs teljes production Reaction/Priority, combat, Pecsétmodell, Refresh Penalty, victory/defeat, replay, production AI vagy végleges UI/packaging.
+Reaction / Priority v1 production foundation elkészült. Még nincs teljes combat/Pecsétmodell, Refresh Penalty, victory/defeat, replay, production AI vagy végleges UI/packaging.
 
 ---
 
@@ -129,10 +131,10 @@ A továbbiakban célzottan frissítendő:
 
 ## 7. Következő lépés
 
-1. Reaction / Priority v1 production implementation;
-2. OQ/blueprint/contract consistency review;
-3. explicit non-goals és unsupported paths;
-4. csak az elfogadott contract után production C# implementáció;
-5. implementáció után teszt, adversarial audit és regresszió.
+1. Combat + Pecsét official Core célzott rules-audit;
+2. minimal production contract;
+3. Reaction-integrációs pontok;
+4. Codex implementation csak a contract után;
+5. tests / determinism / Godot smoke / adversarial audit.
 
-Combat külön későbbi slice.
+Reaction / Priority v1: `COMPLETE_AND_ACCEPTED`.

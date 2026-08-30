@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.9
-**Dátum:** 2026-08-17
+**Dokumentumverzió:** 3.0
+**Dátum:** 2026-08-30
 **Státusz:** aktív rövid döntési és iránytérkép
-**Szinkronizációs repository-bázis:** `70cabb59bd5e3f6f290dd1045b767df19483c8f8` – `docs: accept Reaction Priority v1 implementation contract`
-**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Szinkronizációs repository-bázis:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
+**Production engine mérföldkő:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
 
 Ez a dokumentum röviden rögzíti:
 
@@ -204,9 +204,12 @@ Public progression:
 
 ### Reaction / Priority Foundation v1
 
-**Aktív contract:** `REACTION_PRIORITY_CONTRACT.md` v1.1 – `ACCEPTED_FOR_IMPLEMENTATION`
+**Lezáró production commit:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
+**Acceptance:** Debug/Release `246/246 PASS`; determinism `100/100`; oracle + Godot smoke PASS; external re-audit PASS.
 
-**Státusz:** `ACCEPTED_FOR_IMPLEMENTATION / NEXT – PRODUCTION_IMPLEMENTATION`
+**Reaction contract:** `REACTION_PRIORITY_CONTRACT.md` v1.2 – `COMPLETE_AND_ACCEPTED`
+
+**Státusz:** `COMPLETE_AND_ACCEPTED`
 
 A source/OQ/research előkészítés ehhez a v1 slice-hoz már megtörtént:
 
@@ -424,7 +427,7 @@ Továbbra is tilos:
 
 ## 14. Rövid irány
 
-**Most:** Reaction / Priority v1 production implementation az elfogadott contract alapján.
+**Most:** Combat + Pecsét Foundation minimal production contract.
 **Ezután:** csak elfogadott contract alapján szükséges Codex implementation.
 **Combat:** külön későbbi slice.
 **Dokumentáció:** learning/synthesis/OQ handoff commitolva; current admin-sync célzott, history-aware szerkesztéssel folytatandó.

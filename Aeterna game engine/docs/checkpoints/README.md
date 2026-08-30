@@ -2,10 +2,10 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.6
+**Dokumentumverzió:** 1.7
 **Dátum:** 2026-08-16
 **Státusz:** aktív checkpoint-index
-**Szinkronizációs repository-bázis:** `7af5bf7fec7b762ec41d1368b072ff6a3d818f5e`
+**Szinkronizációs repository-bázis:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
 **Production kódbázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 
 Ez a dokumentum elválasztja az aktív technikai folytatási pontot, a történeti mérföldkőnaplót és a hosszú távú termékcélt.
@@ -100,7 +100,7 @@ Szabályi kérdésben a hivatalos játékszabályforrás mindegyik fölött áll
 Aktív:
 
 - jelen `README.md`;
-- `ENGINE_CHECKPOINT.md` v1.8;
+- `ENGINE_CHECKPOINT.md` v1.9;
 - `CHECKPOINTS.md` v1.3.
 
 Szinkronizációs dokumentációs bázis:

@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.8
+**Dokumentumverzió:** 1.9
 **Dátum:** 2026-08-16
 **Státusz:** aktív elsődleges technikai folytatási checkpoint
-**Felváltott verzió:** `ENGINE_CHECKPOINT.md` 1.7
-**Szinkronizációs repository-bázis:** `7af5bf7fec7b762ec41d1368b072ff6a3d818f5e` – `docs: update project guidance after OQ and learning sync`
-**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Felváltott verzió:** `ENGINE_CHECKPOINT.md` 1.8
+**Szinkronizációs repository-bázis:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
+**Production engine mérföldkő:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
 **Előző checkpoint-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 **C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9` – `Add minimal C# runtime candidate proof`
 **Előrelépés a C.5B checkpoint-bázishoz képest a production engine mérföldkőig:** 39 commit
@@ -617,49 +617,42 @@ alapértelmezésben.
 
 ## 13. Következő biztonságos technikai lépés
 
-**Reaction / Priority Foundation v1 – production implementation**
+**Combat + Pecsét Foundation – minimal production contract**
 
-Aktív contract:
+Reaction / Priority Foundation v1:
 
-`Aeterna game engine/docs/REACTION_PRIORITY_CONTRACT.md` v1.0
+`COMPLETE_AND_ACCEPTED`
 
-Státusz:
+Lezáró commit:
 
-`ACCEPTED_FOR_IMPLEMENTATION`
+`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
 
-Pre-implementation audit:
+Acceptance:
 
-`PASS_WITH_RC1_CORRECTIONS`
+- Debug/Release `246/246 PASS`;
+- determinism `100/100 PASS`;
+- oracle/reference PASS;
+- Python isolated `465/465 PASS` + 5 skip;
+- Godot C# build + positive/negative smoke PASS;
+- external re-audit PASS;
+- unresolved P0/P1: `0/0`.
 
-A következő lépés most indokolt Codex production munka, mert:
-
-- production C# state/contract/runtime módosítás szükséges;
-- local build/test/smoke futtatás szükséges;
-- a contract döntési kapui már lezártak.
-
-Kötelező implementation freeze-gate:
-
-1. underlying canonical ability resolution a stack alján;
-2. `ReactionSubjectId` külön az `EngineEvent.EventId`-től;
-3. `ReactionWindowState`;
-4. canonical ability resolution stack entry;
-5. typed response policy;
-6. RC1;
-7. RC2 queue/checkpoint + first-slice trigger boundary;
-8. compound/nested choice/window kizárás.
-
-Implementation után:
+Következő technikai sorrend:
 
 ```text
-Debug/Release tests
-→ determinism/reference regression
-→ Godot smoke
-→ adversarial read-only audit
-→ PASS
-→ user commit/push
+Combat + Pecsét official rules audit
+→ exact minimal contract
+→ Reaction declaration-window integration
+→ Codex implementation
+→ tests / determinism / Godot smoke
+→ external audit
 ```
 
-Combat nem része ennek a slice-nak.
+Refresh Penalty nem része ennek az első Combat/Pecsét slice-nak.
+
+Known follow-up:
+a `resolution → void` played-card event Visszhang/full keyword coveragehez
+később canonical trigger-source integrációt igényel.
 
 ---
 
@@ -675,14 +668,13 @@ Combat nem része ennek a slice-nak.
 - Első production gameplay vertical slice: elkészült.
 - Canonical ability/effect runtime foundation: elkészült és tovább bővítendő.
 - Explicit Phase Foundation v1: `COMPLETE_AND_ACCEPTED`.
-- Production tesztállapot: Debug/Release `222/222 PASS`.
+- Production tesztállapot: Debug/Release `246/246 PASS`.
 - Godot production bridge smoke: PASS.
 - Learning registry: `59 registry / 58 local`.
 - Project analyses: `30`.
 - Synthesis/blueprint program: `COMMITTED`.
 - OQ: `50 answered / 17 partly_answered / 7 deferred / 0 open`.
 - Reaction source/OQ/research preparation: `COMPLETE`.
-- Reaction contract: `ACCEPTED_FOR_IMPLEMENTATION`.
-- Reaction implementation: `NOT_STARTED / NEXT`.
-- Következő engine-fókusz: Reaction / Priority v1 production implementation.
+- Reaction contract/runtime: `COMPLETE_AND_ACCEPTED`.
+- Következő engine-fókusz: Combat + Pecsét Foundation minimal production contract.
 - Combat: külön későbbi implementation slice.

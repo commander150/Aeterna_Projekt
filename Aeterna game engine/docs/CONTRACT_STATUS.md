@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.4
-**Dátum:** 2026-08-14
+**Dokumentumverzió:** 1.5
+**Dátum:** 2026-08-30
 **Státusz:** aktív megvalósítási contract-státusz
 **Felváltott fájl:** `CURRENT_CONTRACT_STATUS.md`
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Aktuális repository-bázis:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
 
 Ez a dokumentum röviden rögzíti:
 
@@ -58,7 +58,7 @@ Fontos elhatárolás:
 - a Python contract aktív lehet a referenciaengine-ben anélkül, hogy production C# contract lenne;
 - a C# candidate proofban használt fixture-specifikus contract nem válik automatikusan production API-vá;
 - a C.5B contractok a `931bf5571d541c752aa421a9f0626768bd8ffbe7` commit és tesztlánca alapján aktív production foundation státuszt kaptak;
-- a C.5B történeti minimuma nem tartalmazta a Wellspring, Beáramlás, payment, `play_card` vagy ability execution réteget; a `931bf... → 2608345b...` production szakaszban ezek közül több már megvalósult. Combat és teljes Reaction/Priority továbbra sincs productionben.
+- a C.5B történeti minimuma nem tartalmazta a Wellspring, Beáramlás, payment, `play_card` vagy ability execution réteget; a `931bf... → 2608345b...` production szakaszban ezek közül több már megvalósult. Reaction / Priority Foundation v1 productionben implementált és elfogadott; Combat továbbra sincs productionben.
 
 ---
 
@@ -105,6 +105,26 @@ Draw eventnél a tulajdonos nézete megkaphatja a `card_instance_id` és `card_i
 Null, hiányos vagy malformed create/action JSON stabil, strukturált rejectiont vagy diagnosticot ad. Nyers JSON-, null-reference- vagy argument-null kivétel nem hagyhatja el a production JSON-határt.
 
 ---
+
+### 2.3 Reaction / Priority v1 production status
+
+Production commit:
+
+`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
+
+Megvalósult többek között:
+
+- `react` / `pass_priority`;
+- authoritative `ReactionWindow`;
+- canonical resolution stack;
+- LIFO resolution;
+- RC1;
+- RC2 queued-trigger checkpoint/FIFO;
+- shared `resolution` zone played Ige/egyszeri Rituálé lifecycle-hoz;
+- viewer-safe reaction projection;
+- full-closure transactional preflight.
+
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION / COMPLETE_AND_ACCEPTED`
 
 ## 3. Card instance és belső state contractok
 

@@ -2,16 +2,16 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.1
-**Dátum:** 2026-08-17
-**Státusz:** `ACCEPTED_FOR_IMPLEMENTATION`
+**Dokumentumverzió:** 1.2
+**Dátum:** 2026-08-30
+**Státusz:** `COMPLETE_AND_ACCEPTED`
 **Javasolt repository-útvonal:** `Aeterna game engine/docs/REACTION_PRIORITY_CONTRACT.md`
-**Repository-bázis:** `70cabb59bd5e3f6f290dd1045b767df19483c8f8` – `docs: accept Reaction Priority v1 implementation contract`
+**Repository-bázis:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
 **Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
 **Rules authority:** `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`
 **Current decision authority:** `OPEN_QUESTIONS_DECISIONS.md` v2.2
 **Technical evidence/proposal input:** `blueprints/REACTION_PRIORITY_FOUNDATION_v0.2.md`
-**Implementation:** `NOT_STARTED / NEXT`
+**Implementation:** `COMPLETE_AND_ACCEPTED`
 
 Ez a dokumentum a Reaction / Priority Foundation első production implementációs
 slice-ának contractja.
@@ -2702,3 +2702,28 @@ Nem kell újraírni teljes dokumentumokat.
 - current default: nincs resolution-slot capacity legality gate;
 - tartós Rituálé külön future decision;
 - v1 reaction-source `same_zone_presence` scope változatlanul public/in-play source.
+
+# 79. Production acceptance – 2026-08-30
+
+**Lezáró production commit:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
+
+Acceptance evidence:
+
+- Debug build PASS;
+- Debug tests `246/246 PASS`;
+- Release build PASS;
+- Release tests `246/246 PASS`;
+- canonical oracle/reference PASS;
+- determinism `100/100 PASS`;
+- Python isolated suite `465/465 PASS` + 5 skip;
+- Godot C# build PASS;
+- positive/negative production bridge smoke PASS;
+- external re-audit: `PASS – READY_FOR_COMMIT`;
+- P0/P1 unresolved: `0 / 0`.
+
+**Known non-blocking follow-up:** a played Ige/Rituálé `resolution → void`
+transition későbbi Visszhang/full keyword coverage során canonical trigger-source
+integrációt igényel. Ez nem Reaction v1 blocker.
+
+A v1 contract továbbra is current canonical foundation, de a projekt evolving-design
+szabálya szerint playtest/evidence alapján explicit reviewed döntéssel módosítható.
