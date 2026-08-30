@@ -26,6 +26,7 @@ public sealed class EngineSession
     private ImmutableArray<CanonicalAbilityResolutionRecord> _canonicalAbilityResolutions =
         ImmutableArray<CanonicalAbilityResolutionRecord>.Empty;
     private readonly bool _legacyActionCompatibility;
+    private readonly ReactionPolicyResolver _reactionPolicyResolver = ReactionPolicyResolver.Empty;
 
     public EngineSession()
     {
@@ -60,7 +61,8 @@ public sealed class EngineSession
         MatchState initialState,
         RuntimePackageCatalog runtimePackage,
         CanonicalAbilityCatalog? canonicalAbilities,
-        CanonicalCardCatalog? canonicalCards)
+        CanonicalCardCatalog? canonicalCards,
+        ReactionPolicyResolver? reactionPolicyResolver = null)
     {
         ArgumentNullException.ThrowIfNull(initialState);
         ArgumentNullException.ThrowIfNull(runtimePackage);
@@ -75,6 +77,7 @@ public sealed class EngineSession
 
         _state = initialState;
         _runtimePackage = runtimePackage;
+        _reactionPolicyResolver = reactionPolicyResolver ?? ReactionPolicyResolver.Empty;
         if (canonicalAbilities is not null)
         {
             _canonicalRuntime = new CanonicalAbilityRuntimeContext(
@@ -167,7 +170,7 @@ public sealed class EngineSession
             state.Events.Count,
             ContractJsonValue.From(BuildDomainBoardProjection(state)),
             new ResourceSummary(ContractSchemas.ResourceSummary, resourceSummaries),
-            BuildPendingTriggerSummary(state),
+            BuildPendingDecisionSummary(state, playerId),
             state.Result);
     }
 
@@ -179,6 +182,15 @@ public sealed class EngineSession
         var baseActions = _legacyActionCompatibility
             ? BuildLegacyActions(state, player)
             : BuildCanonicalPhaseActions(state, player);
+        if (state.ReactionWindow is not null)
+        {
+            return BuildReactionLegalActionSpace(
+                state,
+                player,
+                baseActions,
+                includeDisabled);
+        }
+
         if (state.PendingTriggerWindow is not null)
         {
             return BuildPendingTriggerLegalActionSpace(
@@ -293,6 +305,124 @@ public sealed class EngineSession
                 ContractJsonValue.EmptyObject()),
         ];
     }
+
+    private LegalActionSpace BuildReactionLegalActionSpace(
+        MatchState state,
+        PlayerState player,
+        ImmutableArray<LegalAction> baseActions,
+        bool includeDisabled)
+    {
+        var window = state.ReactionWindow
+            ?? throw new EngineStateException("Reaction legal action space requires an open window.");
+        var hasPriority = string.Equals(
+            player.PlayerId,
+            state.PriorityPlayerId,
+            StringComparison.Ordinal);
+        var options = hasPriority
+            ? ResolveCurrentReactionOptions(state, player.PlayerId)
+            : ImmutableArray<ReactionOption>.Empty;
+        var actions = baseActions
+            .Select(action => action with
+            {
+                Enabled = false,
+                DisabledReason = "reaction_window_open",
+            })
+            .Prepend(new LegalAction(
+                $"react:{window.ReactionWindowId}:{state.StateVersion}:{player.PlayerId}",
+                "react",
+                player.PlayerId,
+                hasPriority && options.Length > 0,
+                25,
+                !hasPriority ? "not_priority_player" : options.Length == 0 ? "no_legal_reaction" : null,
+                hasPriority
+                    ? BuildReactPayloadSchema(options)
+                    : BuildUnavailableReactionPayloadSchema()))
+            .Prepend(new LegalAction(
+                $"pass_priority:{window.ReactionWindowId}:{state.StateVersion}:{player.PlayerId}",
+                "pass_priority",
+                player.PlayerId,
+                hasPriority,
+                20,
+                hasPriority ? null : "not_priority_player",
+                ContractJsonValue.EmptyObject()))
+            .ToImmutableArray();
+        return BuildLegalActionSpace(state, player.PlayerId, actions, includeDisabled);
+    }
+
+    private ImmutableArray<ReactionOption> ResolveCurrentReactionOptions(
+        MatchState state,
+        string playerId)
+    {
+        var window = state.ReactionWindow
+            ?? throw new EngineStateException("Reaction options require an open window.");
+        var runtimePackage = _runtimePackage
+            ?? throw new EngineStateException(
+                "REACTION_RUNTIME_PACKAGE_MISSING",
+                "Reaction options require the validated gameplay runtime package.");
+        var canonicalRuntime = _canonicalRuntime
+            ?? throw new EngineStateException(
+                "REACTION_CANONICAL_RUNTIME_MISSING",
+                "Reaction options require canonical ability authority.");
+        return _reactionPolicyResolver.ResolveOptions(
+            window,
+            playerId,
+            state,
+            runtimePackage,
+            canonicalRuntime.Cards,
+            canonicalRuntime.Abilities);
+    }
+
+    private static JsonElement BuildReactPayloadSchema(ImmutableArray<ReactionOption> options) =>
+        ContractJsonValue.From(new Dictionary<string, object?>
+        {
+            ["type"] = "object",
+            ["required"] = new[] { "reaction_option_id", "target_selections" },
+            ["additional_properties"] = false,
+            ["properties"] = new Dictionary<string, object?>
+            {
+                ["reaction_option_id"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "string",
+                    ["enum"] = options.Select(option => option.ReactionOptionId).ToArray(),
+                },
+                ["target_selections"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "array",
+                    ["items"] = new Dictionary<string, object?>
+                    {
+                        ["type"] = "object",
+                        ["required"] = new[] { "target_id", "card_instance_ids" },
+                        ["additional_properties"] = false,
+                    },
+                },
+            },
+            ["reaction_options"] = options.Select(option => new Dictionary<string, object?>
+            {
+                ["reaction_option_id"] = option.ReactionOptionId,
+                ["source_card_instance_id"] = option.SourceCardInstanceId,
+                ["source_card_id"] = option.SourceCardId,
+                ["ability_id"] = option.Ability.AbilityId,
+                ["target_contracts"] = option.TargetContracts.Select(contract =>
+                    new Dictionary<string, object?>
+                    {
+                        ["target_id"] = contract.Definition.TargetId,
+                        ["minimum_targets"] = contract.Definition.MinimumTargets,
+                        ["maximum_targets"] = contract.Definition.MaximumTargets,
+                        ["selection_method_id"] = contract.Definition.SelectionMethodId,
+                        ["candidate_card_instance_ids"] = contract.Candidates
+                            .Select(candidate => candidate.CardInstanceId)
+                            .ToArray(),
+                    }).ToArray(),
+                ["next_response_policy_id"] = option.NextResponsePolicyId,
+            }).ToArray(),
+        });
+
+    private static JsonElement BuildUnavailableReactionPayloadSchema() =>
+        ContractJsonValue.From(new Dictionary<string, object?>
+        {
+            ["type"] = "object",
+            ["available"] = false,
+        });
 
     private LegalActionSpace BuildPendingTriggerLegalActionSpace(
         MatchState state,
@@ -426,8 +556,37 @@ public sealed class EngineSession
             ["available"] = false,
         });
 
-    private static JsonElement BuildPendingTriggerSummary(MatchState state)
+    private static JsonElement BuildPendingDecisionSummary(MatchState state, string viewerPlayerId)
     {
+        var reaction = state.ReactionWindow;
+        if (reaction is not null)
+        {
+            return ContractJsonValue.From(new Dictionary<string, object?>
+            {
+                ["has_pending"] = true,
+                ["pending_type"] = "reaction_window",
+                ["pending_window_id"] = reaction.ReactionWindowId,
+                ["reaction_subject_id"] = reaction.ReactionSubjectId,
+                ["originating_event_id"] = reaction.OriginatingEventId,
+                ["priority_player_id"] = state.PriorityPlayerId,
+                ["viewer_is_priority_player"] = string.Equals(
+                    viewerPlayerId,
+                    state.PriorityPlayerId,
+                    StringComparison.Ordinal),
+                ["viewer_is_eligible_responder"] = reaction.EligibleResponderPlayerIds.Contains(
+                    viewerPlayerId,
+                    StringComparer.Ordinal),
+                ["response_policy_id"] = reaction.CurrentResponsePolicyId,
+                ["consecutive_pass_count"] = reaction.ConsecutivePassCount,
+                ["stack_depth"] = state.ResolutionStack.Count,
+                ["resolution_zone"] = BuildZoneSnapshot(
+                    state,
+                    "resolution",
+                    state.ResolutionCardInstanceIds,
+                    "public"),
+            });
+        }
+
         var window = state.PendingTriggerWindow;
         if (window is null)
         {
@@ -580,10 +739,11 @@ public sealed class EngineSession
         }
 
         var disabledPlayMayUseDetailedValidation = string.Equals(
-                action.ActionType,
-                "play_card",
-                StringComparison.Ordinal)
-            && state.PendingTriggerWindow is null;
+            action.ActionType,
+            "play_card",
+            StringComparison.Ordinal)
+            && state.PendingTriggerWindow is null
+            && state.ReactionWindow is null;
         if (!action.Enabled
             && !disabledPlayMayUseDetailedValidation
             && !string.Equals(action.ActionType, "resolve_triggered_ability", StringComparison.Ordinal))
@@ -607,6 +767,8 @@ public sealed class EngineSession
             "normal_inflow" => ApplyNormalInflow(state, request, stateVersionBefore),
             "play_card" => ApplyPlayCard(state, request, stateVersionBefore),
             "resolve_triggered_ability" => ApplyResolveTriggeredAbility(state, request, stateVersionBefore),
+            "pass_priority" => ApplyPassPriority(state, request, stateVersionBefore),
+            "react" => ApplyReact(state, request, stateVersionBefore),
             "end_turn" => ApplyEndTurn(state, request, stateVersionBefore),
             _ => RejectAction(
                 state,
@@ -619,8 +781,15 @@ public sealed class EngineSession
                     "The action type is outside the C.5B production rules scope.",
                     "fix_request")),
         };
-        ValidateState(state, _canonicalRuntime?.Cards, _canonicalRuntime?.Abilities);
-        var triggerEvents = DiscoverCanonicalTriggers(state, response.Events);
+        var reactionLifecycleHandled = request.ActionType is "pass_priority" or "react";
+        var triggerEvents = response.Accepted && !reactionLifecycleHandled
+            ? DiscoverCanonicalTriggers(state, response.Events)
+            : ImmutableArray<EngineEvent>.Empty;
+        if (response.Accepted)
+        {
+            ProcessQueuedTriggerCheckpoint(state);
+        }
+
         ValidateState(state, _canonicalRuntime?.Cards, _canonicalRuntime?.Abilities);
         var materializedResponse = triggerEvents.IsDefaultOrEmpty
             ? response
@@ -657,6 +826,7 @@ public sealed class EngineSession
             state.StartingPlayerId,
             state.ActivePlayerId,
             state.PriorityPlayerId,
+            state.ResolutionCardInstanceIds.ToImmutableArray(),
             state.Players.Select(player => new DebugPlayerSnapshot(
                 player.PlayerId,
                 player.DeckId,
@@ -736,7 +906,7 @@ public sealed class EngineSession
                     instance.CreatedSequence))
                 .ToImmutableArray(),
             state.Events.Select(CloneEvent).ToImmutableArray(),
-            BuildPendingTriggerSummary(state),
+            BuildPendingDecisionSummary(state, state.PriorityPlayerId),
             state.Result with { });
     }
 
@@ -1685,6 +1855,18 @@ public sealed class EngineSession
                     exception.RetryPolicy));
         }
 
+        if (plan.Resolution is not null)
+        {
+            var opening = _reactionPolicyResolver.ResolveOpening(
+                plan.Resolution.EffectPlan.Context.Ability.AbilityId,
+                request.PlayerId,
+                state);
+            if (opening is not null)
+            {
+                return ApplyReactablePlayCard(state, request, stateVersionBefore, plan, opening);
+            }
+        }
+
         var events = BuildPlayCardEvents(state, request, plan);
 
         // Commit contains no normal rule rejection: every authoritative input used
@@ -1714,18 +1896,13 @@ public sealed class EngineSession
         }
         else
         {
+            MovePlayedCardFromHandToResolution(
+                state,
+                plan.Player,
+                plan.Card,
+                plan.HandIndex);
             CanonicalEffectExecutor.Apply(state, plan.Resolution.EffectPlan);
-            plan.Player.HandCardInstanceIds.RemoveAt(plan.HandIndex);
-            ReindexZone(state, plan.Player.HandCardInstanceIds, "hand");
-            plan.Card.Zone = "void";
-            plan.Card.ZoneIndex = plan.Player.VoidCardInstanceIds.Count;
-            plan.Card.Visibility = "public";
-            plan.Card.ActivityState = null;
-            plan.Card.DomainRow = null;
-            plan.Card.DomainLaneIndex = null;
-            plan.Card.EnteredDomainTurnNumber = null;
-            plan.Card.ZoneSequence += 1;
-            plan.Player.VoidCardInstanceIds.Add(plan.Card.CardInstanceId);
+            MovePlayedCardFromResolutionToVoid(state, plan.Card);
             var context = plan.Resolution.EffectPlan.Context;
             _canonicalAbilityResolutions = _canonicalAbilityResolutions.Add(
                 new CanonicalAbilityResolutionRecord(
@@ -1745,6 +1922,1057 @@ public sealed class EngineSession
         state.StateVersion += 1;
         state.Events.AddRange(events);
         return AcceptAction(state, request, stateVersionBefore, events);
+    }
+
+    private ActionResponse ApplyReactablePlayCard(
+        MatchState state,
+        ActionRequest request,
+        int stateVersionBefore,
+        PlayCardPlan plan,
+        ReactionOpeningPlan opening)
+    {
+        if (!ReactionPolicyIds.IsOpenWindowPolicy(opening.InitialResponsePolicyId)
+            || opening.EligibleResponderPlayerIds.IsDefaultOrEmpty
+            || opening.EligibleResponderPlayerIds.Distinct(StringComparer.Ordinal).Count()
+            != opening.EligibleResponderPlayerIds.Length
+            || opening.EligibleResponderPlayerIds.Any(playerId => state.Players.All(player =>
+                !string.Equals(player.PlayerId, playerId, StringComparison.Ordinal)))
+            || !opening.EligibleResponderPlayerIds.Contains(
+                opening.InitialPriorityPlayerId,
+                StringComparer.Ordinal))
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_response_policy_unsupported",
+                Diagnostic(
+                    "REACTION_RESPONSE_POLICY_UNSUPPORTED",
+                    "transition_validation",
+                    "The configured reaction response policy is unsupported.",
+                    "The explicit Reaction opening profile does not produce a supported responder policy.",
+                    "fix_runtime_package"));
+        }
+
+        var policyShapeValid = string.Equals(
+                opening.InitialResponsePolicyId,
+                ReactionPolicyIds.StandardAlternatingResponse,
+                StringComparison.Ordinal)
+            ? opening.EligibleResponderPlayerIds.Length == state.Players.Count
+              && state.Players.All(player => opening.EligibleResponderPlayerIds.Contains(
+                  player.PlayerId,
+                  StringComparer.Ordinal))
+            : opening.EligibleResponderPlayerIds.Length == 1;
+        if (!policyShapeValid)
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_response_policy_unsupported",
+                Diagnostic(
+                    "REACTION_RESPONSE_POLICY_UNSUPPORTED",
+                    "transition_validation",
+                    "The configured reaction response policy is unsupported.",
+                    "The explicit Reaction opening responder set conflicts with its typed response policy.",
+                    "fix_runtime_package"));
+        }
+
+        if (state.PendingTriggerWindow is not null
+            || state.ReactionWindow is not null
+            || state.ResolutionStack.Count != 0
+            || state.QueuedTriggerBatches.Count != 0)
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_pending_conflict",
+                Diagnostic(
+                    "REACTION_PENDING_CONFLICT",
+                    "transition_validation",
+                    "A reaction window cannot open while another decision is pending.",
+                    "The v1 Reaction profile reached a conflicting pending family or unresolved queue.",
+                    "refresh_projection"));
+        }
+
+        if (state.NextReactionWindowSequence == int.MaxValue
+            || state.NextReactionSubjectSequence == int.MaxValue
+            || state.NextResolutionSequence == int.MaxValue)
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_identity_exhausted",
+                Diagnostic(
+                    "REACTION_RESOLUTION_UNSUPPORTED",
+                    "transition_validation",
+                    "The reaction transition cannot allocate deterministic identities.",
+                    "A MatchState-owned Reaction identity sequence reached its supported integer boundary.",
+                    "engine_bug"));
+        }
+
+        var effectPlan = plan.Resolution?.EffectPlan
+            ?? throw new EngineStateException("Reactable play requires a canonical resolution plan.");
+        var resolutionSequence = state.NextResolutionSequence;
+        var resolutionId = $"resolution:{state.MatchId}:{resolutionSequence:000000}";
+        var reactionWindowId = $"reaction-window:{state.MatchId}:{state.NextReactionWindowSequence:000000}";
+        var reactionSubjectId = $"reaction-subject:{state.MatchId}:{state.NextReactionSubjectSequence:000000}";
+        var stateVersionAfter = state.StateVersion + 1;
+
+        foreach (var source in plan.AuraSources)
+        {
+            source.ActivityState = "exhausted";
+        }
+
+        MovePlayedCardFromHandToResolution(
+            state,
+            plan.Player,
+            plan.Card,
+            plan.HandIndex);
+        var targetStates = CaptureDeclaredTargetStates(effectPlan, state);
+
+        var abilityState = new CanonicalAbilityResolutionState(
+            CanonicalEffectExecutor.PlayedCardOriginId,
+            request.ActionId,
+            request.ActionType,
+            effectPlan.Context.Ability.AbilityId,
+            plan.Card.CardInstanceId,
+            plan.Card.CardId,
+            plan.Card.Zone,
+            plan.Card.ZoneSequence,
+            ReactionPolicyIds.PlayedCardResolutionPresence,
+            request.PlayerId,
+            effectPlan.Context.TargetSelections,
+            targetStates,
+            PendingTriggerId: null,
+            TriggerId: null,
+            DeclarationStateVersion: stateVersionAfter);
+        state.ResolutionStack.Add(new ResolutionStackEntryState
+        {
+            ResolutionId = resolutionId,
+            Sequence = resolutionSequence,
+            EntryKindId = "underlying_resolution",
+            ReactionWindowId = reactionWindowId,
+            ReactionSubjectId = reactionSubjectId,
+            ParentResolutionId = null,
+            AbilityResolution = abilityState,
+        });
+        var window = new ReactionWindowState
+        {
+            ReactionWindowId = reactionWindowId,
+            ReactionSubjectId = reactionSubjectId,
+            OriginatingEventId = null,
+            OriginatingEventSequence = null,
+            UnderlyingResolutionId = resolutionId,
+            InitiatorPlayerId = request.PlayerId,
+            CurrentResponsePolicyId = opening.InitialResponsePolicyId,
+            ConsecutivePassCount = 0,
+            OpenedAtStateVersion = stateVersionAfter,
+            ReactionProfileId = opening.ReactionProfileId,
+        };
+        window.EligibleResponderPlayerIds.AddRange(opening.EligibleResponderPlayerIds);
+        state.ReactionWindow = window;
+        state.PriorityPlayerId = opening.InitialPriorityPlayerId;
+        state.NextResolutionSequence += 1;
+        state.NextReactionWindowSequence += 1;
+        state.NextReactionSubjectSequence += 1;
+        state.StateVersion = stateVersionAfter;
+
+        var events = ImmutableArray.CreateBuilder<EngineEvent>();
+        foreach (var source in plan.AuraSources)
+        {
+            events.Add(CreatePlayCardEvent(
+                state,
+                request,
+                stateVersionAfter,
+                state.Events.Count + events.Count + 1,
+                "aura_source_exhausted",
+                ContractJsonValue.From(new AuraSourceExhaustedPayload(
+                    request.ActionId,
+                    request.ActionType,
+                    plan.Card.CardInstanceId,
+                    source.CardInstanceId,
+                    source.CardId,
+                    source.OwnerPlayerId,
+                    source.ControllerPlayerId,
+                    source.ZoneIndex,
+                    "active",
+                    "exhausted",
+                    AuraUnits: 1))));
+        }
+
+        events.Add(CreatePlayCardEvent(
+            state,
+            request,
+            stateVersionAfter,
+            state.Events.Count + events.Count + 1,
+            "zone_move",
+            ContractJsonValue.From(new ZoneMovePayload(
+                request.ActionId,
+                request.ActionType,
+                plan.Card.CardInstanceId,
+                plan.Card.CardId,
+                plan.Card.OwnerPlayerId,
+                plan.Card.ControllerPlayerId,
+                "hand",
+                "resolution",
+                plan.HandIndex,
+                plan.Card.ZoneIndex,
+                "owner_only",
+                "public"))));
+        events.Add(CreatePlayCardEvent(
+            state,
+            request,
+            stateVersionAfter,
+            state.Events.Count + events.Count + 1,
+            "reaction_window_opened",
+            ContractJsonValue.From(new Dictionary<string, object?>
+            {
+                ["reaction_window_id"] = reactionWindowId,
+                ["reaction_subject_id"] = reactionSubjectId,
+                ["originating_event_id"] = null,
+                ["originating_event_sequence"] = null,
+                ["underlying_resolution_id"] = resolutionId,
+                ["initiator_player_id"] = request.PlayerId,
+                ["priority_player_id"] = opening.InitialPriorityPlayerId,
+                ["response_policy_id"] = opening.InitialResponsePolicyId,
+            })));
+        var materialized = events.ToImmutable();
+        state.Events.AddRange(materialized);
+        return AcceptAction(state, request, stateVersionBefore, materialized);
+    }
+
+    private ActionResponse ApplyPassPriority(
+        MatchState state,
+        ActionRequest request,
+        int stateVersionBefore)
+    {
+        var window = state.ReactionWindow;
+        if (window is null
+            || !string.Equals(state.PriorityPlayerId, request.PlayerId, StringComparison.Ordinal))
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_window_invalid",
+                Diagnostic(
+                    "REACTION_SUBJECT_CLOSED",
+                    "transition_validation",
+                    "The reaction window is no longer available to this player.",
+                    "pass_priority requires the current open window and its authoritative priority player.",
+                    "refresh_projection"));
+        }
+
+        var closureThreshold = window.CurrentResponsePolicyId switch
+        {
+            ReactionPolicyIds.StandardAlternatingResponse => 2,
+            ReactionPolicyIds.SingleResponderOnce => 1,
+            _ => 0,
+        };
+        if (closureThreshold == 0)
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_response_policy_unsupported",
+                Diagnostic(
+                    "REACTION_RESPONSE_POLICY_UNSUPPORTED",
+                    "transition_validation",
+                    "The current reaction response policy is unsupported.",
+                    $"Open ReactionWindow policy is unsupported: {window.CurrentResponsePolicyId}",
+                    "engine_bug"));
+        }
+
+        var nextPassCount = window.ConsecutivePassCount + 1;
+        var closes = nextPassCount >= closureThreshold;
+        var unwindPlan = ImmutableArray<PlannedReactionResolutionStep>.Empty;
+        if (closes && !TryBuildReactionUnwindPlan(
+                state,
+                ProspectiveTopResolutionId: null,
+                ProspectiveTopPlan: null,
+                out unwindPlan))
+        {
+            return RejectReactionTriggerOrdering(state, request);
+        }
+
+        var nextPriorityPlayerId = closes ? null : state.GetNextPlayerId(request.PlayerId);
+        state.StateVersion += 1;
+        window.ConsecutivePassCount = nextPassCount;
+        if (nextPriorityPlayerId is not null)
+        {
+            state.PriorityPlayerId = nextPriorityPlayerId;
+        }
+
+        var events = ImmutableArray.CreateBuilder<EngineEvent>();
+        AppendCommittedReactionEvent(
+            state,
+            events,
+            "priority_passed",
+            request.PlayerId,
+            request.ActionType,
+            new Dictionary<string, object?>
+            {
+                ["reaction_window_id"] = window.ReactionWindowId,
+                ["reaction_subject_id"] = window.ReactionSubjectId,
+                ["passing_player_id"] = request.PlayerId,
+                ["consecutive_pass_count"] = nextPassCount,
+                ["next_priority_player_id"] = nextPriorityPlayerId,
+                ["window_closed"] = closes,
+            });
+        if (closes)
+        {
+            CloseReactionWindowAndUnwind(
+                state,
+                request,
+                window,
+                "passes_complete",
+                unwindPlan,
+                events);
+        }
+
+        return AcceptAction(state, request, stateVersionBefore, events.ToImmutable());
+    }
+
+    private ActionResponse ApplyReact(
+        MatchState state,
+        ActionRequest request,
+        int stateVersionBefore)
+    {
+        var window = state.ReactionWindow;
+        if (window is null
+            || !string.Equals(state.PriorityPlayerId, request.PlayerId, StringComparison.Ordinal))
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_window_invalid",
+                Diagnostic(
+                    "REACTION_SUBJECT_CLOSED",
+                    "transition_validation",
+                    "The reaction window is no longer available to this player.",
+                    "react requires the current open window and its authoritative priority player.",
+                    "refresh_projection"));
+        }
+
+        var payload = ReadReactPayload(request.Payload);
+        var option = ResolveCurrentReactionOptions(state, request.PlayerId)
+            .SingleOrDefault(candidate => string.Equals(
+                candidate.ReactionOptionId,
+                payload.ReactionOptionId,
+                StringComparison.Ordinal));
+        if (option is null)
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_option_invalid",
+                Diagnostic(
+                    "REACTION_OPTION_INVALID",
+                    "transition_validation",
+                    "The selected reaction option is no longer legal.",
+                    "reaction_option_id is not present in the current player/window/state-bound option set.",
+                    "refresh_projection"));
+        }
+
+        if (option.RequiresPostDeclarationChoice || option.RequiresPaymentSelection)
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_resolution_unsupported",
+                Diagnostic(
+                    "REACTION_RESOLUTION_UNSUPPORTED",
+                    "transition_validation",
+                    "This reaction requires a choice that is outside the current protocol.",
+                    "Reaction v1 does not support post-declaration payment, mode, or target choices.",
+                    "choose_another_action"));
+        }
+
+        if (option.RequiresNestedReactionWindowDuringResolution)
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_nested_window_unsupported",
+                Diagnostic(
+                    "REACTION_NESTED_WINDOW_DURING_RESOLUTION_UNSUPPORTED",
+                    "transition_validation",
+                    "This reaction requires unsupported nested timing during resolution.",
+                    "Reaction v1 cannot open a new externally blocking window while the stack unwinds.",
+                    "choose_another_action"));
+        }
+
+        if (!ReactionPolicyIds.IsNextResponsePolicy(option.NextResponsePolicyId))
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_response_policy_unsupported",
+                Diagnostic(
+                    "REACTION_RESPONSE_POLICY_UNSUPPORTED",
+                    "transition_validation",
+                    "The configured reaction response policy is unsupported.",
+                    $"Reaction option next response policy is unsupported: {option.NextResponsePolicyId}",
+                    "fix_runtime_package"));
+        }
+
+        if (state.NextResolutionSequence == int.MaxValue)
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_resolution_unsupported",
+                Diagnostic(
+                    "REACTION_RESOLUTION_UNSUPPORTED",
+                    "transition_validation",
+                    "The reaction cannot allocate a deterministic resolution identity.",
+                    "MatchState.NextResolutionSequence reached its supported integer boundary.",
+                    "engine_bug"));
+        }
+
+        var runtimePackage = _runtimePackage
+            ?? throw new EngineStateException("Reaction resolution requires a gameplay runtime package.");
+        var canonicalRuntime = _canonicalRuntime
+            ?? throw new EngineStateException("Reaction resolution requires canonical runtime data.");
+        var resolutionSequence = state.NextResolutionSequence;
+        var resolutionId = $"resolution:{state.MatchId}:{resolutionSequence:000000}";
+        var context = new CanonicalAbilityResolutionContext(
+            resolutionId,
+            CanonicalResolutionOrigin.Reaction,
+            request.ActionId,
+            request.ActionType,
+            option.Ability,
+            option.SourceCardInstanceId,
+            option.SourceCardId,
+            option.ControllerPlayerId,
+            payload.TargetSelections,
+            PendingTriggerId: null,
+            TriggerId: null);
+        CanonicalEffectExecutionPlan effectPlan;
+        try
+        {
+            effectPlan = CanonicalEffectExecutor.BuildPlan(
+                context,
+                state,
+                runtimePackage,
+                canonicalRuntime.Cards,
+                canonicalRuntime.Abilities);
+        }
+        catch (CanonicalAbilityExecutionException exception)
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_target_invalid",
+                Diagnostic(
+                    "REACTION_TARGET_INVALID",
+                    "transition_validation",
+                    "The selected reaction targets are no longer legal.",
+                    $"Reaction declaration target validation failed with {exception.Code}: {exception.Message}",
+                    "refresh_projection"));
+        }
+
+        var terminalUnwindPlan = ImmutableArray<PlannedReactionResolutionStep>.Empty;
+        if (string.Equals(
+                option.NextResponsePolicyId,
+                ReactionPolicyIds.NoFurtherResponse,
+                StringComparison.Ordinal)
+            && !TryBuildReactionUnwindPlan(
+                state,
+                resolutionId,
+                effectPlan,
+                out terminalUnwindPlan))
+        {
+            return RejectReactionTriggerOrdering(state, request);
+        }
+
+        if (!state.CardInstances.TryGetValue(option.SourceCardInstanceId, out var source)
+            || !string.Equals(source.CardId, option.SourceCardId, StringComparison.Ordinal)
+            || !string.Equals(source.ControllerPlayerId, option.ControllerPlayerId, StringComparison.Ordinal)
+            || !string.Equals(source.Zone, "dominion", StringComparison.Ordinal)
+            || source.ZoneSequence != option.SourceZoneSequenceAtDeclaration)
+        {
+            return RejectAction(
+                state,
+                request,
+                "reaction_option_invalid",
+                Diagnostic(
+                    "REACTION_OPTION_INVALID",
+                    "transition_validation",
+                    "The selected reaction source is no longer current.",
+                    "The same-zone source presence bound to reaction_option_id has changed.",
+                    "refresh_projection"));
+        }
+
+        var parentResolutionId = state.ResolutionStack[^1].ResolutionId;
+        var declaredTargets = CaptureDeclaredTargetStates(effectPlan, state);
+        state.StateVersion += 1;
+        state.ResolutionStack.Add(new ResolutionStackEntryState
+        {
+            ResolutionId = resolutionId,
+            Sequence = resolutionSequence,
+            EntryKindId = "reaction",
+            ReactionWindowId = window.ReactionWindowId,
+            ReactionSubjectId = window.ReactionSubjectId,
+            ParentResolutionId = parentResolutionId,
+            AbilityResolution = new CanonicalAbilityResolutionState(
+                CanonicalEffectExecutor.ReactionOriginId,
+                request.ActionId,
+                request.ActionType,
+                option.Ability.AbilityId,
+                option.SourceCardInstanceId,
+                option.SourceCardId,
+                source.Zone,
+                source.ZoneSequence,
+                option.SourceRelevancePolicyId,
+                option.ControllerPlayerId,
+                payload.TargetSelections,
+                declaredTargets,
+                PendingTriggerId: null,
+                TriggerId: null,
+                DeclarationStateVersion: state.StateVersion),
+            ReactionOptionId = option.ReactionOptionId,
+            NextResponsePolicyId = option.NextResponsePolicyId,
+        });
+        state.NextResolutionSequence += 1;
+        window.ConsecutivePassCount = 0;
+
+        var events = ImmutableArray.CreateBuilder<EngineEvent>();
+        AppendCommittedReactionEvent(
+            state,
+            events,
+            "reaction_declared",
+            request.PlayerId,
+            request.ActionType,
+            new Dictionary<string, object?>
+            {
+                ["reaction_window_id"] = window.ReactionWindowId,
+                ["reaction_subject_id"] = window.ReactionSubjectId,
+                ["resolution_id"] = resolutionId,
+                ["parent_resolution_id"] = parentResolutionId,
+                ["controller_player_id"] = request.PlayerId,
+                ["reaction_option_id"] = option.ReactionOptionId,
+                ["source_card_instance_id"] = option.SourceCardInstanceId,
+                ["source_ability_id"] = option.Ability.AbilityId,
+                ["next_response_policy_id"] = option.NextResponsePolicyId,
+            });
+        if (string.Equals(
+                option.NextResponsePolicyId,
+                ReactionPolicyIds.StandardAlternatingResponse,
+                StringComparison.Ordinal))
+        {
+            window.CurrentResponsePolicyId = ReactionPolicyIds.StandardAlternatingResponse;
+            window.EligibleResponderPlayerIds.Clear();
+            window.EligibleResponderPlayerIds.AddRange(state.Players.Select(player => player.PlayerId));
+            state.PriorityPlayerId = state.GetNextPlayerId(request.PlayerId);
+        }
+        else
+        {
+            CloseReactionWindowAndUnwind(
+                state,
+                request,
+                window,
+                "no_further_response",
+                terminalUnwindPlan,
+                events);
+        }
+
+        return AcceptAction(state, request, stateVersionBefore, events.ToImmutable());
+    }
+
+    private bool TryBuildReactionUnwindPlan(
+        MatchState state,
+        string? ProspectiveTopResolutionId,
+        CanonicalEffectExecutionPlan? ProspectiveTopPlan,
+        out ImmutableArray<PlannedReactionResolutionStep> unwindPlan)
+    {
+        var canonicalRuntime = _canonicalRuntime
+            ?? throw new EngineStateException("Reaction trigger-ordering validation requires canonical runtime data.");
+        if ((ProspectiveTopResolutionId is null) != (ProspectiveTopPlan is null))
+        {
+            throw new EngineStateException("Prospective Reaction resolution identity and plan must be supplied together.");
+        }
+
+        var simulation = CloneMatchStateForSimulation(state);
+        var steps = ImmutableArray.CreateBuilder<PlannedReactionResolutionStep>();
+        if (ProspectiveTopPlan is not null)
+        {
+            if (!ApplyReactionPlanToSimulation(
+                    simulation,
+                    ProspectiveTopPlan,
+                    canonicalRuntime))
+            {
+                unwindPlan = ImmutableArray<PlannedReactionResolutionStep>.Empty;
+                return false;
+            }
+
+            steps.Add(new PlannedReactionResolutionStep(
+                ProspectiveTopResolutionId!,
+                ProspectiveTopPlan,
+                InvalidationReasonCode: null));
+        }
+
+        foreach (var entry in simulation.ResolutionStack.AsEnumerable().Reverse())
+        {
+            if (!TryBuildPersistedResolutionPlan(
+                    simulation,
+                    entry,
+                    out var plan,
+                    out var safeReasonCode))
+            {
+                steps.Add(new PlannedReactionResolutionStep(
+                    entry.ResolutionId,
+                    EffectPlan: null,
+                    safeReasonCode));
+                if (string.Equals(
+                        entry.EntryKindId,
+                        "underlying_resolution",
+                        StringComparison.Ordinal))
+                {
+                    MovePlayedCardFromResolutionToVoid(
+                        simulation,
+                        simulation.GetCardInstance(entry.AbilityResolution.SourceCardInstanceId));
+                }
+
+                continue;
+            }
+
+            if (!ApplyReactionPlanToSimulation(simulation, plan!, canonicalRuntime))
+            {
+                unwindPlan = ImmutableArray<PlannedReactionResolutionStep>.Empty;
+                return false;
+            }
+
+            steps.Add(new PlannedReactionResolutionStep(
+                entry.ResolutionId,
+                plan,
+                InvalidationReasonCode: null));
+            if (string.Equals(
+                    entry.EntryKindId,
+                    "underlying_resolution",
+                    StringComparison.Ordinal))
+            {
+                MovePlayedCardFromResolutionToVoid(
+                    simulation,
+                    simulation.GetCardInstance(entry.AbilityResolution.SourceCardInstanceId));
+            }
+        }
+
+        unwindPlan = steps.ToImmutable();
+        return true;
+    }
+
+    private bool ApplyReactionPlanToSimulation(
+        MatchState simulation,
+        CanonicalEffectExecutionPlan plan,
+        CanonicalAbilityRuntimeContext canonicalRuntime)
+    {
+        var runtimePackage = _runtimePackage
+            ?? throw new EngineStateException(
+                "Reaction simulation requires a gameplay runtime package.");
+        CanonicalEffectExecutor.Apply(simulation, plan);
+        var events = ImmutableArray.CreateBuilder<EngineEvent>();
+        AppendCanonicalEffectEvents(
+            events,
+            plan,
+            (_, eventType, payload) => CreateCanonicalRuntimeEvent(
+                simulation,
+                events.Count,
+                eventType,
+                plan.Context.ControllerPlayerId,
+                plan.Context.SourceActionType,
+                payload));
+        events.Add(CreateCanonicalRuntimeEvent(
+            simulation,
+            events.Count,
+            "canonical_ability_resolved",
+            plan.Context.ControllerPlayerId,
+            plan.Context.SourceActionType,
+            ContractJsonValue.From(new CanonicalAbilityResolvedPayload(
+                plan.Context.ResolutionId,
+                CanonicalEffectExecutor.OriginId(plan.Context.Origin),
+                plan.Context.Ability.AbilityId,
+                plan.Context.SourceCardInstanceId,
+                plan.Context.SourceCardId,
+                plan.Context.ControllerPlayerId,
+                CanonicalEffectExecutor.AppliedOutcome,
+                plan.AppliedMutationCount,
+                plan.Context.SourceActionId,
+                plan.Context.PendingTriggerId,
+                plan.Context.TriggerId))));
+        var materialized = events.ToImmutable();
+        simulation.Events.AddRange(materialized);
+
+        foreach (var engineEvent in materialized)
+        {
+            var discoveries = CanonicalTriggerResolver.Resolve(
+                canonicalRuntime.Abilities,
+                engineEvent,
+                simulation);
+            if (discoveries.Length > 1)
+            {
+                return false;
+            }
+
+            foreach (var discovery in discoveries)
+            {
+                var ability = canonicalRuntime.Abilities.AbilitiesById[discovery.AbilityId];
+                if (!CanonicalEffectExecutor.IsSupportedGraph(ability))
+                {
+                    continue;
+                }
+
+                foreach (var target in CanonicalTargetResolver.GetSupportedTargets(ability)
+                             .Where(target => CanonicalTargetResolver.IsClientSelectable(target)
+                                              || CanonicalTargetResolver.IsAutomaticCollection(target)))
+                {
+                    _ = CanonicalTargetResolver.ResolveCandidates(
+                        target,
+                        ability,
+                        discovery.ControllerPlayerId,
+                        simulation,
+                        runtimePackage,
+                        canonicalRuntime.Cards,
+                        canonicalRuntime.Abilities);
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static ActionResponse RejectReactionTriggerOrdering(
+        MatchState state,
+        ActionRequest request) => RejectAction(
+        state,
+        request,
+        "reaction_trigger_batch_ordering_unsupported",
+        Diagnostic(
+            "REACTION_TRIGGER_BATCH_ORDERING_UNSUPPORTED",
+            "transition_validation",
+            "The reaction stack would create an unsupported simultaneous trigger batch.",
+            "Reaction v1 supports zero or one discovered trigger per committed trigger-source event and does not infer generic ordering.",
+            "choose_another_action"));
+
+    private void CloseReactionWindowAndUnwind(
+        MatchState state,
+        ActionRequest request,
+        ReactionWindowState window,
+        string closureReason,
+        ImmutableArray<PlannedReactionResolutionStep> unwindPlan,
+        ImmutableArray<EngineEvent>.Builder responseEvents)
+    {
+        AppendCommittedReactionEvent(
+            state,
+            responseEvents,
+            "reaction_window_closed",
+            request.PlayerId,
+            request.ActionType,
+            new Dictionary<string, object?>
+            {
+                ["reaction_window_id"] = window.ReactionWindowId,
+                ["reaction_subject_id"] = window.ReactionSubjectId,
+                ["closure_reason"] = closureReason,
+                ["stack_depth"] = state.ResolutionStack.Count,
+            });
+        state.ReactionWindow = null;
+
+        var stepIndex = 0;
+        while (state.ResolutionStack.Count > 0)
+        {
+            var entry = state.ResolutionStack[^1];
+            if (stepIndex >= unwindPlan.Length
+                || !string.Equals(
+                    unwindPlan[stepIndex].ResolutionId,
+                    entry.ResolutionId,
+                    StringComparison.Ordinal))
+            {
+                throw new EngineStateException(
+                    "Prepared Reaction unwind plan does not match the authoritative stack.");
+            }
+
+            var step = unwindPlan[stepIndex];
+            stepIndex += 1;
+            AppendCommittedReactionEvent(
+                state,
+                responseEvents,
+                "resolution_entry_started",
+                entry.AbilityResolution.ControllerPlayerId,
+                request.ActionType,
+                new Dictionary<string, object?>
+                {
+                    ["reaction_window_id"] = entry.ReactionWindowId,
+                    ["reaction_subject_id"] = entry.ReactionSubjectId,
+                    ["resolution_id"] = entry.ResolutionId,
+                    ["entry_kind_id"] = entry.EntryKindId,
+                });
+
+            if (step.EffectPlan is null)
+            {
+                AppendCommittedReactionEvent(
+                    state,
+                    responseEvents,
+                    "resolution_entry_invalidated",
+                    entry.AbilityResolution.ControllerPlayerId,
+                    request.ActionType,
+                    new Dictionary<string, object?>
+                    {
+                        ["reaction_window_id"] = entry.ReactionWindowId,
+                        ["reaction_subject_id"] = entry.ReactionSubjectId,
+                        ["resolution_id"] = entry.ResolutionId,
+                        ["entry_kind_id"] = entry.EntryKindId,
+                        ["safe_reason_code"] = step.InvalidationReasonCode,
+                    });
+                CompleteUnderlyingPlayedCardLifecycleIfRequired(
+                    state,
+                    request,
+                    entry,
+                    responseEvents);
+                state.ResolutionStack.RemoveAt(state.ResolutionStack.Count - 1);
+                continue;
+            }
+
+            var plan = step.EffectPlan;
+            CanonicalEffectExecutor.Apply(state, plan);
+            var gameplayEvents = ImmutableArray.CreateBuilder<EngineEvent>();
+            AppendCanonicalEffectEvents(
+                gameplayEvents,
+                plan,
+                (_, eventType, payload) => CreateCanonicalRuntimeEvent(
+                    state,
+                    gameplayEvents.Count,
+                    eventType,
+                    entry.AbilityResolution.ControllerPlayerId,
+                    request.ActionType,
+                    payload));
+            gameplayEvents.Add(CreateCanonicalRuntimeEvent(
+                state,
+                gameplayEvents.Count,
+                "canonical_ability_resolved",
+                entry.AbilityResolution.ControllerPlayerId,
+                request.ActionType,
+                ContractJsonValue.From(new CanonicalAbilityResolvedPayload(
+                    entry.ResolutionId,
+                    entry.AbilityResolution.ResolutionOriginId,
+                    entry.AbilityResolution.AbilityId,
+                    entry.AbilityResolution.SourceCardInstanceId,
+                    entry.AbilityResolution.SourceCardId,
+                    entry.AbilityResolution.ControllerPlayerId,
+                    CanonicalEffectExecutor.AppliedOutcome,
+                    plan.AppliedMutationCount,
+                    entry.AbilityResolution.SourceActionId,
+                    entry.AbilityResolution.PendingTriggerId,
+                    entry.AbilityResolution.TriggerId))));
+            var committedGameplayEvents = gameplayEvents.ToImmutable();
+            state.Events.AddRange(committedGameplayEvents);
+            responseEvents.AddRange(committedGameplayEvents);
+            _canonicalAbilityResolutions = _canonicalAbilityResolutions.Add(
+                new CanonicalAbilityResolutionRecord(
+                    entry.ResolutionId,
+                    entry.AbilityResolution.ResolutionOriginId,
+                    entry.AbilityResolution.AbilityId,
+                    entry.AbilityResolution.SourceCardInstanceId,
+                    entry.AbilityResolution.SourceCardId,
+                    entry.AbilityResolution.ControllerPlayerId,
+                    CanonicalEffectExecutor.AppliedOutcome,
+                    plan.AppliedMutationCount,
+                    entry.AbilityResolution.SourceActionId,
+                    entry.AbilityResolution.PendingTriggerId,
+                    entry.AbilityResolution.TriggerId));
+            var triggerEvents = DiscoverCanonicalTriggers(state, committedGameplayEvents);
+            responseEvents.AddRange(triggerEvents);
+            AppendCommittedReactionEvent(
+                state,
+                responseEvents,
+                "resolution_entry_resolved",
+                entry.AbilityResolution.ControllerPlayerId,
+                request.ActionType,
+                new Dictionary<string, object?>
+                {
+                    ["reaction_window_id"] = entry.ReactionWindowId,
+                    ["reaction_subject_id"] = entry.ReactionSubjectId,
+                    ["resolution_id"] = entry.ResolutionId,
+                    ["entry_kind_id"] = entry.EntryKindId,
+                    ["result"] = "resolved",
+                });
+            CompleteUnderlyingPlayedCardLifecycleIfRequired(
+                state,
+                request,
+                entry,
+                responseEvents);
+            state.ResolutionStack.RemoveAt(state.ResolutionStack.Count - 1);
+        }
+
+        if (stepIndex != unwindPlan.Length)
+        {
+            throw new EngineStateException(
+                "Prepared Reaction unwind plan retained entries after the authoritative stack closed.");
+        }
+
+        state.ClosedReactionSubjectIds.Add(window.ReactionSubjectId);
+    }
+
+    private bool TryBuildPersistedResolutionPlan(
+        MatchState state,
+        ResolutionStackEntryState entry,
+        out CanonicalEffectExecutionPlan? plan,
+        out string safeReasonCode)
+    {
+        plan = null;
+        safeReasonCode = "reaction_resolution_invalidated";
+        var persisted = entry.AbilityResolution;
+        if (!state.CardInstances.TryGetValue(persisted.SourceCardInstanceId, out var source)
+            || !string.Equals(source.CardId, persisted.SourceCardId, StringComparison.Ordinal)
+            || !string.Equals(source.ControllerPlayerId, persisted.ControllerPlayerId, StringComparison.Ordinal)
+            || !string.Equals(source.Zone, persisted.SourceZoneIdAtDeclaration, StringComparison.Ordinal)
+            || source.ZoneSequence != persisted.SourceZoneSequenceAtDeclaration)
+        {
+            safeReasonCode = "source_relevance_invalid";
+            return false;
+        }
+
+        var relevancePolicyValid = string.Equals(
+                entry.EntryKindId,
+                "underlying_resolution",
+                StringComparison.Ordinal)
+            ? string.Equals(
+                  persisted.SourceRelevancePolicyId,
+                  ReactionPolicyIds.PlayedCardResolutionPresence,
+                  StringComparison.Ordinal)
+              && string.Equals(source.Zone, "resolution", StringComparison.Ordinal)
+              && source.ZoneIndex >= 0
+              && source.ZoneIndex < state.ResolutionCardInstanceIds.Count
+              && string.Equals(
+                  state.ResolutionCardInstanceIds[source.ZoneIndex],
+                  source.CardInstanceId,
+                  StringComparison.Ordinal)
+            : string.Equals(
+                persisted.SourceRelevancePolicyId,
+                ReactionPolicyIds.SameZonePresence,
+                StringComparison.Ordinal);
+        if (!relevancePolicyValid)
+        {
+            safeReasonCode = "source_relevance_policy_invalid";
+            return false;
+        }
+
+        var canonicalRuntime = _canonicalRuntime
+            ?? throw new EngineStateException("Persisted Reaction resolution requires canonical runtime data.");
+        var runtimePackage = _runtimePackage
+            ?? throw new EngineStateException("Persisted Reaction resolution requires a gameplay runtime package.");
+        if (!canonicalRuntime.Abilities.AbilitiesById.TryGetValue(persisted.AbilityId, out var ability)
+            || !string.Equals(ability.CardId, persisted.SourceCardId, StringComparison.Ordinal))
+        {
+            safeReasonCode = "ability_definition_invalid";
+            return false;
+        }
+
+        var origin = persisted.ResolutionOriginId switch
+        {
+            CanonicalEffectExecutor.PlayedCardOriginId => CanonicalResolutionOrigin.PlayedCard,
+            CanonicalEffectExecutor.ReactionOriginId => CanonicalResolutionOrigin.Reaction,
+            _ => (CanonicalResolutionOrigin?)null,
+        };
+        if (origin is null)
+        {
+            safeReasonCode = "resolution_origin_unsupported";
+            return false;
+        }
+
+        try
+        {
+            var context = new CanonicalAbilityResolutionContext(
+                entry.ResolutionId,
+                origin.Value,
+                persisted.SourceActionId,
+                persisted.SourceActionType,
+                ability,
+                persisted.SourceCardInstanceId,
+                persisted.SourceCardId,
+                persisted.ControllerPlayerId,
+                persisted.DeclaredTargetSelections,
+                persisted.PendingTriggerId,
+                persisted.TriggerId);
+            plan = CanonicalEffectExecutor.BuildPlan(
+                context,
+                state,
+                runtimePackage,
+                canonicalRuntime.Cards,
+                canonicalRuntime.Abilities);
+        }
+        catch (CanonicalAbilityExecutionException exception)
+        {
+            safeReasonCode = exception.Code;
+            return false;
+        }
+
+        if (!DeclaredTargetStatesMatch(
+                CaptureDeclaredTargetStates(plan, state),
+                persisted.DeclaredTargetStates))
+        {
+            plan = null;
+            safeReasonCode = "target_object_context_invalid";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static ImmutableArray<DeclaredTargetSelectionState> CaptureDeclaredTargetStates(
+        CanonicalEffectExecutionPlan plan,
+        MatchState state) => plan.TargetSelections
+            .Select(selection => new DeclaredTargetSelectionState(
+                selection.Definition.TargetId,
+                selection.SelectedCards.Select(card => new DeclaredTargetObjectState(
+                    card.CardInstanceId,
+                    state.GetCardInstance(card.CardInstanceId).ZoneSequence)).ToImmutableArray()))
+            .ToImmutableArray();
+
+    private static bool DeclaredTargetStatesMatch(
+        ImmutableArray<DeclaredTargetSelectionState> current,
+        ImmutableArray<DeclaredTargetSelectionState> declared)
+    {
+        if (current.Length != declared.Length)
+        {
+            return false;
+        }
+
+        for (var index = 0; index < current.Length; index += 1)
+        {
+            if (!string.Equals(current[index].TargetId, declared[index].TargetId, StringComparison.Ordinal)
+                || current[index].SelectedObjects.Length != declared[index].SelectedObjects.Length)
+            {
+                return false;
+            }
+
+            for (var objectIndex = 0; objectIndex < current[index].SelectedObjects.Length; objectIndex += 1)
+            {
+                if (current[index].SelectedObjects[objectIndex]
+                    != declared[index].SelectedObjects[objectIndex])
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static void AppendCommittedReactionEvent(
+        MatchState state,
+        ImmutableArray<EngineEvent>.Builder responseEvents,
+        string eventType,
+        string actorPlayerId,
+        string causeActionType,
+        IReadOnlyDictionary<string, object?> payload)
+    {
+        var engineEvent = CreateCanonicalRuntimeEvent(
+            state,
+            additionalEventOffset: 0,
+            eventType,
+            actorPlayerId,
+            causeActionType,
+            ContractJsonValue.From(payload));
+        state.Events.Add(engineEvent);
+        responseEvents.Add(engineEvent);
     }
 
     private ImmutableArray<EngineEvent> DiscoverCanonicalTriggers(
@@ -1768,7 +2996,18 @@ public sealed class EngineSession
                 canonicalRuntime.Abilities,
                 engineEvent,
                 state);
+            var queueForPostResolutionCheckpoint = state.ReactionWindow is not null
+                || state.ResolutionStack.Count > 0
+                || state.QueuedTriggerBatches.Count > 0;
+            if (queueForPostResolutionCheckpoint && discoveries.Length > 1)
+            {
+                throw new EngineStateException(
+                    "REACTION_TRIGGER_BATCH_ORDERING_UNSUPPORTED",
+                    "Reaction v1 cannot queue more than one discovered trigger from the same committed source event.");
+            }
+
             _canonicalTriggerDiscoveries = _canonicalTriggerDiscoveries.AddRange(discoveries);
+            var queuedForEvent = new List<PendingTriggeredAbilityState>();
             foreach (var discovery in discoveries)
             {
                 var ability = canonicalRuntime.Abilities.AbilitiesById[discovery.AbilityId];
@@ -1844,6 +3083,25 @@ public sealed class EngineSession
                     continue;
                 }
 
+                var pending = new PendingTriggeredAbilityState(
+                    pendingTriggerId,
+                    discovery.AbilityId,
+                    discovery.TriggerId,
+                    discovery.SourceCardInstanceId,
+                    discovery.SourceCardId,
+                    discovery.ControllerPlayerId,
+                    engineEvent.EventId,
+                    engineEvent.EventSequence,
+                    discovery.CanonicalEventTypeId,
+                    discovery.SourceFromZoneId,
+                    discovery.SourceToZoneId,
+                    discovery.SourceZoneTransitionInstanceId);
+                if (queueForPostResolutionCheckpoint)
+                {
+                    queuedForEvent.Add(pending);
+                    continue;
+                }
+
                 var window = state.PendingTriggerWindow;
                 if (window is null)
                 {
@@ -1864,25 +3122,72 @@ public sealed class EngineSession
                         "The temporary trigger window cannot combine different controllers.");
                 }
 
-                window.PendingTriggers.Add(new PendingTriggeredAbilityState(
-                    pendingTriggerId,
-                    discovery.AbilityId,
-                    discovery.TriggerId,
-                    discovery.SourceCardInstanceId,
-                    discovery.SourceCardId,
-                    discovery.ControllerPlayerId,
-                    engineEvent.EventId,
-                    engineEvent.EventSequence,
-                    discovery.CanonicalEventTypeId,
-                    discovery.SourceFromZoneId,
-                    discovery.SourceToZoneId,
-                    discovery.SourceZoneTransitionInstanceId));
+                window.PendingTriggers.Add(pending);
+            }
+
+            if (queuedForEvent.Count > 1)
+            {
+                throw new EngineStateException(
+                    "REACTION_TRIGGER_BATCH_ORDERING_UNSUPPORTED",
+                    "Reaction v1 cannot activate a same-time trigger batch that requires generic ordering.");
+            }
+
+            if (queuedForEvent.Count == 1)
+            {
+                var batch = new QueuedTriggerBatchState
+                {
+                    TriggerBatchId = $"trigger-batch:{engineEvent.EventId}",
+                    OriginatingEventId = engineEvent.EventId,
+                    OriginatingEventSequence = engineEvent.EventSequence,
+                    BatchOrderPolicyId = ReactionPolicyIds.DifferentTimingFifo,
+                };
+                batch.Triggers.Add(queuedForEvent[0]);
+                state.QueuedTriggerBatches.Add(batch);
             }
         }
 
         var materialized = consequenceEvents.ToImmutable();
         state.Events.AddRange(materialized);
         return materialized;
+    }
+
+    private static void ProcessQueuedTriggerCheckpoint(MatchState state)
+    {
+        if (state.ReactionWindow is not null
+            || state.ResolutionStack.Count != 0
+            || state.PendingTriggerWindow is not null)
+        {
+            return;
+        }
+
+        while (state.QueuedTriggerBatches.Count > 0)
+        {
+            var batch = state.QueuedTriggerBatches
+                .OrderBy(item => item.OriginatingEventSequence)
+                .ThenBy(item => item.TriggerBatchId, StringComparer.Ordinal)
+                .First();
+            if (!string.Equals(
+                    batch.BatchOrderPolicyId,
+                    ReactionPolicyIds.DifferentTimingFifo,
+                    StringComparison.Ordinal)
+                || batch.Triggers.Count != 1)
+            {
+                throw new EngineStateException(
+                    "REACTION_TRIGGER_BATCH_ORDERING_UNSUPPORTED",
+                    "Reaction v1 queued trigger checkpoint supports exactly one trigger per committed source event.");
+            }
+
+            state.QueuedTriggerBatches.Remove(batch);
+            var pending = batch.Triggers[0];
+            var window = new PendingTriggerWindowState
+            {
+                PendingWindowId = $"pending_window_{batch.OriginatingEventSequence:000000}",
+                ControllerPlayerId = pending.ControllerPlayerId,
+            };
+            window.PendingTriggers.Add(pending);
+            state.PendingTriggerWindow = window;
+            return;
+        }
     }
 
     private ActionResponse ApplyResolveTriggeredAbility(
@@ -2434,6 +3739,14 @@ public sealed class EngineSession
         try
         {
             CanonicalEffectExecutor.ValidateSupportedPlayedCardGraph(ability);
+            var planningState = CloneMatchStateForSimulation(state);
+            var planningPlayer = planningState.GetPlayer(player.PlayerId);
+            var planningCard = planningState.GetCardInstance(card.CardInstanceId);
+            MovePlayedCardFromHandToResolution(
+                planningState,
+                planningPlayer,
+                planningCard,
+                handIndex);
             var context = new CanonicalAbilityResolutionContext(
                 $"resolution_play_{state.Events.Count + 1:000000}_{ability.AbilityIndex:000}",
                 CanonicalResolutionOrigin.PlayedCard,
@@ -2448,7 +3761,7 @@ public sealed class EngineSession
                 TriggerId: null);
             effectPlan = CanonicalEffectExecutor.BuildPlan(
                 context,
-                state,
+                planningState,
                 runtimePackage,
                 canonicalRuntime.Cards,
                 canonicalRuntime.Abilities);
@@ -2552,6 +3865,25 @@ public sealed class EngineSession
 
         if (plan.Resolution is not null)
         {
+            events.Add(CreatePlayCardEvent(
+                state,
+                request,
+                stateVersionAfter,
+                state.Events.Count + events.Count + 1,
+                "zone_move",
+                ContractJsonValue.From(new ZoneMovePayload(
+                    request.ActionId,
+                    request.ActionType,
+                    plan.Card.CardInstanceId,
+                    plan.Card.CardId,
+                    plan.Card.OwnerPlayerId,
+                    plan.Card.ControllerPlayerId,
+                    "hand",
+                    "resolution",
+                    plan.HandIndex,
+                    state.ResolutionCardInstanceIds.Count,
+                    "owner_only",
+                    "public"))));
             var context = plan.Resolution.EffectPlan.Context;
             var originId = CanonicalEffectExecutor.OriginId(context.Origin);
             AppendCanonicalEffectEvents(
@@ -2590,11 +3922,11 @@ public sealed class EngineSession
                 plan.Card.CardId,
                 plan.Card.OwnerPlayerId,
                 plan.Card.ControllerPlayerId,
-                "hand",
+                "resolution",
                 "void",
-                plan.HandIndex,
+                state.ResolutionCardInstanceIds.Count,
                 plan.Player.VoidCardInstanceIds.Count,
-                "owner_only",
+                "public",
                 "public");
             events.Add(CreatePlayCardEvent(
                 state,
@@ -3807,6 +5139,37 @@ public sealed class EngineSession
         }
 
         var toZone = ReadEventPayloadString(item.Payload, "to_zone");
+        if (string.Equals(toZone, "resolution", StringComparison.Ordinal))
+        {
+            return item with
+            {
+                Payload = ContractJsonValue.From(new Dictionary<string, object?>
+                {
+                    ["source_action_id"] = ReadEventPayloadString(
+                        item.Payload,
+                        "source_action_id"),
+                    ["source_action_type"] = ReadEventPayloadString(
+                        item.Payload,
+                        "source_action_type"),
+                    ["card_instance_id"] = ReadEventPayloadString(
+                        item.Payload,
+                        "card_instance_id"),
+                    ["card_id"] = ReadEventPayloadString(item.Payload, "card_id"),
+                    ["owner_player_id"] = ownerPlayerId,
+                    ["controller_player_id"] = ReadEventPayloadString(
+                        item.Payload,
+                        "controller_player_id"),
+                    ["from_zone"] = ReadEventPayloadString(item.Payload, "from_zone"),
+                    ["to_zone"] = toZone,
+                    ["to_zone_index"] = ReadEventPayloadInt(item.Payload, "to_zone_index"),
+                    ["visibility_after"] = ReadEventPayloadString(
+                        item.Payload,
+                        "visibility_after"),
+                    ["identity_redacted"] = false,
+                }),
+            };
+        }
+
         if (string.Equals(toZone, "dominion", StringComparison.Ordinal))
         {
             return item with
@@ -3897,7 +5260,7 @@ public sealed class EngineSession
                 "fix_request");
         }
 
-        if (request.ActionType is "advance_phase" or "draw_card" or "end_turn"
+        if (request.ActionType is "advance_phase" or "draw_card" or "end_turn" or "pass_priority"
             && request.Payload.EnumerateObject().Any())
         {
             return Diagnostic(
@@ -4063,6 +5426,61 @@ public sealed class EngineSession
                     "Triggered ability resolution requires a pending trigger and structured target selections.",
                     "The resolve_triggered_ability payload must contain exactly pending_trigger_id and "
                     + "target_selections; every selection must contain target_id and card_instance_ids.",
+                    "fix_request");
+            }
+        }
+
+        if (string.Equals(request.ActionType, "react", StringComparison.Ordinal))
+        {
+            var properties = request.Payload.EnumerateObject().ToArray();
+            var names = properties.Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
+            var targetSelections = default(JsonElement);
+            var valid = properties.Length == 2
+                && names.SetEquals(new[] { "reaction_option_id", "target_selections" })
+                && request.Payload.TryGetProperty("reaction_option_id", out var reactionOptionId)
+                && reactionOptionId.ValueKind == JsonValueKind.String
+                && !string.IsNullOrWhiteSpace(reactionOptionId.GetString())
+                && request.Payload.TryGetProperty("target_selections", out targetSelections)
+                && targetSelections.ValueKind == JsonValueKind.Array;
+            if (valid)
+            {
+                foreach (var selection in targetSelections.EnumerateArray())
+                {
+                    if (selection.ValueKind != JsonValueKind.Object)
+                    {
+                        valid = false;
+                        break;
+                    }
+
+                    var selectionProperties = selection.EnumerateObject().ToArray();
+                    var selectionNames = selectionProperties
+                        .Select(property => property.Name)
+                        .ToHashSet(StringComparer.Ordinal);
+                    if (selectionProperties.Length != 2
+                        || !selectionNames.SetEquals(new[] { "target_id", "card_instance_ids" })
+                        || !selection.TryGetProperty("target_id", out var targetId)
+                        || targetId.ValueKind != JsonValueKind.String
+                        || string.IsNullOrWhiteSpace(targetId.GetString())
+                        || !selection.TryGetProperty("card_instance_ids", out var cardInstanceIds)
+                        || cardInstanceIds.ValueKind != JsonValueKind.Array
+                        || cardInstanceIds.EnumerateArray().Any(item =>
+                            item.ValueKind != JsonValueKind.String
+                            || string.IsNullOrWhiteSpace(item.GetString())))
+                    {
+                        valid = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!valid)
+            {
+                return Diagnostic(
+                    "ACTION_PAYLOAD_INVALID",
+                    "request_validation",
+                    "Reaction requires an engine option and structured target selections.",
+                    "The react payload must contain exactly reaction_option_id and target_selections; "
+                    + "every selection must contain target_id and card_instance_ids.",
                     "fix_request");
             }
         }
@@ -4255,6 +5673,18 @@ public sealed class EngineSession
                     .ToImmutableArray()))
             .ToImmutableArray());
 
+    private static ReactActionPayload ReadReactPayload(JsonElement payload) => new(
+        payload.GetProperty("reaction_option_id").GetString()!,
+        payload.GetProperty("target_selections")
+            .EnumerateArray()
+            .Select(selection => new CanonicalTargetSelectionPayload(
+                selection.GetProperty("target_id").GetString()!,
+                selection.GetProperty("card_instance_ids")
+                    .EnumerateArray()
+                    .Select(item => item.GetString()!)
+                    .ToImmutableArray()))
+            .ToImmutableArray());
+
     private static string ReadEventPayloadString(JsonElement payload, string propertyName)
     {
         if (payload.ValueKind != JsonValueKind.Object
@@ -4281,6 +5711,113 @@ public sealed class EngineSession
         return result;
     }
 
+    private static void MovePlayedCardFromHandToResolution(
+        MatchState state,
+        PlayerState player,
+        CardInstanceState card,
+        int handIndex)
+    {
+        if (handIndex < 0
+            || handIndex >= player.HandCardInstanceIds.Count
+            || !string.Equals(
+                player.HandCardInstanceIds[handIndex],
+                card.CardInstanceId,
+                StringComparison.Ordinal)
+            || !string.Equals(card.Zone, "hand", StringComparison.Ordinal)
+            || card.ZoneIndex != handIndex
+            || !string.Equals(card.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal)
+            || !string.Equals(card.ControllerPlayerId, player.PlayerId, StringComparison.Ordinal))
+        {
+            throw new EngineStateException(
+                "Played-card hand-to-resolution transition no longer matches authoritative state.");
+        }
+
+        player.HandCardInstanceIds.RemoveAt(handIndex);
+        ReindexZone(state, player.HandCardInstanceIds, "hand");
+        card.Zone = "resolution";
+        card.ZoneIndex = state.ResolutionCardInstanceIds.Count;
+        card.Visibility = "public";
+        card.ActivityState = null;
+        card.DomainRow = null;
+        card.DomainLaneIndex = null;
+        card.EnteredDomainTurnNumber = null;
+        card.DamageMarked = 0;
+        card.ZoneSequence = checked(card.ZoneSequence + 1);
+        state.ResolutionCardInstanceIds.Add(card.CardInstanceId);
+    }
+
+    private static void MovePlayedCardFromResolutionToVoid(
+        MatchState state,
+        CardInstanceState card)
+    {
+        if (!string.Equals(card.Zone, "resolution", StringComparison.Ordinal)
+            || card.ZoneIndex < 0
+            || card.ZoneIndex >= state.ResolutionCardInstanceIds.Count
+            || !string.Equals(
+                state.ResolutionCardInstanceIds[card.ZoneIndex],
+                card.CardInstanceId,
+                StringComparison.Ordinal))
+        {
+            throw new EngineStateException(
+                "Played-card resolution-to-void transition no longer matches authoritative state.");
+        }
+
+        var owner = state.GetPlayer(card.OwnerPlayerId);
+        state.ResolutionCardInstanceIds.RemoveAt(card.ZoneIndex);
+        ReindexZone(state, state.ResolutionCardInstanceIds, "resolution");
+        card.Zone = "void";
+        card.ZoneIndex = owner.VoidCardInstanceIds.Count;
+        card.Visibility = "public";
+        card.ActivityState = null;
+        card.DomainRow = null;
+        card.DomainLaneIndex = null;
+        card.EnteredDomainTurnNumber = null;
+        card.DamageMarked = 0;
+        card.ZoneSequence = checked(card.ZoneSequence + 1);
+        owner.VoidCardInstanceIds.Add(card.CardInstanceId);
+    }
+
+    private static void CompleteUnderlyingPlayedCardLifecycleIfRequired(
+        MatchState state,
+        ActionRequest request,
+        ResolutionStackEntryState entry,
+        ImmutableArray<EngineEvent>.Builder responseEvents)
+    {
+        if (!string.Equals(
+                entry.EntryKindId,
+                "underlying_resolution",
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var card = state.GetCardInstance(entry.AbilityResolution.SourceCardInstanceId);
+        var fromZoneIndex = card.ZoneIndex;
+        var toZoneIndex = state.GetPlayer(card.OwnerPlayerId).VoidCardInstanceIds.Count;
+        MovePlayedCardFromResolutionToVoid(state, card);
+        var lifecycleEvent = CreateCanonicalRuntimeEvent(
+            state,
+            additionalEventOffset: 0,
+            "zone_move",
+            entry.AbilityResolution.ControllerPlayerId,
+            request.ActionType,
+            ContractJsonValue.From(new ZoneMovePayload(
+                entry.AbilityResolution.SourceActionId ?? request.ActionId,
+                entry.AbilityResolution.SourceActionType,
+                card.CardInstanceId,
+                card.CardId,
+                card.OwnerPlayerId,
+                card.ControllerPlayerId,
+                "resolution",
+                "void",
+                fromZoneIndex,
+                toZoneIndex,
+                "public",
+                "public")));
+        state.Events.Add(lifecycleEvent);
+        responseEvents.Add(lifecycleEvent);
+    }
+
     private static void ReindexZone(MatchState state, IReadOnlyList<string> cardInstanceIds, string zone)
     {
         for (var index = 0; index < cardInstanceIds.Count; index++)
@@ -4289,6 +5826,148 @@ public sealed class EngineSession
             card.Zone = zone;
             card.ZoneIndex = index;
         }
+    }
+
+    private static MatchState CloneMatchStateForSimulation(MatchState source)
+    {
+        var clone = new MatchState
+        {
+            MatchId = source.MatchId,
+            Seed = source.Seed,
+            RuntimePackageId = source.RuntimePackageId,
+            StateVersion = source.StateVersion,
+            TurnNumber = source.TurnNumber,
+            Phase = source.Phase,
+            LegacyPhaseCompatibility = source.LegacyPhaseCompatibility,
+            StartingPlayerId = source.StartingPlayerId,
+            ActivePlayerId = source.ActivePlayerId,
+            PriorityPlayerId = source.PriorityPlayerId,
+            NextContinuousEffectSequence = source.NextContinuousEffectSequence,
+            NextReactionWindowSequence = source.NextReactionWindowSequence,
+            NextReactionSubjectSequence = source.NextReactionSubjectSequence,
+            NextResolutionSequence = source.NextResolutionSequence,
+        };
+
+        foreach (var sourcePlayer in source.Players)
+        {
+            var player = new PlayerState
+            {
+                PlayerId = sourcePlayer.PlayerId,
+                DeckId = sourcePlayer.DeckId,
+                NormalInflowUsedTurnNumber = sourcePlayer.NormalInflowUsedTurnNumber,
+            };
+            player.DeckCardInstanceIds.AddRange(sourcePlayer.DeckCardInstanceIds);
+            player.HandCardInstanceIds.AddRange(sourcePlayer.HandCardInstanceIds);
+            player.VoidCardInstanceIds.AddRange(sourcePlayer.VoidCardInstanceIds);
+            player.WellspringCardInstanceIds.AddRange(sourcePlayer.WellspringCardInstanceIds);
+            for (var lane = 0; lane < DomainState.LaneCount; lane += 1)
+            {
+                player.Domain.HorizonCardInstanceIds[lane] =
+                    sourcePlayer.Domain.HorizonCardInstanceIds[lane];
+                player.Domain.ZenithCardInstanceIds[lane] =
+                    sourcePlayer.Domain.ZenithCardInstanceIds[lane];
+            }
+
+            clone.Players.Add(player);
+        }
+
+        foreach (var sourceCard in source.CardInstances.Values)
+        {
+            clone.CardInstances.Add(sourceCard.CardInstanceId, new CardInstanceState
+            {
+                CardInstanceId = sourceCard.CardInstanceId,
+                CardId = sourceCard.CardId,
+                OwnerPlayerId = sourceCard.OwnerPlayerId,
+                ControllerPlayerId = sourceCard.ControllerPlayerId,
+                Zone = sourceCard.Zone,
+                ZoneIndex = sourceCard.ZoneIndex,
+                Visibility = sourceCard.Visibility,
+                CreatedSequence = sourceCard.CreatedSequence,
+                ZoneSequence = sourceCard.ZoneSequence,
+                InitialZone = sourceCard.InitialZone,
+                ActivityState = sourceCard.ActivityState,
+                DomainRow = sourceCard.DomainRow,
+                DomainLaneIndex = sourceCard.DomainLaneIndex,
+                EnteredDomainTurnNumber = sourceCard.EnteredDomainTurnNumber,
+                DamageMarked = sourceCard.DamageMarked,
+            });
+        }
+
+        foreach (var (instanceId, instance) in source.ModifierInstances)
+        {
+            clone.ModifierInstances.Add(instanceId, instance with { });
+        }
+
+        foreach (var (instanceId, instance) in source.KeywordGrantInstances)
+        {
+            clone.KeywordGrantInstances.Add(instanceId, instance with { });
+        }
+
+        clone.Events.AddRange(source.Events.Select(CloneEvent));
+        clone.ResolutionCardInstanceIds.AddRange(source.ResolutionCardInstanceIds);
+        clone.ClosedReactionSubjectIds.UnionWith(source.ClosedReactionSubjectIds);
+
+        if (source.PendingTriggerWindow is not null)
+        {
+            var pending = new PendingTriggerWindowState
+            {
+                PendingWindowId = source.PendingTriggerWindow.PendingWindowId,
+                ControllerPlayerId = source.PendingTriggerWindow.ControllerPlayerId,
+            };
+            pending.PendingTriggers.AddRange(source.PendingTriggerWindow.PendingTriggers);
+            clone.PendingTriggerWindow = pending;
+        }
+
+        if (source.ReactionWindow is not null)
+        {
+            var reaction = new ReactionWindowState
+            {
+                ReactionWindowId = source.ReactionWindow.ReactionWindowId,
+                ReactionSubjectId = source.ReactionWindow.ReactionSubjectId,
+                OriginatingEventId = source.ReactionWindow.OriginatingEventId,
+                OriginatingEventSequence = source.ReactionWindow.OriginatingEventSequence,
+                UnderlyingResolutionId = source.ReactionWindow.UnderlyingResolutionId,
+                InitiatorPlayerId = source.ReactionWindow.InitiatorPlayerId,
+                CurrentResponsePolicyId = source.ReactionWindow.CurrentResponsePolicyId,
+                ConsecutivePassCount = source.ReactionWindow.ConsecutivePassCount,
+                OpenedAtStateVersion = source.ReactionWindow.OpenedAtStateVersion,
+                ReactionProfileId = source.ReactionWindow.ReactionProfileId,
+            };
+            reaction.EligibleResponderPlayerIds.AddRange(
+                source.ReactionWindow.EligibleResponderPlayerIds);
+            clone.ReactionWindow = reaction;
+        }
+
+        foreach (var sourceEntry in source.ResolutionStack)
+        {
+            clone.ResolutionStack.Add(new ResolutionStackEntryState
+            {
+                ResolutionId = sourceEntry.ResolutionId,
+                Sequence = sourceEntry.Sequence,
+                EntryKindId = sourceEntry.EntryKindId,
+                ReactionWindowId = sourceEntry.ReactionWindowId,
+                ReactionSubjectId = sourceEntry.ReactionSubjectId,
+                ParentResolutionId = sourceEntry.ParentResolutionId,
+                AbilityResolution = sourceEntry.AbilityResolution with { },
+                ReactionOptionId = sourceEntry.ReactionOptionId,
+                NextResponsePolicyId = sourceEntry.NextResponsePolicyId,
+            });
+        }
+
+        foreach (var sourceBatch in source.QueuedTriggerBatches)
+        {
+            var batch = new QueuedTriggerBatchState
+            {
+                TriggerBatchId = sourceBatch.TriggerBatchId,
+                OriginatingEventId = sourceBatch.OriginatingEventId,
+                OriginatingEventSequence = sourceBatch.OriginatingEventSequence,
+                BatchOrderPolicyId = sourceBatch.BatchOrderPolicyId,
+            };
+            batch.Triggers.AddRange(sourceBatch.Triggers);
+            clone.QueuedTriggerBatches.Add(batch);
+        }
+
+        return clone;
     }
 
     private static PlayerState RequireKnownPlayer(MatchState state, string playerId)
@@ -4451,6 +6130,20 @@ public sealed class EngineSession
         {
             throw new EngineStateException("Starting player is unknown.");
         }
+
+        foreach (var cardInstanceId in state.ResolutionCardInstanceIds)
+        {
+            if (!zoneIds.Add(cardInstanceId))
+            {
+                throw new EngineStateException("Card instance appears in multiple zones.");
+            }
+
+            if (!state.CardInstances.ContainsKey(cardInstanceId))
+            {
+                throw new EngineStateException("Resolution zone references an unknown card instance.");
+            }
+        }
+
         foreach (var player in state.Players)
         {
             if (player.NormalInflowUsedTurnNumber is int usedTurnNumber
@@ -4537,6 +6230,18 @@ public sealed class EngineSession
             throw new EngineStateException("Card instance registry and Void zones disagree.");
         }
 
+        var listedResolutionIds = state.ResolutionCardInstanceIds.ToHashSet(StringComparer.Ordinal);
+        var registeredResolutionIds = state.CardInstances.Values
+            .Where(card => string.Equals(card.Zone, "resolution", StringComparison.Ordinal))
+            .Select(card => card.CardInstanceId)
+            .ToHashSet(StringComparer.Ordinal);
+        if (!listedResolutionIds.SetEquals(registeredResolutionIds))
+        {
+            throw new EngineStateException("Card instance registry and Resolution zone disagree.");
+        }
+
+        ValidateResolutionState(state, knownPlayerIds);
+
         var listedDomainIds = state.Players
             .SelectMany(player => player.Domain.HorizonCardInstanceIds
                 .Concat(player.Domain.ZenithCardInstanceIds))
@@ -4559,7 +6264,7 @@ public sealed class EngineSession
                 throw new EngineStateException("Card damage_marked cannot be negative.");
             }
 
-            if (card.Zone is not ("deck" or "hand" or "void" or "wellspring" or "dominion"))
+            if (card.Zone is not ("deck" or "hand" or "void" or "wellspring" or "dominion" or "resolution"))
             {
                 throw new EngineStateException("Card instance zone must use an active production zone token.");
             }
@@ -4629,6 +6334,186 @@ public sealed class EngineSession
         }
 
         ValidatePendingTriggerWindow(state, knownPlayerIds);
+        ValidateReactionState(state, knownPlayerIds);
+    }
+
+    private static void ValidateReactionState(
+        MatchState state,
+        IReadOnlySet<string> knownPlayerIds)
+    {
+        if (state.NextReactionWindowSequence < 1
+            || state.NextReactionSubjectSequence < 1
+            || state.NextResolutionSequence < 1)
+        {
+            throw new EngineStateException("Reaction identity sequences must be positive.");
+        }
+
+        if (state.ReactionWindow is not null && state.PendingTriggerWindow is not null)
+        {
+            throw new EngineStateException("ReactionWindow and PendingTriggerWindow cannot both block input.");
+        }
+
+        var window = state.ReactionWindow;
+        if (window is null)
+        {
+            if (state.ResolutionStack.Count != 0)
+            {
+                throw new EngineStateException("A public state without ReactionWindow cannot retain resolution entries.");
+            }
+
+            if (state.ResolutionCardInstanceIds.Count != 0)
+            {
+                throw new EngineStateException("A public state without ReactionWindow cannot retain resolution cards.");
+            }
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(window.ReactionWindowId)
+                || string.IsNullOrWhiteSpace(window.ReactionSubjectId)
+                || string.IsNullOrWhiteSpace(window.UnderlyingResolutionId)
+                || string.IsNullOrWhiteSpace(window.ReactionProfileId)
+                || !knownPlayerIds.Contains(window.InitiatorPlayerId)
+                || !ReactionPolicyIds.IsOpenWindowPolicy(window.CurrentResponsePolicyId)
+                || window.EligibleResponderPlayerIds.Count is < 1 or > 2
+                || window.EligibleResponderPlayerIds.Distinct(StringComparer.Ordinal).Count()
+                != window.EligibleResponderPlayerIds.Count
+                || window.EligibleResponderPlayerIds.Any(playerId => !knownPlayerIds.Contains(playerId))
+                || !window.EligibleResponderPlayerIds.Contains(state.PriorityPlayerId, StringComparer.Ordinal)
+                || window.ConsecutivePassCount < 0
+                || window.OpenedAtStateVersion < 1
+                || window.OpenedAtStateVersion > state.StateVersion
+                || state.ClosedReactionSubjectIds.Contains(window.ReactionSubjectId))
+            {
+                throw new EngineStateException("Open ReactionWindow identity, responder, policy, or version state is invalid.");
+            }
+
+            var expectedPassLimit = string.Equals(
+                window.CurrentResponsePolicyId,
+                ReactionPolicyIds.StandardAlternatingResponse,
+                StringComparison.Ordinal)
+                ? 1
+                : 0;
+            if (window.ConsecutivePassCount > expectedPassLimit)
+            {
+                throw new EngineStateException("Open ReactionWindow retained a completed pass cycle.");
+            }
+
+            if (state.ResolutionStack.Count < 1
+                || !string.Equals(
+                    state.ResolutionStack[0].EntryKindId,
+                    "underlying_resolution",
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    state.ResolutionStack[0].ResolutionId,
+                    window.UnderlyingResolutionId,
+                    StringComparison.Ordinal))
+            {
+                throw new EngineStateException("ReactionWindow underlying resolution is not the bottom stack entry.");
+            }
+
+
+            if (state.ResolutionCardInstanceIds.Count != 1
+                || !string.Equals(
+                    state.ResolutionCardInstanceIds[0],
+                    state.ResolutionStack[0].AbilityResolution.SourceCardInstanceId,
+                    StringComparison.Ordinal))
+            {
+                throw new EngineStateException(
+                    "ReactionWindow underlying played card is not the authoritative Resolution-zone object.");
+            }
+        }
+
+        if (state.ResolutionStack.Select(entry => entry.ResolutionId)
+            .Distinct(StringComparer.Ordinal).Count() != state.ResolutionStack.Count)
+        {
+            throw new EngineStateException("Reaction resolution IDs must be unique.");
+        }
+
+        for (var index = 0; index < state.ResolutionStack.Count; index += 1)
+        {
+            var entry = state.ResolutionStack[index];
+            var resolution = entry.AbilityResolution;
+            if (window is null
+                || string.IsNullOrWhiteSpace(entry.ResolutionId)
+                || entry.Sequence < 1
+                || index > 0 && entry.Sequence <= state.ResolutionStack[index - 1].Sequence
+                || entry.EntryKindId is not ("underlying_resolution" or "reaction")
+                || !string.Equals(entry.ReactionWindowId, window.ReactionWindowId, StringComparison.Ordinal)
+                || !string.Equals(entry.ReactionSubjectId, window.ReactionSubjectId, StringComparison.Ordinal)
+                || !(index == 0
+                    ? string.Equals(
+                        resolution.SourceRelevancePolicyId,
+                        ReactionPolicyIds.PlayedCardResolutionPresence,
+                        StringComparison.Ordinal)
+                    : string.Equals(
+                        resolution.SourceRelevancePolicyId,
+                        ReactionPolicyIds.SameZonePresence,
+                        StringComparison.Ordinal))
+                || string.IsNullOrWhiteSpace(resolution.AbilityId)
+                || string.IsNullOrWhiteSpace(resolution.SourceCardInstanceId)
+                || string.IsNullOrWhiteSpace(resolution.SourceCardId)
+                || string.IsNullOrWhiteSpace(resolution.SourceZoneIdAtDeclaration)
+                || resolution.SourceZoneSequenceAtDeclaration < 1
+                || !knownPlayerIds.Contains(resolution.ControllerPlayerId)
+                || resolution.DeclarationStateVersion < 1
+                || resolution.DeclarationStateVersion > state.StateVersion
+                || resolution.DeclaredTargetSelections.IsDefault
+                || resolution.DeclaredTargetStates.IsDefault)
+            {
+                throw new EngineStateException("Reaction resolution stack entry state is invalid.");
+            }
+
+            if (index == 0
+                ? entry.ParentResolutionId is not null || entry.ReactionOptionId is not null
+                : !string.Equals(
+                      entry.ParentResolutionId,
+                      state.ResolutionStack[index - 1].ResolutionId,
+                      StringComparison.Ordinal)
+                  || string.IsNullOrWhiteSpace(entry.ReactionOptionId)
+                  || !ReactionPolicyIds.IsNextResponsePolicy(entry.NextResponsePolicyId ?? string.Empty))
+            {
+                throw new EngineStateException("Reaction resolution stack parent or option correlation is invalid.");
+            }
+        }
+
+        if (state.QueuedTriggerBatches.Select(batch => batch.TriggerBatchId)
+            .Distinct(StringComparer.Ordinal).Count() != state.QueuedTriggerBatches.Count)
+        {
+            throw new EngineStateException("Queued trigger batch IDs must be unique.");
+        }
+
+        foreach (var batch in state.QueuedTriggerBatches)
+        {
+            if (string.IsNullOrWhiteSpace(batch.TriggerBatchId)
+                || string.IsNullOrWhiteSpace(batch.OriginatingEventId)
+                || batch.OriginatingEventSequence < 1
+                || batch.OriginatingEventSequence > state.Events.Count
+                || !string.Equals(
+                    batch.BatchOrderPolicyId,
+                    ReactionPolicyIds.DifferentTimingFifo,
+                    StringComparison.Ordinal)
+                || batch.Triggers.Count != 1)
+            {
+                throw new EngineStateException("Queued Reaction trigger batch identity or first-slice membership is invalid.");
+            }
+
+            var sourceEvent = state.Events[batch.OriginatingEventSequence - 1];
+            var trigger = batch.Triggers[0];
+            if (!string.Equals(sourceEvent.EventId, batch.OriginatingEventId, StringComparison.Ordinal)
+                || !string.Equals(trigger.SourceEngineEventId, batch.OriginatingEventId, StringComparison.Ordinal)
+                || trigger.SourceEngineEventSequence != batch.OriginatingEventSequence)
+            {
+                throw new EngineStateException("Queued Reaction trigger batch event correlation is invalid.");
+            }
+        }
+
+        if (state.ReactionWindow is null
+            && state.ResolutionStack.Count == 0
+            && state.PendingTriggerWindow is null
+            && state.QueuedTriggerBatches.Count > 0)
+        {
+            throw new EngineStateException("A stable public boundary left queued triggers without checkpoint activation.");
+        }
     }
 
     private static void ValidatePendingTriggerWindow(
@@ -4843,6 +6728,26 @@ public sealed class EngineSession
         }
     }
 
+    private static void ValidateResolutionState(
+        MatchState state,
+        IReadOnlySet<string> knownPlayerIds)
+    {
+        for (var zoneIndex = 0; zoneIndex < state.ResolutionCardInstanceIds.Count; zoneIndex += 1)
+        {
+            var card = state.GetCardInstance(state.ResolutionCardInstanceIds[zoneIndex]);
+            if (!string.Equals(card.Zone, "resolution", StringComparison.Ordinal)
+                || card.ZoneIndex != zoneIndex
+                || !knownPlayerIds.Contains(card.OwnerPlayerId)
+                || !knownPlayerIds.Contains(card.ControllerPlayerId)
+                || !string.Equals(card.Visibility, "public", StringComparison.Ordinal)
+                || card.ActivityState is not null)
+            {
+                throw new EngineStateException(
+                    "Resolution card zone, order, controller, visibility, or activity state is invalid.");
+            }
+        }
+    }
+
     private static void ValidateDeckState(MatchState state, PlayerState player)
     {
         for (var zoneIndex = 0; zoneIndex < player.DeckCardInstanceIds.Count; zoneIndex++)
@@ -4988,6 +6893,11 @@ public sealed class EngineSession
         PlayedCardResolutionPlan? Resolution);
 
     private sealed record PlayedCardResolutionPlan(CanonicalEffectExecutionPlan EffectPlan);
+
+    private sealed record PlannedReactionResolutionStep(
+        string ResolutionId,
+        CanonicalEffectExecutionPlan? EffectPlan,
+        string? InvalidationReasonCode);
 
     private sealed record TriggeredAbilityResolutionPlan(
         PendingTriggeredAbilityState PendingTrigger,

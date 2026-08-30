@@ -148,6 +148,39 @@ internal static class CanonicalTriggerResolver
         return result.ToImmutable();
     }
 
+    internal static int CountMatchingZoneTransitionDiscoveries(
+        CanonicalAbilityCatalog catalog,
+        CanonicalZoneTransitionPlan transition,
+        MatchState state)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(transition);
+        ArgumentNullException.ThrowIfNull(state);
+        var actual = transition.Actual;
+        if (!state.CardInstances.TryGetValue(actual.CardInstanceId, out var source)
+            || !string.Equals(source.CardId, actual.CardId, StringComparison.Ordinal)
+            || !catalog.AbilitiesByCardId.TryGetValue(actual.CardId, out var abilities))
+        {
+            return 0;
+        }
+
+        var eventSource = new CanonicalTriggerEventSource(
+            source,
+            actual.FromZoneId,
+            actual.FromZoneId,
+            actual.ToZoneId,
+            actual.ZoneTransitionInstanceId);
+        return abilities
+            .Where(ability => string.Equals(ability.Status, ActiveStatus, StringComparison.Ordinal)
+                              && string.Equals(ability.AbilityKindId, TriggeredAbilityKindId, StringComparison.Ordinal)
+                              && string.Equals(ability.ActiveZoneId, actual.FromZoneId, StringComparison.Ordinal))
+            .Sum(ability => ability.Triggers.Count(trigger => MatchesTrigger(
+                trigger,
+                ZoneChangedCanonicalEventTypeId,
+                eventSource,
+                state)));
+    }
+
     private static bool MatchesTrigger(
         CanonicalAbilityTriggerDefinition trigger,
         string canonicalEventTypeId,

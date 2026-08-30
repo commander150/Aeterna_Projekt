@@ -470,8 +470,11 @@ internal static class CanonicalTargetResolver
         CanonicalResolutionOrigin origin,
         string message) => new(Code(origin, "TARGET_SELECTION_INVALID"), message);
 
-    private static string Code(CanonicalResolutionOrigin origin, string suffix) =>
-        origin == CanonicalResolutionOrigin.TriggeredAbility
-            ? $"RESOLVE_TRIGGER_{suffix}"
-            : $"PLAY_CARD_{suffix}";
+    private static string Code(CanonicalResolutionOrigin origin, string suffix) => origin switch
+    {
+        CanonicalResolutionOrigin.TriggeredAbility => $"RESOLVE_TRIGGER_{suffix}",
+        CanonicalResolutionOrigin.PlayedCard => $"PLAY_CARD_{suffix}",
+        CanonicalResolutionOrigin.Reaction => $"REACTION_{suffix}",
+        _ => throw new ArgumentOutOfRangeException(nameof(origin)),
+    };
 }

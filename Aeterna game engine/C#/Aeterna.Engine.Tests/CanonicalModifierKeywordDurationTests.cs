@@ -269,7 +269,7 @@ internal static class CanonicalModifierKeywordDurationTests
         Equal(1, fixture.State.ModifierInstances.Count, $"{cardId} modifier identity is invalid.");
         Equal(1, fixture.State.KeywordGrantInstances.Count, $"{cardId} grant identity is invalid.");
         SequenceEqual(
-            ["modifier_applied", "keyword_granted", "canonical_ability_resolved", "zone_move"],
+            ["zone_move", "modifier_applied", "keyword_granted", "canonical_ability_resolved", "zone_move"],
             response.Events
                 .Where(item => item.EventType != "aura_source_exhausted")
                 .Select(item => item.EventType),

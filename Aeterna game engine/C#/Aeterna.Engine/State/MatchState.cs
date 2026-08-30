@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Aeterna.Engine.Contracts;
 using Aeterna.Engine.Rules;
 
@@ -40,7 +41,23 @@ internal sealed class MatchState
 
     public List<EngineEvent> Events { get; } = [];
 
+    public List<string> ResolutionCardInstanceIds { get; } = [];
+
     public PendingTriggerWindowState? PendingTriggerWindow { get; set; }
+
+    public ReactionWindowState? ReactionWindow { get; set; }
+
+    public List<ResolutionStackEntryState> ResolutionStack { get; } = [];
+
+    public List<QueuedTriggerBatchState> QueuedTriggerBatches { get; } = [];
+
+    public HashSet<string> ClosedReactionSubjectIds { get; } = new(StringComparer.Ordinal);
+
+    public int NextReactionWindowSequence { get; set; } = 1;
+
+    public int NextReactionSubjectSequence { get; set; } = 1;
+
+    public int NextResolutionSequence { get; set; } = 1;
 
     public MatchResult Result { get; } = new(
         ContractSchemas.MatchResult,
@@ -60,6 +77,90 @@ internal sealed class MatchState
             string.Equals(player.PlayerId, playerId, StringComparison.Ordinal));
         return Players[(index + 1) % Players.Count].PlayerId;
     }
+}
+
+internal sealed class ReactionWindowState
+{
+    public required string ReactionWindowId { get; init; }
+
+    public required string ReactionSubjectId { get; init; }
+
+    public string? OriginatingEventId { get; init; }
+
+    public int? OriginatingEventSequence { get; init; }
+
+    public required string UnderlyingResolutionId { get; init; }
+
+    public required string InitiatorPlayerId { get; init; }
+
+    public List<string> EligibleResponderPlayerIds { get; } = [];
+
+    public required string CurrentResponsePolicyId { get; set; }
+
+    public int ConsecutivePassCount { get; set; }
+
+    public required int OpenedAtStateVersion { get; init; }
+
+    public required string ReactionProfileId { get; init; }
+}
+
+internal sealed class ResolutionStackEntryState
+{
+    public required string ResolutionId { get; init; }
+
+    public required int Sequence { get; init; }
+
+    public required string EntryKindId { get; init; }
+
+    public required string ReactionWindowId { get; init; }
+
+    public required string ReactionSubjectId { get; init; }
+
+    public string? ParentResolutionId { get; init; }
+
+    public required CanonicalAbilityResolutionState AbilityResolution { get; init; }
+
+    public string? ReactionOptionId { get; init; }
+
+    public string? NextResponsePolicyId { get; init; }
+}
+
+internal sealed record CanonicalAbilityResolutionState(
+    string ResolutionOriginId,
+    string? SourceActionId,
+    string SourceActionType,
+    string AbilityId,
+    string SourceCardInstanceId,
+    string SourceCardId,
+    string SourceZoneIdAtDeclaration,
+    int SourceZoneSequenceAtDeclaration,
+    string SourceRelevancePolicyId,
+    string ControllerPlayerId,
+    ImmutableArray<CanonicalTargetSelectionPayload> DeclaredTargetSelections,
+    ImmutableArray<DeclaredTargetSelectionState> DeclaredTargetStates,
+    string? PendingTriggerId,
+    string? TriggerId,
+    int DeclarationStateVersion);
+
+internal sealed record DeclaredTargetSelectionState(
+    string TargetId,
+    ImmutableArray<DeclaredTargetObjectState> SelectedObjects);
+
+internal sealed record DeclaredTargetObjectState(
+    string CardInstanceId,
+    int ZoneSequenceAtDeclaration);
+
+internal sealed class QueuedTriggerBatchState
+{
+    public required string TriggerBatchId { get; init; }
+
+    public required string OriginatingEventId { get; init; }
+
+    public required int OriginatingEventSequence { get; init; }
+
+    public required string BatchOrderPolicyId { get; init; }
+
+    public List<PendingTriggeredAbilityState> Triggers { get; } = [];
 }
 
 internal sealed class PendingTriggerWindowState

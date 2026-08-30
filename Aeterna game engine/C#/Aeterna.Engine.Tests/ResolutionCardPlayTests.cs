@@ -81,7 +81,7 @@ internal static class ResolutionCardPlayTests
         Equal(0, response.StateVersionBefore, "Resolution play before-version is invalid.");
         Equal(1, response.StateVersionAfter, "Resolution play must increment state exactly once.");
         Equal(
-            "aura_source_exhausted,aura_source_exhausted,card_activity_changed,canonical_ability_resolved,zone_move",
+            "aura_source_exhausted,aura_source_exhausted,zone_move,card_activity_changed,canonical_ability_resolved,zone_move",
             string.Join(',', response.Events.Select(item => item.EventType)),
             "Resolution play event order is invalid.");
         True(response.Events.All(item => item.StateVersion == 1), "Resolution play event versions differ.");
@@ -101,7 +101,7 @@ internal static class ResolutionCardPlayTests
         Equal(null, source.EnteredDomainTurnNumber, "Void source retained Domain entry turn.");
         Equal(fixture.SourceCardInstanceId, fixture.State.GetPlayer("player_1").VoidCardInstanceIds.Single(), "Void list is invalid.");
         Equal(0, fixture.State.GetCardInstance(fixture.ExtraHandCardInstanceId).ZoneIndex, "Remaining hand was not reindexed.");
-        Equal("hand", response.Events[^1].Payload.GetProperty("from_zone").GetString(), "Void move origin is invalid.");
+        Equal("resolution", response.Events[^1].Payload.GetProperty("from_zone").GetString(), "Void move origin is invalid.");
         Equal("void", response.Events[^1].Payload.GetProperty("to_zone").GetString(), "Void move destination is invalid.");
         Equal("played_card", response.Events[^2].Payload.GetProperty("resolution_origin").GetString(), "Resolution origin is invalid.");
         False(response.Events[^2].Payload.TryGetProperty("pending_trigger_id", out _), "Played resolution pretended to be a pending trigger.");
@@ -115,7 +115,8 @@ internal static class ResolutionCardPlayTests
         var opponentSnapshot = fixture.Session.GetPlayerSnapshot("player_2");
         var publicVoid = opponentSnapshot.Players.Single(player => player.PlayerId == "player_1").Void;
         Equal(fixture.SourceCardInstanceId, publicVoid.Objects.Single().CardInstanceId, "Opponent cannot see public Void source identity.");
-        var opponentMove = fixture.Session.GetEvents("player_2").Single(item => item.EventType == "zone_move");
+        var opponentMove = fixture.Session.GetEvents("player_2").Single(item => item.EventType == "zone_move"
+            && item.Payload.GetProperty("to_zone").GetString() == "void");
         Equal(fixture.SourceCardInstanceId, opponentMove.Payload.GetProperty("card_instance_id").GetString(), "Opponent Void event lost public identity.");
         Equal(false, opponentMove.Payload.GetProperty("identity_redacted").GetBoolean(), "Opponent Void event remained redacted.");
         False(opponentMove.Payload.TryGetProperty("from_zone_index", out _), "Opponent Void event leaked private hand order.");

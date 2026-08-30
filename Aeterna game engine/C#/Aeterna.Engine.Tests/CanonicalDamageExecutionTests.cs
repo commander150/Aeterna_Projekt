@@ -101,12 +101,12 @@ internal static class CanonicalDamageExecutionTests
         Equal(2, fixture.State.GetCardInstance("target").DamageMarked, "Played Ritual damage is invalid.");
         Equal("void", fixture.State.GetCardInstance("ritual").Zone, "Played Ritual source did not enter Void.");
         SequenceEqual(
-            ["damage_dealt", "canonical_ability_resolved", "zone_move"],
+            ["zone_move", "damage_dealt", "canonical_ability_resolved", "zone_move"],
             response.Events.Select(item => item.EventType),
             "Played damage/source movement event order is invalid.");
         var cumulative = Play(fixture, "ritual_second", null, null, Selection(Target031, ["target"]));
         True(cumulative.Accepted, "Second cumulative direct-damage resolution was rejected.");
-        var cumulativeDamage = cumulative.Events[0].Payload;
+        var cumulativeDamage = cumulative.Events.Single(item => item.EventType == "damage_dealt").Payload;
         Equal(2, cumulativeDamage.GetProperty("accumulated_damage_before").GetInt32(), "Cumulative damage_before is invalid.");
         Equal(4, cumulativeDamage.GetProperty("accumulated_damage_after").GetInt32(), "Overkill damage_after is invalid.");
         Equal(true, cumulativeDamage.GetProperty("lethal").GetBoolean(), "Overkill damage was not lethal.");
@@ -120,7 +120,7 @@ internal static class CanonicalDamageExecutionTests
         True(zeroResponse.Accepted, "Canonical 0..2 selection rejected zero targets.");
         Equal(0, zero.State.GetCardInstance("untouched").DamageMarked, "Zero-target resolution mutated unrelated Entity.");
         SequenceEqual(
-            ["canonical_ability_resolved", "zone_move"],
+            ["zone_move", "canonical_ability_resolved", "zone_move"],
             zeroResponse.Events.Select(item => item.EventType),
             "Zero-target resolution event order is invalid.");
 
@@ -171,6 +171,7 @@ internal static class CanonicalDamageExecutionTests
         Equal(2, survivor.DamageMarked, "Surviving target damage is invalid.");
         SequenceEqual(
             [
+                "zone_move",
                 "card_activity_changed",
                 "card_activity_changed",
                 "damage_dealt",
@@ -182,8 +183,9 @@ internal static class CanonicalDamageExecutionTests
             ],
             response.Events.Select(item => item.EventType),
             "AQU-ART-044 sequence or deterministic candidate order is invalid.");
-        Equal("lethal", response.Events[0].Payload.GetProperty("card_instance_id").GetString(), "Request order overrode canonical target order.");
-        Equal("survivor", response.Events[1].Payload.GetProperty("card_instance_id").GetString(), "Canonical second target order is invalid.");
+        var activityEvents = response.Events.Where(item => item.EventType == "card_activity_changed").ToArray();
+        Equal("lethal", activityEvents[0].Payload.GetProperty("card_instance_id").GetString(), "Request order overrode canonical target order.");
+        Equal("survivor", activityEvents[1].Payload.GetProperty("card_instance_id").GetString(), "Canonical second target order is invalid.");
     }
 
     internal static void EndTurnIsTemporaryDissipationDamageCleanupBoundary()

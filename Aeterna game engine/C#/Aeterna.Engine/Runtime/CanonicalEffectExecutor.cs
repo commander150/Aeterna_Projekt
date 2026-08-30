@@ -8,6 +8,7 @@ internal enum CanonicalResolutionOrigin
 {
     TriggeredAbility,
     PlayedCard,
+    Reaction,
 }
 
 internal sealed record CanonicalAbilityResolutionContext(
@@ -170,6 +171,7 @@ internal static class CanonicalEffectExecutor
     internal const string NoLegalTargetOutcome = "resolved_no_effect_no_legal_target";
     internal const string PlayedCardOriginId = "played_card";
     internal const string TriggeredAbilityOriginId = "triggered_ability";
+    internal const string ReactionOriginId = "reaction";
 
     private const string ActiveStatus = "active";
     private const string DamageAmountContractFieldId = "parameter_field_deal_damage_amount";
@@ -640,6 +642,7 @@ internal static class CanonicalEffectExecutor
     {
         CanonicalResolutionOrigin.TriggeredAbility => TriggeredAbilityOriginId,
         CanonicalResolutionOrigin.PlayedCard => PlayedCardOriginId,
+        CanonicalResolutionOrigin.Reaction => ReactionOriginId,
         _ => throw new ArgumentOutOfRangeException(nameof(origin)),
     };
 
@@ -1180,8 +1183,11 @@ internal static class CanonicalEffectExecutor
         CanonicalResolutionOrigin origin,
         string message) => new(Code(origin, "TARGET_SELECTION_INVALID"), message);
 
-    private static string Code(CanonicalResolutionOrigin origin, string suffix) =>
-        origin == CanonicalResolutionOrigin.TriggeredAbility
-            ? $"RESOLVE_TRIGGER_{suffix}"
-            : $"PLAY_CARD_{suffix}";
+    private static string Code(CanonicalResolutionOrigin origin, string suffix) => origin switch
+    {
+        CanonicalResolutionOrigin.TriggeredAbility => $"RESOLVE_TRIGGER_{suffix}",
+        CanonicalResolutionOrigin.PlayedCard => $"PLAY_CARD_{suffix}",
+        CanonicalResolutionOrigin.Reaction => $"REACTION_{suffix}",
+        _ => throw new ArgumentOutOfRangeException(nameof(origin)),
+    };
 }

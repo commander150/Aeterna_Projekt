@@ -122,6 +122,11 @@ public sealed record ResolveTriggeredAbilityActionPayload(
     [property: JsonPropertyName("target_selections")]
     ImmutableArray<CanonicalTargetSelectionPayload> TargetSelections);
 
+public sealed record ReactActionPayload(
+    [property: JsonPropertyName("reaction_option_id")] string ReactionOptionId,
+    [property: JsonPropertyName("target_selections")]
+    ImmutableArray<CanonicalTargetSelectionPayload> TargetSelections);
+
 public sealed record EngineDiagnostic(
     [property: JsonPropertyName("schema_version")] string SchemaVersion,
     [property: JsonPropertyName("code")] string Code,
@@ -603,6 +608,7 @@ public sealed record DebugSnapshot(
     string StartingPlayerId,
     string ActivePlayerId,
     string PriorityPlayerId,
+    ImmutableArray<string> ResolutionCardInstanceIds,
     ImmutableArray<DebugPlayerSnapshot> Players,
     ImmutableArray<DebugCardInstanceSnapshot> CardInstances,
     ImmutableArray<DebugModifierInstanceSnapshot> ModifierInstances,
