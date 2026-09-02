@@ -7,6 +7,7 @@ namespace Aeterna.Engine.Contracts;
 public static class ContractSchemas
 {
     public const string CreateMatchRequest = "aeterna-create-match-request-v2";
+    public const string CanonicalCreateMatchRequest = "aeterna-create-match-request-v3";
     public const string CreateMatchResponse = "aeterna-create-match-response-v1";
     public const string ActionRequest = "aeterna-action-request-v1";
     public const string ActionResponse = "minimal-action-response-v0";
@@ -16,7 +17,9 @@ public static class ContractSchemas
     public const string WellspringResourceSummary = "aeterna-wellspring-resource-summary-v1";
     public const string ResourceSummary = "aeterna-resource-summary-v1";
     public const string DomainBoardProjection = "aeterna-player-visible-domain-board-v1";
+    public const string DomainBoardProjectionWithSeals = "aeterna-player-visible-domain-board-v2";
     public const string DebugSnapshot = "aeterna-debug-match-snapshot-v4";
+    public const string DebugSnapshotWithSeals = "aeterna-debug-match-snapshot-v5";
     public const string EngineEvent = "minimal-engine-event-v0";
     public const string EngineDiagnostic = "aeterna-engine-diagnostic-v1";
     public const string MatchResult = "aeterna-match-result-v1";
@@ -55,7 +58,10 @@ public sealed record CreateMatchRequest(
     [property: JsonPropertyName("runtime_package")] RuntimePackageSource RuntimePackage,
     [property: JsonPropertyName("canonical_data")]
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    CanonicalRuntimeSource? CanonicalData = null);
+    CanonicalRuntimeSource? CanonicalData = null,
+    [property: JsonPropertyName("setup_mode")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SetupMode = null);
 
 public sealed record CreateMatchResponse(
     [property: JsonPropertyName("schema_version")] string SchemaVersion,
@@ -94,6 +100,9 @@ public sealed record ActionRequest(
     [property: JsonPropertyName("action_id")] string ActionId,
     [property: JsonPropertyName("action_type")] string ActionType,
     [property: JsonPropertyName("payload")] JsonElement Payload);
+
+public sealed record ResolveProphecyActionPayload(
+    [property: JsonPropertyName("card_instance_ids")] ImmutableArray<string> CardInstanceIds);
 
 public sealed record NormalInflowActionPayload(
     [property: JsonPropertyName("card_instance_id")] string CardInstanceId);
@@ -465,6 +474,27 @@ public sealed record DomainBoardProjection(
     [property: JsonPropertyName("lane_count")] int LaneCount,
     [property: JsonPropertyName("players")] ImmutableArray<PlayerDomainProjection> Players);
 
+public sealed record SealSlotProjection(
+    [property: JsonPropertyName("seal_slot_id")] string SealSlotId,
+    [property: JsonPropertyName("owner_player_id")] string OwnerPlayerId,
+    [property: JsonPropertyName("lane_index")] int LaneIndex,
+    [property: JsonPropertyName("status")] string Status);
+
+public sealed record PlayerDomainSealProjection(
+    [property: JsonPropertyName("player_id")] string PlayerId,
+    [property: JsonPropertyName("occupied_slot_count")] int OccupiedSlotCount,
+    [property: JsonPropertyName("empty_slot_count")] int EmptySlotCount,
+    [property: JsonPropertyName("horizon")] ImmutableArray<DomainSlotProjection> Horizon,
+    [property: JsonPropertyName("zenith")] ImmutableArray<DomainSlotProjection> Zenith,
+    [property: JsonPropertyName("seals")] ImmutableArray<SealSlotProjection> Seals);
+
+public sealed record DomainBoardSealProjection(
+    [property: JsonPropertyName("schema_version")] string SchemaVersion,
+    [property: JsonPropertyName("zone")] string Zone,
+    [property: JsonPropertyName("visibility_mode")] string VisibilityMode,
+    [property: JsonPropertyName("lane_count")] int LaneCount,
+    [property: JsonPropertyName("players")] ImmutableArray<PlayerDomainSealProjection> Players);
+
 public sealed record ZoneSnapshot(
     [property: JsonPropertyName("zone")] string Zone,
     [property: JsonPropertyName("count")] int Count,
@@ -537,7 +567,17 @@ public sealed record DebugPlayerSnapshot(
     ImmutableArray<string> WellspringCardInstanceIds,
     ImmutableArray<string?> HorizonCardInstanceIds,
     ImmutableArray<string?> ZenithCardInstanceIds,
+    [property: JsonPropertyName("seal_slots")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    ImmutableArray<DebugSealSlotSnapshot> SealSlots,
     int? NormalInflowUsedTurnNumber);
+
+public sealed record DebugSealSlotSnapshot(
+    string SealSlotId,
+    string OwnerPlayerId,
+    int LaneIndex,
+    string Status,
+    string? CardInstanceId);
 
 public sealed record DebugCardInstanceSnapshot(
     string CardInstanceId,

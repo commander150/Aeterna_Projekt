@@ -20,6 +20,10 @@ internal sealed class MatchState
 
     internal bool LegacyPhaseCompatibility { get; init; }
 
+    public MatchSetupState? Setup { get; set; }
+
+    public int NextShuffleSequence { get; set; } = 1;
+
     public required string StartingPlayerId { get; init; }
 
     public required string ActivePlayerId { get; set; }
@@ -186,6 +190,17 @@ internal sealed record PendingTriggeredAbilityState(
     string? SourceToZoneId = null,
     string? SourceZoneTransitionInstanceId = null);
 
+internal sealed class MatchSetupState
+{
+    public required string SetupModeId { get; init; }
+
+    public string? CurrentProphecyPlayerId { get; set; }
+
+    public List<string> CompletedProphecyPlayerIds { get; } = [];
+
+    public bool Completed { get; set; }
+}
+
 internal sealed class PlayerState
 {
     public required string PlayerId { get; init; }
@@ -202,7 +217,22 @@ internal sealed class PlayerState
 
     public DomainState Domain { get; } = new();
 
+    public List<SealSlotState> SealSlots { get; } = [];
+
     public int? NormalInflowUsedTurnNumber { get; set; }
+}
+
+internal sealed class SealSlotState
+{
+    public required string SealSlotId { get; init; }
+
+    public required string OwnerPlayerId { get; init; }
+
+    public required int LaneIndex { get; init; }
+
+    public required string Status { get; set; }
+
+    public string? CardInstanceId { get; set; }
 }
 
 internal enum DomainRow

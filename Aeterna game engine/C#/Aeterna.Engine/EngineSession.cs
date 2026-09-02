@@ -168,7 +168,7 @@ public sealed class EngineSession
             players,
             legalActions,
             state.Events.Count,
-            ContractJsonValue.From(BuildDomainBoardProjection(state)),
+            BuildDomainBoardProjection(state),
             new ResourceSummary(ContractSchemas.ResourceSummary, resourceSummaries),
             BuildPendingDecisionSummary(state, playerId),
             state.Result);
@@ -179,6 +179,11 @@ public sealed class EngineSession
         var state = RequireState();
         ValidateState(state, _canonicalRuntime?.Cards, _canonicalRuntime?.Abilities);
         var player = RequireKnownPlayer(state, playerId);
+        if (state.Setup is { Completed: false })
+        {
+            return BuildSetupLegalActionSpace(state, player, includeDisabled);
+        }
+
         var baseActions = _legacyActionCompatibility
             ? BuildLegacyActions(state, player)
             : BuildCanonicalPhaseActions(state, player);
@@ -202,6 +207,69 @@ public sealed class EngineSession
 
         return BuildLegalActionSpace(state, player.PlayerId, baseActions, includeDisabled);
     }
+
+    private LegalActionSpace BuildSetupLegalActionSpace(
+        MatchState state,
+        PlayerState player,
+        bool includeDisabled)
+    {
+        var setup = state.Setup
+            ?? throw new EngineStateException("Setup legal actions require authoritative setup state.");
+        var isDecisionPlayer = string.Equals(
+            setup.CurrentProphecyPlayerId,
+            player.PlayerId,
+            StringComparison.Ordinal);
+        var actions = BuildCanonicalPhaseActions(state, player)
+            .Select(action => action with
+            {
+                Enabled = false,
+                DisabledReason = "match_setup_pending",
+            })
+            .Prepend(new LegalAction(
+                $"resolve_prophecy:{state.StateVersion}:{player.PlayerId}",
+                "resolve_prophecy",
+                player.PlayerId,
+                isDecisionPlayer,
+                10,
+                isDecisionPlayer ? null : "not_prophecy_player",
+                isDecisionPlayer
+                    ? BuildResolveProphecyPayloadSchema(state, player)
+                    : BuildUnavailableSetupPayloadSchema()))
+            .ToImmutableArray();
+        return BuildLegalActionSpace(state, player.PlayerId, actions, includeDisabled);
+    }
+
+    private static JsonElement BuildResolveProphecyPayloadSchema(
+        MatchState state,
+        PlayerState player) => ContractJsonValue.From(new Dictionary<string, object?>
+        {
+            ["type"] = "object",
+            ["required"] = new[] { "card_instance_ids" },
+            ["additional_properties"] = false,
+            ["properties"] = new Dictionary<string, object?>
+            {
+                ["card_instance_ids"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "array",
+                    ["unique_items"] = true,
+                    ["minimum_items"] = 0,
+                    ["maximum_items"] = player.HandCardInstanceIds.Count,
+                    ["items"] = new Dictionary<string, object?>
+                    {
+                        ["type"] = "string",
+                        ["enum"] = player.HandCardInstanceIds.ToArray(),
+                    },
+                },
+            },
+            ["decision_state_version"] = state.StateVersion,
+        });
+
+    private static JsonElement BuildUnavailableSetupPayloadSchema() =>
+        ContractJsonValue.From(new Dictionary<string, object?>
+        {
+            ["type"] = "object",
+            ["available"] = false,
+        });
 
     private ImmutableArray<LegalAction> BuildCanonicalPhaseActions(
         MatchState state,
@@ -558,6 +626,22 @@ public sealed class EngineSession
 
     private static JsonElement BuildPendingDecisionSummary(MatchState state, string viewerPlayerId)
     {
+        var setup = state.Setup;
+        if (setup is { Completed: false })
+        {
+            return ContractJsonValue.From(new Dictionary<string, object?>
+            {
+                ["has_pending"] = true,
+                ["pending_type"] = "prophecy",
+                ["decision_player_id"] = setup.CurrentProphecyPlayerId,
+                ["viewer_is_decision_player"] = string.Equals(
+                    viewerPlayerId,
+                    setup.CurrentProphecyPlayerId,
+                    StringComparison.Ordinal),
+                ["completed_player_count"] = setup.CompletedProphecyPlayerIds.Count,
+            });
+        }
+
         var reaction = state.ReactionWindow;
         if (reaction is not null)
         {
@@ -762,6 +846,7 @@ public sealed class EngineSession
 
         var response = request.ActionType switch
         {
+            "resolve_prophecy" => ApplyResolveProphecy(state, request, stateVersionBefore),
             "advance_phase" => ApplyAdvancePhase(state, request, stateVersionBefore),
             "draw_card" => ApplyDraw(state, request, stateVersionBefore),
             "normal_inflow" => ApplyNormalInflow(state, request, stateVersionBefore),
@@ -817,7 +902,9 @@ public sealed class EngineSession
     {
         var state = RequireState();
         return new DebugSnapshot(
-            ContractSchemas.DebugSnapshot,
+            state.Setup is null
+                ? ContractSchemas.DebugSnapshot
+                : ContractSchemas.DebugSnapshotWithSeals,
             state.MatchId,
             state.Seed,
             state.StateVersion,
@@ -836,6 +923,17 @@ public sealed class EngineSession
                 player.WellspringCardInstanceIds.ToImmutableArray(),
                 player.Domain.HorizonCardInstanceIds.ToImmutableArray(),
                 player.Domain.ZenithCardInstanceIds.ToImmutableArray(),
+                state.Setup is null
+                    ? default
+                    : player.SealSlots
+                        .OrderBy(slot => slot.LaneIndex)
+                        .Select(slot => new DebugSealSlotSnapshot(
+                            slot.SealSlotId,
+                            slot.OwnerPlayerId,
+                            slot.LaneIndex,
+                            slot.Status,
+                            slot.CardInstanceId))
+                        .ToImmutableArray(),
                 player.NormalInflowUsedTurnNumber)).ToImmutableArray(),
             state.CardInstances.Values
                 .OrderBy(card => card.CreatedSequence)
@@ -1473,9 +1571,34 @@ public sealed class EngineSession
 
     private static void ValidateCreateMatchRequest(CreateMatchRequest request)
     {
-        if (!string.Equals(request.SchemaVersion, ContractSchemas.CreateMatchRequest, StringComparison.Ordinal))
+        // Transitional v2 compatibility is intentionally limited to the historical
+        // runtime-comparison request shape; canonical production setup is v3-only.
+        var compatibilityRequest = string.Equals(
+            request.SchemaVersion,
+            ContractSchemas.CreateMatchRequest,
+            StringComparison.Ordinal);
+        var canonicalSetupRequest = string.Equals(
+            request.SchemaVersion,
+            ContractSchemas.CanonicalCreateMatchRequest,
+            StringComparison.Ordinal);
+        if (!compatibilityRequest && !canonicalSetupRequest)
         {
             throw new EngineInputException("CREATE_MATCH_SCHEMA_INVALID", "Create match schema is not supported.");
+        }
+
+        if (compatibilityRequest && request.SetupMode is not null)
+        {
+            throw new EngineInputException(
+                "CREATE_MATCH_SETUP_MODE_INVALID",
+                "The historical v2 request cannot declare a setup mode.");
+        }
+
+        if (canonicalSetupRequest
+            && !string.Equals(request.SetupMode, "canonical", StringComparison.Ordinal))
+        {
+            throw new EngineInputException(
+                "CREATE_MATCH_SETUP_MODE_INVALID",
+                "The v3 request requires setup_mode canonical.");
         }
 
         if (string.IsNullOrWhiteSpace(request.MatchId))
@@ -1486,6 +1609,13 @@ public sealed class EngineSession
         if (request.StartingHandSize < 0)
         {
             throw new EngineInputException("STARTING_HAND_SIZE_INVALID", "Starting hand size cannot be negative.");
+        }
+
+        if (canonicalSetupRequest && request.StartingHandSize != 5)
+        {
+            throw new EngineInputException(
+                "STARTING_HAND_SIZE_INVALID",
+                "Canonical AETERNA setup requires a five-card starting hand.");
         }
 
         if (string.IsNullOrWhiteSpace(request.StartingPlayerId)
@@ -1516,6 +1646,13 @@ public sealed class EngineSession
             || request.Players.Select(item => item.PlayerId).Distinct(StringComparer.Ordinal).Count() != request.Players.Length)
         {
             throw new EngineInputException("PLAYER_SETUP_INVALID", "At least two distinct valid players are required.");
+        }
+
+        if (canonicalSetupRequest && request.Players.Length != 2)
+        {
+            throw new EngineInputException(
+                "PLAYER_SETUP_INVALID",
+                "Canonical AETERNA setup requires exactly two players.");
         }
     }
 
@@ -1601,6 +1738,10 @@ public sealed class EngineSession
 
     private MatchState BuildInitialState(CreateMatchRequest request, RuntimePackageCatalog package)
     {
+        var canonicalSetup = string.Equals(
+            request.SchemaVersion,
+            ContractSchemas.CanonicalCreateMatchRequest,
+            StringComparison.Ordinal);
         var state = new MatchState
         {
             MatchId = request.MatchId,
@@ -1614,6 +1755,14 @@ public sealed class EngineSession
             StartingPlayerId = request.StartingPlayerId,
             ActivePlayerId = request.StartingPlayerId,
             PriorityPlayerId = request.StartingPlayerId,
+            Setup = canonicalSetup
+                ? new MatchSetupState
+                {
+                    SetupModeId = "canonical",
+                    CurrentProphecyPlayerId = request.StartingPlayerId,
+                    Completed = false,
+                }
+                : null,
         };
         foreach (var setup in request.Players)
         {
@@ -1627,6 +1776,13 @@ public sealed class EngineSession
                 throw new EngineInputException("DECK_TOO_SMALL", "Deck is smaller than the requested starting hand.");
             }
 
+            if (canonicalSetup && deck.OrderedCardIds.Length is < 40 or > 60)
+            {
+                throw new EngineInputException(
+                    "CANONICAL_DECK_SIZE_INVALID",
+                    "Canonical AETERNA setup requires a 40-60 card Deck.");
+            }
+
             var player = new PlayerState
             {
                 PlayerId = setup.PlayerId,
@@ -1635,7 +1791,7 @@ public sealed class EngineSession
             for (var cardIndex = 0; cardIndex < deck.OrderedCardIds.Length; cardIndex++)
             {
                 var cardInstanceId = $"ci_{setup.PlayerId}_{cardIndex + 1:0000}";
-                var inHand = cardIndex < request.StartingHandSize;
+                var inHand = !canonicalSetup && cardIndex < request.StartingHandSize;
                 var zone = inHand ? "hand" : "deck";
                 var zoneIndex = inHand ? cardIndex : cardIndex - request.StartingHandSize;
                 state.CardInstances.Add(cardInstanceId, new CardInstanceState
@@ -1656,9 +1812,22 @@ public sealed class EngineSession
             }
 
             state.Players.Add(player);
+            if (canonicalSetup)
+            {
+                ShuffleDeck(state, player, "initial_deck");
+                for (var drawIndex = 0; drawIndex < request.StartingHandSize; drawIndex += 1)
+                {
+                    var draw = CanonicalDrawTransition.PlanTopCard(
+                        state,
+                        player.PlayerId,
+                        player.DeckCardInstanceIds,
+                        player.HandCardInstanceIds.Count);
+                    CanonicalDrawTransition.Apply(state, draw);
+                }
+            }
         }
 
-        if (!_legacyActionCompatibility)
+        if (!canonicalSetup && !_legacyActionCompatibility)
         {
             var initialEntry = CanonicalPhaseLifecycle.PlanAwakeningEntry(
                 state,
@@ -1668,6 +1837,263 @@ public sealed class EngineSession
         }
 
         return state;
+    }
+
+    private static ActionResponse ApplyResolveProphecy(
+        MatchState state,
+        ActionRequest request,
+        int stateVersionBefore)
+    {
+        var setup = state.Setup;
+        if (setup is null
+            || setup.Completed
+            || !string.Equals(
+                setup.CurrentProphecyPlayerId,
+                request.PlayerId,
+                StringComparison.Ordinal))
+        {
+            return RejectAction(
+                state,
+                request,
+                "prophecy_not_pending",
+                Diagnostic(
+                    "PROPHECY_NOT_PENDING",
+                    "transition_validation",
+                    "This player does not have a pending Prophecy decision.",
+                    "resolve_prophecy requires the authoritative current Prophecy player.",
+                    "refresh_projection"));
+        }
+
+        var player = state.GetPlayer(request.PlayerId);
+        var selectedIds = request.Payload.GetProperty("card_instance_ids")
+            .EnumerateArray()
+            .Select(item => item.GetString()!)
+            .ToImmutableArray();
+        if (selectedIds.Distinct(StringComparer.Ordinal).Count() != selectedIds.Length)
+        {
+            return RejectAction(
+                state,
+                request,
+                "duplicate_prophecy_selection",
+                Diagnostic(
+                    "PROPHECY_SELECTION_DUPLICATE",
+                    "transition_validation",
+                    "A Prophecy card can be selected only once.",
+                    "The card_instance_ids selection contains a duplicate value.",
+                    "fix_request"));
+        }
+
+        foreach (var cardInstanceId in selectedIds)
+        {
+            if (!state.CardInstances.TryGetValue(cardInstanceId, out var card))
+            {
+                return RejectAction(
+                    state,
+                    request,
+                    "prophecy_card_unknown",
+                    Diagnostic(
+                        "PROPHECY_CARD_UNKNOWN",
+                        "transition_validation",
+                        "A selected Prophecy card is not available.",
+                        "The Prophecy selection references an unknown card_instance_id.",
+                        "refresh_projection"));
+            }
+
+            if (!string.Equals(card.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal)
+                || !string.Equals(card.ControllerPlayerId, player.PlayerId, StringComparison.Ordinal))
+            {
+                return RejectAction(
+                    state,
+                    request,
+                    "prophecy_card_authority_invalid",
+                    Diagnostic(
+                        "PROPHECY_CARD_AUTHORITY_INVALID",
+                        "transition_validation",
+                        "A selected card does not belong to this player's Prophecy.",
+                        "The selected card owner/controller does not match the decision player.",
+                        "refresh_projection"));
+            }
+
+            if (!string.Equals(card.Zone, "hand", StringComparison.Ordinal)
+                || !player.HandCardInstanceIds.Contains(cardInstanceId, StringComparer.Ordinal))
+            {
+                return RejectAction(
+                    state,
+                    request,
+                    "prophecy_card_not_in_hand",
+                    Diagnostic(
+                        "PROPHECY_CARD_ZONE_INVALID",
+                        "transition_validation",
+                        "A selected card is not in this player's hand.",
+                        "Prophecy accepts only current authoritative hand card instances.",
+                        "refresh_projection"));
+            }
+        }
+
+        var selectedSet = selectedIds.ToHashSet(StringComparer.Ordinal);
+        var orderedSelection = player.HandCardInstanceIds
+            .Where(selectedSet.Contains)
+            .ToImmutableArray();
+        foreach (var cardInstanceId in orderedSelection)
+        {
+            player.HandCardInstanceIds.Remove(cardInstanceId);
+            var card = state.GetCardInstance(cardInstanceId);
+            card.Zone = "deck";
+            card.ZoneIndex = player.DeckCardInstanceIds.Count;
+            card.Visibility = "owner_only";
+            card.ZoneSequence += 1;
+            player.DeckCardInstanceIds.Add(cardInstanceId);
+        }
+
+        ReindexZone(state, player.HandCardInstanceIds, "hand");
+        if (orderedSelection.Length > 0)
+        {
+            ShuffleDeck(state, player, "prophecy");
+            for (var drawIndex = 0; drawIndex < orderedSelection.Length; drawIndex += 1)
+            {
+                var draw = CanonicalDrawTransition.PlanTopCard(
+                    state,
+                    player.PlayerId,
+                    player.DeckCardInstanceIds,
+                    player.HandCardInstanceIds.Count);
+                CanonicalDrawTransition.Apply(state, draw);
+            }
+        }
+
+        setup.CompletedProphecyPlayerIds.Add(player.PlayerId);
+        var completedSetup = setup.CompletedProphecyPlayerIds.Count == state.Players.Count;
+        if (completedSetup)
+        {
+            InitializeSeals(state);
+            setup.Completed = true;
+            setup.CurrentProphecyPlayerId = null;
+            state.PriorityPlayerId = state.StartingPlayerId;
+            var initialEntry = CanonicalPhaseLifecycle.PlanAwakeningEntry(
+                state,
+                state.StartingPlayerId,
+                drawCount: 0);
+            CanonicalPhaseLifecycle.ApplyAwakeningEntry(state, initialEntry);
+        }
+        else
+        {
+            setup.CurrentProphecyPlayerId = state.GetNextPlayerId(player.PlayerId);
+            state.PriorityPlayerId = setup.CurrentProphecyPlayerId;
+        }
+
+        state.StateVersion += 1;
+        var events = ImmutableArray.CreateBuilder<EngineEvent>();
+        events.Add(CreateSetupEvent(
+            state,
+            request,
+            events.Count,
+            "prophecy_resolved",
+            ContractJsonValue.From(new Dictionary<string, object?>
+            {
+                ["player_id"] = player.PlayerId,
+                ["returned_card_count"] = orderedSelection.Length,
+            })));
+        if (completedSetup)
+        {
+            events.Add(CreateSetupEvent(
+                state,
+                request,
+                events.Count,
+                "seals_initialized",
+                ContractJsonValue.From(new Dictionary<string, object?>
+                {
+                    ["players"] = state.Players.Select(item => new Dictionary<string, object?>
+                    {
+                        ["player_id"] = item.PlayerId,
+                        ["seal_slots"] = item.SealSlots
+                            .OrderBy(slot => slot.LaneIndex)
+                            .Select(slot => new Dictionary<string, object?>
+                            {
+                                ["seal_slot_id"] = slot.SealSlotId,
+                                ["lane_index"] = slot.LaneIndex,
+                                ["status"] = slot.Status,
+                            }).ToArray(),
+                    }).ToArray(),
+                })));
+            events.Add(CreateSetupEvent(
+                state,
+                request,
+                events.Count,
+                "match_setup_completed",
+                ContractJsonValue.From(new Dictionary<string, object?>
+                {
+                    ["starting_player_id"] = state.StartingPlayerId,
+                    ["phase"] = state.Phase,
+                })));
+        }
+
+        state.Events.AddRange(events);
+        return AcceptAction(state, request, stateVersionBefore, events.ToImmutable());
+    }
+
+    private static void InitializeSeals(MatchState state)
+    {
+        foreach (var player in state.Players)
+        {
+            if (player.DeckCardInstanceIds.Count < DomainState.LaneCount)
+            {
+                throw new EngineStateException("Canonical setup cannot initialize six Seals from the Deck.");
+            }
+
+            for (var laneIndex = 0; laneIndex < DomainState.LaneCount; laneIndex += 1)
+            {
+                var cardInstanceId = player.DeckCardInstanceIds[0];
+                player.DeckCardInstanceIds.RemoveAt(0);
+                var card = state.GetCardInstance(cardInstanceId);
+                card.Zone = "seal";
+                card.ZoneIndex = laneIndex;
+                card.Visibility = "hidden";
+                card.ZoneSequence += 1;
+                player.SealSlots.Add(new SealSlotState
+                {
+                    SealSlotId = $"seal:{player.PlayerId}:{laneIndex + 1:00}",
+                    OwnerPlayerId = player.PlayerId,
+                    LaneIndex = laneIndex,
+                    Status = "standing",
+                    CardInstanceId = cardInstanceId,
+                });
+            }
+
+            ReindexZone(state, player.DeckCardInstanceIds, "deck");
+        }
+    }
+
+    private static void ShuffleDeck(MatchState state, PlayerState player, string purpose)
+    {
+        var shuffleSequence = state.NextShuffleSequence;
+        EngineRandom.Shuffle(
+            player.DeckCardInstanceIds,
+            state.Seed,
+            $"{purpose}:{player.PlayerId}",
+            shuffleSequence);
+        state.NextShuffleSequence += 1;
+        ReindexZone(state, player.DeckCardInstanceIds, "deck");
+    }
+
+    private static EngineEvent CreateSetupEvent(
+        MatchState state,
+        ActionRequest request,
+        int pendingEventCount,
+        string eventType,
+        JsonElement payload)
+    {
+        var eventSequence = state.Events.Count + pendingEventCount + 1;
+        return new EngineEvent(
+            ContractSchemas.EngineEvent,
+            $"event_{eventSequence:000000}",
+            eventSequence,
+            eventType,
+            state.MatchId,
+            state.StateVersion,
+            state.TurnNumber,
+            request.PlayerId,
+            request.ActionType,
+            "public",
+            payload);
     }
 
     private static ActionResponse ApplyDraw(MatchState state, ActionRequest request, int stateVersionBefore)
@@ -4896,7 +5322,7 @@ public sealed class EngineSession
             objects);
     }
 
-    private DomainBoardProjection BuildDomainBoardProjection(MatchState state)
+    private JsonElement BuildDomainBoardProjection(MatchState state)
     {
         var players = state.Players
             .Select(player =>
@@ -4921,12 +5347,39 @@ public sealed class EngineSession
                     zenith);
             })
             .ToImmutableArray();
-        return new DomainBoardProjection(
-            ContractSchemas.DomainBoardProjection,
+        if (state.Setup is null)
+        {
+            return ContractJsonValue.From(new DomainBoardProjection(
+                ContractSchemas.DomainBoardProjection,
+                "dominion",
+                "public",
+                DomainState.LaneCount,
+                players));
+        }
+
+        return ContractJsonValue.From(new DomainBoardSealProjection(
+            ContractSchemas.DomainBoardProjectionWithSeals,
             "dominion",
             "public",
             DomainState.LaneCount,
-            players);
+            players.Select(player =>
+            {
+                var authoritativePlayer = state.GetPlayer(player.PlayerId);
+                return new PlayerDomainSealProjection(
+                    player.PlayerId,
+                    player.OccupiedSlotCount,
+                    player.EmptySlotCount,
+                    player.Horizon,
+                    player.Zenith,
+                    authoritativePlayer.SealSlots
+                        .OrderBy(slot => slot.LaneIndex)
+                        .Select(slot => new SealSlotProjection(
+                            slot.SealSlotId,
+                            slot.OwnerPlayerId,
+                            slot.LaneIndex,
+                            slot.Status))
+                        .ToImmutableArray());
+            }).ToImmutableArray()));
     }
 
     private ImmutableArray<DomainSlotProjection> BuildDomainRowProjection(
@@ -5269,6 +5722,25 @@ public sealed class EngineSession
                 "Action payload contains unsupported fields.",
                 $"The {request.ActionType} action requires an empty payload object.",
                 "fix_request");
+        }
+
+        if (string.Equals(request.ActionType, "resolve_prophecy", StringComparison.Ordinal))
+        {
+            var properties = request.Payload.EnumerateObject().ToArray();
+            if (properties.Length != 1
+                || !string.Equals(properties[0].Name, "card_instance_ids", StringComparison.Ordinal)
+                || properties[0].Value.ValueKind != JsonValueKind.Array
+                || properties[0].Value.EnumerateArray().Any(item =>
+                    item.ValueKind != JsonValueKind.String
+                    || string.IsNullOrWhiteSpace(item.GetString())))
+            {
+                return Diagnostic(
+                    "ACTION_PAYLOAD_INVALID",
+                    "request_validation",
+                    "Prophecy requires an exact hand-card selection array.",
+                    "The resolve_prophecy payload must contain exactly card_instance_ids as an array of non-empty strings.",
+                    "fix_request");
+            }
         }
 
         if (string.Equals(request.ActionType, "normal_inflow", StringComparison.Ordinal))
@@ -5839,6 +6311,7 @@ public sealed class EngineSession
             TurnNumber = source.TurnNumber,
             Phase = source.Phase,
             LegacyPhaseCompatibility = source.LegacyPhaseCompatibility,
+            NextShuffleSequence = source.NextShuffleSequence,
             StartingPlayerId = source.StartingPlayerId,
             ActivePlayerId = source.ActivePlayerId,
             PriorityPlayerId = source.PriorityPlayerId,
@@ -5847,6 +6320,18 @@ public sealed class EngineSession
             NextReactionSubjectSequence = source.NextReactionSubjectSequence,
             NextResolutionSequence = source.NextResolutionSequence,
         };
+
+        if (source.Setup is not null)
+        {
+            var setup = new MatchSetupState
+            {
+                SetupModeId = source.Setup.SetupModeId,
+                CurrentProphecyPlayerId = source.Setup.CurrentProphecyPlayerId,
+                Completed = source.Setup.Completed,
+            };
+            setup.CompletedProphecyPlayerIds.AddRange(source.Setup.CompletedProphecyPlayerIds);
+            clone.Setup = setup;
+        }
 
         foreach (var sourcePlayer in source.Players)
         {
@@ -5860,6 +6345,18 @@ public sealed class EngineSession
             player.HandCardInstanceIds.AddRange(sourcePlayer.HandCardInstanceIds);
             player.VoidCardInstanceIds.AddRange(sourcePlayer.VoidCardInstanceIds);
             player.WellspringCardInstanceIds.AddRange(sourcePlayer.WellspringCardInstanceIds);
+            foreach (var sourceSeal in sourcePlayer.SealSlots)
+            {
+                player.SealSlots.Add(new SealSlotState
+                {
+                    SealSlotId = sourceSeal.SealSlotId,
+                    OwnerPlayerId = sourceSeal.OwnerPlayerId,
+                    LaneIndex = sourceSeal.LaneIndex,
+                    Status = sourceSeal.Status,
+                    CardInstanceId = sourceSeal.CardInstanceId,
+                });
+            }
+
             for (var lane = 0; lane < DomainState.LaneCount; lane += 1)
             {
                 player.Domain.HorizonCardInstanceIds[lane] =
@@ -6114,6 +6611,11 @@ public sealed class EngineSession
             throw new EngineStateException("Turn number must be positive.");
         }
 
+        if (state.NextShuffleSequence < 1)
+        {
+            throw new EngineStateException("The deterministic shuffle sequence must be positive.");
+        }
+
         var isAllowedLegacyPhase = state.LegacyPhaseCompatibility
             && string.Equals(state.Phase, CanonicalPhaseIds.LegacyMain, StringComparison.Ordinal);
         if (!CanonicalPhaseIds.IsCanonical(state.Phase) && !isAllowedLegacyPhase)
@@ -6130,6 +6632,8 @@ public sealed class EngineSession
         {
             throw new EngineStateException("Starting player is unknown.");
         }
+
+        ValidateSetupState(state, knownPlayerIds);
 
         foreach (var cardInstanceId in state.ResolutionCardInstanceIds)
         {
@@ -6153,6 +6657,7 @@ public sealed class EngineSession
                     "Normal Inflow used turn number must be positive and cannot be in the future.");
             }
 
+            ValidateSealState(state, player, knownPlayerIds, zoneIds);
             foreach (var cardInstanceId in player.HandCardInstanceIds
                          .Concat(player.DeckCardInstanceIds)
                          .Concat(player.VoidCardInstanceIds)
@@ -6240,6 +6745,20 @@ public sealed class EngineSession
             throw new EngineStateException("Card instance registry and Resolution zone disagree.");
         }
 
+        var listedSealIds = state.Players
+            .SelectMany(player => player.SealSlots)
+            .Where(slot => slot.CardInstanceId is not null)
+            .Select(slot => slot.CardInstanceId!)
+            .ToHashSet(StringComparer.Ordinal);
+        var registeredSealIds = state.CardInstances.Values
+            .Where(card => string.Equals(card.Zone, "seal", StringComparison.Ordinal))
+            .Select(card => card.CardInstanceId)
+            .ToHashSet(StringComparer.Ordinal);
+        if (!listedSealIds.SetEquals(registeredSealIds))
+        {
+            throw new EngineStateException("Card instance registry and Seal slots disagree.");
+        }
+
         ValidateResolutionState(state, knownPlayerIds);
 
         var listedDomainIds = state.Players
@@ -6264,7 +6783,7 @@ public sealed class EngineSession
                 throw new EngineStateException("Card damage_marked cannot be negative.");
             }
 
-            if (card.Zone is not ("deck" or "hand" or "void" or "wellspring" or "dominion" or "resolution"))
+            if (card.Zone is not ("deck" or "hand" or "void" or "wellspring" or "dominion" or "resolution" or "seal"))
             {
                 throw new EngineStateException("Card instance zone must use an active production zone token.");
             }
@@ -6335,6 +6854,163 @@ public sealed class EngineSession
 
         ValidatePendingTriggerWindow(state, knownPlayerIds);
         ValidateReactionState(state, knownPlayerIds);
+    }
+
+    private static void ValidateSetupState(
+        MatchState state,
+        IReadOnlySet<string> knownPlayerIds)
+    {
+        var setup = state.Setup;
+        if (setup is null)
+        {
+            if (state.Players.Any(player => player.SealSlots.Count != 0))
+            {
+                throw new EngineStateException(
+                    "Historical setup compatibility state cannot carry canonical Seal slots.");
+            }
+
+            return;
+        }
+
+        if (!string.Equals(setup.SetupModeId, "canonical", StringComparison.Ordinal)
+            || state.LegacyPhaseCompatibility
+            || state.Players.Count != 2
+            || setup.CompletedProphecyPlayerIds.Distinct(StringComparer.Ordinal).Count()
+            != setup.CompletedProphecyPlayerIds.Count
+            || setup.CompletedProphecyPlayerIds.Any(playerId => !knownPlayerIds.Contains(playerId)))
+        {
+            throw new EngineStateException("Canonical match setup identity or player state is invalid.");
+        }
+
+        var startingIndex = state.Players.FindIndex(player => string.Equals(
+            player.PlayerId,
+            state.StartingPlayerId,
+            StringComparison.Ordinal));
+        var prophecyOrder = Enumerable.Range(0, state.Players.Count)
+            .Select(offset => state.Players[(startingIndex + offset) % state.Players.Count].PlayerId)
+            .ToArray();
+        if (!setup.CompletedProphecyPlayerIds.SequenceEqual(
+                prophecyOrder.Take(setup.CompletedProphecyPlayerIds.Count),
+                StringComparer.Ordinal))
+        {
+            throw new EngineStateException("Completed Prophecy decisions do not follow canonical player order.");
+        }
+
+        if (setup.Completed)
+        {
+            if (setup.CurrentProphecyPlayerId is not null
+                || setup.CompletedProphecyPlayerIds.Count != state.Players.Count)
+            {
+                throw new EngineStateException("Completed canonical setup retained an incomplete Prophecy state.");
+            }
+
+            var slotIds = state.Players
+                .SelectMany(player => player.SealSlots)
+                .Select(slot => slot.SealSlotId)
+                .ToArray();
+            if (slotIds.Distinct(StringComparer.Ordinal).Count() != slotIds.Length)
+            {
+                throw new EngineStateException("Seal slot IDs must be globally unique.");
+            }
+
+            return;
+        }
+
+        var completedCount = setup.CompletedProphecyPlayerIds.Count;
+        if (completedCount >= state.Players.Count
+            || !string.Equals(
+                setup.CurrentProphecyPlayerId,
+                prophecyOrder[completedCount],
+                StringComparison.Ordinal)
+            || !string.Equals(state.ActivePlayerId, state.StartingPlayerId, StringComparison.Ordinal)
+            || !string.Equals(state.PriorityPlayerId, setup.CurrentProphecyPlayerId, StringComparison.Ordinal)
+            || state.TurnNumber != 1
+            || !string.Equals(state.Phase, CanonicalPhaseIds.Awakening, StringComparison.Ordinal)
+            || state.PendingTriggerWindow is not null
+            || state.ReactionWindow is not null
+            || state.ResolutionStack.Count != 0
+            || state.ResolutionCardInstanceIds.Count != 0
+            || state.QueuedTriggerBatches.Count != 0
+            || state.ModifierInstances.Count != 0
+            || state.KeywordGrantInstances.Count != 0
+            || state.Players.Any(player =>
+                player.SealSlots.Count != 0
+                || player.VoidCardInstanceIds.Count != 0
+                || player.WellspringCardInstanceIds.Count != 0
+                || player.NormalInflowUsedTurnNumber is not null
+                || player.Domain.HorizonCardInstanceIds.Any(cardId => cardId is not null)
+                || player.Domain.ZenithCardInstanceIds.Any(cardId => cardId is not null)))
+        {
+            throw new EngineStateException("Pending canonical setup state is inconsistent.");
+        }
+    }
+
+    private static void ValidateSealState(
+        MatchState state,
+        PlayerState player,
+        IReadOnlySet<string> knownPlayerIds,
+        ISet<string> zoneIds)
+    {
+        var expectedCount = state.Setup is { Completed: true }
+            ? DomainState.LaneCount
+            : 0;
+        if (player.SealSlots.Count != expectedCount)
+        {
+            throw new EngineStateException("Each completed canonical player must have exactly six Seal slots.");
+        }
+
+        if (expectedCount == 0)
+        {
+            return;
+        }
+
+        if (!player.SealSlots
+                .OrderBy(slot => slot.LaneIndex)
+                .Select(slot => slot.LaneIndex)
+                .SequenceEqual(Enumerable.Range(0, DomainState.LaneCount)))
+        {
+            throw new EngineStateException("Seal lane indices must be unique and contiguous.");
+        }
+
+        foreach (var slot in player.SealSlots)
+        {
+            var expectedSlotId = $"seal:{player.PlayerId}:{slot.LaneIndex + 1:00}";
+            if (!knownPlayerIds.Contains(slot.OwnerPlayerId)
+                || !string.Equals(slot.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal)
+                || !string.Equals(slot.SealSlotId, expectedSlotId, StringComparison.Ordinal)
+                || slot.Status is not ("standing" or "broken"))
+            {
+                throw new EngineStateException("Seal slot identity, owner, lane, or status is invalid.");
+            }
+
+            if (string.Equals(slot.Status, "broken", StringComparison.Ordinal))
+            {
+                if (slot.CardInstanceId is not null)
+                {
+                    throw new EngineStateException("A broken Seal slot cannot retain a hidden card identity.");
+                }
+
+                continue;
+            }
+
+            if (slot.CardInstanceId is null
+                || !zoneIds.Add(slot.CardInstanceId)
+                || !state.CardInstances.TryGetValue(slot.CardInstanceId, out var card)
+                || !string.Equals(card.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal)
+                || !string.Equals(card.ControllerPlayerId, player.PlayerId, StringComparison.Ordinal)
+                || !string.Equals(card.Zone, "seal", StringComparison.Ordinal)
+                || card.ZoneIndex != slot.LaneIndex
+                || !string.Equals(card.Visibility, "hidden", StringComparison.Ordinal)
+                || card.ActivityState is not null
+                || card.DomainRow is not null
+                || card.DomainLaneIndex is not null
+                || card.EnteredDomainTurnNumber is not null
+                || card.DamageMarked != 0)
+            {
+                throw new EngineStateException(
+                    "A standing Seal slot and its authoritative hidden card are inconsistent.");
+            }
+        }
     }
 
     private static void ValidateReactionState(

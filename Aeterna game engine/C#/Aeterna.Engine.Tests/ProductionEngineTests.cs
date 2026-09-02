@@ -118,6 +118,19 @@ internal static class ProductionEngineTests
         new("canonical_draw_order_privacy", CanonicalDrawReferenceRuntimeTests.DrawOrderProjectionAndPrivacyArePreserved),
         new("canonical_draw_refresh_boundary", CanonicalDrawReferenceRuntimeTests.RefreshPenaltyBoundaryRejectsBeforeAnyMutation),
         new("canonical_draw_graph_rejections", CanonicalDrawReferenceRuntimeTests.UnsupportedConditionAndDrawGraphsRejectAtomically),
+        new("setup_canonical_create_prophecy_gate", MatchSetupSealFoundationTests.CanonicalCreateMatchOpensProphecyGate),
+        new("setup_gate_stale_atomic", MatchSetupSealFoundationTests.SetupGateAndStaleRequestsAreAtomic),
+        new("setup_shuffle_stream_determinism", MatchSetupSealFoundationTests.ShuffleStreamsAreSeededDeterministicAndDistinct),
+        new("setup_prophecy_zero_multi", MatchSetupSealFoundationTests.ZeroAndMultiCardProphecyFollowCanonicalFlow),
+        new("setup_prophecy_invalid_atomic", MatchSetupSealFoundationTests.InvalidProphecySelectionsAreControlledAndAtomic),
+        new("setup_prophecy_handoff_privacy", MatchSetupSealFoundationTests.ProphecyHandoffAndViewerPrivacyAreExact),
+        new("setup_completion_seal_mapping", MatchSetupSealFoundationTests.SetupCompletionInitializesMappedSealsAndAwakening),
+        new("setup_seal_projection_privacy", MatchSetupSealFoundationTests.SealProjectionIsViewerSafeAndDebugAuthoritative),
+        new("setup_seal_invariants", MatchSetupSealFoundationTests.SetupAndSealInvariantsRejectCorruption),
+        new("setup_broken_seal_shape", MatchSetupSealFoundationTests.BrokenSealShapeIsRepresentableWithoutHp),
+        new("setup_historical_v2_compatibility", MatchSetupSealFoundationTests.HistoricalV2FixtureRemainsExplicitlyCompatible),
+        new("setup_contract_shape_rejections", MatchSetupSealFoundationTests.CanonicalSetupContractRejectsNonCanonicalShapes),
+        new("setup_repeated_run_determinism", MatchSetupSealFoundationTests.CompletedSetupProtocolIsRepeatedRunDeterministic),
         new("reaction_opening_state_legal_projection", ReactionPriorityTests.OpeningStateLegalSurfaceAndProjection),
         new("reaction_resolution_zone_hand_to_resolution", ReactionPriorityTests.ReactablePlayMovesHandToResolution),
         new("reaction_resolution_zone_removed_from_hand", ReactionPriorityTests.ReactablePlayRemovesOrdinaryHandMembership),
@@ -3250,7 +3263,7 @@ internal static class ProductionEngineTests
         throw new DirectoryNotFoundException("AETERNA repository root could not be located.");
     }
 
-    private sealed class TemporaryRuntimePackage : IDisposable
+    internal sealed class TemporaryRuntimePackage : IDisposable
     {
         private const string PackageId = "production-magnitude-loader-test-package";
 
