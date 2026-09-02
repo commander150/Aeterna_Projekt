@@ -18,8 +18,10 @@ public static class ContractSchemas
     public const string ResourceSummary = "aeterna-resource-summary-v1";
     public const string DomainBoardProjection = "aeterna-player-visible-domain-board-v1";
     public const string DomainBoardProjectionWithSeals = "aeterna-player-visible-domain-board-v2";
+    public const string DomainBoardProjectionWithCombat = "aeterna-player-visible-domain-board-v3";
     public const string DebugSnapshot = "aeterna-debug-match-snapshot-v4";
     public const string DebugSnapshotWithSeals = "aeterna-debug-match-snapshot-v5";
+    public const string DebugSnapshotWithCombat = "aeterna-debug-match-snapshot-v6";
     public const string EngineEvent = "minimal-engine-event-v0";
     public const string EngineDiagnostic = "aeterna-engine-diagnostic-v1";
     public const string MatchResult = "aeterna-match-result-v1";
@@ -495,6 +497,36 @@ public sealed record DomainBoardSealProjection(
     [property: JsonPropertyName("lane_count")] int LaneCount,
     [property: JsonPropertyName("players")] ImmutableArray<PlayerDomainSealProjection> Players);
 
+public sealed record GameObjectReferenceProjection(
+    [property: JsonPropertyName("object_kind_id")] string ObjectKindId,
+    [property: JsonPropertyName("object_id")] string ObjectId,
+    [property: JsonPropertyName("incarnation_sequence")] int IncarnationSequence);
+
+public sealed record CombatTargetProjection(
+    [property: JsonPropertyName("target_kind_id")] string TargetKindId,
+    [property: JsonPropertyName("target_id")] string TargetId,
+    [property: JsonPropertyName("entity_ref")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    GameObjectReferenceProjection? EntityRef);
+
+public sealed record PendingCombatProjection(
+    [property: JsonPropertyName("combat_id")] string CombatId,
+    [property: JsonPropertyName("stage")] string Stage,
+    [property: JsonPropertyName("attacking_player_id")] string AttackingPlayerId,
+    [property: JsonPropertyName("defending_player_id")] string DefendingPlayerId,
+    [property: JsonPropertyName("attacker")] GameObjectReferenceProjection Attacker,
+    [property: JsonPropertyName("original_target")] CombatTargetProjection OriginalTarget,
+    [property: JsonPropertyName("original_attack_lane_index")] int OriginalAttackLaneIndex,
+    [property: JsonPropertyName("attack_timing_anchor_id")] string AttackTimingAnchorId);
+
+public sealed record DomainBoardCombatProjection(
+    [property: JsonPropertyName("schema_version")] string SchemaVersion,
+    [property: JsonPropertyName("zone")] string Zone,
+    [property: JsonPropertyName("visibility_mode")] string VisibilityMode,
+    [property: JsonPropertyName("lane_count")] int LaneCount,
+    [property: JsonPropertyName("players")] ImmutableArray<PlayerDomainSealProjection> Players,
+    [property: JsonPropertyName("pending_combat")] PendingCombatProjection PendingCombat);
+
 public sealed record ZoneSnapshot(
     [property: JsonPropertyName("zone")] string Zone,
     [property: JsonPropertyName("count")] int Count,
@@ -579,6 +611,23 @@ public sealed record DebugSealSlotSnapshot(
     string Status,
     string? CardInstanceId);
 
+public sealed record DebugPendingCombatSnapshot(
+    string CombatId,
+    int CombatSequence,
+    string StageId,
+    int StageSequence,
+    string AttackingPlayerId,
+    string DefendingPlayerId,
+    GameObjectReferenceProjection AttackerRef,
+    CombatTargetProjection OriginalTarget,
+    int OriginalAttackLaneIndex,
+    bool AttackCommitted,
+    int AttackCommitStateVersion,
+    string AttackTimingAnchorId,
+    GameObjectReferenceProjection? DefenderRef,
+    bool DefenseCommitted,
+    string? OutcomeId);
+
 public sealed record DebugCardInstanceSnapshot(
     string CardInstanceId,
     string CardId,
@@ -655,7 +704,10 @@ public sealed record DebugSnapshot(
     ImmutableArray<DebugKeywordGrantInstanceSnapshot> KeywordGrantInstances,
     ImmutableArray<EngineEvent> Events,
     JsonElement PendingTriggerSummary,
-    MatchResult MatchResult);
+    MatchResult MatchResult,
+    [property: JsonPropertyName("pending_combat")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    DebugPendingCombatSnapshot? PendingCombat = null);
 
 public sealed record MatchResult(
     [property: JsonPropertyName("schema_version")] string SchemaVersion,

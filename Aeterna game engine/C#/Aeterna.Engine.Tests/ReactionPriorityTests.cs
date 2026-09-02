@@ -40,9 +40,10 @@ internal static class ReactionPriorityTests
         var bottom = Single(fixture.State.ResolutionStack);
         Equal("underlying_resolution", bottom.EntryKindId, "Underlying resolution is not the bottom entry.");
         Equal(window.UnderlyingResolutionId, bottom.ResolutionId, "Window and bottom resolution identities differ.");
-        Equal("played_card", bottom.AbilityResolution.ResolutionOriginId, "Underlying origin is invalid.");
+        var abilityResolution = NotNull(bottom.AbilityResolution, "Underlying ability payload is missing.");
+        Equal("played_card", abilityResolution.ResolutionOriginId, "Underlying origin is invalid.");
         Equal(ReactionPolicyIds.PlayedCardResolutionPresence,
-            bottom.AbilityResolution.SourceRelevancePolicyId,
+            abilityResolution.SourceRelevancePolicyId,
             "Underlying played-card lifecycle reused reaction-source same-zone policy.");
 
         var priorityActions = fixture.Session.ListLegalActions("player_2", includeDisabled: true).Actions;

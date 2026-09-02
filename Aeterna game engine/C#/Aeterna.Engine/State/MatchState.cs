@@ -63,6 +63,10 @@ internal sealed class MatchState
 
     public int NextResolutionSequence { get; set; } = 1;
 
+    public PendingCombatState? PendingCombat { get; set; }
+
+    public int NextCombatSequence { get; set; } = 1;
+
     public MatchResult Result { get; } = new(
         ContractSchemas.MatchResult,
         Completed: false,
@@ -122,11 +126,62 @@ internal sealed class ResolutionStackEntryState
 
     public string? ParentResolutionId { get; init; }
 
-    public required CanonicalAbilityResolutionState AbilityResolution { get; init; }
+    public CanonicalAbilityResolutionState? AbilityResolution { get; init; }
+
+    public CombatContinuationState? CombatContinuation { get; init; }
 
     public string? ReactionOptionId { get; init; }
 
     public string? NextResponsePolicyId { get; init; }
+}
+
+internal sealed record CombatContinuationState(
+    string CombatId,
+    string CombatStageId,
+    int StageSequence,
+    string ResumePointId);
+
+internal sealed record GameObjectRefState(
+    string ObjectKindId,
+    string ObjectId,
+    int IncarnationSequence);
+
+internal sealed record CombatTargetState(
+    string TargetKindId,
+    string PublicTargetId,
+    GameObjectRefState? EntityRef);
+
+internal sealed class PendingCombatState
+{
+    public required string CombatId { get; init; }
+
+    public required int CombatSequence { get; init; }
+
+    public required string StageId { get; set; }
+
+    public required int StageSequence { get; set; }
+
+    public required string AttackingPlayerId { get; init; }
+
+    public required string DefendingPlayerId { get; init; }
+
+    public required GameObjectRefState AttackerRef { get; init; }
+
+    public required CombatTargetState OriginalTarget { get; init; }
+
+    public required int OriginalAttackLaneIndex { get; init; }
+
+    public required bool AttackCommitted { get; init; }
+
+    public required int AttackCommitStateVersion { get; init; }
+
+    public required string AttackTimingAnchorId { get; init; }
+
+    public GameObjectRefState? DefenderRef { get; set; }
+
+    public bool DefenseCommitted { get; set; }
+
+    public string? OutcomeId { get; set; }
 }
 
 internal sealed record CanonicalAbilityResolutionState(

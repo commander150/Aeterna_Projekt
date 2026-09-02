@@ -37,7 +37,7 @@ internal static class ExplicitPhaseFoundationTests
 
         True(Advance(session, "player_1", "to-incursion").Accepted, "Manifestation advance failed.");
         AssertState(session, 1, CanonicalPhaseIds.Incursion, "player_1");
-        AssertActionTypes(session, "player_1", ["advance_phase"]);
+        AssertActionTypes(session, "player_1", ["advance_phase", "attack"]);
 
         var distribution = Advance(session, "player_1", "to-distribution");
         True(distribution.Accepted, "Incursion advance failed.");
