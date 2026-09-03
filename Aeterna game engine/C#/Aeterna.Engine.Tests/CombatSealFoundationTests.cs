@@ -1636,41 +1636,35 @@ internal static class CombatSealFoundationTests
         Equal(Run(), Run(), "Repeated C4 damage protocol is not deterministic.");
     }
 
-    internal static void SealAndAeternalRemainExplicitFutureCheckpoints()
+    internal static void SealLifecycleClosesAndAeternalRemainsFutureCheckpoint()
     {
         var seal = CreateFixture(
-            "combat-c4-seal-future",
+            "combat-c5-seal-boundary",
+            sealCardMagnitude: 0,
             board:
             [
-                Board("seal-future-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 5, "active", 1),
+                Board("seal-boundary-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 0, "active", 1),
             ]);
         var hiddenSealId = NotNull(
             seal.State.GetPlayer("player_2").SealSlots[0].CardInstanceId,
-            "Seal future fixture is missing its hidden Seal.");
+            "Seal boundary fixture is missing its hidden Seal.");
         var sealResponse = CloseFirstCombatReaction(
             seal,
-            "seal-future-attacker",
+            "seal-boundary-attacker",
             CombatRuleIds.SealSlotTargetKind,
             "seal:player_2:01",
-            "seal-future");
-        var sealCombat = NotNull(seal.State.PendingCombat, "C4 incorrectly closed Seal-target Combat.");
-        Equal(CombatRuleIds.SealOutcomeCheckpointStage, sealCombat.StageId,
-            "Seal target did not advance to its explicit future checkpoint.");
-        Equal(CombatRuleIds.FutureOutcomePending, sealCombat.OutcomeId,
-            "Seal future outcome state is invalid.");
-        Equal($"{sealCombat.CombatId}:resolution", sealCombat.ResolutionTimingAnchorId,
-            "Seal future timing anchor is invalid.");
-        Equal("standing", seal.State.GetPlayer("player_2").SealSlots[0].Status,
-            "C4 broke a Seal.");
-        Equal("seal", seal.State.GetCardInstance(hiddenSealId).Zone, "C4 revealed or moved a hidden Seal.");
-        False(JsonSerializer.Serialize(sealResponse).Contains(hiddenSealId, StringComparison.Ordinal),
-            "Seal future checkpoint leaked hidden Seal identity.");
-        False(sealResponse.Events.Any(engineEvent => engineEvent.EventType is
-            "damage_dealt" or "combat_resolved"),
-            "Seal future checkpoint entered the Entity damage path or closed Combat.");
-        True(seal.Session.ListLegalActions("player_1", includeDisabled: true).Actions
-            .All(action => !action.Enabled && action.DisabledReason == "combat_pending"),
-            "Seal future checkpoint did not block normal gameplay.");
+            "seal-boundary");
+        True(seal.State.PendingCombat is null, "C5 did not close a completed Seal-target Combat.");
+        Equal("broken", seal.State.GetPlayer("player_2").SealSlots[0].Status,
+            "C5 did not break the targeted Seal.");
+        Equal("hand", seal.State.GetCardInstance(hiddenSealId).Zone,
+            "C5 did not Surge the broken Seal to its owner's hand.");
+        True(sealResponse.Events.Any(engineEvent => engineEvent.EventType == "seal_revealed"),
+            "C5 did not publish the Seal reveal.");
+        True(sealResponse.Events.Any(engineEvent => engineEvent.EventType == "combat_resolved"),
+            "C5 did not close the no-opportunity Seal Combat.");
+        False(sealResponse.Events.Any(engineEvent => engineEvent.EventType == "damage_dealt"),
+            "Seal resolution entered the Entity damage path.");
 
         var aeternal = CreateFixture(
             "combat-c4-aeternal-future",
@@ -1697,6 +1691,536 @@ internal static class CombatSealFoundationTests
             "Aeternal future checkpoint entered the Entity damage path or closed Combat.");
         EngineSession.ValidateState(seal.State, seal.CanonicalCards, seal.CanonicalAbilities);
         EngineSession.ValidateState(aeternal.State, aeternal.CanonicalCards, aeternal.CanonicalAbilities);
+    }
+
+    internal static void SealBreakRevealAndSurgeLifecycleIsExactAndPublic()
+    {
+        var fixture = CreateFixture(
+            "combat-c5-seal-lifecycle",
+            sealCardMagnitude: 0,
+            board:
+            [
+                Board("c5-lifecycle-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 0, "active", 1),
+            ]);
+        var owner = fixture.State.GetPlayer("player_2");
+        var targetSlot = owner.SealSlots[0];
+        var sealedCardInstanceId = NotNull(
+            targetSlot.CardInstanceId,
+            "C5 lifecycle fixture has no standing Seal identity.");
+        var untouchedSeals = owner.SealSlots.Skip(1).ToDictionary(
+            slot => slot.SealSlotId,
+            slot => slot.CardInstanceId,
+            StringComparer.Ordinal);
+        False(
+            JsonSerializer.Serialize(fixture.Session.GetPlayerSnapshot("player_1"))
+                .Contains(sealedCardInstanceId, StringComparison.Ordinal),
+            "Standing Seal identity leaked to the attacker before break.");
+        False(
+            JsonSerializer.Serialize(fixture.Session.GetPlayerSnapshot("player_2"))
+                .Contains(sealedCardInstanceId, StringComparison.Ordinal),
+            "Standing Seal identity leaked to its owner before break.");
+
+        var response = CloseFirstCombatReaction(
+            fixture,
+            "c5-lifecycle-attacker",
+            CombatRuleIds.SealSlotTargetKind,
+            targetSlot.SealSlotId,
+            "c5-lifecycle");
+        var semanticEvents = response.Events.Where(item => item.EventType is
+                "seal_break_intent"
+                or "seal_broken"
+                or "seal_revealed"
+                or "seal_surged"
+                or "combat_resolved")
+            .ToArray();
+        SequenceEqual(
+            new[]
+            {
+                "seal_break_intent",
+                "seal_broken",
+                "seal_revealed",
+                "seal_surged",
+                "combat_resolved",
+            },
+            semanticEvents.Select(item => item.EventType),
+            "SealBreak, reveal, Surge, and Combat-close event order changed.");
+        var broken = semanticEvents[1];
+        var revealed = semanticEvents[2];
+        var surged = semanticEvents[3];
+        var expectedSurgeId =
+            $"surge:{broken.Payload.GetProperty("combat_id").GetString()}:seal:player_2:01";
+        Equal(expectedSurgeId, broken.Payload.GetProperty("surge_id").GetString(),
+            "Surge identity is not deterministic.");
+        Equal(broken.EventId, revealed.Payload.GetProperty("seal_break_event_id").GetString(),
+            "Reveal is not correlated to the committed SealBreak event.");
+        Equal(broken.EventId, surged.Payload.GetProperty("seal_break_event_id").GetString(),
+            "Surge is not correlated to the committed SealBreak event.");
+        Equal(sealedCardInstanceId, revealed.Payload.GetProperty("card_instance_id").GetString(),
+            "Reveal published the wrong card instance.");
+        Equal(PlainEntityCardId, revealed.Payload.GetProperty("card_id").GetString(),
+            "Reveal published the wrong card definition.");
+        Equal(sealedCardInstanceId, surged.Payload.GetProperty("card_instance_id").GetString(),
+            "Surge moved the wrong card instance.");
+
+        Equal("broken", targetSlot.Status, "The targeted Seal slot was not broken.");
+        True(targetSlot.CardInstanceId is null, "The broken Seal slot retained hidden identity.");
+        Equal("hand", fixture.State.GetCardInstance(sealedCardInstanceId).Zone,
+            "The revealed Seal did not enter its owner's hand.");
+        Equal(1, owner.HandCardInstanceIds.Count(id => id == sealedCardInstanceId),
+            "The surged card does not appear exactly once in owner hand.");
+        foreach (var slot in owner.SealSlots.Skip(1))
+        {
+            Equal("standing", slot.Status, "A non-targeted Seal was broken.");
+            Equal(untouchedSeals[slot.SealSlotId], slot.CardInstanceId,
+                "A non-targeted Seal identity changed.");
+        }
+
+        False(response.Events.Any(item => item.EventType is
+            "zone_move" or "card_drawn" or "normal_inflow" or "prophecy_resolved"),
+            "Surge emitted a normal draw, Inflow, Prophecy, or technical zone event.");
+        True(fixture.State.PendingCombat is null, "No-opportunity Surge left PendingCombat.");
+        True(fixture.State.PendingSurgeWindow is null, "Ineligible Surge opened an opportunity.");
+        var attackerHistory = fixture.Session.GetEvents("player_1");
+        var ownerHistory = fixture.Session.GetEvents("player_2");
+        True(attackerHistory.Any(item => item.EventId == revealed.EventId
+            && item.Payload.GetProperty("card_instance_id").GetString() == sealedCardInstanceId),
+            "Attacker history did not retain the public reveal identity.");
+        True(ownerHistory.Any(item => item.EventId == revealed.EventId
+            && item.Payload.GetProperty("card_instance_id").GetString() == sealedCardInstanceId),
+            "Owner history did not retain the public reveal identity.");
+        False(
+            JsonSerializer.Serialize(fixture.Session.GetPlayerSnapshot("player_1"))
+                .Contains(sealedCardInstanceId, StringComparison.Ordinal),
+            "Opponent current hand projection leaked the surged identity.");
+        EngineSession.ValidateState(fixture.State, fixture.CanonicalCards, fixture.CanonicalAbilities);
+    }
+
+    internal static void ProvidenceEligibilityAndBlockingContractAreExact()
+    {
+        static CombatFixture Run(int cardMagnitude, int ownerMagnitude, string suffix)
+        {
+            var fixture = CreateFixture(
+                $"combat-c5-eligibility-{suffix}",
+                sealCardMagnitude: cardMagnitude,
+                playerTwoWellspringCount: ownerMagnitude,
+                board:
+                [
+                    Board($"c5-eligibility-attacker-{suffix}", PlainEntityCardId,
+                        "player_1", DomainRow.Horizon, 0, "active", 1),
+                ]);
+            CloseFirstCombatReaction(
+                fixture,
+                $"c5-eligibility-attacker-{suffix}",
+                CombatRuleIds.SealSlotTargetKind,
+                "seal:player_2:01",
+                $"c5-eligibility-{suffix}");
+            return fixture;
+        }
+
+        var greater = Run(3, 2, "greater");
+        var window = NotNull(greater.State.PendingSurgeWindow,
+            "Greater surged-card Magnitude did not open Providence.");
+        var combat = NotNull(greater.State.PendingCombat,
+            "Providence opportunity did not retain blocking Combat.");
+        Equal(CombatRuleIds.PostSurgeCheckpointStage, combat.StageId,
+            "Providence did not stop at the post-Surge checkpoint.");
+        Equal("player_2", window.OwnerPlayerId, "Providence owner is not the Seal owner.");
+        SequenceEqual(new[] { SealSurgeResolution.ProvidenceOpportunityId },
+            window.EligibleOpportunityIds, "Providence eligible opportunity set is not exact.");
+        SequenceEqual(new[] { SealSurgeResolution.ProvidenceOpportunityId },
+            window.RemainingOpportunityIds, "Providence remaining opportunity set is not exact.");
+        Equal(SealSurgeResolution.ProvidenceOpportunityId, window.CurrentOpportunityId,
+            "Providence current opportunity is not exact.");
+        Equal("hand", greater.State.GetCardInstance(window.SurgedObjectRef.ObjectId).Zone,
+            "Providence was evaluated before the surged card entered hand.");
+
+        var ownerAction = SurgeAction(greater, "player_2", includeDisabled: true);
+        True(ownerAction.Enabled, "Seal owner cannot resolve Providence.");
+        Equal("resolve_surge_opportunity", ownerAction.ActionId,
+            "Surge action ID is not the exact public contract.");
+        SequenceEqual(
+            new[] { "surge_id", "opportunity_id", "choice" },
+            ownerAction.PayloadSchema.GetProperty("required").EnumerateArray()
+                .Select(item => item.GetString()!),
+            "Surge action required payload fields changed.");
+        False(ownerAction.PayloadSchema.GetProperty("additional_properties").GetBoolean(),
+            "Surge action unexpectedly permits additional payload properties.");
+        SequenceEqual(new[] { "apply", "decline" },
+            ownerAction.PayloadSchema.GetProperty("properties").GetProperty("choice")
+                .GetProperty("enum").EnumerateArray().Select(item => item.GetString()!),
+            "Surge action choices changed.");
+        var opponentAction = SurgeAction(greater, "player_1", includeDisabled: true);
+        False(opponentAction.Enabled, "Opponent received Providence authority.");
+        Equal("not_surge_owner", opponentAction.DisabledReason,
+            "Opponent Providence disabled reason is unstable.");
+        True(greater.Session.ListLegalActions("player_2", includeDisabled: true).Actions
+                .Where(action => action.ActionType != "resolve_surge_opportunity")
+                .All(action => !action.Enabled && action.DisabledReason == "surge_opportunity_pending"),
+            "Normal gameplay remained enabled during Providence.");
+        var opponentSummary = greater.Session.GetPlayerSnapshot("player_1").PendingDecisionSummary;
+        False(opponentSummary.GetProperty("viewer_is_owner").GetBoolean(),
+            "Opponent pending summary claims Surge ownership.");
+        True(opponentSummary.GetProperty("surged_card").ValueKind == JsonValueKind.Null,
+            "Opponent pending summary leaked surged-card identity.");
+        var ownerSummary = greater.Session.GetPlayerSnapshot("player_2").PendingDecisionSummary;
+        Equal(window.SurgedObjectRef.ObjectId,
+            ownerSummary.GetProperty("surged_card").GetProperty("card_instance_id").GetString(),
+            "Owner pending summary omitted surged-card identity.");
+
+        var equal = Run(2, 2, "equal");
+        True(equal.State.PendingSurgeWindow is null && equal.State.PendingCombat is null,
+            "Equal Magnitude incorrectly opened Providence or retained Combat.");
+        var lower = Run(1, 2, "lower");
+        True(lower.State.PendingSurgeWindow is null && lower.State.PendingCombat is null,
+            "Lower Magnitude incorrectly opened Providence or retained Combat.");
+
+        var interventionDeclined = CreateFixture(
+            "combat-c5-eligibility-intervention-declined",
+            sealCardMagnitude: 3,
+            playerTwoWellspringCount: 2,
+            board:
+            [
+                Board("c5-declined-path-attacker", PlainEntityCardId,
+                    "player_1", DomainRow.Horizon, 0, "active", 1),
+                Board("c5-declined-path-defender", PlainEntityCardId,
+                    "player_2", DomainRow.Horizon, 1, "active", 1),
+            ]);
+        OpenInterventionChoice(
+            interventionDeclined,
+            "c5-declined-path-attacker",
+            CombatRuleIds.SealSlotTargetKind,
+            "seal:player_2:01",
+            "c5-declined-path");
+        var declinedResponse = SubmitCombatAction(
+            interventionDeclined,
+            DeclineAction(interventionDeclined, "player_2"),
+            "c5-declined-path-decision",
+            ContractJsonValue.EmptyObject());
+        True(declinedResponse.Accepted, "Declined intervention did not resume Seal resolution.");
+        Equal(6, interventionDeclined.State.PendingCombat?.StageSequence,
+            "Declined-intervention Seal lifecycle has the wrong post-Surge stage sequence.");
+        True(interventionDeclined.State.PendingSurgeWindow is not null,
+            "Declined-intervention Seal lifecycle did not open eligible Providence.");
+        EngineSession.ValidateState(
+            interventionDeclined.State,
+            interventionDeclined.CanonicalCards,
+            interventionDeclined.CanonicalAbilities);
+    }
+
+    internal static void ProvidenceApplyIsCanonicalAndDoesNotConsumeNormalInflow()
+    {
+        var fixture = CreateEligibleSurgeFixture("combat-c5-providence-apply");
+        fixture.State.GetPlayer("player_2").NormalInflowUsedTurnNumber = 1;
+        OpenEligibleSurge(fixture, "c5-providence-apply");
+        var window = NotNull(fixture.State.PendingSurgeWindow, "Apply fixture did not open Providence.");
+        var cardInstanceId = window.SurgedObjectRef.ObjectId;
+        var owner = fixture.State.GetPlayer("player_2");
+        var normalInflowBefore = owner.NormalInflowUsedTurnNumber;
+        var action = SurgeAction(fixture, "player_2");
+        var response = SubmitSurge(
+            fixture,
+            action,
+            "c5-providence-apply-action",
+            window.SurgeId,
+            SealSurgeResolution.ProvidenceOpportunityId,
+            "apply");
+        True(response.Accepted, "Providence apply was rejected.");
+        False(owner.HandCardInstanceIds.Contains(cardInstanceId, StringComparer.Ordinal),
+            "Providence apply retained the surged card in hand.");
+        Equal(1, owner.WellspringCardInstanceIds.Count(id => id == cardInstanceId),
+            "Providence apply did not add exactly one Wellspring object.");
+        var card = fixture.State.GetCardInstance(cardInstanceId);
+        Equal("wellspring", card.Zone, "Providence apply did not use the Wellspring zone.");
+        Equal("owner_only", card.Visibility, "Providence Wellspring identity is not private.");
+        Equal("active", card.ActivityState, "Providence Wellspring source is not active.");
+        Equal(normalInflowBefore, owner.NormalInflowUsedTurnNumber,
+            "Providence apply consumed or reset normal Inflow state.");
+        SequenceEqual(new[] { "surge_opportunity_resolved", "combat_resolved" },
+            response.Events.Select(item => item.EventType),
+            "Providence apply emitted redundant lifecycle noise or wrong event order.");
+        Equal("wellspring", response.Events[0].Payload.GetProperty("result_zone_id").GetString(),
+            "Providence apply event has the wrong result zone.");
+        True(response.Events[0].Payload.GetProperty("transition_id").GetString() is not null,
+            "Providence apply did not expose its typed transition correlation.");
+        True(fixture.Session.GetEvents("player_1").Any(item =>
+                item.EventType == "seal_revealed"
+                && item.Payload.GetProperty("card_instance_id").GetString() == cardInstanceId),
+            "Public reveal history was lost after the card entered private Wellspring.");
+        False(
+            JsonSerializer.Serialize(fixture.Session.GetPlayerSnapshot("player_1"))
+                .Contains(cardInstanceId, StringComparison.Ordinal),
+            "Opponent Wellspring projection leaked the surged card instance.");
+        AssertC5Closed(fixture, "Providence apply");
+        True(fixture.Session.ListLegalActions("player_1").Actions.Any(action => action.Enabled),
+            "Normal gameplay did not resume after Providence apply.");
+
+        var beforeDuplicate = Fingerprint(fixture);
+        var duplicate = SubmitSurge(
+            fixture,
+            action,
+            "c5-providence-apply-duplicate",
+            window.SurgeId,
+            SealSurgeResolution.ProvidenceOpportunityId,
+            "apply");
+        False(duplicate.Accepted, "Resolved Providence was reusable.");
+        Equal(beforeDuplicate, Fingerprint(fixture), "Duplicate Providence mutated state.");
+    }
+
+    internal static void ProvidenceDeclineAndInvalidRequestsAreAtomic()
+    {
+        var invalid = CreateEligibleSurgeFixture("combat-c5-providence-invalid");
+        OpenEligibleSurge(invalid, "c5-providence-invalid");
+        var window = NotNull(invalid.State.PendingSurgeWindow,
+            "Invalid-request fixture did not open Providence.");
+        var action = SurgeAction(invalid, "player_2");
+
+        void RejectUnchanged(string requestId, JsonElement payload, int? stateVersion = null)
+        {
+            var before = Fingerprint(invalid);
+            var response = SubmitCombatAction(invalid, action, requestId, payload, stateVersion);
+            False(response.Accepted, $"Invalid Surge request was accepted: {requestId}");
+            Equal(before, Fingerprint(invalid), $"Invalid Surge request mutated state: {requestId}");
+        }
+
+        RejectUnchanged(
+            "c5-invalid-stale-version",
+            SurgePayload(window.SurgeId, SealSurgeResolution.ProvidenceOpportunityId, "apply"),
+            invalid.State.StateVersion - 1);
+        RejectUnchanged(
+            "c5-invalid-surge-id",
+            SurgePayload("surge:stale", SealSurgeResolution.ProvidenceOpportunityId, "apply"));
+        RejectUnchanged(
+            "c5-invalid-opportunity",
+            SurgePayload(window.SurgeId, "unknown", "apply"));
+        RejectUnchanged(
+            "c5-invalid-choice",
+            SurgePayload(window.SurgeId, SealSurgeResolution.ProvidenceOpportunityId, "keep"));
+        RejectUnchanged(
+            "c5-invalid-extra-field",
+            ContractJsonValue.From(new Dictionary<string, object?>
+            {
+                ["surge_id"] = window.SurgeId,
+                ["opportunity_id"] = SealSurgeResolution.ProvidenceOpportunityId,
+                ["choice"] = "decline",
+                ["extra"] = true,
+            }));
+
+        var decline = SubmitSurge(
+            invalid,
+            action,
+            "c5-providence-decline",
+            window.SurgeId,
+            SealSurgeResolution.ProvidenceOpportunityId,
+            "decline");
+        True(decline.Accepted, "Providence decline was rejected after atomic invalid requests.");
+        var card = invalid.State.GetCardInstance(window.SurgedObjectRef.ObjectId);
+        Equal("hand", card.Zone, "Providence decline moved the surged card out of hand.");
+        Equal("hand", decline.Events[0].Payload.GetProperty("result_zone_id").GetString(),
+            "Providence decline event has the wrong result zone.");
+        False(decline.Events[0].Payload.TryGetProperty("transition_id", out _),
+            "Providence decline emitted a nonexistent zone transition.");
+        AssertC5Closed(invalid, "Providence decline");
+        var beforeReuse = Fingerprint(invalid);
+        var reused = SubmitSurge(
+            invalid,
+            action,
+            "c5-providence-decline-reuse",
+            window.SurgeId,
+            SealSurgeResolution.ProvidenceOpportunityId,
+            "decline");
+        False(reused.Accepted, "Declined Providence was offered again.");
+        Equal(beforeReuse, Fingerprint(invalid), "Reused decline mutated state.");
+    }
+
+    internal static void SealOutcomeRevalidationAndStalePlansAreAtomic()
+    {
+        static CombatFixture Prepare(string matchId)
+        {
+            var fixture = CreateFixture(
+                matchId,
+                sealCardMagnitude: 0,
+                board:
+                [
+                    Board($"{matchId}-attacker", PlainEntityCardId,
+                        "player_1", DomainRow.Horizon, 0, "active", 1),
+                ]);
+            SubmitInitialAttack(
+                fixture,
+                $"{matchId}-attacker",
+                CombatRuleIds.SealSlotTargetKind,
+                "seal:player_2:01",
+                matchId);
+            fixture.State.ReactionWindow = null;
+            fixture.State.ResolutionStack.Clear();
+            fixture.State.PriorityPlayerId = "player_1";
+            var combat = NotNull(fixture.State.PendingCombat, "Seal plan fixture lost Combat.");
+            combat.StageId = CombatRuleIds.SealOutcomeCheckpointStage;
+            combat.StageSequence = 4;
+            combat.AttackContinuityStateId = CombatRuleIds.AttackContinuityContinuous;
+            combat.DefenseDecisionStateId = CombatRuleIds.DefenseDecisionUnavailable;
+            combat.ResolutionTimingAnchorId = $"{combat.CombatId}:resolution";
+            combat.OutcomeId = CombatRuleIds.FutureOutcomePending;
+            return fixture;
+        }
+
+        var attackerLost = Prepare("combat-c5-attacker-lost");
+        MoveDomainCardToVoid(attackerLost, "combat-c5-attacker-lost-attacker");
+        var lostCombat = NotNull(attackerLost.State.PendingCombat, "Attacker-lost fixture lost Combat.");
+        var lostPlan = SealSurgeResolution.BuildPlan(
+            attackerLost.State,
+            lostCombat,
+            attackerLost.Runtime,
+            attackerLost.CanonicalCards);
+        Equal(CombatRuleIds.NoHitOutcome, lostPlan.OutcomeId,
+            "Lost attacker did not resolve as no-hit.");
+        Equal(CombatRuleIds.AttackerMissingNoHitReason, lostPlan.NoHitReasonId,
+            "Lost attacker no-hit reason changed.");
+        var lostBefore = attackerLost.State.GetPlayer("player_2").SealSlots[0].CardInstanceId;
+        SealSurgeResolution.Apply(attackerLost.State, lostPlan);
+        Equal(lostBefore, attackerLost.State.GetPlayer("player_2").SealSlots[0].CardInstanceId,
+            "Attacker-continuity no-hit mutated the Seal.");
+
+        var alreadyBroken = Prepare("combat-c5-already-broken");
+        MoveSealToHandForRevalidationFixture(alreadyBroken, 0);
+        var brokenCombat = NotNull(alreadyBroken.State.PendingCombat, "Broken-Seal fixture lost Combat.");
+        var brokenPlan = SealSurgeResolution.BuildPlan(
+            alreadyBroken.State,
+            brokenCombat,
+            alreadyBroken.Runtime,
+            alreadyBroken.CanonicalCards);
+        Equal(CombatRuleIds.NoHitOutcome, brokenPlan.OutcomeId,
+            "Already-broken Seal did not resolve as no-hit.");
+        Equal(CombatRuleIds.SealUnavailableNoHitReason, brokenPlan.NoHitReasonId,
+            "Already-broken Seal no-hit reason changed.");
+        var brokenFingerprint = Fingerprint(alreadyBroken);
+        SealSurgeResolution.Apply(alreadyBroken.State, brokenPlan);
+        Equal(brokenFingerprint, Fingerprint(alreadyBroken),
+            "Already-broken Seal no-hit mutated state.");
+
+        var stale = Prepare("combat-c5-stale-plan");
+        var staleCombat = NotNull(stale.State.PendingCombat, "Stale Seal-plan fixture lost Combat.");
+        var plan = SealSurgeResolution.BuildPlan(
+            stale.State,
+            staleCombat,
+            stale.Runtime,
+            stale.CanonicalCards);
+        stale.State.StateVersion += 1;
+        var staleBefore = Fingerprint(stale);
+        ThrowsState(
+            () => SealSurgeResolution.Apply(stale.State, plan),
+            "stale",
+            "A stale Seal outcome plan was applied.");
+        Equal(staleBefore, Fingerprint(stale), "Stale Seal plan partially mutated state.");
+    }
+
+    internal static void PendingSurgeInvariantsRejectMalformedState()
+    {
+        static CombatFixture Open(string suffix)
+        {
+            var fixture = CreateEligibleSurgeFixture($"combat-c5-invariant-{suffix}");
+            OpenEligibleSurge(fixture, $"c5-invariant-{suffix}");
+            return fixture;
+        }
+
+        var wrongOwner = Open("owner");
+        var originalWindow = NotNull(
+            wrongOwner.State.PendingSurgeWindow,
+            "Owner invariant fixture has no window.");
+        var wrongOwnerWindow = new PendingSurgeWindowState
+        {
+            SurgeId = originalWindow.SurgeId,
+            SealBreakEventId = originalWindow.SealBreakEventId,
+            BrokenSealSlotId = originalWindow.BrokenSealSlotId,
+            SurgedObjectRef = originalWindow.SurgedObjectRef,
+            OwnerPlayerId = "player_1",
+            CurrentOpportunityId = originalWindow.CurrentOpportunityId,
+            OpenedAtStateVersion = originalWindow.OpenedAtStateVersion,
+        };
+        wrongOwnerWindow.EligibleOpportunityIds.AddRange(originalWindow.EligibleOpportunityIds);
+        wrongOwnerWindow.RemainingOpportunityIds.AddRange(originalWindow.RemainingOpportunityIds);
+        wrongOwner.State.PendingSurgeWindow = wrongOwnerWindow;
+        ThrowsState(
+            () => EngineSession.ValidateState(
+                wrongOwner.State,
+                wrongOwner.CanonicalCards,
+                wrongOwner.CanonicalAbilities),
+            "PendingSurgeWindow",
+            "Wrong Surge owner was accepted.");
+
+        var duplicateOpportunity = Open("opportunity");
+        NotNull(duplicateOpportunity.State.PendingSurgeWindow,
+            "Opportunity invariant fixture has no window.")
+            .RemainingOpportunityIds.Add(SealSurgeResolution.ProvidenceOpportunityId);
+        ThrowsState(
+            () => EngineSession.ValidateState(
+                duplicateOpportunity.State,
+                duplicateOpportunity.CanonicalCards,
+                duplicateOpportunity.CanonicalAbilities),
+            "PendingSurgeWindow",
+            "Duplicate Surge opportunity was accepted.");
+
+        var wrongIncarnation = Open("incarnation");
+        var incarnationWindow = NotNull(wrongIncarnation.State.PendingSurgeWindow,
+            "Incarnation invariant fixture has no window.");
+        wrongIncarnation.State.GetCardInstance(incarnationWindow.SurgedObjectRef.ObjectId).ZoneSequence += 1;
+        ThrowsState(
+            () => EngineSession.ValidateState(
+                wrongIncarnation.State,
+                wrongIncarnation.CanonicalCards,
+                wrongIncarnation.CanonicalAbilities),
+            "surged",
+            "Stale surged ObjectRef was accepted.");
+
+        var duplicatedZone = Open("zone");
+        var zoneWindow = NotNull(duplicatedZone.State.PendingSurgeWindow,
+            "Zone invariant fixture has no window.");
+        duplicatedZone.State.GetPlayer("player_2").SealSlots[0].CardInstanceId =
+            zoneWindow.SurgedObjectRef.ObjectId;
+        ThrowsState(
+            () => EngineSession.ValidateState(
+                duplicatedZone.State,
+                duplicatedZone.CanonicalCards,
+                duplicatedZone.CanonicalAbilities),
+            "broken Seal",
+            "Broken Seal slot duplicated the surged hand object.");
+
+        var orphanCombat = Open("orphan");
+        orphanCombat.State.PendingSurgeWindow = null;
+        ThrowsState(
+            () => EngineSession.ValidateState(
+                orphanCombat.State,
+                orphanCombat.CanonicalCards,
+                orphanCombat.CanonicalAbilities),
+            "Post-Surge",
+            "Post-Surge Combat without its decision window was accepted.");
+    }
+
+    internal static void RepeatedC5ProtocolIsDeterministic()
+    {
+        static string Run()
+        {
+            var fixture = CreateEligibleSurgeFixture("combat-c5-repeated");
+            OpenEligibleSurge(fixture, "c5-repeated");
+            var window = NotNull(fixture.State.PendingSurgeWindow,
+                "Repeated C5 fixture did not open Providence.");
+            var response = SubmitSurge(
+                fixture,
+                SurgeAction(fixture, "player_2"),
+                "c5-repeated-apply",
+                window.SurgeId,
+                SealSurgeResolution.ProvidenceOpportunityId,
+                "apply");
+            True(response.Accepted, "Repeated C5 apply failed.");
+            return JsonSerializer.Serialize(new
+            {
+                response,
+                snapshot = fixture.Session.GetDebugSnapshot(),
+                owner = fixture.Session.GetPlayerSnapshot("player_2"),
+                opponent = fixture.Session.GetPlayerSnapshot("player_1"),
+            });
+        }
+
+        Equal(Run(), Run(), "Repeated C5 protocol is not deterministic.");
     }
 
     internal static void CombatResolutionPlanningRejectsInvalidAndStaleCheckpoints()
@@ -1775,6 +2299,96 @@ internal static class CombatSealFoundationTests
         }
 
         Equal(Run(), Run(), "Repeated C3 protocol is not deterministic.");
+    }
+
+    private static CombatFixture CreateEligibleSurgeFixture(string matchId) => CreateFixture(
+        matchId,
+        sealCardMagnitude: 3,
+        playerTwoWellspringCount: 2,
+        board:
+        [
+            Board($"{matchId}-attacker", PlainEntityCardId,
+                "player_1", DomainRow.Horizon, 0, "active", 1),
+        ]);
+
+    private static ActionResponse OpenEligibleSurge(CombatFixture fixture, string requestPrefix)
+    {
+        var response = CloseFirstCombatReaction(
+            fixture,
+            $"{fixture.State.MatchId}-attacker",
+            CombatRuleIds.SealSlotTargetKind,
+            "seal:player_2:01",
+            requestPrefix);
+        True(fixture.State.PendingSurgeWindow is not null,
+            $"{requestPrefix} did not open an eligible Surge opportunity.");
+        return response;
+    }
+
+    private static LegalAction SurgeAction(
+        CombatFixture fixture,
+        string playerId,
+        bool includeDisabled = false) => fixture.Session
+        .ListLegalActions(playerId, includeDisabled)
+        .Actions.Single(action => action.ActionType == "resolve_surge_opportunity");
+
+    private static JsonElement SurgePayload(
+        string surgeId,
+        string opportunityId,
+        string choice) => ContractJsonValue.From(new Dictionary<string, object?>
+        {
+            ["surge_id"] = surgeId,
+            ["opportunity_id"] = opportunityId,
+            ["choice"] = choice,
+        });
+
+    private static ActionResponse SubmitSurge(
+        CombatFixture fixture,
+        LegalAction action,
+        string requestId,
+        string surgeId,
+        string opportunityId,
+        string choice,
+        int? expectedStateVersion = null) => SubmitCombatAction(
+            fixture,
+            action,
+            requestId,
+            SurgePayload(surgeId, opportunityId, choice),
+            expectedStateVersion);
+
+    private static void AssertC5Closed(CombatFixture fixture, string context)
+    {
+        True(fixture.State.PendingSurgeWindow is null,
+            $"{context} left PendingSurgeWindow.");
+        True(fixture.State.PendingCombat is null, $"{context} left PendingCombat.");
+        True(fixture.State.ReactionWindow is null, $"{context} left ReactionWindow.");
+        True(fixture.State.PendingTriggerWindow is null,
+            $"{context} left PendingTriggerWindow.");
+        Equal(0, fixture.State.QueuedTriggerBatches.Count,
+            $"{context} left a queued trigger batch.");
+        Equal(0, fixture.State.ResolutionStack.Count,
+            $"{context} left a Combat continuation or resolution entry.");
+        EngineSession.ValidateState(
+            fixture.State,
+            fixture.CanonicalCards,
+            fixture.CanonicalAbilities);
+    }
+
+    private static void MoveSealToHandForRevalidationFixture(
+        CombatFixture fixture,
+        int laneIndex)
+    {
+        var owner = fixture.State.GetPlayer("player_2");
+        var slot = owner.SealSlots[laneIndex];
+        var cardInstanceId = NotNull(slot.CardInstanceId,
+            "Seal revalidation fixture has no standing identity.");
+        var card = fixture.State.GetCardInstance(cardInstanceId);
+        slot.Status = "broken";
+        slot.CardInstanceId = null;
+        owner.HandCardInstanceIds.Add(cardInstanceId);
+        card.Zone = "hand";
+        card.ZoneIndex = owner.HandCardInstanceIds.Count - 1;
+        card.Visibility = "owner_only";
+        card.ZoneSequence += 1;
     }
 
     private static CombatFixture CreateInterventionFixture(
@@ -2007,6 +2621,8 @@ internal static class CombatSealFoundationTests
         bool playerTwoSealsBroken = false,
         IReadOnlyDictionary<string, (int Atk, int Hp)>? statOverrides = null,
         IReadOnlyCollection<string>? additionalAerialCardIds = null,
+        int? sealCardMagnitude = null,
+        int playerTwoWellspringCount = 0,
         params BoardSpec[] board)
     {
         var package = CanonicalAbilityCatalogTests.AddRecord(
@@ -2053,6 +2669,15 @@ internal static class CombatSealFoundationTests
                     stats.Hp);
             }
         }
+        if (sealCardMagnitude is not null)
+        {
+            package = CanonicalAbilityCatalogTests.SetField(
+                package,
+                CanonicalAbilityTableIds.Cards,
+                PlainEntityCardId,
+                "magnitude",
+                sealCardMagnitude.Value);
+        }
         var canonicalAbilities = CanonicalAbilityMaterializer.Materialize(package);
         var canonicalCards = CanonicalCardMaterializer.Materialize(package);
         var state = new MatchState
@@ -2080,6 +2705,7 @@ internal static class CombatSealFoundationTests
         state.Players.Add(playerTwo);
         AddSeals(state, playerOne, broken: false);
         AddSeals(state, playerTwo, playerTwoSealsBroken);
+        AddWellspringCards(state, playerTwo, playerTwoWellspringCount);
         foreach (var spec in board)
         {
             AddBoardCard(state, spec);
@@ -2171,6 +2797,29 @@ internal static class CombatSealFoundationTests
                 CreatedSequence = state.CardInstances.Count + 1,
                 ZoneSequence = 1,
                 InitialZone = "seal",
+            });
+        }
+    }
+
+    private static void AddWellspringCards(MatchState state, PlayerState player, int count)
+    {
+        for (var index = 0; index < count; index += 1)
+        {
+            var cardInstanceId = $"{player.PlayerId}-wellspring-{index + 1:00}";
+            player.WellspringCardInstanceIds.Add(cardInstanceId);
+            state.CardInstances.Add(cardInstanceId, new CardInstanceState
+            {
+                CardInstanceId = cardInstanceId,
+                CardId = PlainEntityCardId,
+                OwnerPlayerId = player.PlayerId,
+                ControllerPlayerId = player.PlayerId,
+                Zone = "wellspring",
+                ZoneIndex = index,
+                Visibility = "owner_only",
+                CreatedSequence = state.CardInstances.Count + 1,
+                ZoneSequence = 1,
+                InitialZone = "wellspring",
+                ActivityState = "active",
             });
         }
     }

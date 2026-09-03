@@ -196,6 +196,15 @@ public sealed class EngineSession
                 includeDisabled);
         }
 
+        if (state.PendingSurgeWindow is not null)
+        {
+            return BuildPendingSurgeLegalActionSpace(
+                state,
+                player,
+                baseActions,
+                includeDisabled);
+        }
+
         if (state.PendingTriggerWindow is not null)
         {
             return BuildPendingTriggerLegalActionSpace(
@@ -494,6 +503,69 @@ public sealed class EngineSession
         {
             ["type"] = "object",
             ["available"] = false,
+        });
+
+    private static LegalActionSpace BuildPendingSurgeLegalActionSpace(
+        MatchState state,
+        PlayerState player,
+        ImmutableArray<LegalAction> baseActions,
+        bool includeDisabled)
+    {
+        var window = state.PendingSurgeWindow
+            ?? throw new EngineStateException("Surge legal action space requires a pending window.");
+        var isOwner = string.Equals(player.PlayerId, window.OwnerPlayerId, StringComparison.Ordinal);
+        var hasCurrentOpportunity = string.Equals(
+                window.CurrentOpportunityId,
+                SealSurgeResolution.ProvidenceOpportunityId,
+                StringComparison.Ordinal)
+            && window.RemainingOpportunityIds.Contains(
+                SealSurgeResolution.ProvidenceOpportunityId,
+                StringComparer.Ordinal);
+        var actions = baseActions.Select(action => action with
+        {
+            Enabled = false,
+            DisabledReason = "surge_opportunity_pending",
+        }).Prepend(new LegalAction(
+            "resolve_surge_opportunity",
+            "resolve_surge_opportunity",
+            player.PlayerId,
+            isOwner && hasCurrentOpportunity,
+            15,
+            !isOwner
+                ? "not_surge_owner"
+                : !hasCurrentOpportunity
+                    ? "surge_opportunity_unavailable"
+                    : null,
+            isOwner && hasCurrentOpportunity
+                ? BuildResolveSurgeOpportunityPayloadSchema(window)
+                : BuildUnavailableCombatDecisionPayloadSchema()));
+        return BuildLegalActionSpace(state, player.PlayerId, actions, includeDisabled);
+    }
+
+    private static JsonElement BuildResolveSurgeOpportunityPayloadSchema(
+        PendingSurgeWindowState window) => ContractJsonValue.From(new Dictionary<string, object?>
+        {
+            ["type"] = "object",
+            ["required"] = new[] { "surge_id", "opportunity_id", "choice" },
+            ["additional_properties"] = false,
+            ["properties"] = new Dictionary<string, object?>
+            {
+                ["surge_id"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "string",
+                    ["enum"] = new[] { window.SurgeId },
+                },
+                ["opportunity_id"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "string",
+                    ["enum"] = new[] { SealSurgeResolution.ProvidenceOpportunityId },
+                },
+                ["choice"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "string",
+                    ["enum"] = new[] { "apply", "decline" },
+                },
+            },
         });
 
     private ImmutableArray<LegalAction> BuildLegacyActions(MatchState state, PlayerState player)
@@ -852,6 +924,37 @@ public sealed class EngineSession
             });
         }
 
+        if (state.PendingSurgeWindow is { } surge)
+        {
+            var viewerIsOwner = string.Equals(
+                viewerPlayerId,
+                surge.OwnerPlayerId,
+                StringComparison.Ordinal);
+            var surgedCard = state.GetCardInstance(surge.SurgedObjectRef.ObjectId);
+            return ContractJsonValue.From(new Dictionary<string, object?>
+            {
+                ["has_pending"] = true,
+                ["pending_type"] = "surge_opportunity",
+                ["surge_id"] = surge.SurgeId,
+                ["seal_break_event_id"] = surge.SealBreakEventId,
+                ["broken_seal_slot_id"] = surge.BrokenSealSlotId,
+                ["owner_player_id"] = surge.OwnerPlayerId,
+                ["viewer_is_owner"] = viewerIsOwner,
+                ["eligible_opportunity_ids"] = surge.EligibleOpportunityIds.ToArray(),
+                ["remaining_opportunity_ids"] = surge.RemainingOpportunityIds.ToArray(),
+                ["current_opportunity_id"] = surge.CurrentOpportunityId,
+                ["legal_choices"] = viewerIsOwner ? new[] { "apply", "decline" } : Array.Empty<string>(),
+                ["surged_card"] = viewerIsOwner
+                    ? new Dictionary<string, object?>
+                    {
+                        ["card_instance_id"] = surgedCard.CardInstanceId,
+                        ["card_id"] = surgedCard.CardId,
+                        ["object_ref"] = BuildGameObjectReferenceProjection(surge.SurgedObjectRef),
+                    }
+                    : null,
+            });
+        }
+
         var window = state.PendingTriggerWindow;
         if (window is null)
         {
@@ -1106,6 +1209,7 @@ public sealed class EngineSession
             "attack" => ApplyAttack(state, request, stateVersionBefore),
             "intervene" => ApplyIntervene(state, request, stateVersionBefore),
             "decline_intervention" => ApplyDeclineIntervention(state, request, stateVersionBefore),
+            "resolve_surge_opportunity" => ApplyResolveSurgeOpportunity(state, request, stateVersionBefore),
             "resolve_triggered_ability" => ApplyResolveTriggeredAbility(state, request, stateVersionBefore),
             "pass_priority" => ApplyPassPriority(state, request, stateVersionBefore),
             "react" => ApplyReact(state, request, stateVersionBefore),
@@ -1157,7 +1261,9 @@ public sealed class EngineSession
     {
         var state = RequireState();
         return new DebugSnapshot(
-            state.PendingCombat is not null
+            state.PendingSurgeWindow is not null
+                ? ContractSchemas.DebugSnapshotWithSurge
+                : state.PendingCombat is not null
                 ? ContractSchemas.DebugSnapshotWithCombat
                 : state.Setup is null
                     ? ContractSchemas.DebugSnapshot
@@ -1265,7 +1371,10 @@ public sealed class EngineSession
             state.Result with { },
             state.PendingCombat is null
                 ? null
-                : BuildDebugPendingCombatSnapshot(state.PendingCombat));
+                : BuildDebugPendingCombatSnapshot(state.PendingCombat),
+            state.PendingSurgeWindow is null
+                ? null
+                : BuildDebugPendingSurgeWindowSnapshot(state.PendingSurgeWindow));
     }
 
     private static DebugPendingCombatSnapshot BuildDebugPendingCombatSnapshot(
@@ -1302,6 +1411,18 @@ public sealed class EngineSession
             combat.DefenseTimingAnchorId,
             combat.ResolutionTimingAnchorId,
             combat.OutcomeId);
+
+    private static DebugPendingSurgeWindowSnapshot BuildDebugPendingSurgeWindowSnapshot(
+        PendingSurgeWindowState window) => new(
+        window.SurgeId,
+        window.SealBreakEventId,
+        window.BrokenSealSlotId,
+        BuildGameObjectReferenceProjection(window.SurgedObjectRef),
+        window.OwnerPlayerId,
+        window.EligibleOpportunityIds.ToImmutableArray(),
+        window.RemainingOpportunityIds.ToImmutableArray(),
+        window.CurrentOpportunityId,
+        window.OpenedAtStateVersion);
 
     internal ImmutableArray<EngineEvent> GetDebugEvents(int afterSequence = 0)
     {
@@ -2846,6 +2967,130 @@ public sealed class EngineSession
         return AcceptAction(state, request, stateVersionBefore, events.ToImmutable());
     }
 
+    private ActionResponse ApplyResolveSurgeOpportunity(
+        MatchState state,
+        ActionRequest request,
+        int stateVersionBefore)
+    {
+        var window = state.PendingSurgeWindow;
+        var combat = state.PendingCombat;
+        var surgeId = request.Payload.GetProperty("surge_id").GetString()!;
+        var opportunityId = request.Payload.GetProperty("opportunity_id").GetString()!;
+        var choice = request.Payload.GetProperty("choice").GetString()!;
+        if (window is null
+            || combat is null
+            || !string.Equals(
+                combat.StageId,
+                CombatRuleIds.PostSurgeCheckpointStage,
+                StringComparison.Ordinal)
+            || !string.Equals(window.OwnerPlayerId, request.PlayerId, StringComparison.Ordinal)
+            || !string.Equals(window.SurgeId, surgeId, StringComparison.Ordinal)
+            || !string.Equals(window.CurrentOpportunityId, opportunityId, StringComparison.Ordinal)
+            || !string.Equals(
+                opportunityId,
+                SealSurgeResolution.ProvidenceOpportunityId,
+                StringComparison.Ordinal)
+            || !window.EligibleOpportunityIds.Contains(opportunityId, StringComparer.Ordinal)
+            || !window.RemainingOpportunityIds.Contains(opportunityId, StringComparer.Ordinal)
+            || state.ReactionWindow is not null
+            || state.PendingTriggerWindow is not null
+            || state.ResolutionStack.Count != 0
+            || state.QueuedTriggerBatches.Count != 0
+            || state.StateVersion == int.MaxValue)
+        {
+            return RejectAction(
+                state,
+                request,
+                "surge_opportunity_illegal",
+                Diagnostic(
+                    "SURGE_OPPORTUNITY_ILLEGAL",
+                    "transition_validation",
+                    "The Surge opportunity cannot be resolved in the current state.",
+                    "resolve_surge_opportunity requires the exact current owner, Surge, and opportunity binding.",
+                    "refresh_projection"));
+        }
+
+        CanonicalHandToWellspringTransitionPlan? transition = null;
+        try
+        {
+            if (string.Equals(choice, "apply", StringComparison.Ordinal))
+            {
+                transition = CanonicalSurgeTransition.PlanHandToWellspring(
+                    state,
+                    window,
+                    $"zone_transition:{window.SurgeId}:{opportunityId}",
+                    $"surge_opportunity:{window.SurgeId}:{opportunityId}");
+            }
+            else
+            {
+                CanonicalSurgeTransition.ValidateSurgedCardInHand(state, window);
+            }
+        }
+        catch (EngineStateException exception)
+        {
+            return RejectAction(
+                state,
+                request,
+                "surge_opportunity_stale",
+                Diagnostic(
+                    exception.Code,
+                    "transition_validation",
+                    "The surged card is no longer available for this opportunity.",
+                    exception.Message,
+                    "refresh_projection"));
+        }
+
+        if (string.Equals(choice, "apply", StringComparison.Ordinal))
+        {
+            CanonicalSurgeTransition.ApplyHandToWellspring(
+                state,
+                transition ?? throw new EngineStateException(
+                    "Providence apply has no canonical transition plan."));
+        }
+
+        state.StateVersion = checked(state.StateVersion + 1);
+        window.RemainingOpportunityIds.Remove(opportunityId);
+        window.CurrentOpportunityId = null;
+        var resolvedPayload = new SurgeOpportunityResolvedPayload(
+            window.SurgeId,
+            window.SealBreakEventId,
+            combat.CombatId,
+            window.BrokenSealSlotId,
+            window.OwnerPlayerId,
+            opportunityId,
+            choice,
+            string.Equals(choice, "apply", StringComparison.Ordinal) ? "wellspring" : "hand",
+            transition?.TransitionId);
+        var events = ImmutableArray.CreateBuilder<EngineEvent>();
+        events.Add(CreateAttackEvent(
+            state,
+            request,
+            state.StateVersion,
+            events.Count,
+            "surge_opportunity_resolved",
+            ContractJsonValue.From(resolvedPayload)));
+        events.Add(CreateAttackEvent(
+            state,
+            request,
+            state.StateVersion,
+            events.Count,
+            "combat_resolved",
+            ContractJsonValue.From(new CombatResolvedPayload(
+                combat.CombatId,
+                $"{combat.CombatId}:seal_outcome",
+                CombatRuleIds.SealBreakCommittedOutcome,
+                NoHitReasonId: null,
+                combat.DefenseCommitted,
+                BuildGameObjectReferenceProjection(combat.AttackerRef),
+                Opponent: null))));
+        state.PendingSurgeWindow = null;
+        state.PendingCombat = null;
+        state.PriorityPlayerId = state.ActivePlayerId;
+        var materialized = events.ToImmutable();
+        state.Events.AddRange(materialized);
+        return AcceptAction(state, request, stateVersionBefore, materialized);
+    }
+
     private static void ShuffleDeck(MatchState state, PlayerState player, string purpose)
     {
         var shuffleSequence = state.NextShuffleSequence;
@@ -4290,17 +4535,27 @@ public sealed class EngineSession
             combat.StageId = plan.FutureStageId;
             combat.StageSequence = checked(combat.StageSequence + 1);
             state.PriorityPlayerId = combat.AttackingPlayerId;
-            combatEvents.Add(CreateEvent(
-                "combat_outcome_deferred",
-                ContractJsonValue.From(new Dictionary<string, object?>
-                {
-                    ["combat_id"] = combat.CombatId,
-                    ["timing_anchor_id"] = plan.TimingAnchorId,
-                    ["outcome_id"] = plan.OutcomeId,
-                    ["target_kind_id"] = combat.OriginalTarget.TargetKindId,
-                    ["next_stage_id"] = combat.StageId,
-                    ["next_stage_sequence"] = combat.StageSequence,
-                })));
+            if (string.Equals(
+                    plan.FutureStageId,
+                    CombatRuleIds.SealOutcomeCheckpointStage,
+                    StringComparison.Ordinal))
+            {
+                ResolveSealOutcomeCheckpoint(state, combat, combatEvents, CreateEvent);
+            }
+            else
+            {
+                combatEvents.Add(CreateEvent(
+                    "combat_outcome_deferred",
+                    ContractJsonValue.From(new Dictionary<string, object?>
+                    {
+                        ["combat_id"] = combat.CombatId,
+                        ["timing_anchor_id"] = plan.TimingAnchorId,
+                        ["outcome_id"] = plan.OutcomeId,
+                        ["target_kind_id"] = combat.OriginalTarget.TargetKindId,
+                        ["next_stage_id"] = combat.StageId,
+                        ["next_stage_sequence"] = combat.StageSequence,
+                    })));
+            }
         }
         else if (string.Equals(
                      plan.OutcomeId,
@@ -4447,6 +4702,152 @@ public sealed class EngineSession
         {
             responseEvents.AddRange(DiscoverCanonicalTriggers(state, materialized));
         }
+    }
+
+    private void ResolveSealOutcomeCheckpoint(
+        MatchState state,
+        PendingCombatState combat,
+        ImmutableArray<EngineEvent>.Builder events,
+        Func<string, JsonElement, EngineEvent> createEvent)
+    {
+        var plan = SealSurgeResolution.BuildPlan(
+            state,
+            combat,
+            _runtimePackage,
+            _canonicalRuntime?.Cards);
+        if (plan.BreakIntent is null || plan.SurgeTransition is null)
+        {
+            SealSurgeResolution.Apply(state, plan);
+            combat.OutcomeId = plan.OutcomeId;
+            events.Add(createEvent(
+                "combat_no_hit",
+                ContractJsonValue.From(new CombatResolvedPayload(
+                    plan.CombatId,
+                    plan.TimingAnchorId,
+                    plan.OutcomeId,
+                    plan.NoHitReasonId,
+                    combat.DefenseCommitted,
+                    BuildGameObjectReferenceProjection(plan.AttackerRef),
+                    Opponent: null))));
+            events.Add(createEvent(
+                "combat_resolved",
+                ContractJsonValue.From(new CombatResolvedPayload(
+                    plan.CombatId,
+                    plan.TimingAnchorId,
+                    plan.OutcomeId,
+                    plan.NoHitReasonId,
+                    combat.DefenseCommitted,
+                    BuildGameObjectReferenceProjection(plan.AttackerRef),
+                    Opponent: null))));
+            state.PendingCombat = null;
+            state.PriorityPlayerId = state.ActivePlayerId;
+            return;
+        }
+
+        var intent = plan.BreakIntent;
+        events.Add(createEvent(
+            "seal_break_intent",
+            ContractJsonValue.From(new SealBreakIntentPayload(
+                intent.IntentId,
+                intent.CombatId,
+                intent.TimingAnchorId,
+                intent.SealSlotId,
+                BuildGameObjectReferenceProjection(intent.AttackerRef),
+                intent.PreventionOutcomeId,
+                intent.Prevented))));
+        var sealBrokenEvent = createEvent(
+            "seal_broken",
+            ContractJsonValue.From(new SealBrokenPayload(
+                plan.SealBreakId!,
+                intent.IntentId,
+                plan.CombatId,
+                plan.SurgeId!,
+                plan.TimingAnchorId,
+                plan.SealSlotId,
+                plan.OwnerPlayerId)));
+
+        SealSurgeResolution.Apply(state, plan);
+        combat.OutcomeId = plan.OutcomeId;
+        events.Add(sealBrokenEvent);
+        events.Add(createEvent(
+            "seal_revealed",
+            ContractJsonValue.From(new SealRevealedPayload(
+                sealBrokenEvent.EventId,
+                plan.CombatId,
+                plan.SurgeId!,
+                plan.SealSlotId,
+                plan.OwnerPlayerId,
+                plan.SealedObjectRef!.ObjectId,
+                plan.SealedCardId!,
+                BuildGameObjectReferenceProjection(plan.SealedObjectRef)))));
+        var surgedObjectRef = new GameObjectRefState(
+            CombatRuleIds.CardInstanceObjectKind,
+            plan.SealedObjectRef.ObjectId,
+            plan.SurgeTransition.ZoneSequenceAfter);
+        events.Add(createEvent(
+            "seal_surged",
+            ContractJsonValue.From(new SealSurgedPayload(
+                sealBrokenEvent.EventId,
+                plan.CombatId,
+                plan.SurgeId!,
+                plan.SealSlotId,
+                plan.OwnerPlayerId,
+                surgedObjectRef.ObjectId,
+                plan.SealedCardId!,
+                BuildGameObjectReferenceProjection(surgedObjectRef),
+                "seal",
+                "hand",
+                plan.SurgeTransition.ToHandIndex,
+                plan.SurgeTransition.VisibilityAfter))));
+
+        var providence = SealSurgeResolution.EvaluateProvidenceAfterSurge(
+            state,
+            plan,
+            _canonicalRuntime?.Cards);
+        combat.StageId = CombatRuleIds.PostSurgeCheckpointStage;
+        combat.StageSequence = checked(combat.StageSequence + 1);
+        if (providence.Eligible)
+        {
+            var pending = new PendingSurgeWindowState
+            {
+                SurgeId = plan.SurgeId!,
+                SealBreakEventId = sealBrokenEvent.EventId,
+                BrokenSealSlotId = plan.SealSlotId,
+                SurgedObjectRef = surgedObjectRef,
+                OwnerPlayerId = plan.OwnerPlayerId,
+                CurrentOpportunityId = SealSurgeResolution.ProvidenceOpportunityId,
+                OpenedAtStateVersion = state.StateVersion,
+            };
+            pending.EligibleOpportunityIds.Add(SealSurgeResolution.ProvidenceOpportunityId);
+            pending.RemainingOpportunityIds.Add(SealSurgeResolution.ProvidenceOpportunityId);
+            state.PendingSurgeWindow = pending;
+            state.PriorityPlayerId = plan.OwnerPlayerId;
+            events.Add(createEvent(
+                "surge_opportunity_opened",
+                ContractJsonValue.From(new SurgeOpportunityOpenedPayload(
+                    pending.SurgeId,
+                    pending.SealBreakEventId,
+                    plan.CombatId,
+                    pending.BrokenSealSlotId,
+                    pending.OwnerPlayerId,
+                    SealSurgeResolution.ProvidenceOpportunityId,
+                    providence.CardMagnitude,
+                    providence.OwnerMagnitude))));
+            return;
+        }
+
+        events.Add(createEvent(
+            "combat_resolved",
+            ContractJsonValue.From(new CombatResolvedPayload(
+                plan.CombatId,
+                plan.TimingAnchorId,
+                plan.OutcomeId,
+                NoHitReasonId: null,
+                combat.DefenseCommitted,
+                BuildGameObjectReferenceProjection(plan.AttackerRef),
+                Opponent: null))));
+        state.PendingCombat = null;
+        state.PriorityPlayerId = state.ActivePlayerId;
     }
 
     private static void AppendCombatResolvedEvent(
@@ -7083,6 +7484,34 @@ public sealed class EngineSession
             }
         }
 
+        if (string.Equals(
+                request.ActionType,
+                "resolve_surge_opportunity",
+                StringComparison.Ordinal))
+        {
+            var properties = request.Payload.EnumerateObject().ToArray();
+            var names = properties.Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
+            if (properties.Length != 3
+                || !names.SetEquals(new[] { "surge_id", "opportunity_id", "choice" })
+                || !request.Payload.TryGetProperty("surge_id", out var surgeId)
+                || surgeId.ValueKind != JsonValueKind.String
+                || string.IsNullOrWhiteSpace(surgeId.GetString())
+                || !request.Payload.TryGetProperty("opportunity_id", out var opportunityId)
+                || opportunityId.ValueKind != JsonValueKind.String
+                || string.IsNullOrWhiteSpace(opportunityId.GetString())
+                || !request.Payload.TryGetProperty("choice", out var choice)
+                || choice.ValueKind != JsonValueKind.String
+                || choice.GetString() is not ("apply" or "decline"))
+            {
+                return Diagnostic(
+                    "ACTION_PAYLOAD_INVALID",
+                    "request_validation",
+                    "Surge resolution requires one exact opportunity choice.",
+                    "The resolve_surge_opportunity payload must contain exactly surge_id, opportunity_id, and choice=apply|decline.",
+                    "fix_request");
+            }
+        }
+
         if (string.Equals(request.ActionType, "play_card", StringComparison.Ordinal))
         {
             var properties = request.Payload.EnumerateObject().ToArray();
@@ -7801,6 +8230,25 @@ public sealed class EngineSession
                 source.PendingCombat.LegalDefenderCandidateIds);
         }
 
+        if (source.PendingSurgeWindow is not null)
+        {
+            var surge = new PendingSurgeWindowState
+            {
+                SurgeId = source.PendingSurgeWindow.SurgeId,
+                SealBreakEventId = source.PendingSurgeWindow.SealBreakEventId,
+                BrokenSealSlotId = source.PendingSurgeWindow.BrokenSealSlotId,
+                SurgedObjectRef = source.PendingSurgeWindow.SurgedObjectRef with { },
+                OwnerPlayerId = source.PendingSurgeWindow.OwnerPlayerId,
+                CurrentOpportunityId = source.PendingSurgeWindow.CurrentOpportunityId,
+                OpenedAtStateVersion = source.PendingSurgeWindow.OpenedAtStateVersion,
+            };
+            surge.EligibleOpportunityIds.AddRange(
+                source.PendingSurgeWindow.EligibleOpportunityIds);
+            surge.RemainingOpportunityIds.AddRange(
+                source.PendingSurgeWindow.RemainingOpportunityIds);
+            clone.PendingSurgeWindow = surge;
+        }
+
         foreach (var sourceEntry in source.ResolutionStack)
         {
             clone.ResolutionStack.Add(new ResolutionStackEntryState
@@ -8225,6 +8673,7 @@ public sealed class EngineSession
 
         ValidatePendingTriggerWindow(state, knownPlayerIds);
         ValidateCombatState(state, knownPlayerIds);
+        ValidatePendingSurgeWindow(state, knownPlayerIds);
         ValidateReactionState(state, knownPlayerIds);
     }
 
@@ -8426,6 +8875,10 @@ public sealed class EngineSession
         var futureOutcomeStage = combat.StageId is
             CombatRuleIds.SealOutcomeCheckpointStage
             or CombatRuleIds.AeternalOutcomeCheckpointStage;
+        var postSurgeStage = string.Equals(
+            combat.StageId,
+            CombatRuleIds.PostSurgeCheckpointStage,
+            StringComparison.Ordinal);
         var resolutionMetadataConsistent = futureOutcomeStage
             ? string.Equals(
                   combat.ResolutionTimingAnchorId,
@@ -8435,6 +8888,15 @@ public sealed class EngineSession
                   combat.OutcomeId,
                   CombatRuleIds.FutureOutcomePending,
                   StringComparison.Ordinal)
+            : postSurgeStage
+              ? string.Equals(
+                    combat.ResolutionTimingAnchorId,
+                    $"{combat.CombatId}:resolution",
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    combat.OutcomeId,
+                    CombatRuleIds.SealBreakCommittedOutcome,
+                    StringComparison.Ordinal)
             : combat.ResolutionTimingAnchorId is null
               && combat.OutcomeId is null;
         if (combat.CombatSequence < 1
@@ -8763,11 +9225,240 @@ public sealed class EngineSession
                     "Deferred Combat target outcome checkpoint is inconsistent.");
             }
         }
+        else if (postSurgeStage)
+        {
+            var unavailable = combat.StageSequence == 5
+                && string.Equals(
+                    combat.DefenseDecisionStateId,
+                    CombatRuleIds.DefenseDecisionUnavailable,
+                    StringComparison.Ordinal);
+            var declined = combat.StageSequence == 6
+                && string.Equals(
+                    combat.DefenseDecisionStateId,
+                    CombatRuleIds.DefenseDecisionDeclined,
+                    StringComparison.Ordinal);
+            if (!(unavailable || declined)
+                || !string.Equals(
+                    combat.OriginalTarget.TargetKindId,
+                    CombatRuleIds.SealSlotTargetKind,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    combat.AttackContinuityStateId,
+                    CombatRuleIds.AttackContinuityContinuous,
+                    StringComparison.Ordinal)
+                || combat.DefenseCommitted
+                || combat.LegalDefenderCandidateIds.Count != 0
+                || state.PendingSurgeWindow is null
+                || state.ReactionWindow is not null
+                || continuations.Length != 0
+                || !string.Equals(
+                    state.PriorityPlayerId,
+                    combat.DefendingPlayerId,
+                    StringComparison.Ordinal))
+            {
+                throw new EngineStateException(
+                    "Post-Surge Combat checkpoint is inconsistent.");
+            }
+        }
         else
         {
-            throw new EngineStateException("PendingCombat stage is unsupported in C4.");
+            throw new EngineStateException("PendingCombat stage is unsupported in C5.");
         }
     }
+
+    private static void ValidatePendingSurgeWindow(
+        MatchState state,
+        IReadOnlySet<string> knownPlayerIds)
+    {
+        var window = state.PendingSurgeWindow;
+        if (window is null)
+        {
+            return;
+        }
+
+        var combat = state.PendingCombat;
+        if (combat is null
+            || !string.Equals(
+                combat.StageId,
+                CombatRuleIds.PostSurgeCheckpointStage,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                combat.OriginalTarget.TargetKindId,
+                CombatRuleIds.SealSlotTargetKind,
+                StringComparison.Ordinal)
+            || !knownPlayerIds.Contains(window.OwnerPlayerId)
+            || !string.Equals(window.OwnerPlayerId, combat.DefendingPlayerId, StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(window.SurgeId)
+            || !string.Equals(
+                window.SurgeId,
+                $"surge:{combat.CombatId}:{window.BrokenSealSlotId}",
+                StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(window.SealBreakEventId)
+            || string.IsNullOrWhiteSpace(window.BrokenSealSlotId)
+            || window.OpenedAtStateVersion < combat.AttackCommitStateVersion
+            || window.OpenedAtStateVersion > state.StateVersion
+            || window.EligibleOpportunityIds.Count != 1
+            || !string.Equals(
+                window.EligibleOpportunityIds[0],
+                SealSurgeResolution.ProvidenceOpportunityId,
+                StringComparison.Ordinal)
+            || window.RemainingOpportunityIds.Count != 1
+            || !string.Equals(
+                window.RemainingOpportunityIds[0],
+                SealSurgeResolution.ProvidenceOpportunityId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                window.CurrentOpportunityId,
+                SealSurgeResolution.ProvidenceOpportunityId,
+                StringComparison.Ordinal)
+            || state.ReactionWindow is not null
+            || state.PendingTriggerWindow is not null
+            || state.ResolutionStack.Count != 0
+            || state.QueuedTriggerBatches.Count != 0
+            || !string.Equals(state.PriorityPlayerId, window.OwnerPlayerId, StringComparison.Ordinal))
+        {
+            throw new EngineStateException(
+                "PendingSurgeWindow identity, opportunity, or blocking state is invalid.");
+        }
+
+        var owner = state.GetPlayer(window.OwnerPlayerId);
+        var slots = owner.SealSlots.Where(slot => string.Equals(
+                slot.SealSlotId,
+                window.BrokenSealSlotId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (slots.Length != 1
+            || !string.Equals(slots[0].Status, "broken", StringComparison.Ordinal)
+            || slots[0].CardInstanceId is not null
+            || slots[0].LaneIndex != combat.OriginalAttackLaneIndex)
+        {
+            throw new EngineStateException(
+                "PendingSurgeWindow must reference the exact broken, identity-cleared Seal slot.");
+        }
+
+        ValidateGameObjectReference(state, window.SurgedObjectRef, "Surged card");
+        var card = state.GetCardInstance(window.SurgedObjectRef.ObjectId);
+        var handIndex = owner.HandCardInstanceIds.IndexOf(card.CardInstanceId);
+        if (card.ZoneSequence != window.SurgedObjectRef.IncarnationSequence
+            || !string.Equals(card.OwnerPlayerId, window.OwnerPlayerId, StringComparison.Ordinal)
+            || !string.Equals(card.ControllerPlayerId, window.OwnerPlayerId, StringComparison.Ordinal)
+            || !string.Equals(card.Zone, "hand", StringComparison.Ordinal)
+            || handIndex < 0
+            || owner.HandCardInstanceIds.Count(candidate => string.Equals(
+                candidate,
+                card.CardInstanceId,
+                StringComparison.Ordinal)) != 1
+            || card.ZoneIndex != handIndex
+            || !string.Equals(card.Visibility, "owner_only", StringComparison.Ordinal)
+            || card.ActivityState is not null)
+        {
+            throw new EngineStateException(
+                "PendingSurgeWindow must bind the exact surged owner-hand incarnation.");
+        }
+
+        var sealBreakEvents = state.Events.Where(item => string.Equals(
+                item.EventId,
+                window.SealBreakEventId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (sealBreakEvents.Length != 1
+            || !string.Equals(sealBreakEvents[0].EventType, "seal_broken", StringComparison.Ordinal)
+            || !string.Equals(sealBreakEvents[0].Visibility, "public", StringComparison.Ordinal)
+            || !PayloadStringEquals(sealBreakEvents[0], "combat_id", combat.CombatId)
+            || !PayloadStringEquals(sealBreakEvents[0], "surge_id", window.SurgeId)
+            || !PayloadStringEquals(
+                sealBreakEvents[0],
+                "seal_slot_id",
+                window.BrokenSealSlotId)
+            || !PayloadStringEquals(
+                sealBreakEvents[0],
+                "owner_player_id",
+                window.OwnerPlayerId))
+        {
+            throw new EngineStateException(
+                "PendingSurgeWindow SealBreak event correlation is invalid.");
+        }
+
+        var correlatedEvents = state.Events.Where(item =>
+                PayloadStringEquals(item, "surge_id", window.SurgeId))
+            .OrderBy(item => item.EventSequence)
+            .ToArray();
+        var revealedEvents = correlatedEvents.Where(item => string.Equals(
+                item.EventType,
+                "seal_revealed",
+                StringComparison.Ordinal))
+            .ToArray();
+        var surgedEvents = correlatedEvents.Where(item => string.Equals(
+                item.EventType,
+                "seal_surged",
+                StringComparison.Ordinal))
+            .ToArray();
+        var openedEvents = correlatedEvents.Where(item => string.Equals(
+                item.EventType,
+                "surge_opportunity_opened",
+                StringComparison.Ordinal))
+            .ToArray();
+        if (revealedEvents.Length != 1
+            || surgedEvents.Length != 1
+            || openedEvents.Length != 1)
+        {
+            throw new EngineStateException(
+                "PendingSurgeWindow requires exactly one reveal, Surge, and opportunity event.");
+        }
+
+        var revealed = revealedEvents[0];
+        var surged = surgedEvents[0];
+        var opened = openedEvents[0];
+        if (sealBreakEvents[0].EventSequence >= revealed.EventSequence
+            || revealed.EventSequence >= surged.EventSequence
+            || surged.EventSequence >= opened.EventSequence
+            || !PayloadStringEquals(revealed, "card_instance_id", card.CardInstanceId)
+            || !PayloadStringEquals(revealed, "card_id", card.CardId)
+            || !PayloadStringEquals(revealed, "seal_break_event_id", window.SealBreakEventId)
+            || !PayloadStringEquals(surged, "card_instance_id", card.CardInstanceId)
+            || !PayloadStringEquals(surged, "card_id", card.CardId)
+            || !PayloadStringEquals(surged, "to_zone_id", "hand")
+            || !PayloadStringEquals(surged, "seal_break_event_id", window.SealBreakEventId)
+            || !PayloadStringEquals(
+                opened,
+                "opportunity_id",
+                SealSurgeResolution.ProvidenceOpportunityId)
+            || !PayloadStringEquals(opened, "owner_player_id", window.OwnerPlayerId)
+            || !PayloadIntEquals(
+                opened,
+                "owner_magnitude",
+                owner.WellspringCardInstanceIds.Count)
+            || !opened.Payload.TryGetProperty("card_magnitude", out var cardMagnitude)
+            || cardMagnitude.ValueKind != JsonValueKind.Number
+            || !cardMagnitude.TryGetInt32(out var cardMagnitudeValue)
+            || !opened.Payload.TryGetProperty("owner_magnitude", out var ownerMagnitude)
+            || ownerMagnitude.ValueKind != JsonValueKind.Number
+            || !ownerMagnitude.TryGetInt32(out var ownerMagnitudeValue)
+            || cardMagnitudeValue <= ownerMagnitudeValue)
+        {
+            throw new EngineStateException(
+                "PendingSurgeWindow reveal, Surge, or Providence eligibility correlation is invalid.");
+        }
+    }
+
+    private static bool PayloadStringEquals(
+        EngineEvent item,
+        string propertyName,
+        string expected) =>
+        item.Payload.ValueKind == JsonValueKind.Object
+        && item.Payload.TryGetProperty(propertyName, out var value)
+        && value.ValueKind == JsonValueKind.String
+        && string.Equals(value.GetString(), expected, StringComparison.Ordinal);
+
+    private static bool PayloadIntEquals(
+        EngineEvent item,
+        string propertyName,
+        int expected) =>
+        item.Payload.ValueKind == JsonValueKind.Object
+        && item.Payload.TryGetProperty(propertyName, out var value)
+        && value.ValueKind == JsonValueKind.Number
+        && value.TryGetInt32(out var actual)
+        && actual == expected;
 
     private static void ValidateGameObjectReference(
         MatchState state,

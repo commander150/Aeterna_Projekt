@@ -22,6 +22,7 @@ public static class ContractSchemas
     public const string DebugSnapshot = "aeterna-debug-match-snapshot-v4";
     public const string DebugSnapshotWithSeals = "aeterna-debug-match-snapshot-v5";
     public const string DebugSnapshotWithCombat = "aeterna-debug-match-snapshot-v8";
+    public const string DebugSnapshotWithSurge = "aeterna-debug-match-snapshot-v9";
     public const string EngineEvent = "minimal-engine-event-v0";
     public const string EngineDiagnostic = "aeterna-engine-diagnostic-v1";
     public const string MatchResult = "aeterna-match-result-v1";
@@ -357,6 +358,71 @@ public sealed record CombatResolvedPayload(
     [property: JsonPropertyName("opponent")]
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     GameObjectReferenceProjection? Opponent);
+
+public sealed record SealBreakIntentPayload(
+    [property: JsonPropertyName("seal_break_intent_id")] string SealBreakIntentId,
+    [property: JsonPropertyName("combat_id")] string CombatId,
+    [property: JsonPropertyName("timing_anchor_id")] string TimingAnchorId,
+    [property: JsonPropertyName("seal_slot_id")] string SealSlotId,
+    [property: JsonPropertyName("attacker")] GameObjectReferenceProjection Attacker,
+    [property: JsonPropertyName("prevention_outcome_id")] string PreventionOutcomeId,
+    [property: JsonPropertyName("prevented")] bool Prevented);
+
+public sealed record SealBrokenPayload(
+    [property: JsonPropertyName("seal_break_id")] string SealBreakId,
+    [property: JsonPropertyName("seal_break_intent_id")] string SealBreakIntentId,
+    [property: JsonPropertyName("combat_id")] string CombatId,
+    [property: JsonPropertyName("surge_id")] string SurgeId,
+    [property: JsonPropertyName("timing_anchor_id")] string TimingAnchorId,
+    [property: JsonPropertyName("seal_slot_id")] string SealSlotId,
+    [property: JsonPropertyName("owner_player_id")] string OwnerPlayerId);
+
+public sealed record SealRevealedPayload(
+    [property: JsonPropertyName("seal_break_event_id")] string SealBreakEventId,
+    [property: JsonPropertyName("combat_id")] string CombatId,
+    [property: JsonPropertyName("surge_id")] string SurgeId,
+    [property: JsonPropertyName("seal_slot_id")] string SealSlotId,
+    [property: JsonPropertyName("owner_player_id")] string OwnerPlayerId,
+    [property: JsonPropertyName("card_instance_id")] string CardInstanceId,
+    [property: JsonPropertyName("card_id")] string CardId,
+    [property: JsonPropertyName("sealed_object_ref")] GameObjectReferenceProjection SealedObjectRef);
+
+public sealed record SealSurgedPayload(
+    [property: JsonPropertyName("seal_break_event_id")] string SealBreakEventId,
+    [property: JsonPropertyName("combat_id")] string CombatId,
+    [property: JsonPropertyName("surge_id")] string SurgeId,
+    [property: JsonPropertyName("seal_slot_id")] string SealSlotId,
+    [property: JsonPropertyName("owner_player_id")] string OwnerPlayerId,
+    [property: JsonPropertyName("card_instance_id")] string CardInstanceId,
+    [property: JsonPropertyName("card_id")] string CardId,
+    [property: JsonPropertyName("surged_object_ref")] GameObjectReferenceProjection SurgedObjectRef,
+    [property: JsonPropertyName("from_zone_id")] string FromZoneId,
+    [property: JsonPropertyName("to_zone_id")] string ToZoneId,
+    [property: JsonPropertyName("to_zone_index")] int ToZoneIndex,
+    [property: JsonPropertyName("visibility_after")] string VisibilityAfter);
+
+public sealed record SurgeOpportunityOpenedPayload(
+    [property: JsonPropertyName("surge_id")] string SurgeId,
+    [property: JsonPropertyName("seal_break_event_id")] string SealBreakEventId,
+    [property: JsonPropertyName("combat_id")] string CombatId,
+    [property: JsonPropertyName("broken_seal_slot_id")] string BrokenSealSlotId,
+    [property: JsonPropertyName("owner_player_id")] string OwnerPlayerId,
+    [property: JsonPropertyName("opportunity_id")] string OpportunityId,
+    [property: JsonPropertyName("card_magnitude")] int CardMagnitude,
+    [property: JsonPropertyName("owner_magnitude")] int OwnerMagnitude);
+
+public sealed record SurgeOpportunityResolvedPayload(
+    [property: JsonPropertyName("surge_id")] string SurgeId,
+    [property: JsonPropertyName("seal_break_event_id")] string SealBreakEventId,
+    [property: JsonPropertyName("combat_id")] string CombatId,
+    [property: JsonPropertyName("broken_seal_slot_id")] string BrokenSealSlotId,
+    [property: JsonPropertyName("owner_player_id")] string OwnerPlayerId,
+    [property: JsonPropertyName("opportunity_id")] string OpportunityId,
+    [property: JsonPropertyName("choice")] string Choice,
+    [property: JsonPropertyName("result_zone_id")] string ResultZoneId,
+    [property: JsonPropertyName("transition_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? TransitionId);
 
 public sealed record DamageRemovedPayload(
     [property: JsonPropertyName("damage_removal_instance_id")] string DamageRemovalInstanceId,
@@ -739,6 +805,17 @@ public sealed record DebugPendingCombatSnapshot(
     string? ResolutionTimingAnchorId,
     string? OutcomeId);
 
+public sealed record DebugPendingSurgeWindowSnapshot(
+    string SurgeId,
+    string SealBreakEventId,
+    string BrokenSealSlotId,
+    GameObjectReferenceProjection SurgedObjectRef,
+    string OwnerPlayerId,
+    ImmutableArray<string> EligibleOpportunityIds,
+    ImmutableArray<string> RemainingOpportunityIds,
+    string? CurrentOpportunityId,
+    int OpenedAtStateVersion);
+
 public sealed record DebugCardInstanceSnapshot(
     string CardInstanceId,
     string CardId,
@@ -818,7 +895,10 @@ public sealed record DebugSnapshot(
     MatchResult MatchResult,
     [property: JsonPropertyName("pending_combat")]
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    DebugPendingCombatSnapshot? PendingCombat = null);
+    DebugPendingCombatSnapshot? PendingCombat = null,
+    [property: JsonPropertyName("pending_surge_window")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    DebugPendingSurgeWindowSnapshot? PendingSurgeWindow = null);
 
 public sealed record MatchResult(
     [property: JsonPropertyName("schema_version")] string SchemaVersion,

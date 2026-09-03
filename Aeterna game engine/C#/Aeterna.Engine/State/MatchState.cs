@@ -67,6 +67,8 @@ internal sealed class MatchState
 
     public int NextCombatSequence { get; set; } = 1;
 
+    public PendingSurgeWindowState? PendingSurgeWindow { get; set; }
+
     public MatchResult Result { get; } = new(
         ContractSchemas.MatchResult,
         Completed: false,
@@ -200,6 +202,27 @@ internal sealed class PendingCombatState
     public string? ResolutionTimingAnchorId { get; set; }
 
     public string? OutcomeId { get; set; }
+}
+
+internal sealed class PendingSurgeWindowState
+{
+    public required string SurgeId { get; init; }
+
+    public required string SealBreakEventId { get; init; }
+
+    public required string BrokenSealSlotId { get; init; }
+
+    public required GameObjectRefState SurgedObjectRef { get; init; }
+
+    public required string OwnerPlayerId { get; init; }
+
+    public List<string> EligibleOpportunityIds { get; } = [];
+
+    public List<string> RemainingOpportunityIds { get; } = [];
+
+    public string? CurrentOpportunityId { get; set; }
+
+    public required int OpenedAtStateVersion { get; init; }
 }
 
 internal sealed record CanonicalAbilityResolutionState(

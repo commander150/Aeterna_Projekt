@@ -16,6 +16,7 @@ internal static class CombatRuleIds
     internal const string DefenseReactionStage = "defense_reaction";
     internal const string DefenseCheckpointStage = "defense_checkpoint";
     internal const string SealOutcomeCheckpointStage = "seal_outcome_checkpoint";
+    internal const string PostSurgeCheckpointStage = "post_surge_checkpoint";
     internal const string AeternalOutcomeCheckpointStage = "aeternal_outcome_checkpoint";
     internal const string AfterAttackReactionResumePoint = "after_attack_reaction";
     internal const string AfterDefenseReactionResumePoint = "after_defense_reaction";
@@ -36,10 +37,13 @@ internal static class CombatRuleIds
     internal const string EntityCombatResolvedOutcome = "entity_combat_resolved";
     internal const string NoHitOutcome = "no_hit";
     internal const string FutureOutcomePending = "future_outcome_pending";
+    internal const string SealBreakCommittedOutcome = "seal_break_committed";
     internal const string AttackerMissingNoHitReason = "attacker_missing";
     internal const string TargetMissingNoHitReason = "target_missing";
     internal const string DefenderMissingNoHitReason = "defender_missing";
     internal const string ContactInvalidNoHitReason = "contact_invalid";
+    internal const string SealUnavailableNoHitReason = "seal_unavailable";
+    internal const string SealLaneInvalidNoHitReason = "seal_lane_invalid";
     internal const string CombatCauseKind = "combat";
     internal const string CombatDamageKind = "damage_kind_combat";
     internal const string SpeedKeyword = "speed";
