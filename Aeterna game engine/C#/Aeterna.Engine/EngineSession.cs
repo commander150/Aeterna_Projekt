@@ -403,19 +403,92 @@ public sealed class EngineSession
             }).ToArray(),
         });
 
-    private static LegalActionSpace BuildCombatPendingLegalActionSpace(
+    private LegalActionSpace BuildCombatPendingLegalActionSpace(
         MatchState state,
         PlayerState player,
         ImmutableArray<LegalAction> baseActions,
         bool includeDisabled)
     {
+        var combat = state.PendingCombat
+            ?? throw new EngineStateException("Combat legal action space requires PendingCombat.");
         var actions = baseActions.Select(action => action with
         {
             Enabled = false,
             DisabledReason = "combat_pending",
-        }).ToImmutableArray();
+        });
+        if (string.Equals(
+                combat.StageId,
+                CombatRuleIds.InterventionChoiceStage,
+                StringComparison.Ordinal))
+        {
+            var isDefendingPlayer = string.Equals(
+                player.PlayerId,
+                combat.DefendingPlayerId,
+                StringComparison.Ordinal);
+            var candidates = CombatRules.ResolveInterventionCandidates(
+                    state,
+                    combat,
+                    _runtimePackage,
+                    _canonicalRuntime?.Abilities)
+                .Where(candidate => combat.LegalDefenderCandidateIds.Contains(
+                    candidate.Defender.CardInstanceId,
+                    StringComparer.Ordinal))
+                .ToImmutableArray();
+            actions = actions
+                .Prepend(new LegalAction(
+                    $"intervene:{combat.CombatId}:{state.StateVersion}:{player.PlayerId}",
+                    "intervene",
+                    player.PlayerId,
+                    isDefendingPlayer && candidates.Length > 0,
+                    25,
+                    !isDefendingPlayer
+                        ? "not_defending_player"
+                        : candidates.Length == 0
+                            ? "no_legal_defender"
+                            : null,
+                    isDefendingPlayer
+                        ? BuildIntervenePayloadSchema(candidates)
+                        : BuildUnavailableCombatDecisionPayloadSchema()))
+                .Prepend(new LegalAction(
+                    $"decline_intervention:{combat.CombatId}:{state.StateVersion}:{player.PlayerId}",
+                    "decline_intervention",
+                    player.PlayerId,
+                    isDefendingPlayer,
+                    20,
+                    isDefendingPlayer ? null : "not_defending_player",
+                    ContractJsonValue.EmptyObject()));
+        }
+
         return BuildLegalActionSpace(state, player.PlayerId, actions, includeDisabled);
     }
+
+    private static JsonElement BuildIntervenePayloadSchema(
+        ImmutableArray<CombatInterventionOption> candidates) =>
+        ContractJsonValue.From(new Dictionary<string, object?>
+        {
+            ["type"] = "object",
+            ["required"] = new[] { "defender_card_instance_id" },
+            ["additional_properties"] = false,
+            ["properties"] = new Dictionary<string, object?>
+            {
+                ["defender_card_instance_id"] = new Dictionary<string, object?>
+                {
+                    ["type"] = "string",
+                    ["enum"] = candidates.Select(candidate => candidate.Defender.CardInstanceId).ToArray(),
+                },
+            },
+            ["defender_options"] = candidates.Select(candidate => new Dictionary<string, object?>
+            {
+                ["defender_card_instance_id"] = candidate.Defender.CardInstanceId,
+            }).ToArray(),
+        });
+
+    private static JsonElement BuildUnavailableCombatDecisionPayloadSchema() =>
+        ContractJsonValue.From(new Dictionary<string, object?>
+        {
+            ["type"] = "object",
+            ["available"] = false,
+        });
 
     private ImmutableArray<LegalAction> BuildLegacyActions(MatchState state, PlayerState player)
     {
@@ -522,10 +595,8 @@ public sealed class EngineSession
         var canonicalRuntime = _canonicalRuntime;
         if (runtimePackage is null || canonicalRuntime is null)
         {
-            if (string.Equals(
-                    window.ReactionProfileId,
-                    CombatRuleIds.AttackReactionProfile,
-                    StringComparison.Ordinal))
+            if (window.ReactionProfileId is CombatRuleIds.AttackReactionProfile
+                or CombatRuleIds.DefenseReactionProfile)
             {
                 return ImmutableArray<ReactionOption>.Empty;
             }
@@ -793,6 +864,23 @@ public sealed class EngineSession
                     ["original_target"] = projection.OriginalTarget,
                     ["original_attack_lane_index"] = projection.OriginalAttackLaneIndex,
                     ["attack_timing_anchor_id"] = projection.AttackTimingAnchorId,
+                    ["attack_continuity_state_id"] = projection.AttackContinuityStateId,
+                    ["defense_decision_state_id"] = projection.DefenseDecisionStateId,
+                    ["current_player_id"] = string.Equals(
+                        projection.Stage,
+                        CombatRuleIds.InterventionChoiceStage,
+                        StringComparison.Ordinal)
+                            ? projection.DefendingPlayerId
+                            : null,
+                    ["legal_defender_candidate_ids"] = projection.LegalDefenderCandidateIds,
+                    ["decline_intervention_available"] = string.Equals(
+                        projection.Stage,
+                        CombatRuleIds.InterventionChoiceStage,
+                        StringComparison.Ordinal),
+                    ["defender"] = projection.Defender,
+                    ["defender_lane_at_commit"] = projection.DefenderLaneAtCommit,
+                    ["defense_committed"] = projection.DefenseCommitted,
+                    ["defense_timing_anchor_id"] = projection.DefenseTimingAnchorId,
                 });
             }
 
@@ -830,11 +918,21 @@ public sealed class EngineSession
             new CombatTargetProjection(
                 combat.OriginalTarget.TargetKindId,
                 combat.OriginalTarget.PublicTargetId,
-                combat.OriginalTarget.EntityRef is null
+            combat.OriginalTarget.EntityRef is null
                     ? null
                     : BuildGameObjectReferenceProjection(combat.OriginalTarget.EntityRef)),
             combat.OriginalAttackLaneIndex,
-            combat.AttackTimingAnchorId);
+            combat.AttackTimingAnchorId,
+            combat.AttackContinuityStateId,
+            combat.DefenseDecisionStateId,
+            combat.LegalDefenderCandidateIds.ToImmutableArray(),
+            combat.DefenderRef is null
+                ? null
+                : BuildGameObjectReferenceProjection(combat.DefenderRef),
+            combat.DefenderLaneAtCommit,
+            combat.DefenseCommitted,
+            combat.DefenseCommitStateVersion,
+            combat.DefenseTimingAnchorId);
 
     private static GameObjectReferenceProjection BuildGameObjectReferenceProjection(
         GameObjectRefState reference) => new(
@@ -996,6 +1094,8 @@ public sealed class EngineSession
             "normal_inflow" => ApplyNormalInflow(state, request, stateVersionBefore),
             "play_card" => ApplyPlayCard(state, request, stateVersionBefore),
             "attack" => ApplyAttack(state, request, stateVersionBefore),
+            "intervene" => ApplyIntervene(state, request, stateVersionBefore),
+            "decline_intervention" => ApplyDeclineIntervention(state, request, stateVersionBefore),
             "resolve_triggered_ability" => ApplyResolveTriggeredAbility(state, request, stateVersionBefore),
             "pass_priority" => ApplyPassPriority(state, request, stateVersionBefore),
             "react" => ApplyReact(state, request, stateVersionBefore),
@@ -1169,13 +1269,27 @@ public sealed class EngineSession
             BuildGameObjectReferenceProjection(combat.AttackerRef),
             BuildPendingCombatProjection(combat).OriginalTarget,
             combat.OriginalAttackLaneIndex,
+            combat.OriginalTargetRowAtAttackCommit switch
+            {
+                DomainRow.Horizon => "horizont",
+                DomainRow.Zenith => "zenit",
+                null => null,
+                _ => throw new ArgumentOutOfRangeException(),
+            },
+            combat.OriginalTargetHadWardAtAttackCommit,
             combat.AttackCommitted,
             combat.AttackCommitStateVersion,
             combat.AttackTimingAnchorId,
+            combat.AttackContinuityStateId,
+            combat.DefenseDecisionStateId,
+            combat.LegalDefenderCandidateIds.ToImmutableArray(),
             combat.DefenderRef is null
                 ? null
                 : BuildGameObjectReferenceProjection(combat.DefenderRef),
+            combat.DefenderLaneAtCommit,
             combat.DefenseCommitted,
+            combat.DefenseCommitStateVersion,
+            combat.DefenseTimingAnchorId,
             combat.OutcomeId);
 
     internal ImmutableArray<EngineEvent> GetDebugEvents(int afterSequence = 0)
@@ -2352,11 +2466,18 @@ public sealed class EngineSession
             AttackerRef = option.AttackerRef,
             OriginalTarget = option.Target,
             OriginalAttackLaneIndex = option.OriginalAttackLaneIndex,
+            OriginalTargetRowAtAttackCommit = option.OriginalTargetRowAtAttackCommit,
+            OriginalTargetHadWardAtAttackCommit = option.OriginalTargetHadWardAtAttackCommit,
             AttackCommitted = true,
             AttackCommitStateVersion = stateVersionAfter,
             AttackTimingAnchorId = timingAnchorId,
+            AttackContinuityStateId = CombatRuleIds.AttackContinuityUnchecked,
+            DefenseDecisionStateId = CombatRuleIds.DefenseDecisionPending,
             DefenderRef = null,
+            DefenderLaneAtCommit = null,
             DefenseCommitted = false,
+            DefenseCommitStateVersion = null,
+            DefenseTimingAnchorId = null,
             OutcomeId = null,
         };
         state.PendingCombat = combat;
@@ -2455,6 +2576,254 @@ public sealed class EngineSession
         var materialized = events.ToImmutable();
         state.Events.AddRange(materialized);
         return AcceptAction(state, request, stateVersionBefore, materialized);
+    }
+
+    private ActionResponse ApplyIntervene(
+        MatchState state,
+        ActionRequest request,
+        int stateVersionBefore)
+    {
+        var combat = state.PendingCombat;
+        if (combat is null
+            || !string.Equals(
+                combat.StageId,
+                CombatRuleIds.InterventionChoiceStage,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                combat.DefenseDecisionStateId,
+                CombatRuleIds.DefenseDecisionChoiceOpen,
+                StringComparison.Ordinal)
+            || !string.Equals(combat.DefendingPlayerId, request.PlayerId, StringComparison.Ordinal)
+            || state.ReactionWindow is not null
+            || state.ResolutionStack.Count != 0)
+        {
+            return RejectAction(
+                state,
+                request,
+                "intervention_illegal",
+                Diagnostic(
+                    "INTERVENTION_ILLEGAL",
+                    "transition_validation",
+                    "A defender cannot intervene in the current Combat state.",
+                    "intervene requires the defending player's open intervention choice and no ReactionWindow.",
+                    "refresh_projection"));
+        }
+
+        var defenderCardInstanceId = request.Payload
+            .GetProperty("defender_card_instance_id")
+            .GetString()!;
+        var option = CombatRules.ResolveInterventionCandidates(
+                state,
+                combat,
+                _runtimePackage,
+                _canonicalRuntime?.Abilities)
+            .SingleOrDefault(candidate =>
+                combat.LegalDefenderCandidateIds.Contains(
+                    candidate.Defender.CardInstanceId,
+                    StringComparer.Ordinal)
+                && string.Equals(
+                    candidate.Defender.CardInstanceId,
+                    defenderCardInstanceId,
+                    StringComparison.Ordinal));
+        if (option is null)
+        {
+            return RejectAction(
+                state,
+                request,
+                "intervention_illegal",
+                Diagnostic(
+                    "INTERVENTION_ILLEGAL",
+                    "transition_validation",
+                    "The selected Entity cannot intervene in this Combat.",
+                    "The defender is absent from the current authoritative intervention candidate set.",
+                    "refresh_projection"));
+        }
+
+        if (state.NextReactionWindowSequence == int.MaxValue
+            || state.NextReactionSubjectSequence == int.MaxValue
+            || state.NextResolutionSequence == int.MaxValue
+            || combat.StageSequence == int.MaxValue)
+        {
+            return RejectAction(
+                state,
+                request,
+                "combat_identity_exhausted",
+                Diagnostic(
+                    "COMBAT_IDENTITY_EXHAUSTED",
+                    "transition_validation",
+                    "The defense cannot allocate deterministic Combat identities.",
+                    "A MatchState-owned Combat or Reaction sequence reached its supported boundary.",
+                    "engine_bug"));
+        }
+
+        var stateVersionAfter = state.StateVersion + 1;
+        var defenseTimingAnchorId = $"{combat.CombatId}:defense_commit";
+        var resolutionSequence = state.NextResolutionSequence;
+        var continuationResolutionId = $"resolution:{state.MatchId}:{resolutionSequence:000000}";
+        var reactionWindowId =
+            $"reaction-window:{state.MatchId}:{state.NextReactionWindowSequence:000000}";
+        var reactionSubjectId =
+            $"reaction-subject:{state.MatchId}:{state.NextReactionSubjectSequence:000000}";
+        var defenderIntervenedEventSequence = state.Events.Count + 1;
+        var defenderIntervenedEventId = $"event_{defenderIntervenedEventSequence:000000}";
+
+        option.Defender.ActivityState = "exhausted";
+        combat.DefenderRef = option.DefenderRef;
+        combat.DefenderLaneAtCommit = option.DefenderLaneIndex;
+        combat.DefenseCommitted = true;
+        combat.DefenseCommitStateVersion = stateVersionAfter;
+        combat.DefenseTimingAnchorId = defenseTimingAnchorId;
+        combat.DefenseDecisionStateId = CombatRuleIds.DefenseDecisionCommitted;
+        combat.LegalDefenderCandidateIds.Clear();
+        combat.StageId = CombatRuleIds.DefenseReactionStage;
+        combat.StageSequence = checked(combat.StageSequence + 1);
+        state.ResolutionStack.Add(new ResolutionStackEntryState
+        {
+            ResolutionId = continuationResolutionId,
+            Sequence = resolutionSequence,
+            EntryKindId = CombatRuleIds.CombatContinuationEntryKind,
+            ReactionWindowId = reactionWindowId,
+            ReactionSubjectId = reactionSubjectId,
+            ParentResolutionId = null,
+            AbilityResolution = null,
+            CombatContinuation = new CombatContinuationState(
+                combat.CombatId,
+                CombatRuleIds.DefenseReactionStage,
+                combat.StageSequence,
+                CombatRuleIds.AfterDefenseReactionResumePoint),
+        });
+        var window = new ReactionWindowState
+        {
+            ReactionWindowId = reactionWindowId,
+            ReactionSubjectId = reactionSubjectId,
+            OriginatingEventId = defenderIntervenedEventId,
+            OriginatingEventSequence = defenderIntervenedEventSequence,
+            UnderlyingResolutionId = continuationResolutionId,
+            InitiatorPlayerId = combat.DefendingPlayerId,
+            CurrentResponsePolicyId = ReactionPolicyIds.StandardAlternatingResponse,
+            ConsecutivePassCount = 0,
+            OpenedAtStateVersion = stateVersionAfter,
+            ReactionProfileId = CombatRuleIds.DefenseReactionProfile,
+        };
+        window.EligibleResponderPlayerIds.AddRange(state.Players.Select(item => item.PlayerId));
+        state.ReactionWindow = window;
+        state.PriorityPlayerId = combat.AttackingPlayerId;
+        state.NextResolutionSequence += 1;
+        state.NextReactionWindowSequence += 1;
+        state.NextReactionSubjectSequence += 1;
+        state.StateVersion = stateVersionAfter;
+
+        var defenderProjection = BuildGameObjectReferenceProjection(option.DefenderRef);
+        var events = ImmutableArray.CreateBuilder<EngineEvent>();
+        events.Add(CreateAttackEvent(
+            state,
+            request,
+            stateVersionAfter,
+            events.Count,
+            "defender_intervened",
+            ContractJsonValue.From(new Dictionary<string, object?>
+            {
+                ["combat_id"] = combat.CombatId,
+                ["stage_id"] = combat.StageId,
+                ["stage_sequence"] = combat.StageSequence,
+                ["timing_anchor_id"] = defenseTimingAnchorId,
+                ["defending_player_id"] = combat.DefendingPlayerId,
+                ["defender"] = defenderProjection,
+                ["defender_lane_at_commit"] = option.DefenderLaneIndex,
+                ["original_target"] = BuildPendingCombatProjection(combat).OriginalTarget,
+                ["original_attack_lane_index"] = combat.OriginalAttackLaneIndex,
+            })));
+        events.Add(CreateAttackEvent(
+            state,
+            request,
+            stateVersionAfter,
+            events.Count,
+            "defender_exhausted",
+            ContractJsonValue.From(new Dictionary<string, object?>
+            {
+                ["combat_id"] = combat.CombatId,
+                ["timing_anchor_id"] = defenseTimingAnchorId,
+                ["defender"] = defenderProjection,
+                ["activity_state_before"] = "active",
+                ["activity_state_after"] = "exhausted",
+            })));
+        events.Add(CreateAttackEvent(
+            state,
+            request,
+            stateVersionAfter,
+            events.Count,
+            "reaction_window_opened",
+            ContractJsonValue.From(new Dictionary<string, object?>
+            {
+                ["reaction_window_id"] = reactionWindowId,
+                ["reaction_subject_id"] = reactionSubjectId,
+                ["originating_event_id"] = defenderIntervenedEventId,
+                ["originating_event_sequence"] = defenderIntervenedEventSequence,
+                ["underlying_resolution_id"] = continuationResolutionId,
+                ["initiator_player_id"] = combat.DefendingPlayerId,
+                ["priority_player_id"] = combat.AttackingPlayerId,
+                ["response_policy_id"] = ReactionPolicyIds.StandardAlternatingResponse,
+                ["combat_id"] = combat.CombatId,
+                ["timing_anchor_id"] = defenseTimingAnchorId,
+            })));
+        var materialized = events.ToImmutable();
+        state.Events.AddRange(materialized);
+        return AcceptAction(state, request, stateVersionBefore, materialized);
+    }
+
+    private static ActionResponse ApplyDeclineIntervention(
+        MatchState state,
+        ActionRequest request,
+        int stateVersionBefore)
+    {
+        var combat = state.PendingCombat;
+        if (combat is null
+            || !string.Equals(
+                combat.StageId,
+                CombatRuleIds.InterventionChoiceStage,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                combat.DefenseDecisionStateId,
+                CombatRuleIds.DefenseDecisionChoiceOpen,
+                StringComparison.Ordinal)
+            || !string.Equals(combat.DefendingPlayerId, request.PlayerId, StringComparison.Ordinal)
+            || state.ReactionWindow is not null
+            || state.ResolutionStack.Count != 0
+            || combat.StageSequence == int.MaxValue)
+        {
+            return RejectAction(
+                state,
+                request,
+                "intervention_decline_illegal",
+                Diagnostic(
+                    "INTERVENTION_DECLINE_ILLEGAL",
+                    "transition_validation",
+                    "The intervention choice cannot be declined in the current Combat state.",
+                    "decline_intervention requires the defending player's open intervention choice.",
+                    "refresh_projection"));
+        }
+
+        state.StateVersion += 1;
+        combat.DefenseDecisionStateId = CombatRuleIds.DefenseDecisionDeclined;
+        combat.LegalDefenderCandidateIds.Clear();
+        combat.StageId = CombatRuleIds.DefenseCheckpointStage;
+        combat.StageSequence = checked(combat.StageSequence + 1);
+        state.PriorityPlayerId = combat.AttackingPlayerId;
+        var engineEvent = CreateAttackEvent(
+            state,
+            request,
+            state.StateVersion,
+            0,
+            "intervention_declined",
+            ContractJsonValue.From(new Dictionary<string, object?>
+            {
+                ["combat_id"] = combat.CombatId,
+                ["defending_player_id"] = combat.DefendingPlayerId,
+                ["next_stage_id"] = combat.StageId,
+                ["next_stage_sequence"] = combat.StageSequence,
+            }));
+        state.Events.Add(engineEvent);
+        return AcceptAction(state, request, stateVersionBefore, engineEvent);
     }
 
     private static void ShuffleDeck(MatchState state, PlayerState player, string purpose)
@@ -3556,7 +3925,7 @@ public sealed class EngineSession
                     CombatRuleIds.CombatContinuationEntryKind,
                     StringComparison.Ordinal))
             {
-                CompleteAttackReactionContinuation(
+                CompleteCombatReactionContinuation(
                     state,
                     request,
                     entry,
@@ -3687,7 +4056,7 @@ public sealed class EngineSession
         state.ClosedReactionSubjectIds.Add(window.ReactionSubjectId);
     }
 
-    private static void CompleteAttackReactionContinuation(
+    private void CompleteCombatReactionContinuation(
         MatchState state,
         ActionRequest request,
         ResolutionStackEntryState entry,
@@ -3699,30 +4068,39 @@ public sealed class EngineSession
         var combat = state.PendingCombat
             ?? throw new EngineStateException(
                 "Combat continuation entry has no authoritative PendingCombat.");
+        var attackReaction = string.Equals(
+            continuation.ResumePointId,
+            CombatRuleIds.AfterAttackReactionResumePoint,
+            StringComparison.Ordinal);
+        var defenseReaction = string.Equals(
+            continuation.ResumePointId,
+            CombatRuleIds.AfterDefenseReactionResumePoint,
+            StringComparison.Ordinal);
+        var expectedStageId = attackReaction
+            ? CombatRuleIds.AttackReactionStage
+            : defenseReaction
+                ? CombatRuleIds.DefenseReactionStage
+                : string.Empty;
         if (!string.Equals(continuation.CombatId, combat.CombatId, StringComparison.Ordinal)
             || !string.Equals(
                 continuation.CombatStageId,
-                CombatRuleIds.AttackReactionStage,
+                expectedStageId,
                 StringComparison.Ordinal)
             || continuation.StageSequence != combat.StageSequence
-            || !string.Equals(
-                continuation.ResumePointId,
-                CombatRuleIds.AfterAttackReactionResumePoint,
-                StringComparison.Ordinal)
-            || !string.Equals(
-                combat.StageId,
-                CombatRuleIds.AttackReactionStage,
-                StringComparison.Ordinal))
+            || !string.Equals(combat.StageId, expectedStageId, StringComparison.Ordinal))
         {
             throw new EngineStateException(
-                "Combat continuation does not match the authoritative attack-reaction stage.");
+                "Combat continuation does not match the authoritative reaction stage.");
         }
 
+        var continuationInitiatorPlayerId = attackReaction
+            ? combat.AttackingPlayerId
+            : combat.DefendingPlayerId;
         AppendCommittedReactionEvent(
             state,
             responseEvents,
             "resolution_entry_started",
-            combat.AttackingPlayerId,
+            continuationInitiatorPlayerId,
             request.ActionType,
             new Dictionary<string, object?>
             {
@@ -3736,29 +4114,43 @@ public sealed class EngineSession
 
         var completedStageId = combat.StageId;
         var completedStageSequence = combat.StageSequence;
-        combat.StageId = CombatRuleIds.AttackCheckpointStage;
+        var timingAnchorId = attackReaction
+            ? combat.AttackTimingAnchorId
+            : combat.DefenseTimingAnchorId
+              ?? throw new EngineStateException(
+                  "Defense reaction continuation has no DefenseTimingAnchor.");
+        combat.StageId = attackReaction
+            ? CombatRuleIds.AttackCheckpointStage
+            : CombatRuleIds.DefenseCheckpointStage;
         combat.StageSequence = checked(combat.StageSequence + 1);
         AppendCommittedReactionEvent(
             state,
             responseEvents,
-            "combat_attack_reaction_completed",
-            combat.AttackingPlayerId,
+            attackReaction
+                ? "combat_attack_reaction_completed"
+                : "combat_defense_reaction_completed",
+            continuationInitiatorPlayerId,
             request.ActionType,
             new Dictionary<string, object?>
             {
                 ["combat_id"] = combat.CombatId,
-                ["timing_anchor_id"] = combat.AttackTimingAnchorId,
+                ["timing_anchor_id"] = timingAnchorId,
                 ["completed_stage_id"] = completedStageId,
                 ["completed_stage_sequence"] = completedStageSequence,
                 ["next_stage_id"] = combat.StageId,
                 ["next_stage_sequence"] = combat.StageSequence,
                 ["resume_point_id"] = continuation.ResumePointId,
             });
+        if (attackReaction)
+        {
+            AdvanceAttackCheckpoint(state, request, combat, responseEvents);
+        }
+
         AppendCommittedReactionEvent(
             state,
             responseEvents,
             "resolution_entry_resolved",
-            combat.AttackingPlayerId,
+            continuationInitiatorPlayerId,
             request.ActionType,
             new Dictionary<string, object?>
             {
@@ -3768,6 +4160,63 @@ public sealed class EngineSession
                 ["entry_kind_id"] = entry.EntryKindId,
                 ["combat_id"] = combat.CombatId,
                 ["result"] = "continued",
+            });
+    }
+
+    private void AdvanceAttackCheckpoint(
+        MatchState state,
+        ActionRequest request,
+        PendingCombatState combat,
+        ImmutableArray<EngineEvent>.Builder responseEvents)
+    {
+        if (!string.Equals(
+                combat.StageId,
+                CombatRuleIds.AttackCheckpointStage,
+                StringComparison.Ordinal)
+            || combat.StageSequence == int.MaxValue)
+        {
+            throw new EngineStateException(
+                "Combat cannot advance from an invalid attack checkpoint.");
+        }
+
+        var continuityStateId = CombatRules.ResolveAttackContinuityState(
+            state,
+            combat,
+            _runtimePackage);
+        combat.AttackContinuityStateId = continuityStateId;
+        var candidates = CombatRules.ResolveInterventionCandidates(
+            state,
+            combat,
+            _runtimePackage,
+            _canonicalRuntime?.Abilities);
+        combat.LegalDefenderCandidateIds.Clear();
+        combat.LegalDefenderCandidateIds.AddRange(candidates.Select(candidate =>
+            candidate.Defender.CardInstanceId));
+        var opensChoice = candidates.Length > 0;
+        combat.DefenseDecisionStateId = opensChoice
+            ? CombatRuleIds.DefenseDecisionChoiceOpen
+            : CombatRuleIds.DefenseDecisionUnavailable;
+        combat.StageId = opensChoice
+            ? CombatRuleIds.InterventionChoiceStage
+            : CombatRuleIds.DefenseCheckpointStage;
+        combat.StageSequence = checked(combat.StageSequence + 1);
+        state.PriorityPlayerId = opensChoice
+            ? combat.DefendingPlayerId
+            : combat.AttackingPlayerId;
+        AppendCommittedReactionEvent(
+            state,
+            responseEvents,
+            "combat_attack_checkpoint_completed",
+            combat.AttackingPlayerId,
+            request.ActionType,
+            new Dictionary<string, object?>
+            {
+                ["combat_id"] = combat.CombatId,
+                ["attack_continuity_state_id"] = combat.AttackContinuityStateId,
+                ["normal_intervention_available"] = opensChoice,
+                ["legal_defender_candidate_ids"] = combat.LegalDefenderCandidateIds.ToArray(),
+                ["next_stage_id"] = combat.StageId,
+                ["next_stage_sequence"] = combat.StageSequence,
             });
     }
 
@@ -6286,6 +6735,7 @@ public sealed class EngineSession
         }
 
         if (request.ActionType is "advance_phase" or "draw_card" or "end_turn" or "pass_priority"
+            or "decline_intervention"
             && request.Payload.EnumerateObject().Any())
         {
             return Diagnostic(
@@ -6363,6 +6813,26 @@ public sealed class EngineSession
                     "request_validation",
                     "Attack requires one attacker and one public target identity.",
                     "The attack payload must contain exactly attacker_card_instance_id, target_kind_id, and target_id.",
+                    "fix_request");
+            }
+        }
+
+        if (string.Equals(request.ActionType, "intervene", StringComparison.Ordinal))
+        {
+            var properties = request.Payload.EnumerateObject().ToArray();
+            if (properties.Length != 1
+                || !string.Equals(
+                    properties[0].Name,
+                    "defender_card_instance_id",
+                    StringComparison.Ordinal)
+                || properties[0].Value.ValueKind != JsonValueKind.String
+                || string.IsNullOrWhiteSpace(properties[0].Value.GetString()))
+            {
+                return Diagnostic(
+                    "ACTION_PAYLOAD_INVALID",
+                    "request_validation",
+                    "Intervention requires one public defender identity.",
+                    "The intervene payload must contain exactly defender_card_instance_id as a non-empty string.",
                     "fix_request");
             }
         }
@@ -7064,15 +7534,24 @@ public sealed class EngineSession
                         : source.PendingCombat.OriginalTarget.EntityRef with { },
                 },
                 OriginalAttackLaneIndex = source.PendingCombat.OriginalAttackLaneIndex,
+                OriginalTargetRowAtAttackCommit = source.PendingCombat.OriginalTargetRowAtAttackCommit,
+                OriginalTargetHadWardAtAttackCommit = source.PendingCombat.OriginalTargetHadWardAtAttackCommit,
                 AttackCommitted = source.PendingCombat.AttackCommitted,
                 AttackCommitStateVersion = source.PendingCombat.AttackCommitStateVersion,
                 AttackTimingAnchorId = source.PendingCombat.AttackTimingAnchorId,
+                AttackContinuityStateId = source.PendingCombat.AttackContinuityStateId,
+                DefenseDecisionStateId = source.PendingCombat.DefenseDecisionStateId,
                 DefenderRef = source.PendingCombat.DefenderRef is null
                     ? null
                     : source.PendingCombat.DefenderRef with { },
+                DefenderLaneAtCommit = source.PendingCombat.DefenderLaneAtCommit,
                 DefenseCommitted = source.PendingCombat.DefenseCommitted,
+                DefenseCommitStateVersion = source.PendingCombat.DefenseCommitStateVersion,
+                DefenseTimingAnchorId = source.PendingCombat.DefenseTimingAnchorId,
                 OutcomeId = source.PendingCombat.OutcomeId,
             };
+            clone.PendingCombat.LegalDefenderCandidateIds.AddRange(
+                source.PendingCombat.LegalDefenderCandidateIds);
         }
 
         foreach (var sourceEntry in source.ResolutionStack)
@@ -7684,6 +8163,19 @@ public sealed class EngineSession
         }
 
         var expectedCombatId = $"combat:{state.MatchId}:{combat.CombatSequence:000000}";
+        var allowedContinuityState = combat.AttackContinuityStateId is
+            CombatRuleIds.AttackContinuityUnchecked
+            or CombatRuleIds.AttackContinuityContinuous
+            or CombatRuleIds.AttackContinuityAttackerLost
+            or CombatRuleIds.AttackContinuityTargetLost
+            or CombatRuleIds.AttackContinuitySealUnavailable
+            or CombatRuleIds.AttackContinuityAeternalPathClosed;
+        var allowedDefenseDecisionState = combat.DefenseDecisionStateId is
+            CombatRuleIds.DefenseDecisionPending
+            or CombatRuleIds.DefenseDecisionChoiceOpen
+            or CombatRuleIds.DefenseDecisionUnavailable
+            or CombatRuleIds.DefenseDecisionDeclined
+            or CombatRuleIds.DefenseDecisionCommitted;
         if (combat.CombatSequence < 1
             || combat.CombatSequence >= state.NextCombatSequence
             || !string.Equals(combat.CombatId, expectedCombatId, StringComparison.Ordinal)
@@ -7701,36 +8193,77 @@ public sealed class EngineSession
             || combat.AttackCommitStateVersion < 1
             || combat.AttackCommitStateVersion > state.StateVersion
             || combat.OriginalAttackLaneIndex is < 0 or >= DomainState.LaneCount
-            || combat.DefenderRef is not null
-            || combat.DefenseCommitted
+            || !allowedContinuityState
+            || !allowedDefenseDecisionState
+            || combat.LegalDefenderCandidateIds.Any(string.IsNullOrWhiteSpace)
+            || combat.LegalDefenderCandidateIds.Distinct(StringComparer.Ordinal).Count()
+            != combat.LegalDefenderCandidateIds.Count
+            || combat.LegalDefenderCandidateIds.Any(candidateId =>
+                !state.CardInstances.TryGetValue(candidateId, out var candidate)
+                || !string.Equals(
+                    candidate.ControllerPlayerId,
+                    combat.DefendingPlayerId,
+                    StringComparison.Ordinal)
+                || !string.Equals(candidate.Zone, "dominion", StringComparison.Ordinal)
+                || !string.Equals(candidate.Visibility, "public", StringComparison.Ordinal)
+                || candidate.DomainRow != DomainRow.Horizon
+                || candidate.DomainLaneIndex is not int candidateLaneIndex
+                || Math.Abs(candidateLaneIndex - combat.OriginalAttackLaneIndex) != 1
+                || !string.Equals(candidate.ActivityState, "active", StringComparison.Ordinal))
             || combat.OutcomeId is not null)
         {
             throw new EngineStateException(
-                "PendingCombat identity, participants, commitment, or C1+C2 reserved state is invalid.");
+                "PendingCombat identity, participants, or C3 state is invalid.");
         }
 
         ValidateGameObjectReference(state, combat.AttackerRef, "Combat attacker");
-        var attacker = state.GetCardInstance(combat.AttackerRef.ObjectId);
-        if (!string.Equals(
-                attacker.ControllerPlayerId,
-                combat.AttackingPlayerId,
-                StringComparison.Ordinal))
-        {
-            throw new EngineStateException("PendingCombat attacker controller is invalid.");
-        }
-
-        if (attacker.ZoneSequence == combat.AttackerRef.IncarnationSequence
-            && string.Equals(attacker.Zone, "dominion", StringComparison.Ordinal)
-            && !string.Equals(attacker.ActivityState, "exhausted", StringComparison.Ordinal))
+        var defenseBindingConsistent = combat.DefenseCommitted
+            ? combat.DefenderRef is not null
+              && combat.DefenderLaneAtCommit is >= 0 and < DomainState.LaneCount
+              && combat.DefenseCommitStateVersion is >= 1
+              && combat.DefenseCommitStateVersion <= state.StateVersion
+              && string.Equals(
+                  combat.DefenseTimingAnchorId,
+                  $"{combat.CombatId}:defense_commit",
+                  StringComparison.Ordinal)
+              && string.Equals(
+                  combat.DefenseDecisionStateId,
+                  CombatRuleIds.DefenseDecisionCommitted,
+                  StringComparison.Ordinal)
+            : combat.DefenderRef is null
+              && combat.DefenderLaneAtCommit is null
+              && combat.DefenseCommitStateVersion is null
+              && combat.DefenseTimingAnchorId is null
+              && !string.Equals(
+                  combat.DefenseDecisionStateId,
+                  CombatRuleIds.DefenseDecisionCommitted,
+                  StringComparison.Ordinal);
+        if (!defenseBindingConsistent)
         {
             throw new EngineStateException(
-                "The committed attacker incarnation is not Exhausted.");
+                "PendingCombat DefenseCommit fields are inconsistent.");
+        }
+
+        if (combat.DefenderRef is not null)
+        {
+            ValidateGameObjectReference(state, combat.DefenderRef, "Combat defender");
+            var defender = state.GetCardInstance(combat.DefenderRef.ObjectId);
+            if (defender.ZoneSequence == combat.DefenderRef.IncarnationSequence
+                && string.Equals(defender.Zone, "dominion", StringComparison.Ordinal)
+                && !string.Equals(defender.ActivityState, "exhausted", StringComparison.Ordinal))
+            {
+                throw new EngineStateException(
+                    "The committed defender incarnation is not Exhausted.");
+            }
         }
 
         switch (combat.OriginalTarget.TargetKindId)
         {
             case CombatRuleIds.EntityTargetKind:
                 if (combat.OriginalTarget.EntityRef is null
+                    || combat.OriginalTargetRowAtAttackCommit is null
+                    || combat.OriginalTargetHadWardAtAttackCommit
+                    && combat.OriginalTargetRowAtAttackCommit != DomainRow.Horizon
                     || !string.Equals(
                         combat.OriginalTarget.PublicTargetId,
                         combat.OriginalTarget.EntityRef.ObjectId,
@@ -7746,11 +8279,14 @@ public sealed class EngineSession
                 break;
             case CombatRuleIds.SealSlotTargetKind:
                 if (combat.OriginalTarget.EntityRef is not null
+                    || combat.OriginalTargetRowAtAttackCommit is not null
+                    || combat.OriginalTargetHadWardAtAttackCommit
                     || state.GetPlayer(combat.DefendingPlayerId).SealSlots.Count(slot =>
                         string.Equals(
                             slot.SealSlotId,
                             combat.OriginalTarget.PublicTargetId,
-                            StringComparison.Ordinal)) != 1)
+                            StringComparison.Ordinal)
+                        && slot.LaneIndex == combat.OriginalAttackLaneIndex) != 1)
                 {
                     throw new EngineStateException(
                         "Combat Seal target must bind exactly one public SealSlotId.");
@@ -7759,6 +8295,8 @@ public sealed class EngineSession
                 break;
             case CombatRuleIds.AeternalTargetKind:
                 if (combat.OriginalTarget.EntityRef is not null
+                    || combat.OriginalTargetRowAtAttackCommit is not null
+                    || combat.OriginalTargetHadWardAtAttackCommit
                     || !string.Equals(
                         combat.OriginalTarget.PublicTargetId,
                         $"aeternal:{combat.DefendingPlayerId}",
@@ -7780,6 +8318,16 @@ public sealed class EngineSession
         if (string.Equals(combat.StageId, CombatRuleIds.AttackReactionStage, StringComparison.Ordinal))
         {
             if (combat.StageSequence != 1
+                || !string.Equals(
+                    combat.AttackContinuityStateId,
+                    CombatRuleIds.AttackContinuityUnchecked,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    combat.DefenseDecisionStateId,
+                    CombatRuleIds.DefenseDecisionPending,
+                    StringComparison.Ordinal)
+                || combat.LegalDefenderCandidateIds.Count != 0
+                || combat.DefenseCommitted
                 || state.ReactionWindow is null
                 || continuations.Length != 1
                 || !ReferenceEquals(state.ResolutionStack[0], continuations[0])
@@ -7806,6 +8354,16 @@ public sealed class EngineSession
                      StringComparison.Ordinal))
         {
             if (combat.StageSequence != 2
+                || !string.Equals(
+                    combat.AttackContinuityStateId,
+                    CombatRuleIds.AttackContinuityUnchecked,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    combat.DefenseDecisionStateId,
+                    CombatRuleIds.DefenseDecisionPending,
+                    StringComparison.Ordinal)
+                || combat.LegalDefenderCandidateIds.Count != 0
+                || combat.DefenseCommitted
                 || state.ReactionWindow is not null
                 || continuations.Length != 0)
             {
@@ -7813,9 +8371,96 @@ public sealed class EngineSession
                     "Attack checkpoint retained an open attack ReactionWindow or continuation entry.");
             }
         }
+        else if (string.Equals(
+                     combat.StageId,
+                     CombatRuleIds.InterventionChoiceStage,
+                     StringComparison.Ordinal))
+        {
+            if (combat.StageSequence != 3
+                || !string.Equals(
+                    combat.AttackContinuityStateId,
+                    CombatRuleIds.AttackContinuityContinuous,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    combat.DefenseDecisionStateId,
+                    CombatRuleIds.DefenseDecisionChoiceOpen,
+                    StringComparison.Ordinal)
+                || combat.LegalDefenderCandidateIds.Count == 0
+                || combat.DefenseCommitted
+                || state.ReactionWindow is not null
+                || continuations.Length != 0)
+            {
+                throw new EngineStateException(
+                    "Intervention choice PendingCombat state is inconsistent.");
+            }
+        }
+        else if (string.Equals(
+                     combat.StageId,
+                     CombatRuleIds.DefenseReactionStage,
+                     StringComparison.Ordinal))
+        {
+            if (combat.StageSequence != 4
+                || !string.Equals(
+                    combat.AttackContinuityStateId,
+                    CombatRuleIds.AttackContinuityContinuous,
+                    StringComparison.Ordinal)
+                || !combat.DefenseCommitted
+                || combat.LegalDefenderCandidateIds.Count != 0
+                || state.ReactionWindow is null
+                || continuations.Length != 1
+                || !ReferenceEquals(state.ResolutionStack[0], continuations[0])
+                || !string.Equals(
+                    state.ReactionWindow.UnderlyingResolutionId,
+                    continuations[0].ResolutionId,
+                    StringComparison.Ordinal)
+                || continuations[0].CombatContinuation is not { } continuation
+                || !string.Equals(continuation.CombatId, combat.CombatId, StringComparison.Ordinal)
+                || !string.Equals(continuation.CombatStageId, combat.StageId, StringComparison.Ordinal)
+                || continuation.StageSequence != combat.StageSequence
+                || !string.Equals(
+                    continuation.ResumePointId,
+                    CombatRuleIds.AfterDefenseReactionResumePoint,
+                    StringComparison.Ordinal))
+            {
+                throw new EngineStateException(
+                    "Defense-reaction PendingCombat and its continuation bottom entry are inconsistent.");
+            }
+        }
+        else if (string.Equals(
+                     combat.StageId,
+                     CombatRuleIds.DefenseCheckpointStage,
+                     StringComparison.Ordinal))
+        {
+            var unavailable = combat.StageSequence == 3
+                && string.Equals(
+                    combat.DefenseDecisionStateId,
+                    CombatRuleIds.DefenseDecisionUnavailable,
+                    StringComparison.Ordinal)
+                && !combat.DefenseCommitted;
+            var declined = combat.StageSequence == 4
+                && string.Equals(
+                    combat.DefenseDecisionStateId,
+                    CombatRuleIds.DefenseDecisionDeclined,
+                    StringComparison.Ordinal)
+                && !combat.DefenseCommitted;
+            var committed = combat.StageSequence == 5
+                && combat.DefenseCommitted;
+            if (!(unavailable || declined || committed)
+                || string.Equals(
+                    combat.AttackContinuityStateId,
+                    CombatRuleIds.AttackContinuityUnchecked,
+                    StringComparison.Ordinal)
+                || combat.LegalDefenderCandidateIds.Count != 0
+                || state.ReactionWindow is not null
+                || continuations.Length != 0)
+            {
+                throw new EngineStateException(
+                    "Defense checkpoint PendingCombat state is inconsistent.");
+            }
+        }
         else
         {
-            throw new EngineStateException("PendingCombat stage is unsupported in C1+C2.");
+            throw new EngineStateException("PendingCombat stage is unsupported in C3.");
         }
     }
 
@@ -7972,10 +8617,9 @@ public sealed class EngineSession
                     || entry.ParentResolutionId is not null
                     || entry.ReactionOptionId is not null
                     || entry.NextResponsePolicyId is not null
-                    || !string.Equals(
-                        window.ReactionProfileId,
-                        CombatRuleIds.AttackReactionProfile,
-                        StringComparison.Ordinal))
+                    || window.ReactionProfileId is not (
+                        CombatRuleIds.AttackReactionProfile
+                        or CombatRuleIds.DefenseReactionProfile))
                 {
                     throw new EngineStateException(
                         "Combat continuation stack payload or bottom-entry correlation is invalid.");

@@ -12,9 +12,25 @@ internal static class CombatRuleIds
     internal const string AeternalTargetKind = "aeternal";
     internal const string AttackReactionStage = "attack_reaction";
     internal const string AttackCheckpointStage = "attack_checkpoint";
+    internal const string InterventionChoiceStage = "intervention_choice";
+    internal const string DefenseReactionStage = "defense_reaction";
+    internal const string DefenseCheckpointStage = "defense_checkpoint";
     internal const string AfterAttackReactionResumePoint = "after_attack_reaction";
+    internal const string AfterDefenseReactionResumePoint = "after_defense_reaction";
     internal const string CombatContinuationEntryKind = "combat_continuation";
     internal const string AttackReactionProfile = "combat_attack_commit";
+    internal const string DefenseReactionProfile = "combat_defense_commit";
+    internal const string AttackContinuityUnchecked = "unchecked";
+    internal const string AttackContinuityContinuous = "continuous";
+    internal const string AttackContinuityAttackerLost = "attacker_continuity_lost";
+    internal const string AttackContinuityTargetLost = "original_target_continuity_lost";
+    internal const string AttackContinuitySealUnavailable = "original_seal_unavailable";
+    internal const string AttackContinuityAeternalPathClosed = "aeternal_attack_path_closed";
+    internal const string DefenseDecisionPending = "pending";
+    internal const string DefenseDecisionChoiceOpen = "choice_open";
+    internal const string DefenseDecisionUnavailable = "unavailable";
+    internal const string DefenseDecisionDeclined = "declined";
+    internal const string DefenseDecisionCommitted = "committed";
     internal const string SpeedKeyword = "speed";
     internal const string WardKeyword = "ward";
     internal const string AerialKeyword = "aerial";
@@ -25,7 +41,14 @@ internal sealed record CombatAttackDeclarationOption(
     GameObjectRefState AttackerRef,
     string DefendingPlayerId,
     CombatTargetState Target,
-    int OriginalAttackLaneIndex);
+    int OriginalAttackLaneIndex,
+    DomainRow? OriginalTargetRowAtAttackCommit,
+    bool OriginalTargetHadWardAtAttackCommit);
+
+internal sealed record CombatInterventionOption(
+    CardInstanceState Defender,
+    GameObjectRefState DefenderRef,
+    int DefenderLaneIndex);
 
 internal static class CombatRules
 {
@@ -82,7 +105,9 @@ internal static class CombatRules
                 attackerRef,
                 defendingPlayerId,
                 target.Target,
-                target.AttackLaneIndex)));
+                target.AttackLaneIndex,
+                target.Card?.DomainRow,
+                target.HasWard)));
         }
 
         return result.ToImmutable();
@@ -135,15 +160,7 @@ internal static class CombatRules
             defender,
             runtimePackage,
             canonicalAbilities);
-        var wardTargets = entityTargets.Where(candidate =>
-                candidate.Card is not null
-                && candidate.Card.DomainRow == DomainRow.Horizon
-                && string.Equals(candidate.Card.ActivityState, "active", StringComparison.Ordinal)
-                && HasEffectiveKeyword(
-                    state,
-                    candidate.Card,
-                    canonicalAbilities,
-                    CombatRuleIds.WardKeyword))
+        var wardTargets = entityTargets.Where(candidate => candidate.HasWard)
             .ToImmutableArray();
         if (!wardTargets.IsDefaultOrEmpty)
         {
@@ -168,7 +185,8 @@ internal static class CombatRules
                     seal.SealSlotId,
                     EntityRef: null),
                 seal.LaneIndex,
-                Card: null));
+                Card: null,
+                HasWard: false));
         }
 
         if (defender.SealSlots.Count > 0
@@ -186,7 +204,8 @@ internal static class CombatRules
                     EntityRef: null),
                 attacker.DomainLaneIndex
                 ?? throw new EngineStateException("A legal attacker has no Horizon lane."),
-                Card: null));
+                Card: null,
+                HasWard: false));
         }
 
         return result.ToImmutable();
@@ -249,8 +268,162 @@ internal static class CombatRules
                         target.CardInstanceId,
                         target.ZoneSequence)),
                 laneIndex,
-                target));
+                target,
+                target.DomainRow == DomainRow.Horizon
+                && string.Equals(target.ActivityState, "active", StringComparison.Ordinal)
+                && HasEffectiveKeyword(
+                    state,
+                    target,
+                    canonicalAbilities,
+                    CombatRuleIds.WardKeyword)));
         }
+    }
+
+    internal static string ResolveAttackContinuityState(
+        MatchState state,
+        PendingCombatState combat,
+        RuntimePackageCatalog? runtimePackage)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(combat);
+        if (runtimePackage is null
+            || !IsContinuousDominionEntity(
+                state,
+                combat.AttackerRef,
+                combat.AttackingPlayerId,
+                DomainRow.Horizon,
+                expectedLaneIndex: null,
+                runtimePackage))
+        {
+            return CombatRuleIds.AttackContinuityAttackerLost;
+        }
+
+        return combat.OriginalTarget.TargetKindId switch
+        {
+            CombatRuleIds.EntityTargetKind =>
+                combat.OriginalTarget.EntityRef is not null
+                && combat.OriginalTargetRowAtAttackCommit is DomainRow targetRow
+                && IsContinuousDominionEntity(
+                    state,
+                    combat.OriginalTarget.EntityRef,
+                    combat.DefendingPlayerId,
+                    targetRow,
+                    combat.OriginalAttackLaneIndex,
+                    runtimePackage)
+                    ? CombatRuleIds.AttackContinuityContinuous
+                    : CombatRuleIds.AttackContinuityTargetLost,
+            CombatRuleIds.SealSlotTargetKind => state.GetPlayer(combat.DefendingPlayerId).SealSlots
+                .Any(slot => string.Equals(
+                                 slot.SealSlotId,
+                                 combat.OriginalTarget.PublicTargetId,
+                                 StringComparison.Ordinal)
+                             && slot.LaneIndex == combat.OriginalAttackLaneIndex
+                             && string.Equals(slot.Status, "standing", StringComparison.Ordinal))
+                    ? CombatRuleIds.AttackContinuityContinuous
+                    : CombatRuleIds.AttackContinuitySealUnavailable,
+            CombatRuleIds.AeternalTargetKind => state.GetPlayer(combat.DefendingPlayerId).SealSlots
+                .All(slot => string.Equals(slot.Status, "broken", StringComparison.Ordinal))
+                    ? CombatRuleIds.AttackContinuityContinuous
+                    : CombatRuleIds.AttackContinuityAeternalPathClosed,
+            _ => throw new EngineStateException("PendingCombat target kind is unsupported."),
+        };
+    }
+
+    internal static ImmutableArray<CombatInterventionOption> ResolveInterventionCandidates(
+        MatchState state,
+        PendingCombatState combat,
+        RuntimePackageCatalog? runtimePackage,
+        CanonicalAbilityCatalog? canonicalAbilities)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(combat);
+        if (runtimePackage is null
+            || !string.Equals(
+                combat.AttackContinuityStateId,
+                CombatRuleIds.AttackContinuityContinuous,
+                StringComparison.Ordinal)
+            || combat.OriginalTargetHadWardAtAttackCommit
+            || string.Equals(
+                combat.OriginalTarget.TargetKindId,
+                CombatRuleIds.AeternalTargetKind,
+                StringComparison.Ordinal))
+        {
+            return ImmutableArray<CombatInterventionOption>.Empty;
+        }
+
+        var attacker = state.GetCardInstance(combat.AttackerRef.ObjectId);
+        var attackerIsAerial = HasEffectiveKeyword(
+            state,
+            attacker,
+            canonicalAbilities,
+            CombatRuleIds.AerialKeyword);
+        var defender = state.GetPlayer(combat.DefendingPlayerId);
+        var result = ImmutableArray.CreateBuilder<CombatInterventionOption>();
+        foreach (var candidate in defender.Domain.HorizonCardInstanceIds
+                     .Select((cardInstanceId, laneIndex) => (cardInstanceId, laneIndex))
+                     .Where(item => item.cardInstanceId is not null
+                                    && Math.Abs(item.laneIndex - combat.OriginalAttackLaneIndex) == 1)
+                     .Select(item => (Card: state.GetCardInstance(item.cardInstanceId!), item.laneIndex))
+                     .OrderBy(item => item.laneIndex)
+                     .ThenBy(item => item.Card.CreatedSequence)
+                     .ThenBy(item => item.Card.CardInstanceId, StringComparer.Ordinal))
+        {
+            if (!runtimePackage.Cards.TryGetValue(candidate.Card.CardId, out var definition)
+                || !string.Equals(definition.CardType, "entity", StringComparison.Ordinal)
+                || !string.Equals(
+                    candidate.Card.ControllerPlayerId,
+                    combat.DefendingPlayerId,
+                    StringComparison.Ordinal)
+                || !string.Equals(candidate.Card.Zone, "dominion", StringComparison.Ordinal)
+                || candidate.Card.DomainRow != DomainRow.Horizon
+                || candidate.Card.DomainLaneIndex != candidate.laneIndex
+                || !string.Equals(candidate.Card.ActivityState, "active", StringComparison.Ordinal)
+                || HasEffectiveKeyword(
+                    state,
+                    candidate.Card,
+                    canonicalAbilities,
+                    CombatRuleIds.AerialKeyword) != attackerIsAerial)
+            {
+                continue;
+            }
+
+            result.Add(new CombatInterventionOption(
+                candidate.Card,
+                new GameObjectRefState(
+                    CombatRuleIds.CardInstanceObjectKind,
+                    candidate.Card.CardInstanceId,
+                    candidate.Card.ZoneSequence),
+                candidate.laneIndex));
+        }
+
+        return result.ToImmutable();
+    }
+
+    private static bool IsContinuousDominionEntity(
+        MatchState state,
+        GameObjectRefState reference,
+        string controllerPlayerId,
+        DomainRow expectedRow,
+        int? expectedLaneIndex,
+        RuntimePackageCatalog runtimePackage)
+    {
+        if (!state.CardInstances.TryGetValue(reference.ObjectId, out var card)
+            || card.ZoneSequence != reference.IncarnationSequence
+            || !runtimePackage.Cards.TryGetValue(card.CardId, out var definition)
+            || !string.Equals(definition.CardType, "entity", StringComparison.Ordinal)
+            || !string.Equals(card.ControllerPlayerId, controllerPlayerId, StringComparison.Ordinal)
+            || !string.Equals(card.Zone, "dominion", StringComparison.Ordinal)
+            || card.DomainRow != expectedRow
+            || card.DomainLaneIndex is not int laneIndex
+            || expectedLaneIndex is int requiredLane && laneIndex != requiredLane)
+        {
+            return false;
+        }
+
+        var slots = state.GetPlayer(controllerPlayerId).Domain.GetSlots(expectedRow);
+        return laneIndex >= 0
+               && laneIndex < slots.Count
+               && string.Equals(slots[laneIndex], card.CardInstanceId, StringComparison.Ordinal);
     }
 
     private static bool HasEffectiveKeyword(
@@ -280,5 +453,6 @@ internal static class CombatRules
     private sealed record CombatTargetCandidate(
         CombatTargetState Target,
         int AttackLaneIndex,
-        CardInstanceState? Card);
+        CardInstanceState? Card,
+        bool HasWard);
 }

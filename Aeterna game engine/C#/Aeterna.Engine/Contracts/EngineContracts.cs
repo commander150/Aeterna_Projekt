@@ -18,10 +18,10 @@ public static class ContractSchemas
     public const string ResourceSummary = "aeterna-resource-summary-v1";
     public const string DomainBoardProjection = "aeterna-player-visible-domain-board-v1";
     public const string DomainBoardProjectionWithSeals = "aeterna-player-visible-domain-board-v2";
-    public const string DomainBoardProjectionWithCombat = "aeterna-player-visible-domain-board-v3";
+    public const string DomainBoardProjectionWithCombat = "aeterna-player-visible-domain-board-v4";
     public const string DebugSnapshot = "aeterna-debug-match-snapshot-v4";
     public const string DebugSnapshotWithSeals = "aeterna-debug-match-snapshot-v5";
-    public const string DebugSnapshotWithCombat = "aeterna-debug-match-snapshot-v6";
+    public const string DebugSnapshotWithCombat = "aeterna-debug-match-snapshot-v7";
     public const string EngineEvent = "minimal-engine-event-v0";
     public const string EngineDiagnostic = "aeterna-engine-diagnostic-v1";
     public const string MatchResult = "aeterna-match-result-v1";
@@ -517,7 +517,24 @@ public sealed record PendingCombatProjection(
     [property: JsonPropertyName("attacker")] GameObjectReferenceProjection Attacker,
     [property: JsonPropertyName("original_target")] CombatTargetProjection OriginalTarget,
     [property: JsonPropertyName("original_attack_lane_index")] int OriginalAttackLaneIndex,
-    [property: JsonPropertyName("attack_timing_anchor_id")] string AttackTimingAnchorId);
+    [property: JsonPropertyName("attack_timing_anchor_id")] string AttackTimingAnchorId,
+    [property: JsonPropertyName("attack_continuity_state_id")] string AttackContinuityStateId,
+    [property: JsonPropertyName("defense_decision_state_id")] string DefenseDecisionStateId,
+    [property: JsonPropertyName("legal_defender_candidate_ids")]
+    ImmutableArray<string> LegalDefenderCandidateIds,
+    [property: JsonPropertyName("defender")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    GameObjectReferenceProjection? Defender,
+    [property: JsonPropertyName("defender_lane_at_commit")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    int? DefenderLaneAtCommit,
+    [property: JsonPropertyName("defense_committed")] bool DefenseCommitted,
+    [property: JsonPropertyName("defense_commit_state_version")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    int? DefenseCommitStateVersion,
+    [property: JsonPropertyName("defense_timing_anchor_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? DefenseTimingAnchorId);
 
 public sealed record DomainBoardCombatProjection(
     [property: JsonPropertyName("schema_version")] string SchemaVersion,
@@ -621,11 +638,19 @@ public sealed record DebugPendingCombatSnapshot(
     GameObjectReferenceProjection AttackerRef,
     CombatTargetProjection OriginalTarget,
     int OriginalAttackLaneIndex,
+    string? OriginalTargetRowAtAttackCommit,
+    bool OriginalTargetHadWardAtAttackCommit,
     bool AttackCommitted,
     int AttackCommitStateVersion,
     string AttackTimingAnchorId,
+    string AttackContinuityStateId,
+    string DefenseDecisionStateId,
+    ImmutableArray<string> LegalDefenderCandidateIds,
     GameObjectReferenceProjection? DefenderRef,
+    int? DefenderLaneAtCommit,
     bool DefenseCommitted,
+    int? DefenseCommitStateVersion,
+    string? DefenseTimingAnchorId,
     string? OutcomeId);
 
 public sealed record DebugCardInstanceSnapshot(

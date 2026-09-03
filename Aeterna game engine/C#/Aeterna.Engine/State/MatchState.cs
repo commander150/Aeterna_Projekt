@@ -171,15 +171,31 @@ internal sealed class PendingCombatState
 
     public required int OriginalAttackLaneIndex { get; init; }
 
+    public required DomainRow? OriginalTargetRowAtAttackCommit { get; init; }
+
+    public required bool OriginalTargetHadWardAtAttackCommit { get; init; }
+
     public required bool AttackCommitted { get; init; }
 
     public required int AttackCommitStateVersion { get; init; }
 
     public required string AttackTimingAnchorId { get; init; }
 
+    public required string AttackContinuityStateId { get; set; }
+
+    public required string DefenseDecisionStateId { get; set; }
+
+    public List<string> LegalDefenderCandidateIds { get; } = [];
+
     public GameObjectRefState? DefenderRef { get; set; }
 
+    public int? DefenderLaneAtCommit { get; set; }
+
     public bool DefenseCommitted { get; set; }
+
+    public int? DefenseCommitStateVersion { get; set; }
+
+    public string? DefenseTimingAnchorId { get; set; }
 
     public string? OutcomeId { get; set; }
 }
