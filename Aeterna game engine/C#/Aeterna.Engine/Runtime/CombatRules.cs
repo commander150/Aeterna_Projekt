@@ -15,6 +15,8 @@ internal static class CombatRuleIds
     internal const string InterventionChoiceStage = "intervention_choice";
     internal const string DefenseReactionStage = "defense_reaction";
     internal const string DefenseCheckpointStage = "defense_checkpoint";
+    internal const string SealOutcomeCheckpointStage = "seal_outcome_checkpoint";
+    internal const string AeternalOutcomeCheckpointStage = "aeternal_outcome_checkpoint";
     internal const string AfterAttackReactionResumePoint = "after_attack_reaction";
     internal const string AfterDefenseReactionResumePoint = "after_defense_reaction";
     internal const string CombatContinuationEntryKind = "combat_continuation";
@@ -31,6 +33,15 @@ internal static class CombatRuleIds
     internal const string DefenseDecisionUnavailable = "unavailable";
     internal const string DefenseDecisionDeclined = "declined";
     internal const string DefenseDecisionCommitted = "committed";
+    internal const string EntityCombatResolvedOutcome = "entity_combat_resolved";
+    internal const string NoHitOutcome = "no_hit";
+    internal const string FutureOutcomePending = "future_outcome_pending";
+    internal const string AttackerMissingNoHitReason = "attacker_missing";
+    internal const string TargetMissingNoHitReason = "target_missing";
+    internal const string DefenderMissingNoHitReason = "defender_missing";
+    internal const string ContactInvalidNoHitReason = "contact_invalid";
+    internal const string CombatCauseKind = "combat";
+    internal const string CombatDamageKind = "damage_kind_combat";
     internal const string SpeedKeyword = "speed";
     internal const string WardKeyword = "ward";
     internal const string AerialKeyword = "aerial";
@@ -399,7 +410,7 @@ internal static class CombatRules
         return result.ToImmutable();
     }
 
-    private static bool IsContinuousDominionEntity(
+    internal static bool IsContinuousDominionEntity(
         MatchState state,
         GameObjectRefState reference,
         string controllerPlayerId,

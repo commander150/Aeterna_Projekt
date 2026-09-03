@@ -18,10 +18,10 @@ public static class ContractSchemas
     public const string ResourceSummary = "aeterna-resource-summary-v1";
     public const string DomainBoardProjection = "aeterna-player-visible-domain-board-v1";
     public const string DomainBoardProjectionWithSeals = "aeterna-player-visible-domain-board-v2";
-    public const string DomainBoardProjectionWithCombat = "aeterna-player-visible-domain-board-v4";
+    public const string DomainBoardProjectionWithCombat = "aeterna-player-visible-domain-board-v5";
     public const string DebugSnapshot = "aeterna-debug-match-snapshot-v4";
     public const string DebugSnapshotWithSeals = "aeterna-debug-match-snapshot-v5";
-    public const string DebugSnapshotWithCombat = "aeterna-debug-match-snapshot-v7";
+    public const string DebugSnapshotWithCombat = "aeterna-debug-match-snapshot-v8";
     public const string EngineEvent = "minimal-engine-event-v0";
     public const string EngineDiagnostic = "aeterna-engine-diagnostic-v1";
     public const string MatchResult = "aeterna-match-result-v1";
@@ -241,12 +241,29 @@ public sealed record DamageDealtPayload(
     [property: JsonPropertyName("cause_event_id")] string? CauseEventId,
     [property: JsonPropertyName("source_card_id")] string SourceCardId,
     [property: JsonPropertyName("target_card_id")] string TargetCardId,
-    [property: JsonPropertyName("source_ability_id")] string SourceAbilityId,
-    [property: JsonPropertyName("source_effect_id")] string SourceEffectId,
+    [property: JsonPropertyName("source_ability_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SourceAbilityId,
+    [property: JsonPropertyName("source_effect_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SourceEffectId,
     [property: JsonPropertyName("resolution_id")] string ResolutionId,
     [property: JsonPropertyName("resolution_origin")] string ResolutionOrigin,
     [property: JsonPropertyName("effective_max_hp")] int EffectiveMaxHp,
-    [property: JsonPropertyName("lethal")] bool Lethal);
+    [property: JsonPropertyName("lethal")] bool Lethal,
+    [property: JsonPropertyName("cause_kind_id")] string CauseKindId = "ability",
+    [property: JsonPropertyName("combat_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? CombatId = null,
+    [property: JsonPropertyName("source_object_ref")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    GameObjectReferenceProjection? SourceObjectRef = null,
+    [property: JsonPropertyName("simultaneous_group_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SimultaneousGroupId = null,
+    [property: JsonPropertyName("timing_anchor_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? TimingAnchorId = null);
 
 public sealed record EntityDestroyedPayload(
     [property: JsonPropertyName("destruction_instance_id")] string DestructionInstanceId,
@@ -255,9 +272,23 @@ public sealed record EntityDestroyedPayload(
     [property: JsonPropertyName("source_card_instance_id")] string SourceCardInstanceId,
     [property: JsonPropertyName("cause_event_id")] string CauseEventId,
     [property: JsonPropertyName("card_id")] string CardId,
-    [property: JsonPropertyName("source_ability_id")] string SourceAbilityId,
-    [property: JsonPropertyName("source_effect_id")] string SourceEffectId,
-    [property: JsonPropertyName("resolution_id")] string ResolutionId);
+    [property: JsonPropertyName("source_ability_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SourceAbilityId,
+    [property: JsonPropertyName("source_effect_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SourceEffectId,
+    [property: JsonPropertyName("resolution_id")] string ResolutionId,
+    [property: JsonPropertyName("cause_kind_id")] string CauseKindId = "ability",
+    [property: JsonPropertyName("combat_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? CombatId = null,
+    [property: JsonPropertyName("source_object_ref")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    GameObjectReferenceProjection? SourceObjectRef = null,
+    [property: JsonPropertyName("timing_anchor_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? TimingAnchorId = null);
 
 public sealed record CardZoneChangedPayload(
     [property: JsonPropertyName("zone_transition_instance_id")] string ZoneTransitionInstanceId,
@@ -275,9 +306,57 @@ public sealed record CardZoneChangedPayload(
     [property: JsonPropertyName("to_zone_index")] int ToZoneIndex,
     [property: JsonPropertyName("visibility_before")] string VisibilityBefore,
     [property: JsonPropertyName("visibility_after")] string VisibilityAfter,
-    [property: JsonPropertyName("source_ability_id")] string SourceAbilityId,
-    [property: JsonPropertyName("source_effect_id")] string SourceEffectId,
-    [property: JsonPropertyName("resolution_id")] string ResolutionId);
+    [property: JsonPropertyName("source_ability_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SourceAbilityId,
+    [property: JsonPropertyName("source_effect_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SourceEffectId,
+    [property: JsonPropertyName("resolution_id")] string ResolutionId,
+    [property: JsonPropertyName("cause_kind_id")] string CauseKindId = "ability",
+    [property: JsonPropertyName("combat_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? CombatId = null,
+    [property: JsonPropertyName("source_object_ref")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    GameObjectReferenceProjection? SourceObjectRef = null,
+    [property: JsonPropertyName("timing_anchor_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? TimingAnchorId = null);
+
+public sealed record CombatDamageAssignmentProjection(
+    [property: JsonPropertyName("damage_instance_id")] string DamageInstanceId,
+    [property: JsonPropertyName("source_object_ref")] GameObjectReferenceProjection SourceObjectRef,
+    [property: JsonPropertyName("target_object_ref")] GameObjectReferenceProjection TargetObjectRef,
+    [property: JsonPropertyName("source_card_id")] string SourceCardId,
+    [property: JsonPropertyName("target_card_id")] string TargetCardId,
+    [property: JsonPropertyName("current_effective_atk")] int CurrentEffectiveAtk,
+    [property: JsonPropertyName("accumulated_damage_before")] int AccumulatedDamageBefore,
+    [property: JsonPropertyName("accumulated_damage_after")] int AccumulatedDamageAfter,
+    [property: JsonPropertyName("effective_max_hp")] int EffectiveMaxHp,
+    [property: JsonPropertyName("lethal")] bool Lethal);
+
+public sealed record CombatDamageCommittedPayload(
+    [property: JsonPropertyName("combat_id")] string CombatId,
+    [property: JsonPropertyName("timing_anchor_id")] string TimingAnchorId,
+    [property: JsonPropertyName("simultaneous_group_id")] string SimultaneousGroupId,
+    [property: JsonPropertyName("cause_kind_id")] string CauseKindId,
+    [property: JsonPropertyName("simultaneous")] bool Simultaneous,
+    [property: JsonPropertyName("assignments")]
+    ImmutableArray<CombatDamageAssignmentProjection> Assignments);
+
+public sealed record CombatResolvedPayload(
+    [property: JsonPropertyName("combat_id")] string CombatId,
+    [property: JsonPropertyName("timing_anchor_id")] string TimingAnchorId,
+    [property: JsonPropertyName("outcome_id")] string OutcomeId,
+    [property: JsonPropertyName("no_hit_reason_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? NoHitReasonId,
+    [property: JsonPropertyName("defense_committed")] bool DefenseCommitted,
+    [property: JsonPropertyName("attacker")] GameObjectReferenceProjection Attacker,
+    [property: JsonPropertyName("opponent")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    GameObjectReferenceProjection? Opponent);
 
 public sealed record DamageRemovedPayload(
     [property: JsonPropertyName("damage_removal_instance_id")] string DamageRemovalInstanceId,
@@ -534,7 +613,13 @@ public sealed record PendingCombatProjection(
     int? DefenseCommitStateVersion,
     [property: JsonPropertyName("defense_timing_anchor_id")]
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? DefenseTimingAnchorId);
+    string? DefenseTimingAnchorId,
+    [property: JsonPropertyName("resolution_timing_anchor_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? ResolutionTimingAnchorId,
+    [property: JsonPropertyName("outcome_id")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? OutcomeId);
 
 public sealed record DomainBoardCombatProjection(
     [property: JsonPropertyName("schema_version")] string SchemaVersion,
@@ -651,6 +736,7 @@ public sealed record DebugPendingCombatSnapshot(
     bool DefenseCommitted,
     int? DefenseCommitStateVersion,
     string? DefenseTimingAnchorId,
+    string? ResolutionTimingAnchorId,
     string? OutcomeId);
 
 public sealed record DebugCardInstanceSnapshot(

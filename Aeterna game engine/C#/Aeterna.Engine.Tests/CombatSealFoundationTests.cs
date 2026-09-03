@@ -270,7 +270,7 @@ internal static class CombatSealFoundationTests
             "combat-checkpoint",
             board:
             [
-                Board("checkpoint-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 0, "active", 1),
+                Board("checkpoint-attacker", AerialEntityCardId, "player_1", DomainRow.Horizon, 0, "active", 1),
                 Board("checkpoint-target", PlainEntityCardId, "player_2", DomainRow.Horizon, 0, "active", 1),
             ]);
         var attackAction = AttackAction(fixture, "player_1");
@@ -307,28 +307,24 @@ internal static class CombatSealFoundationTests
         True(closure.Accepted, "Combat ReactionWindow closure failed.");
         Equal(null, fixture.State.ReactionWindow, "Closed Combat ReactionWindow remained open.");
         Equal(0, fixture.State.ResolutionStack.Count, "Closed Combat continuation remained on the stack.");
-        var combat = NotNull(fixture.State.PendingCombat, "PendingCombat disappeared after first window closure.");
-        Equal(CombatRuleIds.DefenseCheckpointStage, combat.StageId, "Combat did not advance through the attack checkpoint.");
-        Equal(3, combat.StageSequence, "Combat checkpoint sequence is invalid.");
-        Equal(CombatRuleIds.DefenseDecisionUnavailable, combat.DefenseDecisionStateId,
-            "No-candidate Combat did not record the unavailable intervention decision.");
-        Equal("checkpoint-target", combat.OriginalTarget.PublicTargetId, "Reaction closure rewrote OriginalTarget.");
+        Equal(null, fixture.State.PendingCombat, "Resolved Entity Combat retained PendingCombat.");
         Equal("exhausted", fixture.State.GetCardInstance("checkpoint-attacker").ActivityState,
             "Reaction closure rewound the committed attacker exhaustion.");
+        Equal(1, fixture.State.GetCardInstance("checkpoint-attacker").DamageMarked,
+            "The surviving attacker did not retain simultaneous return damage.");
+        Equal("void", fixture.State.GetCardInstance("checkpoint-target").Zone,
+            "Lethal target did not use the canonical Void transition.");
         True(closure.Events.Any(engineEvent => engineEvent.EventType == "combat_attack_reaction_completed"),
             "Combat checkpoint transition event is missing.");
-
-        foreach (var playerId in new[] { "player_1", "player_2" })
-        {
-            var blocked = fixture.Session.ListLegalActions(playerId, includeDisabled: true).Actions;
-            True(blocked.Length > 0, "Combat checkpoint exposed an empty diagnostic action space.");
-            True(blocked.All(action => !action.Enabled && action.DisabledReason == "combat_pending"),
-                "Normal gameplay remained enabled at the Combat checkpoint.");
-        }
-
-        var summary = fixture.Session.GetPlayerSnapshot("player_1").PendingDecisionSummary;
-        Equal("combat", summary.GetProperty("pending_type").GetString(), "Post-window pending summary lost Combat state.");
-        Equal(CombatRuleIds.DefenseCheckpointStage, summary.GetProperty("stage").GetString(), "Projected Combat checkpoint stage is invalid.");
+        True(closure.Events.Any(engineEvent => engineEvent.EventType == "combat_damage_committed"),
+            "Combat did not emit its simultaneous damage commitment.");
+        True(closure.Events.Any(engineEvent => engineEvent.EventType == "combat_resolved"),
+            "Combat resolution event is missing.");
+        True(fixture.Session.ListLegalActions("player_1").Actions.Any(action => action.Enabled),
+            "Normal gameplay did not resume after Entity Combat closed.");
+        False(fixture.Session.GetPlayerSnapshot("player_1").PendingDecisionSummary
+            .GetProperty("has_pending").GetBoolean(),
+            "Closed Combat remained projected as a pending decision.");
     }
 
     internal static void CombatWindowUsesExistingReactPassAndLifoSemantics()
@@ -382,7 +378,9 @@ internal static class CombatSealFoundationTests
             "Combat reactions did not resolve LIFO above the continuation.");
         Equal("exhausted", fixture.State.GetCardInstance("p1-reaction-target").ActivityState, "Defender reaction did not resolve.");
         Equal("exhausted", fixture.State.GetCardInstance("p2-reaction-target").ActivityState, "Attacker reaction did not resolve.");
-        Equal(CombatRuleIds.DefenseCheckpointStage, fixture.State.PendingCombat?.StageId, "LIFO closure did not resume Combat.");
+        Equal(null, fixture.State.PendingCombat, "LIFO closure did not finish Entity Combat.");
+        True(closure.Events.Any(engineEvent => engineEvent.EventType == "combat_resolved"),
+            "LIFO closure omitted the Combat result.");
     }
 
     internal static void CombatProjectionProtectsHiddenSealIdentity()
@@ -580,12 +578,19 @@ internal static class CombatSealFoundationTests
                 Board("none-target", PlainEntityCardId, "player_2", DomainRow.Horizon, 2, "active", 1),
                 Board("none-zenith", PlainEntityCardId, "player_2", DomainRow.Zenith, 3, "active", 1),
             ]);
-        CloseFirstCombatReaction(none, "none-attacker", CombatRuleIds.EntityTargetKind, "none-target", "none");
-        Equal(CombatRuleIds.DefenseCheckpointStage, none.State.PendingCombat?.StageId,
-            "No-candidate Combat opened an unnecessary decision.");
+        var noneResponse = CloseFirstCombatReaction(
+            none,
+            "none-attacker",
+            CombatRuleIds.EntityTargetKind,
+            "none-target",
+            "none");
+        Equal(null, none.State.PendingCombat,
+            "No-candidate Entity Combat did not resolve immediately.");
         False(none.Session.ListLegalActions("player_2", includeDisabled: true).Actions
             .Any(action => action.ActionType is "intervene" or "decline_intervention"),
             "No-candidate Combat exposed intervention actions.");
+        True(noneResponse.Events.Any(engineEvent => engineEvent.EventType == "combat_resolved"),
+            "No-candidate Combat omitted its resolution event.");
     }
 
     internal static void InterventionRequiresMatchingAerialContact()
@@ -638,10 +643,17 @@ internal static class CombatSealFoundationTests
                 Board("ward-c3-defender", PlainEntityCardId, "player_2", DomainRow.Horizon, 1, "active", 1),
                 Board("ward-c3-target", WardEntityCardId, "player_2", DomainRow.Horizon, 2, "active", 1),
             ]);
-        CloseFirstCombatReaction(ward, "ward-c3-attacker", CombatRuleIds.EntityTargetKind, "ward-c3-target", "ward-c3");
+        SubmitInitialAttack(
+            ward,
+            "ward-c3-attacker",
+            CombatRuleIds.EntityTargetKind,
+            "ward-c3-target",
+            "ward-c3");
         True(ward.State.PendingCombat?.OriginalTargetHadWardAtAttackCommit == true,
             "Ward target commitment was not retained.");
-        Equal(CombatRuleIds.DefenseCheckpointStage, ward.State.PendingCombat?.StageId,
+        var wardClosure = CloseOpenReaction(ward, "ward-c3");
+        Equal(null, ward.State.PendingCombat, "Ward Entity Combat did not resolve.");
+        False(wardClosure.Events.Any(engineEvent => engineEvent.EventType == "intervention_choice_opened"),
             "Ward OriginalTarget opened normal intervention.");
 
         var aeternal = CreateFixture(
@@ -658,7 +670,7 @@ internal static class CombatSealFoundationTests
             CombatRuleIds.AeternalTargetKind,
             "aeternal:player_2",
             "aeternal-c3");
-        Equal(CombatRuleIds.DefenseCheckpointStage, aeternal.State.PendingCombat?.StageId,
+        Equal(CombatRuleIds.AeternalOutcomeCheckpointStage, aeternal.State.PendingCombat?.StageId,
             "Aeternal attack opened normal intervention.");
 
         var lostTarget = CreateFixture(
@@ -676,13 +688,13 @@ internal static class CombatSealFoundationTests
             "lost-target-original",
             "lost-target");
         MoveDomainCardToVoid(lostTarget, "lost-target-original");
-        CloseOpenReaction(lostTarget, "lost-target");
-        Equal(CombatRuleIds.AttackContinuityTargetLost, lostTarget.State.PendingCombat?.AttackContinuityStateId,
+        var lostTargetClosure = CloseOpenReaction(lostTarget, "lost-target");
+        Equal(CombatRuleIds.AttackContinuityTargetLost,
+            CombatCheckpointContinuity(lostTargetClosure),
             "OriginalTarget leave-and-return continuity loss was not explicit.");
-        Equal("lost-target-original", lostTarget.State.PendingCombat?.OriginalTarget.PublicTargetId,
-            "Continuity loss retargeted the attack.");
-        Equal(CombatRuleIds.DefenseCheckpointStage, lostTarget.State.PendingCombat?.StageId,
-            "Lost OriginalTarget opened intervention.");
+        Equal(null, lostTarget.State.PendingCombat, "Lost OriginalTarget did not close as no-hit.");
+        Equal(CombatRuleIds.TargetMissingNoHitReason, NoHitReason(lostTargetClosure),
+            "Lost OriginalTarget no-hit reason is invalid.");
 
         var movedTarget = CreateFixture(
             "combat-intervention-target-moved",
@@ -699,9 +711,12 @@ internal static class CombatSealFoundationTests
             "moved-target-original",
             "moved-target");
         MoveDomainCardWithinDomain(movedTarget, "moved-target-original", DomainRow.Zenith, 3);
-        CloseOpenReaction(movedTarget, "moved-target");
-        Equal(CombatRuleIds.AttackContinuityTargetLost, movedTarget.State.PendingCombat?.AttackContinuityStateId,
+        var movedTargetClosure = CloseOpenReaction(movedTarget, "moved-target");
+        Equal(CombatRuleIds.AttackContinuityTargetLost,
+            CombatCheckpointContinuity(movedTargetClosure),
             "OriginalTarget row/lane continuity change was not detected.");
+        Equal(CombatRuleIds.TargetMissingNoHitReason, NoHitReason(movedTargetClosure),
+            "Moved OriginalTarget did not produce target-missing no-hit.");
 
         var lostAttacker = CreateFixture(
             "combat-intervention-attacker-lost",
@@ -718,12 +733,12 @@ internal static class CombatSealFoundationTests
             "lost-attacker-target",
             "lost-attacker");
         MoveDomainCardToVoid(lostAttacker, "lost-attacker-original");
-        CloseOpenReaction(lostAttacker, "lost-attacker");
+        var lostAttackerClosure = CloseOpenReaction(lostAttacker, "lost-attacker");
         Equal(CombatRuleIds.AttackContinuityAttackerLost,
-            lostAttacker.State.PendingCombat?.AttackContinuityStateId,
+            CombatCheckpointContinuity(lostAttackerClosure),
             "Attacker incarnation continuity loss was not explicit.");
-        Equal(CombatRuleIds.DefenseCheckpointStage, lostAttacker.State.PendingCombat?.StageId,
-            "Lost attacker opened intervention.");
+        Equal(CombatRuleIds.AttackerMissingNoHitReason, NoHitReason(lostAttackerClosure),
+            "Lost attacker did not produce attacker-missing no-hit.");
 
         var declarationOnly = CreateFixture(
             "combat-intervention-declaration-only",
@@ -850,16 +865,15 @@ internal static class CombatSealFoundationTests
             ContractJsonValue.EmptyObject());
         True(response.Accepted, "Legal decline_intervention failed.");
         Equal("active", defender.ActivityState, "Decline exhausted a defender.");
-        var combat = NotNull(fixture.State.PendingCombat, "Decline removed PendingCombat.");
-        Equal(CombatRuleIds.DefenseCheckpointStage, combat.StageId, "Decline did not reach defense_checkpoint.");
-        Equal(4, combat.StageSequence, "Decline stage sequence is invalid.");
-        Equal(CombatRuleIds.DefenseDecisionDeclined, combat.DefenseDecisionStateId,
-            "Decline state was not retained explicitly.");
-        False(combat.DefenseCommitted, "Decline created DefenseCommit.");
-        Equal(null, combat.DefenderRef, "Decline created a defender binding.");
+        Equal(null, fixture.State.PendingCombat, "Declined Entity Combat remained pending after resolution.");
         Equal(null, fixture.State.ReactionWindow, "Decline opened a defense ReactionWindow.");
-        True(response.Events.Single().EventType == "intervention_declined",
+        Equal(0, fixture.State.ResolutionStack.Count, "Declined Combat retained a continuation.");
+        True(response.Events.First().EventType == "intervention_declined",
             "Decline semantic event is missing.");
+        True(response.Events.Any(engineEvent => engineEvent.EventType == "combat_damage_committed"),
+            "Declined Entity Combat did not enter simultaneous damage.");
+        True(response.Events.Any(engineEvent => engineEvent.EventType == "combat_resolved"),
+            "Declined Entity Combat did not close.");
     }
 
     internal static void DefenseCommitIsAtomicBoundAndOpensSecondReactionWindow()
@@ -1031,19 +1045,15 @@ internal static class CombatSealFoundationTests
             "Second Combat reactions did not resolve LIFO above the continuation.");
         Equal(null, fixture.State.ReactionWindow, "Second ReactionWindow remained open.");
         Equal(0, fixture.State.ResolutionStack.Count, "Defense continuation remained on the stack.");
-        var combat = NotNull(fixture.State.PendingCombat, "Second window closure removed PendingCombat.");
-        Equal(CombatRuleIds.DefenseCheckpointStage, combat.StageId,
-            "Second window did not resume at defense_checkpoint.");
-        Equal(5, combat.StageSequence, "Committed defense checkpoint sequence is invalid.");
-        True(combat.DefenseCommitted, "Second window closure erased DefenseCommit.");
+        Equal(null, fixture.State.PendingCombat, "Second window closure did not finish Entity Combat.");
         True(closure.Events.Any(engineEvent => engineEvent.EventType == "combat_defense_reaction_completed"),
             "Defense reaction completion event is missing.");
-        foreach (var playerId in new[] { "player_1", "player_2" })
-        {
-            var blocked = fixture.Session.ListLegalActions(playerId, includeDisabled: true).Actions;
-            True(blocked.All(action => !action.Enabled && action.DisabledReason == "combat_pending"),
-                "Normal gameplay became available at defense_checkpoint.");
-        }
+        True(closure.Events.Any(engineEvent => engineEvent.EventType == "combat_resolved"),
+            "Second window closure omitted Combat resolution.");
+        Equal("dominion", fixture.State.GetCardInstance("defense-lifo-target").Zone,
+            "Committed defense incorrectly damaged OriginalTarget.");
+        True(fixture.Session.ListLegalActions("player_1").Actions.Any(action => action.Enabled),
+            "Normal gameplay did not resume after defended Entity Combat.");
     }
 
     internal static void DefenseCommitContinuityAndProjectionRemainViewerSafe()
@@ -1062,15 +1072,14 @@ internal static class CombatSealFoundationTests
             "combat-defense-gone-defender").Accepted,
             "Defender-disappearance fixture could not commit.");
         MoveDomainCardToVoid(defenderGone, "combat-defense-gone-defender");
-        CloseOpenReaction(defenderGone, "defender-gone");
-        var goneCombat = NotNull(defenderGone.State.PendingCombat, "Defender disappearance removed Combat.");
-        True(goneCombat.DefenseCommitted, "Defender disappearance rewound DefenseCommit.");
-        Equal("combat-defense-gone-defender", goneCombat.DefenderRef?.ObjectId,
-            "Defender disappearance erased committed identity.");
-        Equal("combat-defense-gone-target", goneCombat.OriginalTarget.PublicTargetId,
-            "Defender disappearance restored or replaced OriginalTarget.");
-        Equal(CombatRuleIds.DefenseCheckpointStage, goneCombat.StageId,
-            "Defender disappearance prevented defense checkpoint continuation.");
+        var defenderGoneClosure = CloseOpenReaction(defenderGone, "defender-gone");
+        Equal(null, defenderGone.State.PendingCombat, "Defender disappearance did not close Combat.");
+        Equal(CombatRuleIds.DefenderMissingNoHitReason, NoHitReason(defenderGoneClosure),
+            "Defender disappearance did not produce committed no-hit.");
+        Equal(0, defenderGoneClosure.Events.Count(engineEvent => engineEvent.EventType == "damage_dealt"),
+            "Missing defender no-hit dealt Combat damage.");
+        Equal("dominion", defenderGone.State.GetCardInstance("combat-defense-gone-target").Zone,
+            "Missing defender resumed damage against OriginalTarget.");
 
         var targetGone = CreateInterventionFixture("combat-original-target-gone");
         OpenInterventionChoice(
@@ -1086,15 +1095,15 @@ internal static class CombatSealFoundationTests
             "combat-original-target-gone-defender").Accepted,
             "OriginalTarget-disappearance fixture could not commit.");
         MoveDomainCardToVoid(targetGone, "combat-original-target-gone-target");
-        CloseOpenReaction(targetGone, "target-gone-after-defense");
-        var targetGoneCombat = NotNull(targetGone.State.PendingCombat,
-            "OriginalTarget disappearance removed Combat.");
-        True(targetGoneCombat.DefenseCommitted,
-            "OriginalTarget disappearance invalidated committed defense.");
-        Equal("combat-original-target-gone-defender", targetGoneCombat.DefenderRef?.ObjectId,
-            "OriginalTarget disappearance erased defender binding.");
-        Equal("combat-original-target-gone-target", targetGoneCombat.OriginalTarget.PublicTargetId,
-            "OriginalTarget identity was not retained beside DefenderRef.");
+        var targetGoneClosure = CloseOpenReaction(targetGone, "target-gone-after-defense");
+        Equal(null, targetGone.State.PendingCombat,
+            "OriginalTarget disappearance prevented defended Combat closure.");
+        True(targetGoneClosure.Events.Any(engineEvent => engineEvent.EventType == "combat_damage_committed"),
+            "Valid defender did not fight after OriginalTarget disappeared.");
+        True(targetGoneClosure.Events.Where(engineEvent => engineEvent.EventType == "damage_dealt")
+            .Any(engineEvent => engineEvent.Payload.GetProperty("entity_instance_id").GetString()
+                == "combat-original-target-gone-defender"),
+            "OriginalTarget disappearance erased the committed defender participant.");
 
         var privacy = CreateInterventionFixture("combat-intervention-privacy");
         OpenInterventionChoice(
@@ -1118,6 +1127,630 @@ internal static class CombatSealFoundationTests
             "Intervention projection leaked hidden Seal identity.");
         True(playerOneProjection.Contains("combat-intervention-privacy-defender", StringComparison.Ordinal),
             "Projection omitted the public defender candidate.");
+    }
+
+    internal static void UndefendedEntityCombatCommitsSimultaneousPersistentDamage()
+    {
+        var fixture = CreateFixture(
+            "combat-c4-persistent",
+            statOverrides: new Dictionary<string, (int Atk, int Hp)>
+            {
+                [PlainEntityCardId] = (1, 3),
+            },
+            board:
+            [
+                Board("persistent-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 0, "active", 1),
+                Board("persistent-target", PlainEntityCardId, "player_2", DomainRow.Horizon, 0, "exhausted", 1,
+                    damageMarked: 1),
+            ]);
+
+        var response = CloseFirstCombatReaction(
+            fixture,
+            "persistent-attacker",
+            CombatRuleIds.EntityTargetKind,
+            "persistent-target",
+            "persistent");
+
+        Equal(null, fixture.State.PendingCombat, "Nonlethal Entity Combat remained pending.");
+        Equal(0, fixture.State.ResolutionStack.Count, "Nonlethal Entity Combat retained a continuation.");
+        Equal(null, fixture.State.ReactionWindow, "Nonlethal Entity Combat retained a ReactionWindow.");
+        Equal(1, fixture.State.GetCardInstance("persistent-attacker").DamageMarked,
+            "Target current ATK was not marked on the attacker.");
+        Equal(2, fixture.State.GetCardInstance("persistent-target").DamageMarked,
+            "Attacker current ATK did not accumulate on the exhausted target.");
+        Equal("exhausted", fixture.State.GetCardInstance("persistent-attacker").ActivityState,
+            "Combat cleanup refunded AttackCommit exhaustion.");
+        Equal("exhausted", fixture.State.GetCardInstance("persistent-target").ActivityState,
+            "An exhausted OriginalTarget did not remain a retaliating participant.");
+
+        var commitment = response.Events.Single(engineEvent =>
+            engineEvent.EventType == "combat_damage_committed").Payload;
+        True(commitment.GetProperty("simultaneous").GetBoolean(),
+            "Combat damage commitment is not explicitly simultaneous.");
+        SequenceEqual(
+            ["persistent-target", "persistent-attacker"],
+            commitment.GetProperty("assignments").EnumerateArray().Select(assignment =>
+                assignment.GetProperty("target_object_ref").GetProperty("object_id").GetString()!),
+            "The simultaneous assignment order is not deterministic.");
+        True(commitment.GetProperty("assignments").EnumerateArray().All(assignment =>
+            assignment.GetProperty("current_effective_atk").GetInt32() == 1),
+            "Combat did not use both current effective ATK values.");
+        var damageEvents = response.Events.Where(engineEvent => engineEvent.EventType == "damage_dealt").ToArray();
+        Equal(2, damageEvents.Length, "Physical Combat did not emit exactly two damage events.");
+        Equal(1, damageEvents[0].Payload.GetProperty("accumulated_damage_before").GetInt32(),
+            "Existing target damage was not part of the pre-damage snapshot.");
+        Equal(0, damageEvents[1].Payload.GetProperty("accumulated_damage_before").GetInt32(),
+            "Attacker pre-damage snapshot is invalid.");
+        Equal(CombatRuleIds.EntityCombatResolvedOutcome,
+            response.Events.Single(engineEvent => engineEvent.EventType == "combat_resolved")
+                .Payload.GetProperty("outcome_id").GetString(),
+            "Entity Combat outcome is invalid.");
+        True(fixture.Session.ListLegalActions("player_1").Actions.Any(action => action.Enabled),
+            "Normal gameplay did not resume after nonlethal Entity Combat.");
+        EngineSession.ValidateState(fixture.State, fixture.CanonicalCards, fixture.CanonicalAbilities);
+    }
+
+    internal static void EntityCombatLethalOutcomesUseCanonicalAftermath()
+    {
+        static (CombatFixture Fixture, ActionResponse Response) Resolve(
+            string matchId,
+            string attackerCardId,
+            string targetCardId,
+            IReadOnlyDictionary<string, (int Atk, int Hp)> stats)
+        {
+            var fixture = CreateFixture(
+                matchId,
+                statOverrides: stats,
+                board:
+                [
+                    Board($"{matchId}-attacker", attackerCardId, "player_1", DomainRow.Horizon, 0, "active", 1),
+                    Board($"{matchId}-target", targetCardId, "player_2", DomainRow.Horizon, 0, "active", 1),
+                ]);
+            var response = CloseFirstCombatReaction(
+                fixture,
+                $"{matchId}-attacker",
+                CombatRuleIds.EntityTargetKind,
+                $"{matchId}-target",
+                matchId);
+            return (fixture, response);
+        }
+
+        var targetOnly = Resolve(
+            "combat-c4-target-lethal",
+            AerialEntityCardId,
+            PlainEntityCardId,
+            new Dictionary<string, (int Atk, int Hp)>
+            {
+                [AerialEntityCardId] = (2, 3),
+                [PlainEntityCardId] = (1, 1),
+            });
+        Equal("dominion", targetOnly.Fixture.State.GetCardInstance("combat-c4-target-lethal-attacker").Zone,
+            "Target-only lethal incorrectly destroyed the attacker.");
+        Equal(1, targetOnly.Fixture.State.GetCardInstance("combat-c4-target-lethal-attacker").DamageMarked,
+            "Target-only lethal lost return damage.");
+        Equal("void", targetOnly.Fixture.State.GetCardInstance("combat-c4-target-lethal-target").Zone,
+            "Target-only lethal did not use canonical destruction.");
+        Equal(1, targetOnly.Response.Events.Count(engineEvent => engineEvent.EventType == "entity_destroyed"),
+            "Target-only lethal emitted an invalid destruction count.");
+
+        var attackerOnly = Resolve(
+            "combat-c4-attacker-lethal",
+            PlainEntityCardId,
+            SpeedEntityCardId,
+            new Dictionary<string, (int Atk, int Hp)>
+            {
+                [PlainEntityCardId] = (1, 1),
+                [SpeedEntityCardId] = (2, 3),
+            });
+        Equal("void", attackerOnly.Fixture.State.GetCardInstance("combat-c4-attacker-lethal-attacker").Zone,
+            "Attacker-only lethal did not destroy the attacker.");
+        Equal("dominion", attackerOnly.Fixture.State.GetCardInstance("combat-c4-attacker-lethal-target").Zone,
+            "Attacker-only lethal incorrectly destroyed the target.");
+        Equal(1, attackerOnly.Fixture.State.GetCardInstance("combat-c4-attacker-lethal-target").DamageMarked,
+            "Attacker-only lethal lost outgoing attacker damage.");
+
+        var both = Resolve(
+            "combat-c4-both-lethal",
+            PlainEntityCardId,
+            PlainEntityCardId,
+            new Dictionary<string, (int Atk, int Hp)>
+            {
+                [PlainEntityCardId] = (1, 1),
+            });
+        Equal("void", both.Fixture.State.GetCardInstance("combat-c4-both-lethal-attacker").Zone,
+            "Simultaneous lethal spared the attacker.");
+        Equal("void", both.Fixture.State.GetCardInstance("combat-c4-both-lethal-target").Zone,
+            "Simultaneous lethal spared the target.");
+        Equal(2, both.Response.Events.Count(engineEvent => engineEvent.EventType == "damage_dealt"),
+            "Both-lethal resolution failed to commit both damage assignments first.");
+        Equal(2, both.Response.Events.Count(engineEvent => engineEvent.EventType == "entity_destroyed"),
+            "Both-lethal resolution did not destroy both Entities.");
+        Equal(2, both.Response.Events.Count(engineEvent => engineEvent.EventType == "card_zone_changed"),
+            "Both-lethal resolution did not use two canonical zone transitions.");
+        True(both.Fixture.State.GetPlayer("player_1").VoidCardInstanceIds
+            .Contains("combat-c4-both-lethal-attacker"),
+            "Destroyed attacker is absent from its owner's Void.");
+        True(both.Fixture.State.GetPlayer("player_2").VoidCardInstanceIds
+            .Contains("combat-c4-both-lethal-target"),
+            "Destroyed target is absent from its owner's Void.");
+        EngineSession.ValidateState(both.Fixture.State, both.Fixture.CanonicalCards, both.Fixture.CanonicalAbilities);
+    }
+
+    internal static void CombatUsesCurrentEffectiveAttackAfterCommit()
+    {
+        var fixture = CreateFixture(
+            "combat-c4-current-atk",
+            statOverrides: new Dictionary<string, (int Atk, int Hp)>
+            {
+                [PlainEntityCardId] = (1, 5),
+                [SpeedEntityCardId] = (1, 5),
+            },
+            board:
+            [
+                Board("current-atk-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 0, "active", 1),
+                Board("current-atk-target", SpeedEntityCardId, "player_2", DomainRow.Horizon, 0, "active", 1),
+            ]);
+        var sourceOwner = fixture.State.GetPlayer("player_1");
+        sourceOwner.HandCardInstanceIds.Add("current-atk-source");
+        fixture.State.CardInstances.Add("current-atk-source", new CardInstanceState
+        {
+            CardInstanceId = "current-atk-source",
+            CardId = "IGN-HAM-036",
+            OwnerPlayerId = "player_1",
+            ControllerPlayerId = "player_1",
+            Zone = "hand",
+            ZoneIndex = sourceOwner.HandCardInstanceIds.Count - 1,
+            Visibility = "owner_only",
+            CreatedSequence = fixture.State.CardInstances.Count + 1,
+            ZoneSequence = 1,
+            InitialZone = "hand",
+        });
+        Equal(1, CanonicalVitals.GetEffectiveAtk(
+            fixture.State,
+            fixture.State.GetCardInstance("current-atk-attacker"),
+            fixture.CanonicalCards),
+            "Current-ATK fixture base value is invalid.");
+        SubmitInitialAttack(
+            fixture,
+            "current-atk-attacker",
+            CombatRuleIds.EntityTargetKind,
+            "current-atk-target",
+            "current-atk");
+        fixture.State.ModifierInstances.Add(
+            "modifier_combat_c4_current_atk",
+            new ModifierInstanceState(
+                "modifier_combat_c4_current_atk",
+                "ability_ign_ham_036_01",
+                "effect_ign_ham_036_01_attack_bonus",
+                "resolution_combat_c4_setup",
+                "current-atk-source",
+                "player_1",
+                "current-atk-attacker",
+                fixture.State.GetCardInstance("current-atk-attacker").ZoneSequence,
+                CanonicalContinuousEffects.AttackModifierTypeId,
+                CanonicalContinuousEffects.AttackFieldId,
+                2,
+                "duration_ign_ham_036_01_attack_bonus_turn",
+                CanonicalContinuousEffects.UntilEndOfCurrentTurnDurationPolicyId,
+                "duration_instance_combat_c4_current_atk",
+                CanonicalContinuousEffects.TurnInstanceId(fixture.State),
+                CanonicalContinuousEffects.PhaseInstanceId(fixture.State),
+                fixture.State.TurnNumber,
+                fixture.State.ActivePlayerId,
+                fixture.State.StateVersion,
+                1));
+        fixture.State.NextContinuousEffectSequence = 2;
+        Equal(3, CanonicalVitals.GetEffectiveAtk(
+            fixture.State,
+            fixture.State.GetCardInstance("current-atk-attacker"),
+            fixture.CanonicalCards),
+            "Commit-time modifier did not change current effective ATK.");
+
+        var response = CloseOpenReaction(fixture, "current-atk");
+        var attackerDamage = response.Events.Single(engineEvent =>
+            engineEvent.EventType == "damage_dealt"
+            && engineEvent.Payload.GetProperty("source_card_instance_id").GetString() == "current-atk-attacker");
+        Equal(3, attackerDamage.Payload.GetProperty("applied_amount").GetInt32(),
+            "Combat used declaration-time ATK instead of resolution-time effective ATK.");
+        Equal(3, fixture.State.GetCardInstance("current-atk-target").DamageMarked,
+            "Resolution-time modified ATK did not persist on the target.");
+        Equal(null, fixture.State.PendingCombat, "Modified-ATK Combat did not close.");
+    }
+
+    internal static void UndefendedContinuityLossIsNoHitWithoutRetarget()
+    {
+        var attackerLost = CreateFixture(
+            "combat-c4-attacker-reentry",
+            statOverrides: new Dictionary<string, (int Atk, int Hp)>
+            {
+                [PlainEntityCardId] = (1, 3),
+            },
+            board:
+            [
+                Board("reentry-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 0, "active", 1),
+                Board("reentry-target", PlainEntityCardId, "player_2", DomainRow.Horizon, 0, "active", 1),
+            ]);
+        SubmitInitialAttack(
+            attackerLost,
+            "reentry-attacker",
+            CombatRuleIds.EntityTargetKind,
+            "reentry-target",
+            "attacker-reentry");
+        MoveDomainCardToVoid(attackerLost, "reentry-attacker");
+        ReturnVoidCardToDomain(attackerLost, "reentry-attacker", DomainRow.Horizon, 0);
+        var attackerLostResponse = CloseOpenReaction(attackerLost, "attacker-reentry");
+        Equal(CombatRuleIds.AttackerMissingNoHitReason, NoHitReason(attackerLostResponse),
+            "Attacker leave-and-return reconnected the old participant reference.");
+        Equal(0, attackerLostResponse.Events.Count(engineEvent => engineEvent.EventType == "damage_dealt"),
+            "Attacker continuity no-hit dealt damage.");
+
+        var targetLost = CreateFixture(
+            "combat-c4-target-reentry",
+            statOverrides: new Dictionary<string, (int Atk, int Hp)>
+            {
+                [PlainEntityCardId] = (1, 3),
+            },
+            board:
+            [
+                Board("target-reentry-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 0, "active", 1),
+                Board("target-reentry-original", PlainEntityCardId, "player_2", DomainRow.Horizon, 0, "active", 1),
+                Board("target-reentry-other", PlainEntityCardId, "player_2", DomainRow.Horizon, 3, "active", 1),
+            ]);
+        SubmitInitialAttack(
+            targetLost,
+            "target-reentry-attacker",
+            CombatRuleIds.EntityTargetKind,
+            "target-reentry-original",
+            "target-reentry");
+        MoveDomainCardToVoid(targetLost, "target-reentry-original");
+        ReturnVoidCardToDomain(targetLost, "target-reentry-original", DomainRow.Horizon, 0);
+        var targetLostResponse = CloseOpenReaction(targetLost, "target-reentry");
+        Equal(CombatRuleIds.TargetMissingNoHitReason, NoHitReason(targetLostResponse),
+            "OriginalTarget leave-and-return reconnected the old participant reference.");
+        Equal(0, targetLost.State.GetCardInstance("target-reentry-other").DamageMarked,
+            "Continuity loss implicitly retargeted another Entity.");
+        Equal(0, targetLostResponse.Events.Count(engineEvent => engineEvent.EventType == "damage_dealt"),
+            "Target continuity no-hit dealt damage.");
+        Equal(null, targetLost.State.PendingCombat, "Target continuity no-hit retained Combat.");
+    }
+
+    internal static void CommittedDefenderIsExclusiveParticipantAndContinuityIsFinal()
+    {
+        var valid = CreateFixture(
+            "combat-c4-defense-valid",
+            statOverrides: new Dictionary<string, (int Atk, int Hp)>
+            {
+                [PlainEntityCardId] = (1, 3),
+                [SpeedEntityCardId] = (1, 3),
+            },
+            board:
+            [
+                Board("defense-valid-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 5, "active", 1),
+                Board("defense-valid-defender", PlainEntityCardId, "player_2", DomainRow.Horizon, 1, "active", 1),
+                Board("defense-valid-target", SpeedEntityCardId, "player_2", DomainRow.Horizon, 2, "exhausted", 1),
+            ]);
+        OpenInterventionChoice(
+            valid,
+            "defense-valid-attacker",
+            CombatRuleIds.EntityTargetKind,
+            "defense-valid-target",
+            "defense-valid");
+        True(SubmitIntervene(
+            valid,
+            InterventionAction(valid, "player_2"),
+            "defense-valid-commit",
+            "defense-valid-defender").Accepted,
+            "Valid C4 defender could not commit.");
+        var validResponse = CloseOpenReaction(valid, "defense-valid");
+        Equal(1, valid.State.GetCardInstance("defense-valid-attacker").DamageMarked,
+            "Committed defender did not retaliate while Exhausted.");
+        Equal(1, valid.State.GetCardInstance("defense-valid-defender").DamageMarked,
+            "Attacker did not damage the committed defender.");
+        Equal(0, valid.State.GetCardInstance("defense-valid-target").DamageMarked,
+            "DefenseCommit incorrectly rewrote or damaged OriginalTarget.");
+        Equal("exhausted", valid.State.GetCardInstance("defense-valid-attacker").ActivityState,
+            "Defended Combat refunded attacker Exhaust.");
+        Equal("exhausted", valid.State.GetCardInstance("defense-valid-defender").ActivityState,
+            "Defended Combat refunded defender Exhaust.");
+        SequenceEqual(
+            ["defense-valid-defender", "defense-valid-attacker"],
+            validResponse.Events.Where(engineEvent => engineEvent.EventType == "damage_dealt")
+                .Select(engineEvent => engineEvent.Payload.GetProperty("entity_instance_id").GetString()!),
+            "Committed defender was not the exclusive opponent participant.");
+
+        var moved = CreateFixture(
+            "combat-c4-defense-moved",
+            statOverrides: new Dictionary<string, (int Atk, int Hp)>
+            {
+                [PlainEntityCardId] = (1, 3),
+            },
+            board:
+            [
+                Board("defense-moved-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 5, "active", 1),
+                Board("defense-moved-selected", PlainEntityCardId, "player_2", DomainRow.Horizon, 1, "active", 1),
+                Board("defense-moved-target", PlainEntityCardId, "player_2", DomainRow.Horizon, 2, "active", 1),
+                Board("defense-moved-replacement", PlainEntityCardId, "player_2", DomainRow.Horizon, 3, "active", 1),
+            ]);
+        OpenInterventionChoice(
+            moved,
+            "defense-moved-attacker",
+            CombatRuleIds.EntityTargetKind,
+            "defense-moved-target",
+            "defense-moved");
+        True(SubmitIntervene(
+            moved,
+            InterventionAction(moved, "player_2"),
+            "defense-moved-commit",
+            "defense-moved-selected").Accepted,
+            "Moved-defender fixture could not commit.");
+        MoveDomainCardWithinDomain(moved, "defense-moved-selected", DomainRow.Zenith, 1);
+        var movedResponse = CloseOpenReaction(moved, "defense-moved");
+        Equal(CombatRuleIds.DefenderMissingNoHitReason, NoHitReason(movedResponse),
+            "Defender row continuity loss did not become no-hit.");
+        Equal("exhausted", moved.State.GetCardInstance("defense-moved-selected").ActivityState,
+            "Defender continuity loss refunded committed Exhaust.");
+        Equal(0, moved.State.GetCardInstance("defense-moved-target").DamageMarked,
+            "Defender continuity loss resumed OriginalTarget.");
+        Equal(0, moved.State.GetCardInstance("defense-moved-replacement").DamageMarked,
+            "Defender continuity loss selected a replacement defender.");
+        Equal(0, movedResponse.Events.Count(engineEvent => engineEvent.EventType == "damage_dealt"),
+            "Defender continuity no-hit dealt damage.");
+
+        var reentered = CreateInterventionFixture("combat-c4-defense-reentered");
+        OpenInterventionChoice(
+            reentered,
+            "combat-c4-defense-reentered-attacker",
+            CombatRuleIds.EntityTargetKind,
+            "combat-c4-defense-reentered-target",
+            "defense-reentered");
+        True(SubmitIntervene(
+            reentered,
+            InterventionAction(reentered, "player_2"),
+            "defense-reentered-commit",
+            "combat-c4-defense-reentered-defender").Accepted,
+            "Defender re-entry fixture could not commit.");
+        MoveDomainCardToVoid(reentered, "combat-c4-defense-reentered-defender");
+        ReturnVoidCardToDomain(
+            reentered,
+            "combat-c4-defense-reentered-defender",
+            DomainRow.Horizon,
+            1);
+        var reenteredResponse = CloseOpenReaction(reentered, "defense-reentered");
+        Equal(CombatRuleIds.DefenderMissingNoHitReason, NoHitReason(reenteredResponse),
+            "Defender leave-and-return reconnected the committed incarnation.");
+        Equal(0, reenteredResponse.Events.Count(engineEvent => engineEvent.EventType == "damage_dealt"),
+            "Re-entered defender no-hit dealt damage.");
+        Equal(0, reentered.State.GetCardInstance("combat-c4-defense-reentered-target").DamageMarked,
+            "Re-entered defender resumed OriginalTarget.");
+    }
+
+    internal static void FinalAerialContactRulesRemainPathSpecific()
+    {
+        True(CombatResolution.IsFinalContactValid(false, false, defenseCommitted: false),
+            "Ground direct contact was rejected.");
+        True(CombatResolution.IsFinalContactValid(true, true, defenseCommitted: false),
+            "Aerial direct contact was rejected.");
+        True(CombatResolution.IsFinalContactValid(true, false, defenseCommitted: false),
+            "Aerial attacker to ground direct target contact was rejected.");
+        False(CombatResolution.IsFinalContactValid(false, true, defenseCommitted: false),
+            "Ground attacker to Aerial direct target contact was accepted.");
+        True(CombatResolution.IsFinalContactValid(false, false, defenseCommitted: true),
+            "Ground intervention contact was rejected.");
+        True(CombatResolution.IsFinalContactValid(true, true, defenseCommitted: true),
+            "Aerial intervention contact was rejected.");
+        False(CombatResolution.IsFinalContactValid(true, false, defenseCommitted: true),
+            "Aerial attacker accepted a ground committed defender.");
+        False(CombatResolution.IsFinalContactValid(false, true, defenseCommitted: true),
+            "Ground attacker accepted an Aerial committed defender.");
+
+        var fixture = CreateFixture(
+            "combat-c4-aerial-loss",
+            additionalAerialCardIds: [PlainEntityCardId],
+            board:
+            [
+                Board("aerial-loss-attacker", AerialEntityCardId, "player_1", DomainRow.Horizon, 5, "active", 1),
+                Board("aerial-loss-defender", PlainEntityCardId, "player_2", DomainRow.Horizon, 1, "active", 1),
+                Board("aerial-loss-target", SpeedEntityCardId, "player_2", DomainRow.Horizon, 2, "active", 1),
+            ]);
+        OpenInterventionChoice(
+            fixture,
+            "aerial-loss-attacker",
+            CombatRuleIds.EntityTargetKind,
+            "aerial-loss-target",
+            "aerial-loss");
+        True(SubmitIntervene(
+            fixture,
+            InterventionAction(fixture, "player_2"),
+            "aerial-loss-commit",
+            "aerial-loss-defender").Accepted,
+            "Aerial final-contact fixture could not commit its initially compatible defender.");
+        var combat = NotNull(fixture.State.PendingCombat, "Aerial final-contact fixture lost Combat.");
+        fixture.State.ReactionWindow = null;
+        fixture.State.ResolutionStack.Clear();
+        combat.StageId = CombatRuleIds.DefenseCheckpointStage;
+        combat.StageSequence = 5;
+        var postCommitAbilities = CreateAerialAbilityCatalog(AerialEntityCardId);
+        var plan = CombatResolution.BuildPlan(
+            fixture.State,
+            combat,
+            fixture.Runtime,
+            fixture.CanonicalCards,
+            postCommitAbilities);
+        Equal(CombatRuleIds.NoHitOutcome, plan.OutcomeId,
+            "Committed defender contact invalidation did not produce no-hit.");
+        Equal(CombatRuleIds.ContactInvalidNoHitReason, plan.NoHitReasonId,
+            "Committed defender Aerial incompatibility reason is invalid.");
+        CombatResolution.Apply(fixture.State, plan);
+        Equal(0, fixture.State.GetCardInstance("aerial-loss-attacker").DamageMarked,
+            "Aerial contact no-hit damaged the attacker.");
+        Equal(0, fixture.State.GetCardInstance("aerial-loss-defender").DamageMarked,
+            "Aerial contact no-hit damaged the defender.");
+        Equal(0, fixture.State.GetCardInstance("aerial-loss-target").DamageMarked,
+            "Aerial contact no-hit resumed OriginalTarget.");
+    }
+
+    internal static void CombatDamageProvenanceIsTypedAndDeterministic()
+    {
+        static string Run()
+        {
+            var fixture = CreateFixture(
+                "combat-c4-provenance",
+                statOverrides: new Dictionary<string, (int Atk, int Hp)>
+                {
+                    [PlainEntityCardId] = (1, 3),
+                },
+                board:
+                [
+                    Board("provenance-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 0, "active", 1),
+                    Board("provenance-target", PlainEntityCardId, "player_2", DomainRow.Horizon, 0, "active", 1),
+                ]);
+            var response = CloseFirstCombatReaction(
+                fixture,
+                "provenance-attacker",
+                CombatRuleIds.EntityTargetKind,
+                "provenance-target",
+                "provenance");
+            var damageEvents = response.Events.Where(engineEvent => engineEvent.EventType == "damage_dealt").ToArray();
+            True(damageEvents.All(engineEvent =>
+                engineEvent.Payload.GetProperty("cause_kind_id").GetString() == CombatRuleIds.CombatCauseKind
+                && engineEvent.Payload.GetProperty("combat_id").GetString() == "combat:combat-c4-provenance:000001"
+                && engineEvent.Payload.TryGetProperty("source_object_ref", out _)
+                && !engineEvent.Payload.TryGetProperty("source_ability_id", out _)
+                && !engineEvent.Payload.TryGetProperty("source_effect_id", out _)),
+                "Combat damage provenance used a fake ability or omitted typed Combat identity.");
+            Equal(1, damageEvents.Select(engineEvent =>
+                    engineEvent.Payload.GetProperty("simultaneous_group_id").GetString())
+                .Distinct(StringComparer.Ordinal).Count(),
+                "Damage events do not share one simultaneous group.");
+            Equal(1, damageEvents.Select(engineEvent =>
+                    engineEvent.Payload.GetProperty("timing_anchor_id").GetString())
+                .Distinct(StringComparer.Ordinal).Count(),
+                "Damage events do not share one resolution timing anchor.");
+            return JsonSerializer.Serialize(new
+            {
+                response,
+                snapshot = fixture.Session.GetDebugSnapshot(),
+            });
+        }
+
+        Equal(Run(), Run(), "Repeated C4 damage protocol is not deterministic.");
+    }
+
+    internal static void SealAndAeternalRemainExplicitFutureCheckpoints()
+    {
+        var seal = CreateFixture(
+            "combat-c4-seal-future",
+            board:
+            [
+                Board("seal-future-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 5, "active", 1),
+            ]);
+        var hiddenSealId = NotNull(
+            seal.State.GetPlayer("player_2").SealSlots[0].CardInstanceId,
+            "Seal future fixture is missing its hidden Seal.");
+        var sealResponse = CloseFirstCombatReaction(
+            seal,
+            "seal-future-attacker",
+            CombatRuleIds.SealSlotTargetKind,
+            "seal:player_2:01",
+            "seal-future");
+        var sealCombat = NotNull(seal.State.PendingCombat, "C4 incorrectly closed Seal-target Combat.");
+        Equal(CombatRuleIds.SealOutcomeCheckpointStage, sealCombat.StageId,
+            "Seal target did not advance to its explicit future checkpoint.");
+        Equal(CombatRuleIds.FutureOutcomePending, sealCombat.OutcomeId,
+            "Seal future outcome state is invalid.");
+        Equal($"{sealCombat.CombatId}:resolution", sealCombat.ResolutionTimingAnchorId,
+            "Seal future timing anchor is invalid.");
+        Equal("standing", seal.State.GetPlayer("player_2").SealSlots[0].Status,
+            "C4 broke a Seal.");
+        Equal("seal", seal.State.GetCardInstance(hiddenSealId).Zone, "C4 revealed or moved a hidden Seal.");
+        False(JsonSerializer.Serialize(sealResponse).Contains(hiddenSealId, StringComparison.Ordinal),
+            "Seal future checkpoint leaked hidden Seal identity.");
+        False(sealResponse.Events.Any(engineEvent => engineEvent.EventType is
+            "damage_dealt" or "combat_resolved"),
+            "Seal future checkpoint entered the Entity damage path or closed Combat.");
+        True(seal.Session.ListLegalActions("player_1", includeDisabled: true).Actions
+            .All(action => !action.Enabled && action.DisabledReason == "combat_pending"),
+            "Seal future checkpoint did not block normal gameplay.");
+
+        var aeternal = CreateFixture(
+            "combat-c4-aeternal-future",
+            playerTwoSealsBroken: true,
+            board:
+            [
+                Board("aeternal-future-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 5, "active", 1),
+            ]);
+        var aeternalResponse = CloseFirstCombatReaction(
+            aeternal,
+            "aeternal-future-attacker",
+            CombatRuleIds.AeternalTargetKind,
+            "aeternal:player_2",
+            "aeternal-future");
+        var aeternalCombat = NotNull(aeternal.State.PendingCombat,
+            "C4 incorrectly closed Aeternal-target Combat.");
+        Equal(CombatRuleIds.AeternalOutcomeCheckpointStage, aeternalCombat.StageId,
+            "Aeternal target did not advance to its explicit future checkpoint.");
+        Equal(CombatRuleIds.FutureOutcomePending, aeternalCombat.OutcomeId,
+            "Aeternal future outcome state is invalid.");
+        False(aeternal.State.Result.Completed, "C4 awarded Aeternal victory.");
+        False(aeternalResponse.Events.Any(engineEvent => engineEvent.EventType is
+            "damage_dealt" or "combat_resolved"),
+            "Aeternal future checkpoint entered the Entity damage path or closed Combat.");
+        EngineSession.ValidateState(seal.State, seal.CanonicalCards, seal.CanonicalAbilities);
+        EngineSession.ValidateState(aeternal.State, aeternal.CanonicalCards, aeternal.CanonicalAbilities);
+    }
+
+    internal static void CombatResolutionPlanningRejectsInvalidAndStaleCheckpoints()
+    {
+        var fixture = CreateFixture(
+            "combat-c4-plan-guards",
+            statOverrides: new Dictionary<string, (int Atk, int Hp)>
+            {
+                [PlainEntityCardId] = (1, 3),
+            },
+            board:
+            [
+                Board("plan-guard-attacker", PlainEntityCardId, "player_1", DomainRow.Horizon, 0, "active", 1),
+                Board("plan-guard-target", PlainEntityCardId, "player_2", DomainRow.Horizon, 0, "active", 1),
+            ]);
+        SubmitInitialAttack(
+            fixture,
+            "plan-guard-attacker",
+            CombatRuleIds.EntityTargetKind,
+            "plan-guard-target",
+            "plan-guard");
+        var combat = NotNull(fixture.State.PendingCombat, "Plan-guard fixture lost Combat.");
+        var beforeInvalid = Fingerprint(fixture);
+        ThrowsState(
+            () => CombatResolution.BuildPlan(
+                fixture.State,
+                combat,
+                fixture.Runtime,
+                fixture.CanonicalCards,
+                fixture.CanonicalAbilities),
+            "defense_checkpoint",
+            "Combat resolution planned from the attack ReactionWindow.");
+        Equal(beforeInvalid, Fingerprint(fixture), "Invalid checkpoint planning mutated state.");
+
+        fixture.State.ReactionWindow = null;
+        fixture.State.ResolutionStack.Clear();
+        combat.StageId = CombatRuleIds.DefenseCheckpointStage;
+        combat.StageSequence = 3;
+        combat.AttackContinuityStateId = CombatRuleIds.AttackContinuityContinuous;
+        combat.DefenseDecisionStateId = CombatRuleIds.DefenseDecisionUnavailable;
+        var plan = CombatResolution.BuildPlan(
+            fixture.State,
+            combat,
+            fixture.Runtime,
+            fixture.CanonicalCards,
+            fixture.CanonicalAbilities);
+        fixture.State.StateVersion += 1;
+        var beforeStale = fixture.State.GetCardInstance("plan-guard-target").DamageMarked;
+        ThrowsState(
+            () => CombatResolution.Apply(fixture.State, plan),
+            "stale",
+            "A stale Combat resolution plan was applied.");
+        Equal(beforeStale, fixture.State.GetCardInstance("plan-guard-target").DamageMarked,
+            "Stale Combat plan partially applied damage.");
     }
 
     internal static void RepeatedC3ProtocolIsDeterministic()
@@ -1226,6 +1859,14 @@ internal static class CombatSealFoundationTests
             .Select(option => option.GetProperty("defender_card_instance_id").GetString()!)
             .ToImmutableArray();
 
+    private static string CombatCheckpointContinuity(ActionResponse response) => response.Events
+        .Single(engineEvent => engineEvent.EventType == "combat_attack_checkpoint_completed")
+        .Payload.GetProperty("attack_continuity_state_id").GetString()!;
+
+    private static string? NoHitReason(ActionResponse response) => response.Events
+        .Single(engineEvent => engineEvent.EventType == "combat_no_hit")
+        .Payload.GetProperty("no_hit_reason_id").GetString();
+
     private static LegalAction InterventionAction(
         CombatFixture fixture,
         string playerId,
@@ -1312,10 +1953,60 @@ internal static class CombatSealFoundationTests
         card.DomainLaneIndex = destinationLaneIndex;
     }
 
+    private static void ReturnVoidCardToDomain(
+        CombatFixture fixture,
+        string cardInstanceId,
+        DomainRow destinationRow,
+        int destinationLaneIndex)
+    {
+        var card = fixture.State.GetCardInstance(cardInstanceId);
+        var owner = fixture.State.GetPlayer(card.OwnerPlayerId);
+        True(string.Equals(card.Zone, "void", StringComparison.Ordinal),
+            "Only a Void card can return in the incarnation-continuity fixture.");
+        True(owner.VoidCardInstanceIds.Remove(cardInstanceId),
+            "Void return fixture could not remove the card from Void.");
+        True(owner.Domain.TryOccupy(destinationRow, destinationLaneIndex, cardInstanceId),
+            "Void return fixture could not occupy the destination.");
+        card.ControllerPlayerId = owner.PlayerId;
+        card.Zone = "dominion";
+        card.ZoneIndex = -1;
+        card.Visibility = "public";
+        card.ZoneSequence += 1;
+        card.ActivityState = "active";
+        card.DomainRow = destinationRow;
+        card.DomainLaneIndex = destinationLaneIndex;
+        card.EnteredDomainTurnNumber = fixture.State.TurnNumber;
+        card.DamageMarked = 0;
+    }
+
+    private static CanonicalAbilityCatalog CreateAerialAbilityCatalog(params string[] aerialCardIds)
+    {
+        var package = CanonicalAbilityCatalogTests.CreatePackage();
+        var sequence = 1;
+        foreach (var cardId in aerialCardIds)
+        {
+            package = CanonicalAbilityCatalogTests.AddRecord(
+                package,
+                CanonicalAbilityTableIds.CardKeywords,
+                CanonicalAbilityCatalogTests.Record(
+                    ("card_keyword_id", $"cardkw_c4_{sequence:000}_aerial"),
+                    ("card_id", cardId),
+                    ("keyword_id", "aerial"),
+                    ("numeric_value", null),
+                    ("text_value", null),
+                    ("sequence", 1)));
+            sequence += 1;
+        }
+
+        return CanonicalAbilityMaterializer.Materialize(package);
+    }
+
     private static CombatFixture CreateFixture(
         string matchId,
         int turnNumber = 2,
         bool playerTwoSealsBroken = false,
+        IReadOnlyDictionary<string, (int Atk, int Hp)>? statOverrides = null,
+        IReadOnlyCollection<string>? additionalAerialCardIds = null,
         params BoardSpec[] board)
     {
         var package = CanonicalAbilityCatalogTests.AddRecord(
@@ -1328,6 +2019,40 @@ internal static class CombatSealFoundationTests
                 ("numeric_value", null),
                 ("text_value", null),
                 ("sequence", 1)));
+        if (additionalAerialCardIds is not null)
+        {
+            foreach (var cardId in additionalAerialCardIds.Order(StringComparer.Ordinal))
+            {
+                package = CanonicalAbilityCatalogTests.AddRecord(
+                    package,
+                    CanonicalAbilityTableIds.CardKeywords,
+                    CanonicalAbilityCatalogTests.Record(
+                        ("card_keyword_id", $"cardkw_{cardId.ToLowerInvariant().Replace('-', '_')}_aerial"),
+                        ("card_id", cardId),
+                        ("keyword_id", "aerial"),
+                        ("numeric_value", null),
+                        ("text_value", null),
+                        ("sequence", 1)));
+            }
+        }
+        if (statOverrides is not null)
+        {
+            foreach (var (cardId, stats) in statOverrides)
+            {
+                package = CanonicalAbilityCatalogTests.SetField(
+                    package,
+                    CanonicalAbilityTableIds.Cards,
+                    cardId,
+                    "atk",
+                    stats.Atk);
+                package = CanonicalAbilityCatalogTests.SetField(
+                    package,
+                    CanonicalAbilityTableIds.Cards,
+                    cardId,
+                    "hp",
+                    stats.Hp);
+            }
+        }
         var canonicalAbilities = CanonicalAbilityMaterializer.Materialize(package);
         var canonicalCards = CanonicalCardMaterializer.Materialize(package);
         var state = new MatchState
@@ -1396,6 +2121,7 @@ internal static class CombatSealFoundationTests
         return new CombatFixture(
             new EngineSession(state, runtime, canonicalAbilities, canonicalCards, resolver),
             state,
+            runtime,
             canonicalCards,
             canonicalAbilities);
     }
@@ -1471,6 +2197,7 @@ internal static class CombatSealFoundationTests
             DomainRow = spec.Row,
             DomainLaneIndex = spec.LaneIndex,
             EnteredDomainTurnNumber = spec.EnteredDomainTurnNumber,
+            DamageMarked = spec.DamageMarked,
         });
     }
 
@@ -1570,7 +2297,8 @@ internal static class CombatSealFoundationTests
         int laneIndex,
         string activityState,
         int enteredDomainTurnNumber,
-        int zoneSequence = 1) => new(
+        int zoneSequence = 1,
+        int damageMarked = 0) => new(
             cardInstanceId,
             cardId,
             playerId,
@@ -1578,7 +2306,8 @@ internal static class CombatSealFoundationTests
             laneIndex,
             activityState,
             enteredDomainTurnNumber,
-            zoneSequence);
+            zoneSequence,
+            damageMarked);
 
     private static void ThrowsState(Action action, string expectedMessagePart, string message)
     {
@@ -1637,6 +2366,7 @@ internal static class CombatSealFoundationTests
     private sealed record CombatFixture(
         EngineSession Session,
         MatchState State,
+        RuntimePackageCatalog Runtime,
         CanonicalCardCatalog CanonicalCards,
         CanonicalAbilityCatalog CanonicalAbilities);
 
@@ -1648,7 +2378,8 @@ internal static class CombatSealFoundationTests
         int LaneIndex,
         string ActivityState,
         int EnteredDomainTurnNumber,
-        int ZoneSequence);
+        int ZoneSequence,
+        int DamageMarked);
 
     private sealed record AttackChoice(
         string AttackerCardInstanceId,

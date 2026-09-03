@@ -197,6 +197,8 @@ internal sealed class PendingCombatState
 
     public string? DefenseTimingAnchorId { get; set; }
 
+    public string? ResolutionTimingAnchorId { get; set; }
+
     public string? OutcomeId { get; set; }
 }
 

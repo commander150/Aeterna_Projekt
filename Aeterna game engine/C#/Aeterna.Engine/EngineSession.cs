@@ -329,6 +329,7 @@ public sealed class EngineSession
         }
         else if (string.Equals(state.Phase, CanonicalPhaseIds.Incursion, StringComparison.Ordinal))
         {
+            var combatStatsAvailable = _canonicalRuntime?.Cards is not null;
             var attackOptions = CombatRules.ResolveAttackDeclarations(
                 state,
                 player,
@@ -336,13 +337,18 @@ public sealed class EngineSession
                 _canonicalRuntime?.Abilities);
             var firstTurnBan = active
                 && CombatRules.IsStartingPlayerFirstTurnAttackBan(state, player.PlayerId);
-            var enabled = active && !firstTurnBan && !attackOptions.IsDefaultOrEmpty;
+            var enabled = active
+                && !firstTurnBan
+                && combatStatsAvailable
+                && !attackOptions.IsDefaultOrEmpty;
             var disabledReason = !active
                 ? "not_active_player"
                 : firstTurnBan
                     ? "starting_player_first_turn_attack_forbidden"
                     : _runtimePackage is null
                         ? "combat_runtime_unavailable"
+                        : !combatStatsAvailable
+                            ? "combat_card_stats_unavailable"
                         : attackOptions.IsDefaultOrEmpty
                             ? "no_legal_attack"
                             : null;
@@ -881,6 +887,8 @@ public sealed class EngineSession
                     ["defender_lane_at_commit"] = projection.DefenderLaneAtCommit,
                     ["defense_committed"] = projection.DefenseCommitted,
                     ["defense_timing_anchor_id"] = projection.DefenseTimingAnchorId,
+                    ["resolution_timing_anchor_id"] = projection.ResolutionTimingAnchorId,
+                    ["outcome_id"] = projection.OutcomeId,
                 });
             }
 
@@ -932,7 +940,9 @@ public sealed class EngineSession
             combat.DefenderLaneAtCommit,
             combat.DefenseCommitted,
             combat.DefenseCommitStateVersion,
-            combat.DefenseTimingAnchorId);
+            combat.DefenseTimingAnchorId,
+            combat.ResolutionTimingAnchorId,
+            combat.OutcomeId);
 
     private static GameObjectReferenceProjection BuildGameObjectReferenceProjection(
         GameObjectRefState reference) => new(
@@ -1290,6 +1300,7 @@ public sealed class EngineSession
             combat.DefenseCommitted,
             combat.DefenseCommitStateVersion,
             combat.DefenseTimingAnchorId,
+            combat.ResolutionTimingAnchorId,
             combat.OutcomeId);
 
     internal ImmutableArray<EngineEvent> GetDebugEvents(int afterSequence = 0)
@@ -2478,6 +2489,7 @@ public sealed class EngineSession
             DefenseCommitted = false,
             DefenseCommitStateVersion = null,
             DefenseTimingAnchorId = null,
+            ResolutionTimingAnchorId = null,
             OutcomeId = null,
         };
         state.PendingCombat = combat;
@@ -2771,7 +2783,7 @@ public sealed class EngineSession
         return AcceptAction(state, request, stateVersionBefore, materialized);
     }
 
-    private static ActionResponse ApplyDeclineIntervention(
+    private ActionResponse ApplyDeclineIntervention(
         MatchState state,
         ActionRequest request,
         int stateVersionBefore)
@@ -2809,6 +2821,7 @@ public sealed class EngineSession
         combat.StageId = CombatRuleIds.DefenseCheckpointStage;
         combat.StageSequence = checked(combat.StageSequence + 1);
         state.PriorityPlayerId = combat.AttackingPlayerId;
+        var events = ImmutableArray.CreateBuilder<EngineEvent>();
         var engineEvent = CreateAttackEvent(
             state,
             request,
@@ -2823,7 +2836,14 @@ public sealed class EngineSession
                 ["next_stage_sequence"] = combat.StageSequence,
             }));
         state.Events.Add(engineEvent);
-        return AcceptAction(state, request, stateVersionBefore, engineEvent);
+        events.Add(engineEvent);
+        ResolveCombatAtDefenseCheckpoint(
+            state,
+            request,
+            combat,
+            events,
+            discoverTriggers: false);
+        return AcceptAction(state, request, stateVersionBefore, events.ToImmutable());
     }
 
     private static void ShuffleDeck(MatchState state, PlayerState player, string purpose)
@@ -4145,6 +4165,15 @@ public sealed class EngineSession
         {
             AdvanceAttackCheckpoint(state, request, combat, responseEvents);
         }
+        else
+        {
+            ResolveCombatAtDefenseCheckpoint(
+                state,
+                request,
+                combat,
+                responseEvents,
+                discoverTriggers: true);
+        }
 
         AppendCommittedReactionEvent(
             state,
@@ -4218,7 +4247,224 @@ public sealed class EngineSession
                 ["next_stage_id"] = combat.StageId,
                 ["next_stage_sequence"] = combat.StageSequence,
             });
+        if (!opensChoice)
+        {
+            ResolveCombatAtDefenseCheckpoint(
+                state,
+                request,
+                combat,
+                responseEvents,
+                discoverTriggers: true);
+        }
     }
+
+    private void ResolveCombatAtDefenseCheckpoint(
+        MatchState state,
+        ActionRequest request,
+        PendingCombatState combat,
+        ImmutableArray<EngineEvent>.Builder responseEvents,
+        bool discoverTriggers)
+    {
+        var plan = CombatResolution.BuildPlan(
+            state,
+            combat,
+            _runtimePackage,
+            _canonicalRuntime?.Cards,
+            _canonicalRuntime?.Abilities);
+        CombatResolution.Apply(state, plan);
+        combat.ResolutionTimingAnchorId = plan.TimingAnchorId;
+        combat.OutcomeId = plan.OutcomeId;
+
+        var combatEvents = ImmutableArray.CreateBuilder<EngineEvent>();
+        EngineEvent CreateEvent(string eventType, JsonElement payload) =>
+            CreateCanonicalRuntimeEvent(
+                state,
+                combatEvents.Count,
+                eventType,
+                request.PlayerId,
+                request.ActionType,
+                payload);
+
+        if (plan.FutureStageId is not null)
+        {
+            combat.StageId = plan.FutureStageId;
+            combat.StageSequence = checked(combat.StageSequence + 1);
+            state.PriorityPlayerId = combat.AttackingPlayerId;
+            combatEvents.Add(CreateEvent(
+                "combat_outcome_deferred",
+                ContractJsonValue.From(new Dictionary<string, object?>
+                {
+                    ["combat_id"] = combat.CombatId,
+                    ["timing_anchor_id"] = plan.TimingAnchorId,
+                    ["outcome_id"] = plan.OutcomeId,
+                    ["target_kind_id"] = combat.OriginalTarget.TargetKindId,
+                    ["next_stage_id"] = combat.StageId,
+                    ["next_stage_sequence"] = combat.StageSequence,
+                })));
+        }
+        else if (string.Equals(
+                     plan.OutcomeId,
+                     CombatRuleIds.EntityCombatResolvedOutcome,
+                     StringComparison.Ordinal))
+        {
+            var assignments = plan.DamageMutations.Select(damage =>
+                new CombatDamageAssignmentProjection(
+                    damage.DamageInstanceId,
+                    BuildGameObjectReferenceProjection(damage.SourceRef),
+                    BuildGameObjectReferenceProjection(damage.TargetRef),
+                    damage.SourceCardId,
+                    damage.TargetCardId,
+                    damage.Amount,
+                    damage.DamageBefore,
+                    damage.DamageAfter,
+                    damage.EffectiveMaxHp,
+                    damage.Lethal)).ToImmutableArray();
+            var committed = CreateEvent(
+                "combat_damage_committed",
+                ContractJsonValue.From(new CombatDamageCommittedPayload(
+                    plan.CombatId,
+                    plan.TimingAnchorId,
+                    plan.SimultaneousGroupId,
+                    CombatRuleIds.CombatCauseKind,
+                    true,
+                    assignments)));
+            combatEvents.Add(committed);
+
+            var damageEventIds = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var damage in plan.DamageMutations)
+            {
+                var damageEvent = CreateEvent(
+                    "damage_dealt",
+                    ContractJsonValue.From(new DamageDealtPayload(
+                        damage.DamageInstanceId,
+                        damage.TargetRef.ObjectId,
+                        damage.SourceRef.ObjectId,
+                        CombatRuleIds.CombatDamageKind,
+                        damage.Amount,
+                        damage.Amount,
+                        0,
+                        damage.Amount,
+                        damage.DamageBefore,
+                        damage.DamageAfter,
+                        committed.EventId,
+                        damage.SourceCardId,
+                        damage.TargetCardId,
+                        null,
+                        null,
+                        plan.TimingAnchorId,
+                        CombatRuleIds.CombatCauseKind,
+                        damage.EffectiveMaxHp,
+                        damage.Lethal,
+                        CauseKindId: CombatRuleIds.CombatCauseKind,
+                        CombatId: plan.CombatId,
+                        SourceObjectRef: BuildGameObjectReferenceProjection(damage.SourceRef),
+                        SimultaneousGroupId: plan.SimultaneousGroupId,
+                        TimingAnchorId: plan.TimingAnchorId)));
+                combatEvents.Add(damageEvent);
+                damageEventIds.Add(damage.DamageInstanceId, damageEvent.EventId);
+            }
+
+            foreach (var damage in plan.DamageMutations)
+            {
+                if (damage.Destruction is not { } destruction)
+                {
+                    continue;
+                }
+
+                var destroyedEvent = CreateEvent(
+                    "entity_destroyed",
+                    ContractJsonValue.From(new EntityDestroyedPayload(
+                        destruction.DestructionInstanceId,
+                        damage.TargetRef.ObjectId,
+                        destruction.DestructionCauseKindId,
+                        destruction.SourceCardInstanceId,
+                        damageEventIds[damage.DamageInstanceId],
+                        damage.TargetCardId,
+                        null,
+                        null,
+                        plan.TimingAnchorId,
+                        CauseKindId: CombatRuleIds.CombatCauseKind,
+                        CombatId: plan.CombatId,
+                        SourceObjectRef: BuildGameObjectReferenceProjection(damage.SourceRef),
+                        TimingAnchorId: plan.TimingAnchorId)));
+                combatEvents.Add(destroyedEvent);
+
+                var transition = destruction.ZoneTransition.Actual;
+                combatEvents.Add(CreateEvent(
+                    "card_zone_changed",
+                    ContractJsonValue.From(new CardZoneChangedPayload(
+                        transition.ZoneTransitionInstanceId,
+                        transition.CardInstanceId,
+                        transition.FromZoneId,
+                        transition.ToZoneId,
+                        transition.FromZonePresenceInstanceId,
+                        transition.ToZonePresenceInstanceId,
+                        destroyedEvent.EventId,
+                        transition.CardId,
+                        transition.OwnerPlayerId,
+                        transition.ControllerPlayerIdBefore,
+                        transition.FromDomainRow == DomainRow.Horizon ? "horizont" : "zenit",
+                        transition.FromDomainLaneIndex,
+                        transition.ToZoneIndex,
+                        transition.VisibilityBefore,
+                        transition.VisibilityAfter,
+                        null,
+                        null,
+                        plan.TimingAnchorId,
+                        CauseKindId: CombatRuleIds.CombatCauseKind,
+                        CombatId: plan.CombatId,
+                        SourceObjectRef: BuildGameObjectReferenceProjection(damage.SourceRef),
+                        TimingAnchorId: plan.TimingAnchorId))));
+            }
+
+            AppendCombatResolvedEvent(combatEvents, CreateEvent, combat, plan);
+            state.PendingCombat = null;
+            state.PriorityPlayerId = state.ActivePlayerId;
+        }
+        else
+        {
+            combatEvents.Add(CreateEvent(
+                "combat_no_hit",
+                ContractJsonValue.From(new CombatResolvedPayload(
+                    plan.CombatId,
+                    plan.TimingAnchorId,
+                    plan.OutcomeId,
+                    plan.NoHitReasonId,
+                    combat.DefenseCommitted,
+                    BuildGameObjectReferenceProjection(plan.AttackerRef),
+                    plan.OpponentRef is null
+                        ? null
+                        : BuildGameObjectReferenceProjection(plan.OpponentRef)))));
+            AppendCombatResolvedEvent(combatEvents, CreateEvent, combat, plan);
+            state.PendingCombat = null;
+            state.PriorityPlayerId = state.ActivePlayerId;
+        }
+
+        var materialized = combatEvents.ToImmutable();
+        state.Events.AddRange(materialized);
+        responseEvents.AddRange(materialized);
+        if (discoverTriggers)
+        {
+            responseEvents.AddRange(DiscoverCanonicalTriggers(state, materialized));
+        }
+    }
+
+    private static void AppendCombatResolvedEvent(
+        ImmutableArray<EngineEvent>.Builder events,
+        Func<string, JsonElement, EngineEvent> createEvent,
+        PendingCombatState combat,
+        CombatResolutionPlan plan) => events.Add(createEvent(
+        "combat_resolved",
+        ContractJsonValue.From(new CombatResolvedPayload(
+            plan.CombatId,
+            plan.TimingAnchorId,
+            plan.OutcomeId,
+            plan.NoHitReasonId,
+            combat.DefenseCommitted,
+            BuildGameObjectReferenceProjection(plan.AttackerRef),
+            plan.OpponentRef is null
+                ? null
+                : BuildGameObjectReferenceProjection(plan.OpponentRef)))));
 
     private bool TryBuildPersistedResolutionPlan(
         MatchState state,
@@ -7548,6 +7794,7 @@ public sealed class EngineSession
                 DefenseCommitted = source.PendingCombat.DefenseCommitted,
                 DefenseCommitStateVersion = source.PendingCombat.DefenseCommitStateVersion,
                 DefenseTimingAnchorId = source.PendingCombat.DefenseTimingAnchorId,
+                ResolutionTimingAnchorId = source.PendingCombat.ResolutionTimingAnchorId,
                 OutcomeId = source.PendingCombat.OutcomeId,
             };
             clone.PendingCombat.LegalDefenderCandidateIds.AddRange(
@@ -8176,6 +8423,20 @@ public sealed class EngineSession
             or CombatRuleIds.DefenseDecisionUnavailable
             or CombatRuleIds.DefenseDecisionDeclined
             or CombatRuleIds.DefenseDecisionCommitted;
+        var futureOutcomeStage = combat.StageId is
+            CombatRuleIds.SealOutcomeCheckpointStage
+            or CombatRuleIds.AeternalOutcomeCheckpointStage;
+        var resolutionMetadataConsistent = futureOutcomeStage
+            ? string.Equals(
+                  combat.ResolutionTimingAnchorId,
+                  $"{combat.CombatId}:resolution",
+                  StringComparison.Ordinal)
+              && string.Equals(
+                  combat.OutcomeId,
+                  CombatRuleIds.FutureOutcomePending,
+                  StringComparison.Ordinal)
+            : combat.ResolutionTimingAnchorId is null
+              && combat.OutcomeId is null;
         if (combat.CombatSequence < 1
             || combat.CombatSequence >= state.NextCombatSequence
             || !string.Equals(combat.CombatId, expectedCombatId, StringComparison.Ordinal)
@@ -8210,10 +8471,10 @@ public sealed class EngineSession
                 || candidate.DomainLaneIndex is not int candidateLaneIndex
                 || Math.Abs(candidateLaneIndex - combat.OriginalAttackLaneIndex) != 1
                 || !string.Equals(candidate.ActivityState, "active", StringComparison.Ordinal))
-            || combat.OutcomeId is not null)
+            || !resolutionMetadataConsistent)
         {
             throw new EngineStateException(
-                "PendingCombat identity, participants, or C3 state is invalid.");
+                "PendingCombat identity, participants, or C4 state is invalid.");
         }
 
         ValidateGameObjectReference(state, combat.AttackerRef, "Combat attacker");
@@ -8458,9 +8719,53 @@ public sealed class EngineSession
                     "Defense checkpoint PendingCombat state is inconsistent.");
             }
         }
+        else if (futureOutcomeStage)
+        {
+            var unavailable = combat.StageSequence == 4
+                && string.Equals(
+                    combat.DefenseDecisionStateId,
+                    CombatRuleIds.DefenseDecisionUnavailable,
+                    StringComparison.Ordinal);
+            var declined = combat.StageSequence == 5
+                && string.Equals(
+                    combat.DefenseDecisionStateId,
+                    CombatRuleIds.DefenseDecisionDeclined,
+                    StringComparison.Ordinal);
+            var targetStageConsistent = string.Equals(
+                    combat.StageId,
+                    CombatRuleIds.SealOutcomeCheckpointStage,
+                    StringComparison.Ordinal)
+                ? string.Equals(
+                    combat.OriginalTarget.TargetKindId,
+                    CombatRuleIds.SealSlotTargetKind,
+                    StringComparison.Ordinal)
+                : string.Equals(
+                    combat.OriginalTarget.TargetKindId,
+                    CombatRuleIds.AeternalTargetKind,
+                    StringComparison.Ordinal)
+                  && unavailable;
+            if (!(unavailable || declined)
+                || !targetStageConsistent
+                || !string.Equals(
+                    combat.AttackContinuityStateId,
+                    CombatRuleIds.AttackContinuityContinuous,
+                    StringComparison.Ordinal)
+                || combat.DefenseCommitted
+                || combat.LegalDefenderCandidateIds.Count != 0
+                || state.ReactionWindow is not null
+                || continuations.Length != 0
+                || !string.Equals(
+                    state.PriorityPlayerId,
+                    combat.AttackingPlayerId,
+                    StringComparison.Ordinal))
+            {
+                throw new EngineStateException(
+                    "Deferred Combat target outcome checkpoint is inconsistent.");
+            }
+        }
         else
         {
-            throw new EngineStateException("PendingCombat stage is unsupported in C3.");
+            throw new EngineStateException("PendingCombat stage is unsupported in C4.");
         }
     }
 
