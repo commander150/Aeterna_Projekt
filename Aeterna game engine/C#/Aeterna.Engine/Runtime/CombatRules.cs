@@ -38,12 +38,14 @@ internal static class CombatRuleIds
     internal const string NoHitOutcome = "no_hit";
     internal const string FutureOutcomePending = "future_outcome_pending";
     internal const string SealBreakCommittedOutcome = "seal_break_committed";
+    internal const string AeternalHitOutcome = "aeternal_hit";
     internal const string AttackerMissingNoHitReason = "attacker_missing";
     internal const string TargetMissingNoHitReason = "target_missing";
     internal const string DefenderMissingNoHitReason = "defender_missing";
     internal const string ContactInvalidNoHitReason = "contact_invalid";
     internal const string SealUnavailableNoHitReason = "seal_unavailable";
     internal const string SealLaneInvalidNoHitReason = "seal_lane_invalid";
+    internal const string StandingSealRestoredNoHitReason = "standing_seal_restored";
     internal const string CombatCauseKind = "combat";
     internal const string CombatDamageKind = "damage_kind_combat";
     internal const string SpeedKeyword = "speed";

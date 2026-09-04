@@ -670,7 +670,10 @@ internal static class CombatSealFoundationTests
             CombatRuleIds.AeternalTargetKind,
             "aeternal:player_2",
             "aeternal-c3");
-        Equal(CombatRuleIds.AeternalOutcomeCheckpointStage, aeternal.State.PendingCombat?.StageId,
+        True(aeternal.State.Result.Completed,
+            "Aeternal attack did not bypass normal intervention and resolve through C6.");
+        True(aeternal.State.Events.All(engineEvent =>
+                engineEvent.EventType != "intervention_choice_opened"),
             "Aeternal attack opened normal intervention.");
 
         var lostTarget = CreateFixture(
@@ -1636,7 +1639,7 @@ internal static class CombatSealFoundationTests
         Equal(Run(), Run(), "Repeated C4 damage protocol is not deterministic.");
     }
 
-    internal static void SealLifecycleClosesAndAeternalRemainsFutureCheckpoint()
+    internal static void SealLifecycleClosesAndAeternalResolvesAtCheckpoint()
     {
         var seal = CreateFixture(
             "combat-c5-seal-boundary",
@@ -1679,16 +1682,13 @@ internal static class CombatSealFoundationTests
             CombatRuleIds.AeternalTargetKind,
             "aeternal:player_2",
             "aeternal-future");
-        var aeternalCombat = NotNull(aeternal.State.PendingCombat,
-            "C4 incorrectly closed Aeternal-target Combat.");
-        Equal(CombatRuleIds.AeternalOutcomeCheckpointStage, aeternalCombat.StageId,
-            "Aeternal target did not advance to its explicit future checkpoint.");
-        Equal(CombatRuleIds.FutureOutcomePending, aeternalCombat.OutcomeId,
-            "Aeternal future outcome state is invalid.");
-        False(aeternal.State.Result.Completed, "C4 awarded Aeternal victory.");
-        False(aeternalResponse.Events.Any(engineEvent => engineEvent.EventType is
-            "damage_dealt" or "combat_resolved"),
-            "Aeternal future checkpoint entered the Entity damage path or closed Combat.");
+        True(aeternal.State.PendingCombat is null,
+            "C6 retained Aeternal-target Combat after outcome.");
+        True(aeternal.State.Result.Completed, "C6 did not award Aeternal victory.");
+        True(aeternalResponse.Events.Any(engineEvent => engineEvent.EventType == "aeternal_hit"),
+            "Aeternal outcome checkpoint did not emit the successful hit.");
+        False(aeternalResponse.Events.Any(engineEvent => engineEvent.EventType == "damage_dealt"),
+            "Aeternal outcome entered the Entity damage path.");
         EngineSession.ValidateState(seal.State, seal.CanonicalCards, seal.CanonicalAbilities);
         EngineSession.ValidateState(aeternal.State, aeternal.CanonicalCards, aeternal.CanonicalAbilities);
     }
@@ -2223,6 +2223,399 @@ internal static class CombatSealFoundationTests
         Equal(Run(), Run(), "Repeated C5 protocol is not deterministic.");
     }
 
+    internal static void AeternalSuccessfulHitCommitsTerminalMatchResult()
+    {
+        var fixture = CreateAeternalFixture("combat-c6-success");
+        var attacker = fixture.State.GetCardInstance("combat-c6-success-attacker");
+        var attackerZoneSequence = attacker.ZoneSequence;
+        var response = ResolveAeternalAttack(fixture, "c6-success");
+        var result = fixture.Session.GetMatchResult();
+        var expectedCombatId = "combat:combat-c6-success:000001";
+
+        True(response.Accepted, "Successful Aeternal outcome action was rejected.");
+        True(result.Completed, "Successful Aeternal hit did not complete the match.");
+        Equal(ContractSchemas.MatchResult, result.SchemaVersion,
+            "Aeternal MatchResult schema is invalid.");
+        Equal(AeternalOutcomeResolution.MatchEndedStatus, result.Status,
+            "Aeternal MatchResult status is invalid.");
+        Equal(AeternalOutcomeResolution.VictoryOutcome, result.Outcome,
+            "Aeternal MatchResult outcome is invalid.");
+        Equal("player_1", result.WinnerPlayerId, "Aeternal winner is invalid.");
+        Equal("player_2", result.LoserPlayerId, "Aeternal loser is invalid.");
+        Equal(AeternalOutcomeResolution.AeternalHitReasonId, result.ReasonId,
+            "Aeternal result reason is invalid.");
+        Equal(expectedCombatId, result.WinningCombatId,
+            "Aeternal result lost Combat correlation.");
+        Equal(fixture.State.StateVersion, result.CommittedAtStateVersion,
+            "Aeternal result committed-state version is invalid.");
+        Equal("exhausted", attacker.ActivityState,
+            "Successful outcome refunded AttackCommit Exhaust.");
+        Equal(attackerZoneSequence, attacker.ZoneSequence,
+            "Aeternal hit changed the attacker incarnation.");
+        Equal(0, attacker.DamageMarked, "Aeternal outcome marked damage on the attacker.");
+        False(fixture.State.CardInstances.ContainsKey("aeternal:player_2"),
+            "Aeternal was modeled as a card or Entity instance.");
+        False(response.Events.Any(item => item.EventType is
+                "damage_dealt" or "entity_destroyed" or "card_zone_changed" or "seal_broken"),
+            "Aeternal outcome used damage, destruction, zone, or Seal transitions.");
+        SequenceEqual(
+            ["aeternal_hit", "combat_resolved", "match_ended"],
+            response.Events.Where(item => item.EventType is
+                    "aeternal_hit" or "combat_resolved" or "match_ended")
+                .Select(item => item.EventType),
+            "Aeternal terminal semantic event order changed.");
+        True(fixture.Session.ListLegalActions("player_1", includeDisabled: true).Actions.IsEmpty,
+            "Winner retained a terminal gameplay action.");
+        True(fixture.Session.ListLegalActions("player_2", includeDisabled: true).Actions.IsEmpty,
+            "Loser retained a terminal gameplay action.");
+        AssertC6Closed(fixture, expectTerminal: true, "Successful Aeternal hit");
+    }
+
+    internal static void AeternalRestoredSealUsesCurrentOutcomeState()
+    {
+        var restored = CreateAeternalFixture("combat-c6-restored-seal");
+        SubmitInitialAttack(
+            restored,
+            "combat-c6-restored-seal-attacker",
+            CombatRuleIds.AeternalTargetKind,
+            "aeternal:player_2",
+            "c6-restored-seal");
+        var restoredCardId = RestoreStandingSealForFixture(restored, laneIndex: 2);
+        var blocked = CloseOpenReaction(restored, "c6-restored-seal");
+        False(restored.State.Result.Completed,
+            "A restored standing Seal did not protect the Aeternal at outcome.");
+        Equal(CombatRuleIds.StandingSealRestoredNoHitReason, NoHitReason(blocked),
+            "Restored-Seal no-hit reason is invalid.");
+        Equal("exhausted", restored.State.GetCardInstance(
+                "combat-c6-restored-seal-attacker").ActivityState,
+            "Restored Seal refunded the committed attacker.");
+        Equal("seal", restored.State.GetCardInstance(restoredCardId).Zone,
+            "Restored standing Seal did not remain authoritative.");
+        False(blocked.Events.Any(item => item.EventType is
+                "aeternal_hit" or "match_ended" or "seal_broken" or "seal_surged"),
+            "Protected Aeternal outcome retargeted or emitted a successful hit.");
+        AssertC6Closed(restored, expectTerminal: false, "Restored standing Seal");
+        True(restored.Session.ListLegalActions("player_1").Actions.Any(action => action.Enabled),
+            "Gameplay did not resume after a no-victory Combat close.");
+
+        var restoredThenRemoved = CreateAeternalFixture("combat-c6-restored-removed");
+        SubmitInitialAttack(
+            restoredThenRemoved,
+            "combat-c6-restored-removed-attacker",
+            CombatRuleIds.AeternalTargetKind,
+            "aeternal:player_2",
+            "c6-restored-removed");
+        RestoreStandingSealForFixture(restoredThenRemoved, laneIndex: 4);
+        RemoveRestoredSealForFixture(restoredThenRemoved, laneIndex: 4);
+        var successful = CloseOpenReaction(restoredThenRemoved, "c6-restored-removed");
+        True(restoredThenRemoved.State.Result.Completed,
+            "Current zero-Seal state did not govern after a restored Seal was removed again.");
+        True(successful.Events.Any(item => item.EventType == "aeternal_hit"),
+            "Current zero-Seal outcome did not emit Aeternal hit.");
+        AssertC6Closed(restoredThenRemoved, expectTerminal: true,
+            "Restored then removed Seal");
+    }
+
+    internal static void AeternalAttackerContinuityLossClosesWithoutVictory()
+    {
+        var missing = CreateAeternalFixture("combat-c6-attacker-missing");
+        SubmitInitialAttack(
+            missing,
+            "combat-c6-attacker-missing-attacker",
+            CombatRuleIds.AeternalTargetKind,
+            "aeternal:player_2",
+            "c6-attacker-missing");
+        MoveDomainCardToVoid(missing, "combat-c6-attacker-missing-attacker");
+        var missingResponse = CloseOpenReaction(missing, "c6-attacker-missing");
+        False(missing.State.Result.Completed, "Missing attacker produced Aeternal victory.");
+        Equal(CombatRuleIds.AttackerMissingNoHitReason, NoHitReason(missingResponse),
+            "Missing attacker no-hit reason is invalid.");
+        False(missingResponse.Events.Any(item => item.EventType == "aeternal_hit"),
+            "Missing attacker emitted an Aeternal hit.");
+        AssertC6Closed(missing, expectTerminal: false, "Missing attacker");
+
+        var reincarnated = CreateAeternalFixture("combat-c6-attacker-reincarnated");
+        SubmitInitialAttack(
+            reincarnated,
+            "combat-c6-attacker-reincarnated-attacker",
+            CombatRuleIds.AeternalTargetKind,
+            "aeternal:player_2",
+            "c6-attacker-reincarnated");
+        var committedIncarnation = NotNull(reincarnated.State.PendingCombat,
+            "Reincarnation fixture lost Combat.").AttackerRef.IncarnationSequence;
+        MoveDomainCardToVoid(reincarnated, "combat-c6-attacker-reincarnated-attacker");
+        ReturnVoidCardToDomain(
+            reincarnated,
+            "combat-c6-attacker-reincarnated-attacker",
+            DomainRow.Horizon,
+            destinationLaneIndex: 3);
+        var reincarnatedResponse = CloseOpenReaction(reincarnated, "c6-attacker-reincarnated");
+        False(reincarnated.State.Result.Completed,
+            "Leave-and-return attacker incarnation produced Aeternal victory.");
+        True(reincarnated.State.GetCardInstance(
+                "combat-c6-attacker-reincarnated-attacker").ZoneSequence > committedIncarnation,
+            "Reincarnation fixture did not change zone presence.");
+        Equal(CombatRuleIds.AttackerMissingNoHitReason, NoHitReason(reincarnatedResponse),
+            "Reincarnated attacker no-hit reason is invalid.");
+        False(reincarnatedResponse.Events.Any(item => item.EventType is
+                "seal_broken" or "aeternal_hit"),
+            "Attacker continuity loss retargeted or hit the Aeternal.");
+        AssertC6Closed(reincarnated, expectTerminal: false,
+            "Reincarnated attacker");
+    }
+
+    internal static void AeternalOutcomeIgnoresDeclarationOnlyRestrictions()
+    {
+        var ward = CreateFixture(
+            "combat-c6-late-ward",
+            playerTwoSealsBroken: true,
+            board:
+            [
+                Board("combat-c6-late-ward-attacker", PlainEntityCardId,
+                    "player_1", DomainRow.Horizon, 5, "active", 1),
+                Board("combat-c6-late-ward-entity", WardEntityCardId,
+                    "player_2", DomainRow.Horizon, 1, "exhausted", 1),
+            ]);
+        SubmitInitialAttack(
+            ward,
+            "combat-c6-late-ward-attacker",
+            CombatRuleIds.AeternalTargetKind,
+            "aeternal:player_2",
+            "c6-late-ward");
+        ward.State.GetCardInstance("combat-c6-late-ward-entity").ActivityState = "active";
+        var wardResponse = CloseOpenReaction(ward, "c6-late-ward");
+        True(ward.State.Result.Completed,
+            "Oltalom appearing after AttackCommit prevented Aeternal outcome.");
+        False(wardResponse.Events.Any(item => item.EventType == "intervention_choice_opened"),
+            "Late Oltalom opened intervention or retargeted Combat.");
+
+        var timing = CreateAeternalFixture(
+            "combat-c6-declaration-only",
+            statOverrides: new Dictionary<string, (int Atk, int Hp)>
+            {
+                [PlainEntityCardId] = (0, 3),
+            });
+        SubmitInitialAttack(
+            timing,
+            "combat-c6-declaration-only-attacker",
+            CombatRuleIds.AeternalTargetKind,
+            "aeternal:player_2",
+            "c6-declaration-only");
+        var attacker = timing.State.GetCardInstance("combat-c6-declaration-only-attacker");
+        attacker.EnteredDomainTurnNumber = 1;
+        timing.State.TurnNumber = 1;
+        var response = CloseOpenReaction(timing, "c6-declaration-only");
+        True(timing.State.Result.Completed,
+            "Outcome reran summoning-sickness, first-turn, Exhaust, or ATK legality.");
+        Equal("exhausted", attacker.ActivityState,
+            "Declaration-only outcome did not preserve AttackCommit Exhaust.");
+        False(response.Events.Any(item => item.EventType == "damage_dealt"),
+            "Zero-ATK Aeternal success was converted into damage comparison.");
+        AssertC6Closed(timing, expectTerminal: true,
+            "Declaration-only restrictions");
+    }
+
+    internal static void TerminalGameplayActionsAreRejectedAtomically()
+    {
+        var fixture = CreateAeternalFixture("combat-c6-terminal-actions");
+        ResolveAeternalAttack(fixture, "c6-terminal-actions");
+        var stateVersion = fixture.State.StateVersion;
+        var actionTypes = new[]
+        {
+            "attack",
+            "play_card",
+            "normal_inflow",
+            "advance_phase",
+            "end_turn",
+            "pass_priority",
+            "react",
+            "intervene",
+            "resolve_surge_opportunity",
+            "resolve_triggered_ability",
+        };
+        foreach (var playerId in new[] { "player_1", "player_2" })
+        {
+            foreach (var actionType in actionTypes)
+            {
+                var before = Fingerprint(fixture);
+                var response = fixture.Session.SubmitAction(new ActionRequest(
+                    ContractSchemas.ActionRequest,
+                    $"terminal-{playerId}-{actionType}",
+                    fixture.State.MatchId,
+                    playerId,
+                    stateVersion - 1,
+                    $"stale-{actionType}",
+                    actionType,
+                    ContractJsonValue.EmptyObject()));
+                False(response.Accepted,
+                    $"Terminal gameplay action was accepted: {playerId}/{actionType}");
+                Equal("match_ended", response.Reason,
+                    "Terminal precedence did not produce the stable reason.");
+                Equal("MATCH_ENDED", Single(response.Diagnostics).Code,
+                    "Terminal rejection diagnostic code is invalid.");
+                Equal(stateVersion, response.StateVersionBefore,
+                    "Terminal rejection reported the submitted stale version as authoritative.");
+                Equal(stateVersion, response.StateVersionAfter,
+                    "Terminal rejection changed state version.");
+                Equal(before, Fingerprint(fixture),
+                    $"Terminal rejection mutated state: {playerId}/{actionType}");
+            }
+        }
+
+        True(fixture.Session.ListLegalActions("player_1").Actions.IsEmpty,
+            "Winner public legal action space is not terminal.");
+        True(fixture.Session.ListLegalActions("player_2").Actions.IsEmpty,
+            "Loser public legal action space is not terminal.");
+        Equal(1, fixture.State.Events.Count(item => item.EventType == "match_ended"),
+            "Terminal rejections committed MatchResult more than once.");
+    }
+
+    internal static void TerminalProjectionAndEventsAreViewerSafe()
+    {
+        var fixture = CreateAeternalFixture("combat-c6-projection");
+        var privateHandId = AddPrivateHandCardForFixture(fixture, "player_1");
+        var hiddenSealId = NotNull(
+            fixture.State.GetPlayer("player_1").SealSlots[0].CardInstanceId,
+            "Projection fixture has no hidden Seal identity.");
+        var response = ResolveAeternalAttack(fixture, "c6-projection");
+        var playerOne = fixture.Session.GetPlayerSnapshot("player_1");
+        var playerTwo = fixture.Session.GetPlayerSnapshot("player_2");
+
+        Equal(playerOne.MatchResult, playerTwo.MatchResult,
+            "Terminal result differs between viewers.");
+        Equal(AeternalOutcomeResolution.MatchEndedStatus, playerOne.MatchResult.Status,
+            "Player snapshot does not expose ended match status.");
+        Equal("player_1", playerOne.MatchResult.WinnerPlayerId,
+            "Terminal projection winner is invalid.");
+        Equal("player_2", playerOne.MatchResult.LoserPlayerId,
+            "Terminal projection loser is invalid.");
+        Equal(AeternalOutcomeResolution.AeternalHitReasonId, playerOne.MatchResult.ReasonId,
+            "Terminal projection reason is invalid.");
+        var playerOneJson = JsonSerializer.Serialize(playerOne);
+        var playerTwoJson = JsonSerializer.Serialize(playerTwo);
+        False(playerOneJson.Contains(hiddenSealId, StringComparison.Ordinal),
+            "Winner projection leaked hidden Seal identity.");
+        False(playerTwoJson.Contains(hiddenSealId, StringComparison.Ordinal),
+            "Loser projection leaked hidden Seal identity.");
+        False(playerTwoJson.Contains(privateHandId, StringComparison.Ordinal),
+            "Opponent terminal projection leaked hidden hand identity.");
+        foreach (var viewer in new[] { "player_1", "player_2" })
+        {
+            var terminalEvents = fixture.Session.GetEvents(viewer).Where(item => item.EventType is
+                    "aeternal_hit" or "match_ended")
+                .ToArray();
+            Equal(2, terminalEvents.Length,
+                "Viewer did not receive both terminal semantic events.");
+            var serialized = JsonSerializer.Serialize(terminalEvents);
+            False(serialized.Contains(hiddenSealId, StringComparison.Ordinal),
+                "Terminal event leaked hidden Seal identity.");
+            False(serialized.Contains(privateHandId, StringComparison.Ordinal),
+                "Terminal event leaked hidden hand identity.");
+        }
+
+        var hit = response.Events.Single(item => item.EventType == "aeternal_hit");
+        Equal(0, hit.Payload.GetProperty("standing_seal_count").GetInt32(),
+            "Aeternal hit event does not prove zero standing Seals.");
+        Equal("aeternal:player_2", hit.Payload.GetProperty("target_id").GetString(),
+            "Aeternal hit event target identity is invalid.");
+        var ended = response.Events.Single(item => item.EventType == "match_ended");
+        Equal(playerOne.MatchResult.WinningCombatId,
+            ended.Payload.GetProperty("winning_combat_id").GetString(),
+            "Match-ended event lost Combat correlation.");
+    }
+
+    internal static void AeternalOutcomePlansAndMatchResultInvariantsAreGuarded()
+    {
+        var stale = PrepareAeternalCheckpoint("combat-c6-stale-plan");
+        var staleCombat = NotNull(stale.State.PendingCombat,
+            "Stale Aeternal plan fixture lost Combat.");
+        var stalePlan = AeternalOutcomeResolution.BuildPlan(
+            stale.State,
+            staleCombat,
+            stale.Runtime);
+        stale.State.StateVersion += 1;
+        var staleBefore = Fingerprint(stale);
+        ThrowsState(
+            () => AeternalOutcomeResolution.Apply(stale.State, stalePlan, stale.Runtime),
+            "stale",
+            "Stale Aeternal outcome plan was applied.");
+        Equal(staleBefore, Fingerprint(stale),
+            "Stale Aeternal outcome plan partially mutated state.");
+
+        var protectedAeternal = PrepareAeternalCheckpoint("combat-c6-plan-protected");
+        RestoreStandingSealForFixture(protectedAeternal, laneIndex: 1);
+        var protectedPlan = AeternalOutcomeResolution.BuildPlan(
+            protectedAeternal.State,
+            NotNull(protectedAeternal.State.PendingCombat,
+                "Protected Aeternal plan fixture lost Combat."),
+            protectedAeternal.Runtime);
+        False(protectedPlan.SuccessfulHit,
+            "A standing Seal produced a successful Aeternal outcome plan.");
+        Equal(CombatRuleIds.StandingSealRestoredNoHitReason, protectedPlan.NoHitReasonId,
+            "Protected Aeternal plan reason is invalid.");
+
+        var duplicate = PrepareAeternalCheckpoint("combat-c6-duplicate-result");
+        var duplicatePlan = AeternalOutcomeResolution.BuildPlan(
+            duplicate.State,
+            NotNull(duplicate.State.PendingCombat,
+                "Duplicate MatchResult fixture lost Combat."),
+            duplicate.Runtime);
+        AeternalOutcomeResolution.Apply(duplicate.State, duplicatePlan, duplicate.Runtime);
+        var duplicateBefore = duplicate.State.Result;
+        ThrowsState(
+            () => AeternalOutcomeResolution.Apply(duplicate.State, duplicatePlan, duplicate.Runtime),
+            "stale",
+            "Aeternal MatchResult committed twice.");
+        Equal(duplicateBefore, duplicate.State.Result,
+            "Duplicate MatchResult attempt changed the authoritative result.");
+
+        var malformed = CreateAeternalFixture("combat-c6-result-invariant");
+        ResolveAeternalAttack(malformed, "c6-result-invariant");
+        malformed.State.Result = malformed.State.Result with
+        {
+            LoserPlayerId = malformed.State.Result.WinnerPlayerId,
+        };
+        ThrowsState(
+            () => EngineSession.ValidateState(
+                malformed.State,
+                malformed.CanonicalCards,
+                malformed.CanonicalAbilities),
+            "MatchResult",
+            "Terminal MatchResult accepted identical winner and loser.");
+
+        var protectedTerminal = CreateAeternalFixture("combat-c6-terminal-seal-invariant");
+        ResolveAeternalAttack(protectedTerminal, "c6-terminal-seal-invariant");
+        RestoreStandingSealForFixture(protectedTerminal, laneIndex: 0);
+        ThrowsState(
+            () => EngineSession.ValidateState(
+                protectedTerminal.State,
+                protectedTerminal.CanonicalCards,
+                protectedTerminal.CanonicalAbilities),
+            "MatchResult",
+            "Terminal Aeternal result accepted a standing Seal.");
+    }
+
+    internal static void RepeatedC6ProtocolIsDeterministic()
+    {
+        static string Run()
+        {
+            var fixture = CreateAeternalFixture("combat-c6-repeated");
+            var response = ResolveAeternalAttack(fixture, "c6-repeated");
+            return JsonSerializer.Serialize(new
+            {
+                response,
+                result = fixture.Session.GetMatchResult(),
+                debug = fixture.Session.GetDebugSnapshot(),
+                playerOne = fixture.Session.GetPlayerSnapshot("player_1"),
+                playerTwo = fixture.Session.GetPlayerSnapshot("player_2"),
+                playerOneEvents = fixture.Session.GetEvents("player_1"),
+                playerTwoEvents = fixture.Session.GetEvents("player_2"),
+            });
+        }
+
+        Equal(Run(), Run(), "Repeated C6 protocol is not deterministic.");
+    }
+
     internal static void CombatResolutionPlanningRejectsInvalidAndStaleCheckpoints()
     {
         var fixture = CreateFixture(
@@ -2299,6 +2692,144 @@ internal static class CombatSealFoundationTests
         }
 
         Equal(Run(), Run(), "Repeated C3 protocol is not deterministic.");
+    }
+
+    private static CombatFixture CreateAeternalFixture(
+        string matchId,
+        IReadOnlyDictionary<string, (int Atk, int Hp)>? statOverrides = null) => CreateFixture(
+        matchId,
+        playerTwoSealsBroken: true,
+        statOverrides: statOverrides,
+        board:
+        [
+            Board($"{matchId}-attacker", PlainEntityCardId,
+                "player_1", DomainRow.Horizon, 0, "active", 1),
+        ]);
+
+    private static ActionResponse ResolveAeternalAttack(
+        CombatFixture fixture,
+        string requestPrefix) => CloseFirstCombatReaction(
+        fixture,
+        $"{fixture.State.MatchId}-attacker",
+        CombatRuleIds.AeternalTargetKind,
+        "aeternal:player_2",
+        requestPrefix);
+
+    private static CombatFixture PrepareAeternalCheckpoint(string matchId)
+    {
+        var fixture = CreateAeternalFixture(matchId);
+        SubmitInitialAttack(
+            fixture,
+            $"{matchId}-attacker",
+            CombatRuleIds.AeternalTargetKind,
+            "aeternal:player_2",
+            matchId);
+        fixture.State.ReactionWindow = null;
+        fixture.State.ResolutionStack.Clear();
+        fixture.State.PriorityPlayerId = "player_1";
+        var combat = NotNull(fixture.State.PendingCombat,
+            "Aeternal checkpoint fixture lost Combat.");
+        combat.StageId = CombatRuleIds.AeternalOutcomeCheckpointStage;
+        combat.StageSequence = 4;
+        combat.AttackContinuityStateId = CombatRuleIds.AttackContinuityContinuous;
+        combat.DefenseDecisionStateId = CombatRuleIds.DefenseDecisionUnavailable;
+        combat.ResolutionTimingAnchorId = $"{combat.CombatId}:resolution";
+        combat.OutcomeId = CombatRuleIds.FutureOutcomePending;
+        return fixture;
+    }
+
+    private static string RestoreStandingSealForFixture(
+        CombatFixture fixture,
+        int laneIndex)
+    {
+        var owner = fixture.State.GetPlayer("player_2");
+        var slot = owner.SealSlots[laneIndex];
+        Equal("broken", slot.Status, "Only a broken Seal slot can be restored in this fixture.");
+        True(slot.CardInstanceId is null,
+            "Broken Seal fixture retained an identity before restoration.");
+        var cardInstanceId = $"{fixture.State.MatchId}-restored-seal-{laneIndex + 1:00}";
+        slot.Status = "standing";
+        slot.CardInstanceId = cardInstanceId;
+        fixture.State.CardInstances.Add(cardInstanceId, new CardInstanceState
+        {
+            CardInstanceId = cardInstanceId,
+            CardId = PlainEntityCardId,
+            OwnerPlayerId = owner.PlayerId,
+            ControllerPlayerId = owner.PlayerId,
+            Zone = "seal",
+            ZoneIndex = laneIndex,
+            Visibility = "hidden",
+            CreatedSequence = fixture.State.CardInstances.Count + 1,
+            ZoneSequence = 1,
+            InitialZone = "seal",
+        });
+        return cardInstanceId;
+    }
+
+    private static void RemoveRestoredSealForFixture(
+        CombatFixture fixture,
+        int laneIndex)
+    {
+        var owner = fixture.State.GetPlayer("player_2");
+        var slot = owner.SealSlots[laneIndex];
+        var cardInstanceId = NotNull(slot.CardInstanceId,
+            "Restored Seal fixture has no standing identity to remove.");
+        var card = fixture.State.GetCardInstance(cardInstanceId);
+        slot.Status = "broken";
+        slot.CardInstanceId = null;
+        card.Zone = "void";
+        card.ZoneIndex = owner.VoidCardInstanceIds.Count;
+        card.Visibility = "public";
+        card.ZoneSequence += 1;
+        owner.VoidCardInstanceIds.Add(cardInstanceId);
+    }
+
+    private static string AddPrivateHandCardForFixture(
+        CombatFixture fixture,
+        string ownerPlayerId)
+    {
+        var owner = fixture.State.GetPlayer(ownerPlayerId);
+        var cardInstanceId = $"{fixture.State.MatchId}-{ownerPlayerId}-private-hand";
+        owner.HandCardInstanceIds.Add(cardInstanceId);
+        fixture.State.CardInstances.Add(cardInstanceId, new CardInstanceState
+        {
+            CardInstanceId = cardInstanceId,
+            CardId = PlainEntityCardId,
+            OwnerPlayerId = owner.PlayerId,
+            ControllerPlayerId = owner.PlayerId,
+            Zone = "hand",
+            ZoneIndex = owner.HandCardInstanceIds.Count - 1,
+            Visibility = "owner_only",
+            CreatedSequence = fixture.State.CardInstances.Count + 1,
+            ZoneSequence = 1,
+            InitialZone = "hand",
+        });
+        return cardInstanceId;
+    }
+
+    private static void AssertC6Closed(
+        CombatFixture fixture,
+        bool expectTerminal,
+        string context)
+    {
+        Equal(expectTerminal, fixture.State.Result.Completed,
+            $"{context} terminal result state is invalid.");
+        True(fixture.State.PendingCombat is null, $"{context} left PendingCombat.");
+        True(fixture.State.ReactionWindow is null, $"{context} left ReactionWindow.");
+        True(fixture.State.PendingSurgeWindow is null,
+            $"{context} left PendingSurgeWindow.");
+        True(fixture.State.PendingTriggerWindow is null,
+            $"{context} left PendingTriggerWindow.");
+        Equal(0, fixture.State.ResolutionStack.Count,
+            $"{context} left a resolution entry.");
+        Equal(0, fixture.State.ResolutionCardInstanceIds.Count,
+            $"{context} left a Resolution-zone card.");
+        Equal(0, fixture.State.QueuedTriggerBatches.Count,
+            $"{context} left a queued trigger batch.");
+        EngineSession.ValidateState(
+            fixture.State,
+            fixture.CanonicalCards,
+            fixture.CanonicalAbilities);
     }
 
     private static CombatFixture CreateEligibleSurgeFixture(string matchId) => CreateFixture(

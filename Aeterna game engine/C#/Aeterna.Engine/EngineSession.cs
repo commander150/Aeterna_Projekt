@@ -179,6 +179,15 @@ public sealed class EngineSession
         var state = RequireState();
         ValidateState(state, _canonicalRuntime?.Cards, _canonicalRuntime?.Abilities);
         var player = RequireKnownPlayer(state, playerId);
+        if (state.Result.Completed)
+        {
+            return BuildLegalActionSpace(
+                state,
+                player.PlayerId,
+                ImmutableArray<LegalAction>.Empty,
+                includeDisabled);
+        }
+
         if (state.Setup is { Completed: false })
         {
             return BuildSetupLegalActionSpace(state, player, includeDisabled);
@@ -1116,6 +1125,20 @@ public sealed class EngineSession
                     "Action request player is unknown.",
                     "The submitted player_id is not part of this match.",
                     "fix_request"));
+        }
+
+        if (state.Result.Completed)
+        {
+            return RejectAction(
+                state,
+                request,
+                "match_ended",
+                Diagnostic(
+                    "MATCH_ENDED",
+                    "request_validation",
+                    "The match has ended and no gameplay action can be submitted.",
+                    "The authoritative MatchResult has terminal precedence over every gameplay action.",
+                    "none"));
         }
 
         if (request.ExpectedStateVersion != state.StateVersion)
@@ -4542,6 +4565,13 @@ public sealed class EngineSession
             {
                 ResolveSealOutcomeCheckpoint(state, combat, combatEvents, CreateEvent);
             }
+            else if (string.Equals(
+                         plan.FutureStageId,
+                         CombatRuleIds.AeternalOutcomeCheckpointStage,
+                         StringComparison.Ordinal))
+            {
+                ResolveAeternalOutcomeCheckpoint(state, combat, combatEvents, CreateEvent);
+            }
             else
             {
                 combatEvents.Add(CreateEvent(
@@ -4850,6 +4880,77 @@ public sealed class EngineSession
         state.PriorityPlayerId = state.ActivePlayerId;
     }
 
+    private void ResolveAeternalOutcomeCheckpoint(
+        MatchState state,
+        PendingCombatState combat,
+        ImmutableArray<EngineEvent>.Builder events,
+        Func<string, JsonElement, EngineEvent> createEvent)
+    {
+        var plan = AeternalOutcomeResolution.BuildPlan(state, combat, _runtimePackage);
+        AeternalOutcomeResolution.Apply(state, plan, _runtimePackage);
+        combat.OutcomeId = plan.OutcomeId;
+        if (!plan.SuccessfulHit)
+        {
+            events.Add(createEvent(
+                "combat_no_hit",
+                ContractJsonValue.From(new CombatResolvedPayload(
+                    plan.CombatId,
+                    plan.TimingAnchorId,
+                    plan.OutcomeId,
+                    plan.NoHitReasonId,
+                    combat.DefenseCommitted,
+                    BuildGameObjectReferenceProjection(plan.AttackerRef),
+                    Opponent: null))));
+            events.Add(createEvent(
+                "combat_resolved",
+                ContractJsonValue.From(new CombatResolvedPayload(
+                    plan.CombatId,
+                    plan.TimingAnchorId,
+                    plan.OutcomeId,
+                    plan.NoHitReasonId,
+                    combat.DefenseCommitted,
+                    BuildGameObjectReferenceProjection(plan.AttackerRef),
+                    Opponent: null))));
+            state.PendingCombat = null;
+            state.PriorityPlayerId = state.ActivePlayerId;
+            return;
+        }
+
+        events.Add(createEvent(
+            "aeternal_hit",
+            ContractJsonValue.From(new AeternalHitPayload(
+                plan.CombatId,
+                plan.TimingAnchorId,
+                BuildGameObjectReferenceProjection(plan.AttackerRef),
+                plan.WinnerPlayerId,
+                plan.LoserPlayerId,
+                plan.TargetId,
+                plan.StandingSealCount))));
+        events.Add(createEvent(
+            "combat_resolved",
+            ContractJsonValue.From(new CombatResolvedPayload(
+                plan.CombatId,
+                plan.TimingAnchorId,
+                plan.OutcomeId,
+                NoHitReasonId: null,
+                combat.DefenseCommitted,
+                BuildGameObjectReferenceProjection(plan.AttackerRef),
+                Opponent: null))));
+        events.Add(createEvent(
+            "match_ended",
+            ContractJsonValue.From(new MatchEndedPayload(
+                plan.WinnerPlayerId,
+                plan.LoserPlayerId,
+                AeternalOutcomeResolution.AeternalHitReasonId,
+                plan.CombatId,
+                plan.StateVersion))));
+        state.PendingSurgeWindow = null;
+        state.PendingTriggerWindow = null;
+        state.QueuedTriggerBatches.Clear();
+        state.PendingCombat = null;
+        state.PriorityPlayerId = state.ActivePlayerId;
+    }
+
     private static void AppendCombatResolvedEvent(
         ImmutableArray<EngineEvent>.Builder events,
         Func<string, JsonElement, EngineEvent> createEvent,
@@ -5039,7 +5140,9 @@ public sealed class EngineSession
         ImmutableArray<EngineEvent> committedEvents)
     {
         var canonicalRuntime = _canonicalRuntime;
-        if (canonicalRuntime is null || committedEvents.IsDefaultOrEmpty)
+        if (state.Result.Completed
+            || canonicalRuntime is null
+            || committedEvents.IsDefaultOrEmpty)
         {
             return ImmutableArray<EngineEvent>.Empty;
         }
@@ -5212,7 +5315,8 @@ public sealed class EngineSession
 
     private static void ProcessQueuedTriggerCheckpoint(MatchState state)
     {
-        if (state.ReactionWindow is not null
+        if (state.Result.Completed
+            || state.ReactionWindow is not null
             || state.ResolutionStack.Count != 0
             || state.PendingTriggerWindow is not null)
         {
@@ -8070,6 +8174,7 @@ public sealed class EngineSession
             StartingPlayerId = source.StartingPlayerId,
             ActivePlayerId = source.ActivePlayerId,
             PriorityPlayerId = source.PriorityPlayerId,
+            Result = source.Result with { },
             NextContinuousEffectSequence = source.NextContinuousEffectSequence,
             NextReactionWindowSequence = source.NextReactionWindowSequence,
             NextReactionSubjectSequence = source.NextReactionSubjectSequence,
@@ -8671,10 +8776,109 @@ public sealed class EngineSession
             throw new EngineStateException("Event sequence is not contiguous.");
         }
 
+        ValidateMatchResult(state, knownPlayerIds);
         ValidatePendingTriggerWindow(state, knownPlayerIds);
         ValidateCombatState(state, knownPlayerIds);
         ValidatePendingSurgeWindow(state, knownPlayerIds);
         ValidateReactionState(state, knownPlayerIds);
+    }
+
+    private static void ValidateMatchResult(
+        MatchState state,
+        IReadOnlySet<string> knownPlayerIds)
+    {
+        var result = state.Result;
+        var aeternalHitEvents = state.Events.Where(item => string.Equals(
+                item.EventType,
+                "aeternal_hit",
+                StringComparison.Ordinal))
+            .ToImmutableArray();
+        var matchEndedEvents = state.Events.Where(item => string.Equals(
+                item.EventType,
+                "match_ended",
+                StringComparison.Ordinal))
+            .ToImmutableArray();
+        if (!string.Equals(result.SchemaVersion, ContractSchemas.MatchResult, StringComparison.Ordinal))
+        {
+            throw new EngineStateException("MatchResult schema is invalid.");
+        }
+
+        if (!result.Completed)
+        {
+            if (!string.Equals(
+                    result.Status,
+                    AeternalOutcomeResolution.MatchInProgressStatus,
+                    StringComparison.Ordinal)
+                || !string.Equals(result.Outcome, "in_progress", StringComparison.Ordinal)
+                || result.WinnerPlayerId is not null
+                || result.LoserPlayerId is not null
+                || result.ReasonId is not null
+                || result.WinningCombatId is not null
+                || result.CommittedAtStateVersion is not null
+                || !aeternalHitEvents.IsDefaultOrEmpty
+                || !matchEndedEvents.IsDefaultOrEmpty)
+            {
+                throw new EngineStateException("In-progress MatchResult state is invalid.");
+            }
+
+            return;
+        }
+
+        if (!string.Equals(
+                result.Status,
+                AeternalOutcomeResolution.MatchEndedStatus,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                result.Outcome,
+                AeternalOutcomeResolution.VictoryOutcome,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                result.ReasonId,
+                AeternalOutcomeResolution.AeternalHitReasonId,
+                StringComparison.Ordinal)
+            || result.WinnerPlayerId is null
+            || result.LoserPlayerId is null
+            || string.Equals(result.WinnerPlayerId, result.LoserPlayerId, StringComparison.Ordinal)
+            || state.Players.Count != 2
+            || !knownPlayerIds.Contains(result.WinnerPlayerId)
+            || !knownPlayerIds.Contains(result.LoserPlayerId)
+            || string.IsNullOrWhiteSpace(result.WinningCombatId)
+            || result.CommittedAtStateVersion is not int committedVersion
+            || committedVersion < 1
+            || committedVersion != state.StateVersion
+            || state.GetPlayer(result.LoserPlayerId).SealSlots.Any(slot => string.Equals(
+                slot.Status,
+                "standing",
+                StringComparison.Ordinal))
+            || state.PendingCombat is not null
+            || state.ReactionWindow is not null
+            || state.PendingSurgeWindow is not null
+            || state.PendingTriggerWindow is not null
+            || state.ResolutionStack.Count != 0
+            || state.ResolutionCardInstanceIds.Count != 0
+            || state.QueuedTriggerBatches.Count != 0
+            || aeternalHitEvents.Length != 1
+            || matchEndedEvents.Length != 1)
+        {
+            throw new EngineStateException("Terminal Aeternal MatchResult state is invalid.");
+        }
+
+        var aeternalHit = aeternalHitEvents[0];
+        var matchEnded = matchEndedEvents[0];
+        if (aeternalHit.StateVersion != committedVersion
+            || matchEnded.StateVersion != committedVersion
+            || !PayloadStringEquals(aeternalHit, "combat_id", result.WinningCombatId)
+            || !PayloadStringEquals(aeternalHit, "winner_player_id", result.WinnerPlayerId)
+            || !PayloadStringEquals(aeternalHit, "loser_player_id", result.LoserPlayerId)
+            || !PayloadIntEquals(aeternalHit, "standing_seal_count", 0)
+            || !PayloadStringEquals(matchEnded, "winning_combat_id", result.WinningCombatId)
+            || !PayloadStringEquals(matchEnded, "winner_player_id", result.WinnerPlayerId)
+            || !PayloadStringEquals(matchEnded, "loser_player_id", result.LoserPlayerId)
+            || !PayloadStringEquals(matchEnded, "reason_id", result.ReasonId!)
+            || !PayloadIntEquals(matchEnded, "committed_at_state_version", committedVersion))
+        {
+            throw new EngineStateException("Terminal MatchResult event correlation is invalid.");
+        }
     }
 
     private static void ValidateSetupState(
@@ -9262,7 +9466,7 @@ public sealed class EngineSession
         }
         else
         {
-            throw new EngineStateException("PendingCombat stage is unsupported in C5.");
+            throw new EngineStateException("PendingCombat stage is unsupported in C6.");
         }
     }
 

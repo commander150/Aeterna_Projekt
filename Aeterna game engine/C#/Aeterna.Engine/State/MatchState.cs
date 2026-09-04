@@ -69,12 +69,16 @@ internal sealed class MatchState
 
     public PendingSurgeWindowState? PendingSurgeWindow { get; set; }
 
-    public MatchResult Result { get; } = new(
+    public MatchResult Result { get; set; } = new(
         ContractSchemas.MatchResult,
         Completed: false,
+        Status: "in_progress",
         Outcome: "in_progress",
         WinnerPlayerId: null,
-        Reason: null);
+        LoserPlayerId: null,
+        ReasonId: null,
+        WinningCombatId: null,
+        CommittedAtStateVersion: null);
 
     public PlayerState GetPlayer(string playerId) => Players.Single(player =>
         string.Equals(player.PlayerId, playerId, StringComparison.Ordinal));

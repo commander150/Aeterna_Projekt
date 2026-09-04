@@ -25,7 +25,7 @@ public static class ContractSchemas
     public const string DebugSnapshotWithSurge = "aeterna-debug-match-snapshot-v9";
     public const string EngineEvent = "minimal-engine-event-v0";
     public const string EngineDiagnostic = "aeterna-engine-diagnostic-v1";
-    public const string MatchResult = "aeterna-match-result-v1";
+    public const string MatchResult = "aeterna-match-result-v2";
 }
 
 public static class ContractJsonValue
@@ -358,6 +358,22 @@ public sealed record CombatResolvedPayload(
     [property: JsonPropertyName("opponent")]
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     GameObjectReferenceProjection? Opponent);
+
+public sealed record AeternalHitPayload(
+    [property: JsonPropertyName("combat_id")] string CombatId,
+    [property: JsonPropertyName("timing_anchor_id")] string TimingAnchorId,
+    [property: JsonPropertyName("attacker")] GameObjectReferenceProjection Attacker,
+    [property: JsonPropertyName("winner_player_id")] string WinnerPlayerId,
+    [property: JsonPropertyName("loser_player_id")] string LoserPlayerId,
+    [property: JsonPropertyName("target_id")] string TargetId,
+    [property: JsonPropertyName("standing_seal_count")] int StandingSealCount);
+
+public sealed record MatchEndedPayload(
+    [property: JsonPropertyName("winner_player_id")] string WinnerPlayerId,
+    [property: JsonPropertyName("loser_player_id")] string LoserPlayerId,
+    [property: JsonPropertyName("reason_id")] string ReasonId,
+    [property: JsonPropertyName("winning_combat_id")] string WinningCombatId,
+    [property: JsonPropertyName("committed_at_state_version")] int CommittedAtStateVersion);
 
 public sealed record SealBreakIntentPayload(
     [property: JsonPropertyName("seal_break_intent_id")] string SealBreakIntentId,
@@ -903,6 +919,10 @@ public sealed record DebugSnapshot(
 public sealed record MatchResult(
     [property: JsonPropertyName("schema_version")] string SchemaVersion,
     [property: JsonPropertyName("completed")] bool Completed,
+    [property: JsonPropertyName("status")] string Status,
     [property: JsonPropertyName("outcome")] string Outcome,
     [property: JsonPropertyName("winner_player_id")] string? WinnerPlayerId,
-    [property: JsonPropertyName("reason")] string? Reason);
+    [property: JsonPropertyName("loser_player_id")] string? LoserPlayerId,
+    [property: JsonPropertyName("reason_id")] string? ReasonId,
+    [property: JsonPropertyName("winning_combat_id")] string? WinningCombatId,
+    [property: JsonPropertyName("committed_at_state_version")] int? CommittedAtStateVersion);
