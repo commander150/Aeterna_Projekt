@@ -2,13 +2,13 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.4
-**Dátum:** 2026-08-16
+**Dokumentumverzió:** 1.5
+**Dátum:** 2026-09-05
 **Státusz:** aktív, hosszú távú ability-architektúra és a meglévő production ability/effect foundation továbbfejlesztési kerete
 **Production authority:** C#/.NET
 **Adat- és buildréteg:** Python
-**Szinkronizációs repository-bázis:** `743c00d85ddc60bbbc70715fefab8ffc9dacbdae`
-**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95`
+**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 
 Ez a dokumentum az AETERNA kártyaképesség-, keyword-, trigger-, effect- és ability-execution rendszerének hosszú távú felépítését rögzíti.
 
@@ -46,9 +46,9 @@ A statikus runtime package jelenleg:
 - tartalmaz `engine_support.json` fájlt;
 - deklarált ability modulokat kezel;
 - metadata-szinten `declared_only` / `not_evaluated` állapotot hordozhat;
-- `runtime_executes_abilities: false` értéket deklarál.
+- korábbi sample/metadata rétegben `runtime_executes_abilities: false` érték szerepelhet.
 
-Ez a package support/coverage metadata állapota.
+Ez package support/coverage metadata, nem production engine capability statement.
 
 ### 1.2 Production C# ability/effect runtime foundation
 
@@ -65,24 +65,33 @@ A production C# engine-ben már megvalósult foundation többek között:
 - continuous effect state;
 - modifier/keyword/duration runtime;
 - damage/vitals/lethal integration;
-- draw/reference integration.
+- draw/reference integration;
+- Reaction / Priority Foundation v1;
+- Combat + Pecsét Foundation C0–C6;
+- terminal Aeternal / `MatchResult` outcome integration.
 
-Ez nem teljes kártyafedettség.
+Current production base:
+
+`0862e1002dbef81ee203852714d377592272a0e9`
+
+Ez továbbra sem teljes kártyafedettség.
 
 ### 1.3 Ami továbbra sincs teljesen kész
 
 - teljes card ability coverage;
 - teljes keyword coverage;
-- Reaction/Priority runtime;
-- prevention/replacement;
-- speciális timing/trigger activation policy és batch-order kivételek;
-- minden komplex target/choice forma;
+- generic prevention/replacement;
+- speciális future timing/trigger activation policy és batch-order kivételek;
+- minden komplex compound target/payment/choice forma;
+- special Seal restore/ward ability payload;
+- teljes Expansion-specifikus ability coverage;
 - package support matrix teljes migrációja.
 
 A package-ben szereplő teljes kártyaszám nem jelent ugyanennyi engine-supported képességet.
 
+Current elv:
 
----
+`EngineCapability != ContentCoverage`
 
 ## 2. Authority és réteghatár
 
@@ -147,24 +156,34 @@ Az első production ability/effect foundation már nem jövőbeli feladat.
 - activity mutation;
 - `play_card`;
 - Domain placement;
-- explicit phase foundation;
+- Explicit Phase Foundation v1;
 - target resolver foundation;
 - typed event és projection;
-- canonical card/ability runtime binding.
+- canonical card/ability runtime binding;
+- Reaction / Priority Foundation v1;
+- `ReactionWindow` / `ResolutionStack` / queued-trigger foundation;
+- Combat + Pecsét Foundation C0–C6;
+- Combat ReactionWindow integration;
+- SealBreak / Surge / Aeternal terminal integration.
 
-### Következő nagy ability-bővítés előtt szükséges
+### Current next gate
 
-- Reaction/Priority minimum contract;
-- pending reaction/choice state;
-- az adott bővítési slice által ténylegesen igényelt prevention/replacement contract;
-- speciális timing/activation/batch-order policy, ha konkrét content igényli;
-- package support/coverage matrix migráció;
-- első hivatalosan támogatott effect/keyword készletek explicit coverage-listája.
+`VS1_READINESS_REQUIRED`
 
-Az ability runtime továbbfejlesztése csak ezek közül a ténylegesen szükséges dependency-k lezárása után terjeszthető ki.
+A következő ability/content munka nem általános, előre kijelölt ability-expansion.
 
+Előbb a két canonical VS1 deck tényleges requirementjeit kell auditálni:
 
----
+- `DECK-IGN-HAM-VS1-001`;
+- `DECK-AQU-MOR-VS1-001`.
+
+Csak az a dependency kötelező VS1 előtt, amely:
+
+1. valamelyik canonical VS1 deck tényleges card/mechanic működéséhez kell; vagy
+2. általános rules-correct / deterministic / viewer-safe invariáns.
+
+Generic prevention/replacement, complex nested choice, future special timing vagy package support-matrix
+csak akkor válik VS1 blockeré, ha a readiness audit konkrétan igényli.
 
 ## 4. Alapfogalmak
 
@@ -437,16 +456,37 @@ Az effect tag sorrendje nem execution order.
 
 ## 13. Reaction, prevention és replacement
 
-A hivatalos 1.4.3v alapján már rögzített reaction-alapok:
+### Current Reaction/Priority authority
 
-- a reaction windowt az authoritative core engine nyitja és zárja;
-- ha mindkét játékos reagálhat, először az eseményt nem kezdeményező játékos kap lehetőséget;
-- a játékos passzolhat;
-- két egymást követő passz lezárja az ablakot;
-- reakciók egymásra épülhetnek;
-- feloldás visszafelé történik;
-- feloldáskor a releváns target/feltételek újraellenőrizendők;
-- lezárt eseményre nincs visszamenőleges reakció.
+Reaction / Priority Foundation v1:
+
+`COMPLETE_AND_ACCEPTED`
+
+Lezáró commit:
+
+`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
+
+Current core többek között:
+
+- authoritative `ReactionWindow`;
+- engine-issued `react` / `pass_priority`;
+- non-initiator-first policy, ha mindkét player eligible;
+- single-responder closure;
+- két-player window két egymást követő passzal zár;
+- nested reaction;
+- canonical `ResolutionStack`;
+- LIFO;
+- final revalidation;
+- queued trigger + post-resolution checkpoint/FIFO;
+- viewer-safe pending projection.
+
+### Combat-integráció
+
+Combat + Pecsét C0–C6:
+
+`COMPLETE_AND_ACCEPTED`
+
+A combat-specifikus ReactionWindow pontok productionben aktívak.
 
 Ability-modul szerepe:
 
@@ -454,26 +494,16 @@ Ability-modul szerepe:
 - a core timing state-et nem helyettesíti;
 - a modul nem tarthat saját párhuzamos priority/stack authorityt.
 
-Current official/current-default elhatárolás:
+### Ami továbbra is részleges
 
-- simultaneous trigger ordering általános alapja official;
-- mandatory/optional trigger semantics official;
-- ordinary trigger RC2 current defaultja queued trigger + post-resolution checkpoint;
-- same-timing batch az official simultaneous ordering szerint rendeződik.
+- generic prevention/replacement exact contract;
+- complex nested non-Reaction decision;
+- összetett retarget/replacement/prevention részletek;
+- future explicit special timing / strict-event policy;
+- konkrét content által igényelt további trigger-ordering kivételek.
 
-Továbbra is részleges/nyitott technikai kapu:
-
-- prevention/replacement exact contract;
-- nested pending decision/reaction;
-- komplex multi-part resolution, retarget és replacement/prevention részletei;
-- exact public reaction-state/event projection;
-- combat-specifikus reaction pontok production integrációja;
-- jövőbeli special timing/strict-event policy.
-
-Az első Reaction/Priority foundation nem keverendő össze a combat implementációval.
-
-
----
+A Reaction/Priority és Combat current core lezárása nem jelenti automatikusan
+minden prevention/replacement vagy special timing ability támogatását.
 
 ## 14. Exception module és migration fallback
 
@@ -601,44 +631,47 @@ A Godot megjeleníti, de nem authoritative executor.
 
 ## 18. Production ability foundation és következő coverage-szakasz
 
-Az első production ability/effect vertical slice már megvalósult foundation szinten.
+Az első production ability/effect vertical slice foundation szinten megvalósult,
+és azóta ugyanebbe az authoritative C# rendszerbe integrálódott a Reaction/Priority
+és a Combat/Pecsét C0–C6 layer is.
 
-Aktív production komponensek többek között:
+Current production foundation többek között:
 
-- ability catalog;
-- template compiler;
-- condition evaluation;
-- target filter/resolver;
-- trigger resolver foundation;
+- canonical ability catalog;
+- compiled template path;
+- effect condition/target resolution;
 - effect executor;
-- continuous effects;
+- continuous effect state;
 - modifier/keyword/duration;
 - damage/vitals/lethal;
-- draw/reference integration.
+- draw/reference;
+- Reaction/Priority;
+- Combat/Pecsét event és timing integration;
+- Seal/Aeternal outcome hooks.
 
-Következő coverage-bővítésnél jó jelöltek továbbra is lehetnek:
+Current production base:
 
-- egyszerű kártyahúzás;
-- Entitás sebzése;
-- Entitás gyógyítása;
-- egyszerű keyword adása meghatározott durationnel;
-- támogatott token/collection/zone effect;
-- ward effect csak a Pecsét-spec után.
+`0862e1002dbef81ee203852714d377592272a0e9`
 
-Kiválasztási feltétel:
+### Coverage-elv
 
-- auditált kártya;
-- egyértelmű canonical szabály;
-- ismert target/condition;
-- támogatott timing;
-- nincs tisztázatlan reaction/replacement;
-- positive/negative fixture;
-- deterministic invariant teszt.
+A következő általános ability-bővítés nem automatikus roadmap-lépés.
 
-A következő általános ability-bővítés jelenleg a Reaction/Priority contracttól függ, nem a már elkészült Wellspring/`play_card` alaptól.
+Current sorrend:
 
+```text
+canonical VS1 deckek
+→ card/mechanic requirement inventory
+→ existing capability mapping
+→ unsupported blocker azonosítás
+→ csak blockerre finite contract/module/executor work
+→ targeted regression
+```
 
----
+A teljes 814-card vagy teljes repository-content coverage nem VS1 előfeltétel.
+
+Package support metadata és engine capability továbbra is külön réteg;
+a support matrix csak explicit coverage audit alapján frissíthető.
 
 ## 19. Tesztelés
 
@@ -664,42 +697,57 @@ A teljes kártyafedettséget coverage report méri.
 
 ---
 
-## 20. Nem cél az első MVP-ben
+## 20. Nem automatikus VS1-követelmény
+
+VS1 előtt nem szükséges automatikusan:
 
 - minden kártya teljes futtatása;
 - minden keyword;
-- teljes trigger stack;
-- minden prevention/replacement;
-- teljes Sík continuous-effect rendszer;
-- teljes combat ability-rendszer;
-- automatikus természetesnyelv-értelmezés;
-- csendes fallback;
+- teljes generic prevention/replacement framework;
+- minden compound target/payment/choice schema;
+- minden special timing policy;
+- teljes Expansion ability coverage;
+- teljes package support-matrix migráció;
+- teljes replay-rendszer;
 - teljes tanuló AI;
 - teljes balanszaudit.
 
----
+Ezek közül bármelyik kötelezővé válhat,
+ha a két canonical VS1 deck ténylegesen használja,
+vagy ha általános rules-correct / deterministic / viewer-safe invariáns.
+
+A VS1 readiness scope nem csökkenti a hosszú távú ability-architektúra érvényességét.
 
 ## 21. Következő lépések
 
-A production ability/effect foundation már létezik; nem kell újra végigjárni a C.5B → Wellspring → Infusion → `play_card` történeti sort.
+A production ability/effect, Reaction/Priority és Combat/Pecsét foundation már létezik;
+nem kell újra végigjárni a történeti dependency-sort.
+
+Current next gate:
+
+`VS1_READINESS_REQUIRED`
 
 Következő dependency-sorrend:
 
-1. Reaction / Priority hivatalos rules audit;
-2. minimal pending/reaction contract;
-3. prevention/replacement és multi-trigger fennmaradó kapuk pontosítása;
-4. Reaction/Priority production foundation;
-5. ezután célzott ability coverage-bővítés;
-6. package support/coverage matrix fokozatos migrációja.
+1. `DECK-IGN-HAM-VS1-001` és `DECK-AQU-MOR-VS1-001` card/mechanic inventory;
+2. minden szükséges ability/mechanic mapping a current C# capabilityhez;
+3. unsupported vagy partial blocker lista;
+4. csak blockerre finite contract/module/executor bővítés;
+5. targeted C# + reference/determinism/Godot regression;
+6. package support/coverage metadata csak a ténylegesen auditált scope-ban;
+7. simple fair AI + match orchestration;
+8. minimal playable Godot és VS1 acceptance.
 
-Combat-specifikus ability support csak a külön combat foundation után bővíthető.
+Nem current blocker önmagában:
 
-A pontos nyitott kérdések:
+- generic prevention/replacement;
+- future special timing;
+- full content coverage;
+- teljes package support matrix.
 
-- `OPEN_QUESTIONS.md`;
-- `OPEN_QUESTIONS_DECISIONS.md`.
+Combat-specifikus ability support már nem vár külön combat foundationre:
+a Combat + Pecsét Foundation C0–C6 `COMPLETE_AND_ACCEPTED`.
 
-Az implementációs állapot:
+Current OQ aggregate:
 
-- `CONTRACT_STATUS.md`;
-- `PROTOTYPE_STATUS.md`.
+`52 answered / 15 partly_answered / 7 deferred / 0 open`.

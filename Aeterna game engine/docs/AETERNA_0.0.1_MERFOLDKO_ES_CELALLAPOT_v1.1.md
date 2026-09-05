@@ -2,12 +2,14 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.0  
-**Státusz:** aktív irányadó cél- és mérföldkő-dokumentum  
-**Termékverzió-cél:** AETERNA digitális tesztprogram 0.0.1  
-**Elsődleges szerep:** hosszú távú fejlesztési irány és elérendő első nagy játszható célállapot rögzítése
+**Dokumentumverzió:** 1.1
+**Dátum:** 2026-09-05
+**Státusz:** aktív irányadó cél- és mérföldkő-dokumentum
+**Termékverzió-cél:** AETERNA digitális tesztprogram 0.0.1
+**Elsődleges szerep:** hosszú távú termékcél és az első zárt tesztkiadás célállapotának rögzítése
+**Current repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
 
-A jelen dokumentum az AETERNA digitális programegységének első nagy, játszható mérföldkövét határozza meg.
+A jelen dokumentum az AETERNA digitális programegységének első **zárt, használható termékjellegű tesztkiadását** határozza meg.
 
 A dokumentumban szereplő `0.0.1` nem a jelenlegi technikai prototípusok, engine-checkpointok vagy contract-verziók folytatása, hanem a későbbi program első zárt, használható tesztkiadásának tervezett termékverziója.
 
@@ -18,9 +20,27 @@ A jelen dokumentum:
 - nem helyettesíti az aktuális projekttervet és prioritási dokumentumokat;
 - nem technikai implementációs specifikáció;
 - nem jelenti azt, hogy minden itt felsorolt funkció azonnal fejlesztendő;
-- és nem változtatja meg azt, hogy a jelenlegi elsődleges programozási cél a stabil game engine létrehozása.
+- nem teszi a teljes 0.0.1 scope-ot automatikusan VS1-blockerré.
 
-Feladata, hogy világos célpontot adjon a fejlesztésnek, és meghatározza, milyen állapotot tekintünk az első olyan nagy mérföldkőnek, amely már nem pusztán technikai prototípus, hanem valóban elindítható, játszható és tesztelhető AETERNA program.
+Feladata, hogy világos hosszabb távú célpontot adjon a fejlesztésnek, és meghatározza,
+milyen állapotot tekintünk az első olyan zárt kiadásnak, amely már nem pusztán technikai prototípus
+vagy vertical slice, hanem könnyen indítható, játszható és szélesebben tesztelhető AETERNA program.
+
+Current production base:
+
+`0862e1002dbef81ee203852714d377592272a0e9`
+
+Current engine state:
+
+`COMBAT_AND_SEAL_FOUNDATION_C0_C6 = COMPLETE_AND_ACCEPTED`
+
+Current next gate:
+
+`VS1_READINESS_REQUIRED`
+
+A 0.0.1 előtt a következő major product-facing mérföldkő:
+
+`VS1 / M6 – első ténylegesen játszható vertical slice`
 
 ---
 
@@ -44,68 +64,98 @@ A `0.0.1` mérföldkő nem új projektirány, és nem írja felül a korábban r
 
 A korábbi technikai és stratégiai célok továbbra is érvényesek, különösen:
 
-1. a hivatalos szabályforrásokra és a kártyaadatbázisra épülő, validált adatpipeline;
-2. a runtime package és a contract-first adatkapcsolat stabilizálása;
-3. a game engine pontos, determinisztikus és szabályhű működése;
-4. az állapotkezelés, legal action rendszer, action request és eseményrendszer fejlesztése;
-5. az AI-vs-AI tesztelési alap fokozatos bővítése;
-6. a Godot oldali megjelenítés és interaktív játékréteg előkészítése;
-7. a későbbi ember–AI játszható rendszer létrehozása;
-8. hosszabb távon az ember–ember játékmód lehetőségének előkészítése.
+1. hivatalos szabályforrásokra és kártyaadatbázisra épülő validált adatpipeline;
+2. runtime package és contract-first adatkapcsolat;
+3. pontos, determinisztikus és szabályhű C# authoritative engine;
+4. viewer-safe snapshot, legal action, action request és event rendszer;
+5. Godot/GDScript product-facing kliens;
+6. Python external tooling/reference/batch réteg;
+7. AI-vs-AI és human-vs-AI tesztelési út;
+8. későbbi teljesebb termékfunkciók.
 
-A jelenlegi közvetlen cél továbbra is:
+A stabil engine foundation már nem pusztán jövőbeli cél.
 
-> **egy stabil, ellenőrizhető és bővíthető game engine létrehozása.**
+Lezárt többek között:
 
-A `0.0.1` mérföldkő ennek nem alternatívája, hanem a folytatása.
+- C.5B production C# foundation;
+- korábbi production gameplay/ability foundation;
+- Explicit Phase Foundation v1;
+- Reaction / Priority Foundation v1;
+- Combat + Pecsét Foundation C0–C6;
+- terminal Aeternal / authoritative `MatchResult`.
 
-A stabil game engine az alap. A jelen dokumentumban rögzített programfunkciók csak erre az alapra épülhetnek rá.
+A jelenlegi közvetlen projektgate:
 
----
+> **`VS1_READINESS_REQUIRED`**
+
+A következő major product-facing cél:
+
+> **VS1 / M6 – első ténylegesen játszható vertical slice**
+
+A `0.0.1` ennek későbbi kibővített termékcélja, nem a VS1 alternatívája.
 
 ## 3. A 0.0.1 HELYE A FEJLESZTÉSI ÚTVONALON
 
-A projekt fejlődése egyszerűsítve az alábbi nagy szakaszokra bontható:
+A current fejlesztési útvonal nagy vonalakban:
 
-1. **Adat- és contract-alapok**
-   - hivatalos adatforrások;
-   - export és validáció;
-   - runtime package;
-   - snapshot, legal action, action request és event contractok.
+1. **Engine- és contract-foundation**
+   - adat/runtime contractok;
+   - C# authoritative engine;
+   - phase/priority;
+   - ability/effect foundation;
+   - Combat + Pecsét;
+   - terminal match outcome.
 
-2. **Stabil game engine**
-   - teljes és szabályhű játékállapot;
-   - fázisok és prioritás;
-   - kártyapéldányok;
-   - zónák és zónamozgások;
-   - akciók és célpontválasztás;
-   - kártyaképességek;
-   - harc;
-   - győzelmi és vereségi feltételek;
-   - determinisztikus esemény- és naplórendszer.
+   **Current state:** a Combat + Pecsét C0–C6 foundationig lezárt.
 
-3. **Első játszható vertical slice**
-   - legalább egy teljes, ténylegesen játszható paklipár;
-   - alap játékfelület;
-   - emberi döntések beküldése;
-   - egyszerű AI;
-   - mérkőzés elejétől a végéig működő játékmenet.
+2. **VS1 readiness**
+   - canonical deckek:
+     - `DECK-IGN-HAM-VS1-001`;
+     - `DECK-AQU-MOR-VS1-001`;
+   - card/mechanic requirement inventory;
+   - existing engine capability mapping;
+   - csak tényleges blockerre finite implementation.
 
-4. **Teljes alapjátékos tesztprogram**
-   - több pakli;
-   - több Birodalom;
-   - pakliszerkesztő;
-   - játékosprofil;
-   - tutorialok;
-   - gyűjtemény és tesztgazdaság;
-   - részletes naplózás és hibajelentés.
+3. **VS1 / M6 – első ténylegesen játszható vertical slice**
+   - két teljes, ténylegesen játszható canonical pakli;
+   - simple fair AI;
+   - match orchestration;
+   - minimal playable Godot UI;
+   - human-vs-AI teljes meccs;
+   - reproducible AI-vs-AI smoke;
+   - viewer-safe hidden information;
+   - determinism/regression green;
+   - minimum log/diagnostics.
 
-5. **AETERNA 0.0.1 mérföldkő**
-   - az első zárt, könnyen indítható, játszható és szélesebb körben tesztelhető kiadás.
+4. **Szükséges köztes mérföldkövek**
+   - csak azok a további engine/content/product rétegek,
+     amelyek a 0.0.1 teljes célállapotához ténylegesen szükségesek;
+   - profile/save;
+   - tutorial/starter flow;
+   - collection/deck editor;
+   - local test economy;
+   - booster/duplicate conversion;
+   - replay/bug-report/diagnostics;
+   - tester-mode toolset;
+   - release packaging.
 
-A `0.0.1` tehát nem a game engine fejlesztésének kezdete, hanem az első nagy összefoglaló célpontja.
+5. **AETERNA 0.0.1**
+   - első zárt, offline Windows tesztkiadás;
+   - játékos- és tesztelői használati mód;
+   - könnyen indítható product package;
+   - szélesebb teljes termékteszt.
 
----
+Rövid current roadmap:
+
+```text
+M5 / Combat + Victory Core
+→ VS1 / M6 – first truly playable vertical slice
+→ necessary intermediate milestones
+→ AETERNA 0.0.1
+```
+
+A `0.0.1` tehát nem az első vertical slice neve.
+A VS1/M6 és a 0.0.1 külön acceptance-szint.
 
 ## 4. A 0.0.1 MÉRFÖLDKŐ MEGHATÁROZÁSA
 
@@ -824,28 +874,49 @@ Ezek későbbi mérföldkövek lehetnek.
 
 ---
 
-## 23. NYITOTT TECHNIKAI DÖNTÉSI KAPUK
+## 23. TECHNIKAI DÖNTÉSI KAPUK
 
-A jelen dokumentum nem dönt véglegesen minden technikai kérdésben.
+A dokumentum eredeti 1.0 változatának több technikai kérdése azóta lezárult.
 
-Később külön döntést igényel:
+### 23.1 Lezárt döntések
 
-1. hol fut a végleges mérvadó szabálymotor;
-2. milyen módon kapcsolódik a Godot frontend a Python vagy más engine-réteghez;
-3. a kiadott EXE tartalmaz-e külön engine-folyamatot;
-4. hogyan történik a mentési formátum migrációja;
-5. milyen struktúrában tároljuk a replayt;
-6. milyen formátumban készül a hibacsomag;
-7. mi lesz a felesleges kártyák köztes erőforrásának neve és pontos szerepe;
-8. milyen gazdasági értékeket használ a tesztverzió;
-9. milyen pontos ritkasági slotokkal működnek a boosterek;
-10. a tutorialok teljesen kötöttek, részben irányítottak vagy speciális AI-t használnak-e;
-11. hogyan különül el a Tesztelő mód és a fejlesztői Sandbox;
-12. a `0.0.1` milyen minimális kártyakészlettel léphet először belső tesztbe.
+1. **Authoritative rules runtime**
+   - C#/.NET;
+   - current authority: `Aeterna.Engine`.
 
-Ezek a kérdések nem akadályozzák a mérföldkő irányadó szerepét.
+2. **Godot ↔ engine kapcsolat**
+   - same-process Godot .NET / C# bridge;
+   - nincs production HTTP/TCP/gRPC rules path.
 
----
+3. **Player build processztopológia**
+   - normál játékban nem szükséges külön engine-processz;
+   - Python nem player-runtime prerequisite.
+
+4. **Python szerepe**
+   - external tooling/reference/batch/AI-controller;
+   - Headless C# határon viewer-safe snapshot + legal action alapján dolgozik;
+   - nem külön authoritative rules engine.
+
+Ezek nem current nyitott kapuk.
+
+### 23.2 Továbbra is nyitott vagy későbbi döntések
+
+1. save schema és migrációs policy;
+2. replay végleges formátuma és product UX-e;
+3. bug-report package végleges struktúrája;
+4. duplicate-conversion köztes erőforrás neve és pontos szerepe;
+5. tesztgazdasági értékek;
+6. booster rarity/slot policy;
+7. tutorialok kötöttsége és tutorial-AI policy;
+8. Tester mode és Sandbox pontos UX-határa;
+9. final Windows packaging:
+   - self-contained vagy prerequisite modell;
+   - clean-machine acceptance;
+10. release package identity/compatibility/integrity;
+11. 0.0.1 végső content cut a VS1 utáni köztes mérföldkövek alapján.
+
+Ezek a kérdések nem akadályozzák a 0.0.1 dokumentum irányadó szerepét,
+és nem válnak automatikusan VS1-blockerré.
 
 ## 24. VERZIÓZÁSI ELHATÁROLÁS
 
@@ -878,19 +949,27 @@ A jelen dokumentum iránytűként használható:
 - AI-fejlesztésnél;
 - log- és replay-rendszer tervezésénél;
 - pakli-, tutorial- és gyűjteményrendszer előkészítésénél;
-- későbbi Codex-feladatok kontextusaként.
+- későbbi programozási feladatok product-contextjeként.
 
-Nem szabad azonban úgy használni, hogy minden felsorolt funkció azonnal első prioritássá váljon.
+Nem szabad azonban úgy használni, hogy minden felsorolt 0.0.1 funkció
+azonnal első prioritássá vagy VS1-blockerré váljon.
+
+Current scope rule:
+
+VS1 előtt mandatory csak az, ami:
+
+1. a két canonical VS1 deck tényleges működéséhez kell; vagy
+2. általános rules-correct / deterministic / viewer-safe VS1 invariáns.
 
 Minden fejlesztési feladatnál továbbra is figyelembe kell venni:
 
 - az aktuális projekttervet;
 - a jelenlegi technikai állapotot;
 - a függőségeket;
-- a stabil game engine elsődlegességét;
-- és a kis, tesztelhető lépések elvét.
+- az aktuális milestone acceptance-szintet;
+- a kis, tesztelhető lépések elvét.
 
----
+A jelen dokumentum nem írhatja felül az aktuális projektterv prioritási sorrendjét.
 
 ## 26. ZÁRÓ ALAPELV
 
@@ -898,10 +977,22 @@ Az AETERNA `0.0.1` mérföldkő nem a fejlesztés végét jelenti.
 
 Azt jelzi, hogy a projekt eljutott egy fontos fordulóponthoz:
 
-> a szabályforrásokból, kártyaadatokból, runtime contractokból, game engine-ből, AI-ból és Godot felületből először állt össze egyetlen, könnyen elindítható, végigjátszható és részletesen tesztelhető program.
+> a szabályforrásokból, kártyaadatokból, runtime contractokból, authoritative engine-ből,
+> AI-ból és Godot felületből összeállt egy könnyen indítható, végigjátszható,
+> offline és részletesen tesztelhető zárt AETERNA program.
 
-A közvetlen fejlesztési cél továbbra is a stabil game engine.
+Current sorrend:
 
-A `0.0.1` ennek a munkának a folytatását és első nagy, kézzelfogható célállapotát adja meg.
+```text
+Combat + Pecsét C0–C6 COMPLETE_AND_ACCEPTED
+→ VS1_READINESS_REQUIRED
+→ VS1 / M6
+→ szükséges köztes mérföldkövek
+→ AETERNA 0.0.1
+```
 
-A mérföldkő akkor teljesül, amikor már nemcsak különálló technikai elemek működnek, hanem ezek együtt egy használható AETERNA tesztprogramot alkotnak.
+A közvetlen product-facing cél tehát most a VS1/M6, nem maga a 0.0.1.
+
+A 0.0.1 ennek kibővített első zárt tesztkiadási célállapota:
+akkor teljesül, amikor már nemcsak különálló technikai elemek vagy egy minimal vertical slice működik,
+hanem ezek együtt egy használható AETERNA tesztprogramot alkotnak.

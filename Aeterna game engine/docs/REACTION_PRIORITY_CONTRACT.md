@@ -2,16 +2,39 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.2
-**Dátum:** 2026-08-30
+**Dokumentumverzió:** 1.3
+**Dátum:** 2026-09-05
 **Státusz:** `COMPLETE_AND_ACCEPTED`
 **Javasolt repository-útvonal:** `Aeterna game engine/docs/REACTION_PRIORITY_CONTRACT.md`
-**Repository-bázis:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
-**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
-**Rules authority:** `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`
-**Current decision authority:** `OPEN_QUESTIONS_DECISIONS.md` v2.2
+**Reaction v1 lezáró commit:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
+**Current repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
+**Current production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
+**Rules authority:** `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`
+**Current decision authority:** `OPEN_QUESTIONS_DECISIONS.md` v2.4
 **Technical evidence/proposal input:** `blueprints/REACTION_PRIORITY_FOUNDATION_v0.2.md`
 **Implementation:** `COMPLETE_AND_ACCEPTED`
+
+### Current-state annotation – 2026-09-05
+
+Ez a v1 contract változatlanul a Reaction / Priority Foundation első production slice-jának
+elfogadott contract-authorityja.
+
+Current implementation state:
+
+- Reaction / Priority Foundation v1:
+  `COMPLETE_AND_ACCEPTED`;
+- lezáró commit:
+  `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`;
+- Combat + Pecsét Foundation C0–C6:
+  `COMPLETE_AND_ACCEPTED`;
+- current production base:
+  `0862e1002dbef81ee203852714d377592272a0e9`;
+- current next gate:
+  `VS1_READINESS_REQUIRED`.
+
+A későbbi Combat/Pecsét implementáció nem írja vissza retroaktívan a v1 historical non-goal scope-ját.
+Ahol ez a dokumentum „v1 non-goal” vagy „first slice” megfogalmazást használ,
+az a Reaction/Priority első implementációs slice történeti határát jelenti, nem current project-hiányt.
 
 Ez a dokumentum a Reaction / Priority Foundation első production implementációs
 slice-ának contractja.
@@ -2681,13 +2704,17 @@ Nem kell újraírni teljes dokumentumokat.
 - acceptance matrix rögzítve;
 - Combat/prevention/full choice explicit non-goal.
 
-## Elfogadási státusz – 2026-08-16
+## Elfogadási státusz – current sync 2026-09-05
 
 - human acceptance: `ACCEPTED`;
-- implementation authority: `ACTIVE_FOR_V1_FIRST_SLICE`;
-- implementation: `NOT_STARTED / NEXT`;
+- contract authority: `ACTIVE_ACCEPTED_CONTRACT_REFERENCE`;
+- implementation: `COMPLETE_AND_ACCEPTED`;
+- implementation close commit:
+  `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`;
 - pre-implementation audit: `PASS_WITH_RC1_CORRECTIONS`;
-- P0/P1/P2 unresolved blocker: `0 / 0 / 0`.
+- accepted production regression after Reaction v1: current C0–C6 stack is green;
+- unresolved Reaction v1 P0/P1 blocker: `0 / 0`;
+- next project gate: `VS1_READINESS_REQUIRED`.
 
 # 78. v1.1 extension – played Ige / Rituálé lifecycle
 

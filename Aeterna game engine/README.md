@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.4
-**Dátum:** 2026-08-16
+**Dokumentumverzió:** 2.5
+**Dátum:** 2026-09-05
 **Státusz:** aktív programegység-README
-**Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
-**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95`
+**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
 Az **AETERNA Game Engine** az AETERNA fizikai kártyajáték contract-first digitális programegysége.
@@ -30,8 +30,10 @@ Production mérföldkövek:
 
 - C.5A: `COMPLETE_AND_ACCEPTED`;
 - C.5B: `COMPLETE_AND_ACCEPTED`;
-- első production gameplay vertical slice: `COMPLETE_AND_ACCEPTED`;
-- Explicit Phase Foundation v1: `COMPLETE_AND_ACCEPTED`.
+- korábbi production gameplay foundation slice: `COMPLETE_AND_ACCEPTED`;
+- Explicit Phase Foundation v1: `COMPLETE_AND_ACCEPTED`;
+- Reaction / Priority Foundation v1: `COMPLETE_AND_ACCEPTED`;
+- Combat + Pecsét Foundation C0–C6: `COMPLETE_AND_ACCEPTED`.
 
 Aktuális checkpoint: `docs/checkpoints/ENGINE_CHECKPOINT.md`
 
@@ -127,10 +129,10 @@ canonical/runtime package
 C# production loader + Godot consumption
 ```
 
-Szabályforrás:
+Current szabályforrás:
 
-- alapjáték 1.4.3v;
-- kiegészítő főforrás 1.4v.
+- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
 
 Adatút:
 
@@ -141,7 +143,7 @@ Adatút:
 - canonical workbook exporter;
 - runtime package.
 
----
+A rules authority és a runtime package külön réteg.
 
 ## 4. Production C# authority
 
@@ -172,7 +174,7 @@ C.5B foundation:
 
 `931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
-Azóta production C#-ban elkészült:
+Korábbi production gameplay/ability foundationként elkészült többek között:
 
 - Wellspring;
 - Beáramlás;
@@ -197,40 +199,114 @@ Phase flow:
 
 `awakening -> infusion -> manifestation -> incursion -> distribution`
 
-Public progression: `advance_phase`
+Public progression:
 
-Lezáró acceptance:
+`advance_phase`
+
+Explicit Phase történeti lezáró acceptance:
 
 - Debug `222/222 PASS`;
 - Release `222/222 PASS`;
 - determinism `100/100 PASS`;
 - Godot build és pozitív/negatív smoke PASS.
 
----
+Reaction / Priority Foundation v1:
+
+`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
+
+`COMPLETE_AND_ACCEPTED`
+
+Combat + Pecsét Foundation C0–C6:
+
+- C0 `ca55bc3714de2692753fccc18a8f11d9dac1beea`;
+- C1+C2 `558d4453a1604c0ebe76065df08a207192c21c8b`;
+- C3 `d236f0e3c36994f65e7d00d25972660baac2a842`;
+- C4 `68b07dd6906fc8c37245325a855322d48f5f2635`;
+- C5 `d30f8a4c42383a0200e416acb7148facc3bbbc11`;
+- C6 `0862e1002dbef81ee203852714d377592272a0e9`.
+
+Current state:
+
+`COMBAT_AND_SEAL_FOUNDATION_C0_C6 = COMPLETE_AND_ACCEPTED`
+
+Current core többek között:
+
+- canonical setup + Jóslat;
+- six-Seal model és hidden-info projection;
+- `attack` / AttackCommit;
+- intervention / DefenseCommit;
+- Combat ReactionWindows;
+- participant continuity/contact revalidation;
+- Entity Combat;
+- SealBreak/reveal/Surge;
+- Gondviselés;
+- Aeternal terminal outcome;
+- authoritative `MatchResult`.
+
+Final C0–C6 acceptance:
+
+- Debug/Release C#: `301/301 PASS`;
+- targeted C6: `8/8 PASS`;
+- determinism/reference: `100/100 PASS`;
+- canonical bytes: `210676`;
+- canonical SHA:
+  `97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8`;
+- Python isolated: `465/465 PASS` + 5 skip;
+- exporter: `23/23 PASS`;
+- Godot C# positive/negative smoke: PASS;
+- unresolved P0/P1: `0/0`.
 
 ## 6. Mi nincs még teljes productionben?
 
-- Reaction / Priority;
-- combat;
-- teljes Pecsétmodell;
-- Refresh Penalty;
-- teljes ability coverage;
-- victory/defeat;
-- replay;
-- production AI-vs-AI;
-- final packaging/UI.
+Továbbra sem teljes többek között:
 
----
+- Refresh Penalty;
+- generic prevention/replacement;
+- teljes compound non-Reaction choice;
+- Hasítás runtime;
+- full Burst/Jel runtime;
+- teljes ability/content coverage;
+- special Seal restore/ward effect runtime;
+- replay runner;
+- production AI-vs-AI orchestration;
+- simple fair VS1 AI;
+- minimal playable Godot UI;
+- final Windows packaging;
+- profile/save/tutorial/collection/economy.
+
+Ezek közül nem mind VS1-blocker.
 
 ## 7. Következő technikai irány
 
-**Reaction / Priority Foundation v1** – `NEXT – MINIMAL_CONTRACT_FINALIZATION`.
+Következő major product-facing cél:
 
-A rules/source audit, OQ v2.2 és clean-room research elkészült. Most a minimal ReactionWindow/ResolutionStack contract, `react`/`pass_priority`, RC1, RC2 + trigger checkpoint/FIFO, event/projection és unsupported paths következik.
+`VS1 / M6 – első ténylegesen játszható vertical slice`
 
-Csak ezután C# implementáció. Combat külön későbbi slice.
+Canonical VS1 deckek:
 
----
+- `DECK-IGN-HAM-VS1-001`;
+- `DECK-AQU-MOR-VS1-001`.
+
+Technikai sequence:
+
+```text
+VS1 card/mechanic readiness audit
+→ unsupported blocker azonosítás
+→ csak blockerre finite contract + C# implementation
+→ simple fair AI + match orchestration
+→ minimal playable Godot
+→ human-vs-AI full match
+→ reproducible AI-vs-AI smoke
+→ VS1 acceptance
+```
+
+VS1 előtt csak az a hiány kötelező, amely:
+
+1. a két canonical VS1 deck szabályos lejátszásához kell; vagy
+2. általános rules-correct / deterministic / viewer-safe invariáns.
+
+Reaction / Priority v1 és Combat + Pecsét C0–C6 már nem következő implementation slice:
+mindkettő `COMPLETE_AND_ACCEPTED`.
 
 ## 8. Nem programozási munkasávok
 
@@ -243,20 +319,45 @@ Csak ezután C# implementáció. Combat külön későbbi slice.
 
 ## 9. Codex-használat
 
-Codex csak szükséges technikai feladathoz:
+Codex szerepe:
 
 - programozás;
 - build/test/smoke;
-- lokális worktree/fájl elemzés.
+- szükséges célzott lokális technikai vizsgálat.
 
-Projekttervezés, dokumentáció és rules/contract döntés nem alapértelmezett Codex-feladat.
+Current programming workflow:
 
----
+```text
+Codex local edit + validation
+→ NO COMMIT / NO PUSH
+→ ChatGPT + human report/diff/test audit
+→ human approval
+→ user commit/push
+→ remote verification
+```
+
+Codex nem hoz önálló rules-, project-priority- vagy dokumentációs authority-döntést.
+
+Projekttervezés, dokumentáció, rules/OQ/contract scope és acceptance:
+ChatGPT + ember.
 
 ## 10. Dokumentációs állapot
 
 A nagy dokumentációs cleanup lezárult.
 
-A `2608345b...` mérföldkőhöz tartozó célzott A+B active-document consistency pass is lezárult.
+A current célzott sync a Combat + Pecsét C0–C6 lezárása utáni current-truth frissítés.
 
-A 2026-08-15/16-i learning/synthesis/OQ és targeted governance recovery handoff commitolva. Current OQ: `50/17/7/0`. A következő szakmai fókusz a Reaction / Priority minimal v1 contract finalizálása.
+Current production base:
+
+`0862e1002dbef81ee203852714d377592272a0e9`
+
+Current OQ:
+
+`52 answered / 15 partly_answered / 7 deferred / 0 open`.
+
+Current next technical/product gate:
+
+`VS1_READINESS_REQUIRED`
+
+A dokumentációs frissítés history-aware targeted patch + diff/consistency review módszerrel történik;
+nem hoz létre párhuzamos active dokumentumokat ugyanarra a szerepre.

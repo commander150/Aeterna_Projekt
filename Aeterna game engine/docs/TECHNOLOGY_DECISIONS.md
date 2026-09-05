@@ -2,10 +2,10 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.4\
-**Dátum:** 2026-07-22\
+**Dokumentumverzió:** 2.5
+**Dátum:** 2026-09-05
 **Státusz:** aktív technológiai döntési nyilvántartás  
-**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
+**Aktuális repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 
 Ez a dokumentum az AETERNA elfogadott technológiai döntéseit, azok indokait, korlátait és újranyitási feltételeit rögzíti.
 
@@ -19,7 +19,7 @@ Kapcsolódó aktív dokumentumok:
 - `OPEN_QUESTIONS.md`
 - `OPEN_QUESTIONS_DECISIONS.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.4.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`
 
 ---
 
@@ -250,13 +250,13 @@ A Python nem maradhat külön fejlődő production authoritative gameplay engine
 
 ## 7. TD-007 – Python–C# kommunikáció
 
-**Státusz:** ELFOGADOTT IRÁNY, MÉG NEM IMPLEMENTÁLT PRODUCTION CONTRACT
+**Státusz:** ELFOGADVA ÉS IMPLEMENTÁLT ALAPHATÁR
 
-Első forma:
+Current forma:
 
 ```text
 Python
-  ↓ subprocess + JSON/JSONL
+  ↓ subprocess + JSON/JSONL / file / stdin
 Aeterna.Engine.Headless
   ↓ canonical JSON/JSONL
 Python
@@ -266,15 +266,21 @@ Használat:
 
 - fixture;
 - scenario;
-- AI-vs-AI;
-- batch;
+- AI/batch tooling;
 - balanszelemzés;
 - CI;
-- regresszió.
+- regresszió;
+- canonical/reference comparison.
 
-A Python csak a C# által kiadott legal actionökből választhat.
+A Python csak viewer-safe snapshotból és a C# engine által kiadott legal actionökből dolgozhat.
 
-A state mutation a C# engine transition API-ján keresztül történik.
+A state mutation a C# engine transition API-ján, illetve az azt vékonyan exponáló Headless határon keresztül történik.
+
+A Python nem:
+
+- írhat közvetlenül authoritative `MatchState`-et;
+- implementálhat külön gameplay legality authorityt;
+- kerülheti meg a `SubmitAction`/engine transition határt.
 
 Későbbi localhost HTTP vagy gRPC:
 
@@ -282,7 +288,7 @@ Későbbi localhost HTTP vagy gRPC:
 - csak hosszú életű batch/service igény esetén;
 - nem a Godot normál runtime részeként.
 
----
+Ez reserved extension point, nem current architecture requirement.
 
 ## 8. TD-008 – Embedded Python elhalasztása
 
@@ -341,10 +347,11 @@ Még nyitott:
 
 ## 10. TD-010 – Production C# project-határok
 
-**Státusz:** ELFOGADVA ÉS IMPLEMENTÁLVA\
-**Implementáció:** C.5B, `931bf5571d541c752aa421a9f0626768bd8ffbe7`
+**Státusz:** ELFOGADVA ÉS IMPLEMENTÁLVA
+**Foundation implementáció:** C.5B, `931bf5571d541c752aa421a9f0626768bd8ffbe7`
+**Current production base:** `0862e1002dbef81ee203852714d377592272a0e9`
 
-Tervezett projektek:
+Production projektek:
 
 ```text
 Aeterna.Engine
@@ -357,16 +364,27 @@ Aeterna.Engine.sln
 
 - pure C#;
 - Godot nélkül buildelhető;
-- nincs Python;
+- nincs Python runtime dependency;
 - nincs processzkezelés;
-- nincs TCP/HTTP/gRPC;
+- nincs TCP/HTTP/gRPC rules path;
 - authoritative state és rules.
+
+Current authoritative core már tartalmazza többek között:
+
+- phase/turn lifecycle;
+- Wellspring/Infusion;
+- Domain/`play_card`;
+- ability/effect foundation;
+- Reaction/Priority;
+- Combat/Pecsét C0–C6;
+- terminal Aeternal / `MatchResult`.
 
 ### Aeterna.Engine.Headless
 
-- vékony console host;
-- fixture és scenario;
+- vékony console/headless host;
+- fixture/scenario;
 - Python tooling kapcsolat;
+- JSON/JSONL boundary;
 - nincs saját gameplay-logika.
 
 ### Aeterna.Engine.Tests
@@ -376,25 +394,23 @@ Aeterna.Engine.sln
 - transition;
 - determinism;
 - hidden information;
-- candidate/Python comparison;
+- reference/canonical comparison;
 - headless regresszió.
 
-A jelenlegi `Aeterna.RuntimeCandidate` státusza:
+Az `Aeterna.RuntimeCandidate` státusza:
 
 `ACCEPTED_PROOF`
 
-Nem nevezendő át közvetlenül production motorrá.
+Nem production authority és nem nevezendő át közvetlenül production motorrá.
 
 Megvalósított határ:
 
 - az `Aeterna.Engine` pure `net8.0` core;
-- a Headless és a Godot production bridge ugyanazt az `EngineSession` implementációt használja;
-- a bridge csak JSON-határ és delegáció, gameplay-logika nélkül;
-- a publikus event API viewer-azonosított és redaktált;
-- a teljes debug eventhozzáférés internal, csak Headless/Tests friend assemblyk számára;
-- malformed vagy null boundary input strukturált rejectiont/diagnosticot ad.
-
----
+- a Headless és a Godot production bridge ugyanazt az engine authorityt használja;
+- a bridge csak boundary/delegáció, gameplay-logika nélkül;
+- a publikus event/snapshot projection viewer-safe;
+- teljes debug/full-fidelity state és event hozzáférés csak trusted/internal teszt/diagnostic réteg;
+- malformed/null boundary input strukturált rejectiont vagy diagnosticot ad.
 
 ## 11. TD-011 – Tesztelési minimum
 
@@ -473,78 +489,112 @@ Döntés:
 
 **Státusz:** ELFOGADVA
 
-Döntések:
+Current döntések:
 
 - elsődlegesen meglévő aktív dokumentumot frissítünk;
 - új dokumentum csak önálló canonical szerep esetén készül;
-- minden aktív dokumentumnak legyen verzióblokkja;
-- minden aktív dokumentumnak legyen dátuma;
-- minden aktív dokumentumnak legyen státusza;
-- verzió nélküli dokumentumokat a későbbi teljes auditban verzióval kell ellátni;
-- azonos szerepű párhuzamos current dokumentumok összevonandók;
-- történeti dokumentumok külön archív státuszt kapnak;
-- nyitott kérdés vagy korábbi döntés nem veszhet el merge során;
-- törlés és archiválás csak teljes audit és felhasználói jóváhagyás után történhet.
+- minden aktív dokumentumnak legyen verzióblokkja, dátuma és státusza;
+- fájlnévben verziózott current dokumentum ugyanazon fájl frissítésével + rename-jével lép új verzióra;
+- korábbi current verziót normál esetben a Git history őrzi;
+- verzióemelés önmagában nem indok külön Archive-példányra;
+- Archive csak valódi historical/deprecated/replaced szerepre szolgál;
+- azonos szerepű párhuzamos current dokumentum nem maradhat;
+- nyitott kérdés vagy korábbi döntés nem veszhet el merge/migration során;
+- archiválás vagy törlés csak utód- és cross-reference audit után történhet;
+- current dokumentációs szinkron targeted patch + diff/consistency review módszerrel történik.
 
-A későbbi dokumentumaudit feladata:
+A nagy repository-dokumentációs cleanup már lezárult.
 
-- inventory;
-- szerep;
-- aktuális vagy történeti státusz;
-- verzió;
-- forráselsőbbség;
-- átfedés;
-- merge-cél;
-- archív vagy törlési jelölt.
+A további dokumentumaudit célzott:
 
----
+- current authority drift;
+- stale roadmap/status;
+- régi rules source reference;
+- verzió-/cross-reference inkonzisztencia;
+- Archive/current szerepzavar.
+
+Nem indul automatikusan új teljes repository-cleanup minden mérföldkőnél.
 
 ## 15. Aktuális végrehajtási sorrend
 
-### Elkészült
+### Lezárt proof és foundation rétegek
 
 - Python reference engine;
 - runtime package/Godot alap;
-- Python sidecar proof;
-- C# in-process proof;
+- Python sidecar proof – `COMPLETE_AND_FROZEN`;
+- C# in-process proof – `COMPLETE_AND_ACCEPTED`;
 - runtime language decision gate;
-- C.5A architecture plan.
+- C.5A;
+- C.5B;
+- korábbi production gameplay/ability foundation slice;
+- Explicit Phase Foundation v1;
+- Reaction / Priority Foundation v1;
+- Combat + Pecsét Foundation C0–C6;
+- terminal Aeternal / `MatchResult` core.
 
-### Lezárt production foundation
+Current production base:
 
-**C.5B – Production C# engine foundation**
+`0862e1002dbef81ee203852714d377592272a0e9`
 
-Státusz:
+Current state:
 
-`COMPLETE_AND_ACCEPTED`
+`COMBAT_AND_SEAL_FOUNDATION_C0_C6 = COMPLETE_AND_ACCEPTED`
 
-Lezáró commit:
+### Következő technikai/product gate
 
-`931bf5571d541c752aa421a9f0626768bd8ffbe7`
+`VS1_READINESS_REQUIRED`
 
-### Következő kódolási feladat
+Következő major product-facing cél:
 
-**P3 – Wellspring production state és player-visible Wellspring**
+`VS1 / M6 – első ténylegesen játszható vertical slice`
 
-### Nem programozási aktív sáv
+Canonical VS1 deckek:
+
+- `DECK-IGN-HAM-VS1-001`;
+- `DECK-AQU-MOR-VS1-001`.
+
+Current sorrend:
+
+```text
+VS1 card/mechanic readiness audit
+→ csak tényleges blockerre finite contract
+→ C# implementation + regression
+→ simple fair AI + match orchestration
+→ minimal playable Godot
+→ human-vs-AI full match
+→ reproducible AI-vs-AI smoke
+→ VS1 acceptance
+```
+
+Nem programozási aktív sáv továbbra is lehet:
 
 - kártyaadat- és szabályaudit;
 - LOOKUPS- és ID-contract munka;
-- kártyadizájn-workflow.
+- kártyadizájn-workflow;
+- célzott dokumentációs sync.
 
----
+A főforrás-dokumentumok későbbi szerkezeti újratervezése külön dokumentációs/design feladat,
+nem technológiai döntés és nem módosítja ezt a végrehajtási sorrendet.
 
 ## 16. Rövid döntési összefoglaló
 
 - A contract-first modell kötelező.
 - Egyetlen authoritative state lehet.
-- A Godot/GDScript a vizuális kliens.
-- A C#/.NET az authoritative production runtime.
-- A Python külső tooling, AI, batch és referencia.
+- A Godot/GDScript a vizuális kliens és presentation layer.
+- A C#/.NET az authoritative production rules runtime.
+- A Python külső tooling, AI/batch koordináció és reference/oracle.
 - A Python sidecar proof lezárt és befagyasztott.
 - A C# in-process proof elfogadott.
-- A C.5B production C# foundation elkészült és elfogadott.
-- A Godot–C# kapcsolat közvetlen in-process.
-- A Python–C# első külső kapcsolata headless JSON/JSONL lesz.
-- Embedded Python és service API csak későbbi mérés alapján vizsgálható.
-- A dokumentációt később teljes körűen auditálni, verziózni és konszolidálni kell.
+- A Godot–C# kapcsolat közvetlen same-process.
+- A Python–C# headless JSON/JSONL alapkapcsolat implementált.
+- Embedded Python és service API csak későbbi bizonyíték/mérés alapján vizsgálható.
+- C.5B, Explicit Phase, Reaction/Priority és Combat/Pecsét C0–C6 lezárt foundation.
+- Current production base:
+  `0862e1002dbef81ee203852714d377592272a0e9`.
+- Current OQ:
+  `52 answered / 15 partly_answered / 7 deferred / 0 open`.
+- Következő gate:
+  `VS1_READINESS_REQUIRED`.
+- Következő major product-facing cél:
+  `VS1 / M6 – első ténylegesen játszható vertical slice`.
+- Nem született új technology decision ebben a maintenance syncben; a meglévő TD-k current státusza frissült.

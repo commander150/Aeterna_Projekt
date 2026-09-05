@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.5
-**Dátum:** 2026-08-16
+**Dokumentumverzió:** 1.6
+**Dátum:** 2026-09-05
 **Státusz:** aktív runtime package-, lookup- és publish-pipeline státuszdokumentum
-**Felváltott fájl:** `CURRENT_RUNTIME_PACKAGE_STATUS.md`
-**Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
-**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Történeti előd:** `CURRENT_RUNTIME_PACKAGE_STATUS.md` (migráció lezárva)
+**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 
 Ez a dokumentum a runtime package, a kártyaadatforrás, a külön LOOKUPS-forrás és a Godot-fogyasztási út tényleges állapotát rögzíti.
 
@@ -23,7 +23,7 @@ Kapcsolódó aktív dokumentumok:
 - `RUNTIME_PACKAGE_SPECIFICATION.md`
 - `PROTOTYPE_STATUS.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.7.md`
+- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`
 
 ---
 
@@ -53,25 +53,44 @@ Aktuális minősítés:
 - Godot loader és smoke: `WORKING`;
 - canonical workbook export: `WORKING`;
 - production C# canonical/package consumption: `WORKING`;
+- canonical deck/deck-entry membership consumption: `WORKING`;
 - package identity és production schema: `NOT_FINAL`;
 - runtime package ability-support metadata: `DECLARED_ONLY / NOT_MIGRATED_TO_FULL_SUPPORT_MATRIX`;
-- production C# canonical ability/effect runtime foundation: `IMPLEMENTED_AND_ACTIVE`;
+- production C# ability/effect + Reaction + Combat/Pecsét runtime foundation: `IMPLEMENTED_AND_ACTIVE`;
 - végleges player-facing kliensintegráció: `NOT_IMPLEMENTED`.
 
 Fontos elhatárolás:
 
-A statikus package `engine_support.json` jelenlegi metadata-állapota nem ugyanaz, mint a production C# engine tényleges capability-je. A package support matrix külön migrációt igényel; a metadata nem írható át automatikusan pusztán azért, mert az engine-ben már van ability/effect foundation.
+A statikus package `engine_support.json` metadata-állapota nem ugyanaz,
+mint a production C# engine tényleges capability-je.
+
+`EngineCapability != ContentCoverage`
+
+A package support matrix külön migrációt/auditot igényel;
+a metadata nem írható át automatikusan pusztán azért,
+mert az engine-ben már létezik a szükséges foundation.
 
 A runtime package továbbra sem szabálymotor és nem authoritative mérkőzésállapot.
 
-
----
-
 ### 1.1 Current package/data decision sync
 
-OQ v2.2 current default: full deterministic rebuild = correctness path; cache/delta = optional optimization; fingerprint/hash provenance/identity/compatibility/integrity szerepű is; derived/runtime/canonical output nem ír automatikusan vissza a human editing source-ba; `EngineCapability` és `ContentCoverage` külön fogalom; unsupported/not-evaluated content nem futhat silent implicit fallbackkal.
+Current OQ aggregate:
 
-A `package identity = NOT_FINAL` az exact hash/layout/release identity contract nyitottságát jelenti, nem az authority/provenance alapelvét.
+`52 answered / 15 partly_answered / 7 deferred / 0 open`.
+
+Current default:
+
+- full deterministic rebuild = correctness path;
+- cache/delta = optional optimization;
+- fingerprint/hash provenance/identity/compatibility/integrity szerepű is;
+- derived/runtime/canonical output nem ír automatikusan vissza a human editing source-ba;
+- unsupported/not-evaluated content nem futhat silent implicit fallbackkal;
+- canonical többértékű structured delimiter: pontosvessző (`;`).
+
+A `package identity = NOT_FINAL` az exact hash/layout/release identity contract nyitottságát jelenti,
+nem az authority/provenance alapelvét.
+
+A workbook/source delimiter migráció nem része ennek a dokumentációs syncnek.
 
 ## 2. Aktív források
 
@@ -120,8 +139,8 @@ A kártyaadatbázis munkaforrás saját `5A. LOOKUPS_RUNTIME` lapja munkafájl-v
 
 Szabályi elsőbbség:
 
-1. hivatalos alapjáték-főforrás 1.4.3v;
-2. hivatalos kiegészítő-főforrás 1.4v;
+1. hivatalos alapjáték-főforrás 1.5v;
+2. hivatalos kiegészítő-főforrás 1.4.1v;
 3. explicit emberi döntések és verziózott átvezetések;
 4. aktív engine-contractok és fixture-ek;
 5. Python referenciaimplementáció;
@@ -423,15 +442,15 @@ A jelenlegi statikus package továbbra is:
 
 - deklarál ability modulokat;
 - `ability_registry.json` és `engine_support.json` fájlt tartalmaz;
-- a modulok metadata-státuszát `declared_only` formában hordozza;
-- a card supportot jelenleg `not_evaluated` állapotban tarthatja;
-- `runtime_executes_abilities: false` értéket deklarál.
+- a modulok metadata-státuszát `declared_only` formában hordozhatja;
+- card supportot `not_evaluated` állapotban tarthat;
+- korábbi sample/metadata rétegben `runtime_executes_abilities: false` érték szerepelhet.
 
-Ez a package-support metadata tényleges jelenlegi állapota, és külön support-matrix/package migráció nélkül nem írható át.
+Ez package-support metadata, nem production engine capability statement.
 
 ### 7.2 Production C# ability/effect capability
 
-A production C# engine-ben ugyanakkor már aktív foundation többek között:
+A production C# engine-ben aktív foundation többek között:
 
 - canonical ability catalog;
 - ability-template compiler;
@@ -443,7 +462,10 @@ A production C# engine-ben ugyanakkor már aktív foundation többek között:
 - continuous effects;
 - modifier/keyword/duration;
 - damage/vitals;
-- draw/reference integration.
+- draw/reference integration;
+- Reaction / Priority Foundation v1;
+- Combat + Pecsét Foundation C0–C6;
+- terminal Aeternal / `MatchResult`.
 
 **Státusz:** `IMPLEMENTED_AND_ACTIVE`
 
@@ -452,22 +474,37 @@ A production C# engine-ben ugyanakkor már aktív foundation többek között:
 A következő állítások egyszerre igazak:
 
 1. a statikus runtime package support metadata még nem deklarál teljes ability-execution supportot;
-2. a production C# engine capability már tartalmaz ability/effect execution foundationt.
-
-A 814 kártya package-ben való jelenléte továbbra sem jelent 814 teljesen támogatott kártyaképességet.
+2. a production C# engine capability már lényegesen előrébb tart;
+3. a package-ben lévő összes kártya jelenléte nem jelent teljes executable content coverage-et.
 
 Nyitott:
 
 - package support matrix migráció;
 - teljes card coverage;
 - teljes keyword coverage;
-- Reaction/Priority integráció;
-- prevention/replacement;
-- teljes trigger ordering;
-- komplex choice/target support.
+- generic prevention/replacement;
+- teljes trigger-ordering coverage;
+- komplex compound choice/target support;
+- special Seal restore/ward payload;
+- további Expansion-specifikus coverage.
 
+Reaction/Priority és Combat/Pecsét current core nem nyitott package-support blocker többé.
 
----
+### 7.4 VS1 content-coverage gate
+
+Canonical VS1 deckek:
+
+- `DECK-IGN-HAM-VS1-001`;
+- `DECK-AQU-MOR-VS1-001`.
+
+VS1 előtt nem kell a teljes kártyaadatbázis supportját lezárni.
+
+Kötelező:
+
+- mindkét deck canonical/active package-membershipje;
+- minden hivatkozott card definition feloldása;
+- minden ténylegesen használt ability/mechanic executable coverage-je;
+- unsupported/not-evaluated blocker hiánya a két VS1 deck scope-jában.
 
 ## 8. Godot-oldali bizonyított alapok
 
@@ -480,21 +517,27 @@ Megőrzendő működő elemek:
 - diagnostics reader;
 - normalization alias betöltése;
 - card reference resolver;
-- sample snapshot, legal action és event debug nézetek;
+- debug snapshot/legal action/event nézetek;
 - unified debug dashboard;
-- package loader és contract smoke tesztek.
+- package loader és contract smoke tesztek;
+- production C# bridge/smoke.
 
-Nem bizonyítják önmagukban:
+Current elhatárolás:
 
-- production C# MatchState-et;
-- teljes rules engine-t;
-- végleges player UI-t;
-- teljes interaktív gameplay-kapcsolatot;
-- portable release buildet.
+- Godot nem rules authority;
+- Godot nem számít külön legalitást;
+- Godot nem ír authoritative `MatchState`-et;
+- Godot player-facing projectiont, legal actiont, action response-t és eventet fogyaszt;
+- production bridge ugyanazt az `Aeterna.Engine` authorityt használja.
 
-A C# minimal runtime proof külön bizonyította a Godot .NET in-process kapcsolatot, de még nem production package consumer.
+Továbbra sincs kész:
 
----
+- minimal playable product-facing UI;
+- teljes human-vs-AI interaction UX;
+- final portable Windows package.
+
+A korábbi C# minimal runtime candidate proof történeti bizonyíték;
+a current production Godot–C# package/canonical consumption ennél már továbblépett.
 
 ## 9. Production C# kapcsolódás
 
@@ -504,26 +547,46 @@ A runtime-nyelvi döntés lezárult:
 - Godot/GDScript a vizuális kliens;
 - Python külső tooling és adatpipeline.
 
-### C.5B minimum package-feladata
+### Történeti C.5B minimum package-feladat
 
-A production C# engine minimum loaderének validálnia kell:
+A C.5B minimum loader többek között validálta:
 
-- szükséges fájlok létezése;
-- manifest package ID;
-- egyedi `card_id`;
-- egyedi `deck_id`;
-- pozitív deck count;
-- minden deckkártya létezése;
-- kért deckek létezése;
-- biztonságos relatív útvonalak.
+- szükséges fájlok létezését;
+- manifest package ID-t;
+- egyedi `card_id`-t;
+- egyedi `deck_id`-t;
+- pozitív deck countot;
+- deck → card referenciákat;
+- kért deckek létezését;
+- biztonságos relatív útvonalakat.
 
-A C.5B történeti minimum nem változtatta meg a package teljes production identityját, és azon a checkpointon még nem implementált ability executiont. Ez történeti scope-határ; a jelenlegi production `CanonicalPackageLoader` és ability/effect foundation állapotát az 1., 2.4 és 7. fejezet rögzíti.
+Ez történeti minimum scope.
 
----
+### Current production consumption
+
+Current production base:
+
+`0862e1002dbef81ee203852714d377592272a0e9`
+
+Aktív többek között:
+
+- `CanonicalPackageLoader`;
+- canonical card catalog;
+- runtime lookup catalog;
+- canonical runtime binding;
+- canonical ability catalog;
+- deck/deck-entry membership consumption;
+- production smoke/readiness deck resolution.
+
+A runtime package statikus definition/input.
+A Combat/Pecsét/Reaction/Surge/MatchResult futó state az authoritative `MatchState` része,
+nem package-adat.
 
 ## 10. Nyitott package- és data-contract feladatok
 
 ### 10.1 Package identity
+
+Továbbra is nyitott:
 
 - sample package ID leváltása;
 - production/development package type;
@@ -534,12 +597,16 @@ A C.5B történeti minimum nem változtatta meg a package teljes production iden
 
 ### 10.2 Lookup és card data
 
-- `infusion` terminológia szinkronizálása;
-- régi `source` structured értékek `wellspring` migrációja vagy aliasolása;
-- printed és normalized cost elhatárolása;
-- ability/payment payload schema;
-- unsupported-card és coverage policy;
-- executable effect coverage fokozatos felépítése.
+Továbbra is nyitott vagy auditálandó:
+
+- legacy `source` structured értékek `wellspring` migrációja/aliasolása;
+- printed vs normalized cost további payload-egységesítése;
+- teljes ability/payment payload coverage;
+- unsupported-card/content coverage policy;
+- executable effect coverage fokozatos felépítése;
+- semicolon delimiter-policy és authoring/workbook legacy drift kompatibilitási auditja.
+
+Nincs vak workbook-migráció.
 
 ### 10.3 Godot- és engine-integráció
 
@@ -552,11 +619,11 @@ Már működő foundation:
 
 Továbbra is nyitott:
 
-- végleges player-facing UI-integráció;
+- minimal/final player-facing UI-integráció;
 - package support/coverage metadata megjelenítése és diagnosztikája;
 - save/replay/bug-report package;
 - release diagnostics és support workflow;
-- végleges packaging/compatibility UX.
+- final packaging/compatibility UX.
 
 ### 10.4 Release és integritás
 
@@ -566,17 +633,37 @@ Továbbra is nyitott:
 - későbbi tamper resistance;
 - verzióütközés kezelése.
 
----
+### 10.5 VS1-specifikus package gate
+
+Csak akkor szükséges package-módosítás a VS1 előtt,
+ha a readiness audit tényleges blockert talál:
+
+- hiányzó/hibás VS1 deck membership;
+- hiányzó card definition;
+- hibás canonical lookup/alias;
+- szükséges card/ability unsupported/not-evaluated;
+- loader/compatibility hiba.
+
+A teljes package identity/release/tamper-resistance nem automatikus VS1-blocker.
 
 ## 11. Aktuális prioritás
 
-A runtime package alapozás nem a jelenlegi kritikus blokkoló.
+A runtime package alapozás nem önmagában a jelenlegi kritikus blokkoló.
 
-A projekt aktuális szakmai fókusza:
+Current next gate:
 
-1. Reaction / Priority rules audit;
-2. minimal Reaction / Priority contract;
-3. csak ezután production implementation.
+`VS1_READINESS_REQUIRED`
+
+A projekt aktuális szakmai sorrendje:
+
+1. canonical VS1 deck/card/mechanic readiness audit;
+2. package/content/engine blocker azonosítás;
+3. csak tényleges blockerre finite contract + implementáció;
+4. simple fair AI + match orchestration;
+5. minimal playable Godot;
+6. human-vs-AI full match;
+7. reproducible AI-vs-AI smoke;
+8. VS1 acceptance.
 
 Runtime-package-specifikus későbbi prioritások:
 
@@ -587,33 +674,42 @@ Runtime-package-specifikus későbbi prioritások:
 - development/release profile;
 - Windows release packaging.
 
-A kártyaadatbázis és a külön LOOKUPS munkaforrás e dokumentumfrissítés során nem módosult.
+Ezek közül csak a tényleges VS1 blocker válik VS1 előfeltétellé.
+
+A kártyaadatbázis és a külön LOOKUPS munkaforrás e dokumentumfrissítés során nem módosul.
 
 ## 12. Dokumentumkezelési hatás
 
-Ez a fájl a `CURRENT_RUNTIME_PACKAGE_STATUS.md` utódja.
+A `RUNTIME_PACKAGE_STATUS.md` már a történeti
+`CURRENT_RUNTIME_PACKAGE_STATUS.md` elfogadott utódja.
 
-Repository alkalmazásakor:
+A korábbi migration feladat lezárt történeti lépés, nem current teendő.
 
-1. az új aktív név `RUNTIME_PACKAGE_STATUS.md`;
-2. a régi `CURRENT_RUNTIME_PACKAGE_STATUS.md` eltávolítandó;
-3. minden rá mutató hivatkozást frissíteni kell;
-4. az eltávolítás csak az új fájl beillesztése és a hivatkozások ellenőrzése után történhet.
+Current szabály:
 
----
+- az aktív fájl neve `RUNTIME_PACKAGE_STATUS.md`;
+- `CURRENT_RUNTIME_PACKAGE_STATUS.md` nem current authority;
+- újabb verziók ezt az aktív fájlt frissítik;
+- korábbi verziót a Git history őrzi;
+- Archive csak valódi historical/deprecated szerep esetén szükséges.
 
 ## 13. Rövid összefoglaló
 
 **Runtime package build:** működik
 **Godot consumption copy:** működik
-**Legutóbbi rögzített kártyaszám:** 814
-**Legutóbbi rögzített deckszám:** 28
+**Production C# canonical/package consumption:** `WORKING`
+**Canonical deck/deck-entry membership consumption:** `WORKING`
+**Történeti rögzített kártyaszám:** 814
+**Történeti rögzített deckszám:** 28
 **Aktív canonical Wellspring-zóna:** `wellspring`
 **Aktív canonical Beáramlás-fázis:** `infusion`
 **Canonical Realm formátum:** lowercase ASCII
+**Canonical multi-value delimiter:** pontosvessző (`;`)
 **Nyomtatott Aura-költségforrás:** card definition `Aura` mező
 **Executable payment override schema:** még nem teljes
 **Runtime package ability-support metadata:** declared-only / nem teljes support matrix
-**Production C# ability/effect runtime foundation:** `IMPLEMENTED_AND_ACTIVE`
-**Production C# canonical/package consumption:** `WORKING`
+**Production C# ability/effect + Reaction + Combat/Pecsét foundation:** `IMPLEMENTED_AND_ACTIVE`
+**Current production base:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Current next gate:** `VS1_READINESS_REQUIRED`
+**Canonical VS1 deckek:** `DECK-IGN-HAM-VS1-001`, `DECK-AQU-MOR-VS1-001`
 **LOOKUPS/workbook módosítás:** e dokumentációs körben nem történt

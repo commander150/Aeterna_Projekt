@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.1
-**Dátum:** 2026-08-14
+**Dokumentumverzió:** 2.2
+**Dátum:** 2026-09-05
 **Státusz:** aktív kanonikus runtime package-specifikáció
 **Aktuális státuszfájl:** `RUNTIME_PACKAGE_STATUS.md`
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Aktuális repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 
 Ez a dokumentum az AETERNA statikus runtime package rétegének kötelező jelentését, határait és buildelveit rögzíti.
 
@@ -44,8 +44,8 @@ A runtime package nem írhatja felül a hivatalos játékszabályokat.
 
 Adat- és szabályi elsőbbség:
 
-1. `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`;
-2. `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`;
+1. `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+2. `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`;
 3. elfogadott, verziózott emberi döntések;
 4. emberi szerkesztési források / Google Sheets / aktív XLSX munkaforrás;
 5. külön `LOOKUPS.xlsx`;
@@ -54,12 +54,11 @@ Adat- és szabályi elsőbbség:
 8. runtime package;
 9. Godot-, C#- és Python-fogyasztók.
 
-A derived/canonical workbook és a runtime package generált programadat. Egyik sem írhatja felül a hivatalos szabályforrást vagy az elfogadott emberi szerkesztési authorityt.
+A derived/canonical workbook és a runtime package generált programadat.
+Egyik sem írhatja felül a hivatalos szabályforrást vagy az elfogadott emberi szerkesztési authorityt.
 
-Eltérés esetén a build álljon meg vagy adjon blocking diagnosticot; a builder nem találgathat új szabályt.
-
-
----
+Eltérés esetén a build álljon meg vagy adjon blocking diagnosticot;
+a builder nem találgathat új szabályt.
 
 ## 2. Elfogadott adatút
 
@@ -235,7 +234,25 @@ Blocking validáció:
 - hiányzó kért deck;
 - tiltott vagy unsupported kártya a választott buildprofil szerint.
 
----
+### Production deck-membership authority
+
+Production smoke/readiness szempontból a package `DECKS + DECK_ENTRIES`
+tagsági kapcsolata az authoritative derived deck-membership adat.
+
+VS1 canonical deck IDs:
+
+- `DECK-IGN-HAM-VS1-001`;
+- `DECK-AQU-MOR-VS1-001`.
+
+VS1 readinessnél mindkét decknek:
+
+- canonical/active állapotban kell lennie;
+- teljes tagságának feloldhatónak kell lennie;
+- minden hivatkozott card definitionnek léteznie kell;
+- minden ténylegesen szükséges ability/mechanic coverage-nek végrehajthatónak kell lennie.
+
+A package nem dönt játékszabályi legalitásról;
+a deck-content readiness és a runtime engine capability külön ellenőrzési réteg.
 
 ## 8. Lookupok és canonical értékek
 
@@ -246,7 +263,7 @@ Alapelv:
 - `Value`: angol/ASCII snake_case canonical runtime érték;
 - `Label_HU`: magyar megjelenítési címke;
 - `Canonical_Value`: aktív runtime sornál egyezzen a `Value` mezővel;
-- többértékű structured mező delimiterje: pontosvessző.
+- többértékű structured mező canonical delimiterje: pontosvessző (`;`).
 
 Aktív példák:
 
@@ -261,7 +278,19 @@ Aktív példák:
 
 A `source` régi structured zónaérték legacy alias lehet, nem active canonical zónanév.
 
----
+### Delimiter migration policy
+
+A specifikáció current canonical iránya pontosvessző.
+
+Ha authoring/workbook rétegben ettől eltérő legacy delimiter még előfordul:
+
+- nem végzünk vak tömeges cserét;
+- előbb compatibility impact audit szükséges;
+- exporter/parser regresszió szükséges;
+- source/workbook migráció külön, explicit feladat;
+- átmeneti kompatibilitás csak dokumentált normalizációval engedett.
+
+Ez a v2.2 dokumentációs sync nem módosítja automatikusan a workbookot.
 
 ## 9. Alias és normalizáció
 
@@ -291,7 +320,8 @@ A builder a forrásfájlt nem írja vissza automatikusan emberi jóváhagyás n�
 
 ## 10. Ability registry és engine support
 
-Az `ability_registry.json` és `engine_support.json` package-fájlok support/coverage metadata-contractok. Nem azonosak a production C# engine belső ability/effect capability-jével.
+Az `ability_registry.json` és `engine_support.json` package-fájlok support/coverage metadata-contractok.
+Nem azonosak a production C# engine belső ability/effect capability-jével.
 
 Minimum package-szerep:
 
@@ -321,14 +351,14 @@ Kötelező elv:
 
 Aktuális elhatárolás:
 
-- a statikus sample/runtime package metadata még `runtime_executes_abilities: false` / declared-only jellegű állapotot hordozhat;
-- a production C# engine-ben ettől függetlenül már létezik canonical ability/effect execution foundation;
-- a két réteg külön migráció nélkül nem tekinthető azonos coverage-állapotúnak.
+- a package support metadata nem azonos a production engine capabilityvel;
+- production C#-ban már aktív az ability/effect foundation, Reaction/Priority és Combat/Pecsét C0–C6;
+- ettől még nem következik automatikusan teljes card/ability/keyword coverage;
+- a két VS1 deck readiness auditja konkrét card/mechanic coverage alapján történik.
 
 A production ability/effect authority C#.
 
-
----
+Silent fallback továbbra is tilos.
 
 ## 11. Diagnostics
 
@@ -422,24 +452,30 @@ A C.5B többek között bizonyította:
 
 ### Aktuális production canonical fogyasztás
 
-A post-C.5B rétegben aktív:
+Aktív többek között:
 
 - `CanonicalPackageLoader`;
 - canonical card catalog;
 - runtime lookup catalog;
 - canonical runtime binding;
-- canonical ability catalog és kapcsolódó derived data használat.
+- canonical ability catalog és kapcsolódó derived data;
+- canonical deck/deck-entry membership fogyasztás;
+- production smoke/readiness deck-feloldás.
+
+Current engine production base:
+
+`0862e1002dbef81ee203852714d377592272a0e9`
 
 A C# engine:
 
 - nem olvas közvetlenül emberi szerkesztési XLSX-et;
 - nem írja át a runtime package-et;
 - statikus definitionből authoritative card instance-eket hoz létre;
-- nem kezeli a package-et MatchState-ként;
+- nem kezeli a package-et `MatchState`-ként;
 - package/canonical adatot nem használhat szabályi authorityként a hivatalos forrással szemben.
 
-
----
+A current Combat/Pecsét/MatchResult state nem kerül a runtime package-be;
+az futó authoritative match state.
 
 ## 15. Python-fogyasztás
 
@@ -526,7 +562,8 @@ Működik:
 - diagnostics;
 - publish pipeline;
 - canonical workbook export;
-- production C# canonical/package loader és runtime binding.
+- production C# canonical/package loader és runtime binding;
+- canonical deck/deck-entry membership fogyasztás.
 
 Nem végleges:
 
@@ -536,34 +573,49 @@ Nem végleges:
 - package support/coverage matrix;
 - tamper resistance.
 
-Ability elhatárolás:
+Ability/content elhatárolás:
 
 - package support metadata még nem teljes ability-support matrix;
-- production C# ability/effect foundation már létezik;
-- teljes card/keyword coverage külön audit és package-support migráció.
+- production C# ability/effect + Reaction + Combat/Pecsét foundation már létezik;
+- teljes card/keyword/content coverage külön audit;
+- VS1 readiness konkrétan a két canonical deck tényleges requirementjeit vizsgálja.
 
-Következő package-specifikus feladat csak akkor szükséges, ha:
+Current package-facing next gate:
 
-- support/coverage metadata migráció;
-- release profile;
-- compatibility/version policy;
-- source fingerprint/hash;
-- packaging/integrity
+`VS1_READINESS_REQUIRED`
 
-kerül ténylegesen implementációs fókuszba.
+A package-réteg VS1 előtt akkor igényel módosítást, ha a readiness audit tényleges blockert talál például:
 
-A Reaction/Priority gameplay contract nem runtime-package feladat.
+- hiányzó vagy hibás VS1 deck membership;
+- hiányzó card definition;
+- hibás canonical lookup/alias;
+- unsupported/not-checked szükséges card/ability metadata;
+- loader/compatibility hiba.
 
+Általános release profile, source fingerprint/hash, tamper resistance vagy package redesign
+nem automatikus VS1-blocker.
 
----
+Reaction/Priority és Combat/Pecsét gameplay core nem runtime-package feladat;
+ezek az authoritative C# engine-ben már lezárt foundationök.
 
 ## 20. Dokumentumkapcsolat
 
-A tényleges mennyiségeket, aktív forrásokat és aktuális nyitott feladatokat a `RUNTIME_PACKAGE_STATUS.md` tartalmazza.
+A tényleges mennyiségeket, aktív forrásokat és aktuális nyitott feladatokat
+a `RUNTIME_PACKAGE_STATUS.md` tartalmazza.
 
 A részletes kérdések és döntések:
 
 - `OPEN_QUESTIONS.md`;
 - `OPEN_QUESTIONS_DECISIONS.md`.
 
-A korábbi, részletesebb és sample-központú specifikáció a Git-történetben megmarad. A 2.0-s dokumentum az aktív, konszolidált package-contract.
+Current production engine base:
+
+`0862e1002dbef81ee203852714d377592272a0e9`
+
+Current OQ aggregate:
+
+`52 answered / 15 partly_answered / 7 deferred / 0 open`.
+
+A korábbi sample-központú és korai production specifikációk a Git-történetben megmaradnak.
+A v2.2 a current runtime-package contractot, a semicolon delimiter-policyt és a VS1 readiness
+package-határát rögzíti.

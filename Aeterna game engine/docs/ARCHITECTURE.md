@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.6
-**Dátum:** 2026-08-16
+**Dokumentumverzió:** 2.7
+**Dátum:** 2026-09-05
 **Státusz:** aktív kanonikus rendszerarchitektúra
-**Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
-**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 
 Ez a dokumentum az AETERNA digitális rendszerének aktív architektúráját, réteghatárait és authority-szabályait rögzíti.
 
@@ -28,7 +28,7 @@ Kapcsolódó aktív dokumentumok:
 - `OPEN_QUESTIONS.md`
 - `OPEN_QUESTIONS_DECISIONS.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.7.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`
 
 ---
 
@@ -98,8 +98,8 @@ A játékosnál futó normál Godot kliens nem igényel Python-processzt.
 
 Elsődleges szabályforrások:
 
-- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`;
-- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`.
+- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
 
 A kód, structured mező, learning projekt vagy régi Python-implementáció nem írhatja felül ezeket emberi döntés nélkül.
 
@@ -292,7 +292,7 @@ Pure C# class library:
 - TCP/HTTP/gRPC nélkül;
 - operációsrendszer-processz kezelés nélkül.
 
-Státusz: aktív `net8.0` production authoritative core. A C.5B történeti foundationben a MatchState/PlayerState minimum, typed contractok, `EngineSession`, runtime package minimum loader, draw, end-turn és stale rejection valósult meg. A `931bf... → 2608345b...` szakaszban ehhez production Wellspring/Infusion, payment preflight, Domain/`play_card`, canonical ability/effect foundation, damage/vitals, continuous/modifier/keyword/duration, draw/reference runtime és Explicit Phase Foundation társult.
+Státusz: aktív `net8.0` production authoritative core. A C.5B történeti foundationben a MatchState/PlayerState minimum, typed contractok, `EngineSession`, runtime package minimum loader, draw, end-turn és stale rejection valósult meg. A korábbi gameplay/ability foundation és Explicit Phase után ugyanebben a core-ban zárult le a Reaction / Priority Foundation v1, majd a Combat + Pecsét Foundation C0–C6 és a terminal Aeternal / `MatchResult` outcome.
 
 #### Aeterna.Engine.Headless
 
@@ -453,6 +453,13 @@ A production C# modell aktív fő elemei:
 - Domain;
 - Wellspring;
 - pending trigger/decision state;
+- `ReactionWindow`;
+- `ResolutionStack`;
+- `QueuedTriggerBatches`;
+- `MatchSetupState`;
+- `PendingCombatState`;
+- `PendingSurgeWindowState`;
+- `SealSlots`;
 - continuous effect state;
 - modifier/keyword/duration state;
 - event sequence és event log;
@@ -491,7 +498,7 @@ Elvek:
 - legal action space phase-specifikus;
 - automatic phase entry logic a C# core feladata.
 
-A következő architecture expansion a Reaction/Priority pending state; combat külön későbbi layer.
+A Reaction/Priority pending state és Combat/Pecsét current production layer már aktív. A következő architecture gate nem generic engine-layer, hanem `VS1_READINESS_REQUIRED`.
 
 
 ---
@@ -729,50 +736,16 @@ A végleges Windows packaging production engine mellett még külön bizonyítan
 
 `COMPLETE_AND_ACCEPTED`
 
-Rögzítette a production C# architecture tervet.
-
 ### C.5B
 
-Lezáró commit:
+`COMPLETE_AND_ACCEPTED`
 
-`931bf5571d541c752aa421a9f0626768bd8ffbe7`
+### Korábbi production gameplay/ability foundation slice
 
 `COMPLETE_AND_ACCEPTED`
 
-Történeti foundation:
-
-- `Aeterna.Engine`;
-- `Aeterna.Engine.Headless`;
-- `Aeterna.Engine.Tests`;
-- `EngineSession`;
-- runtime package minimum loader;
-- draw/end-turn proof;
-- Godot production bridge;
-- RuntimeCandidate/Python regresszió.
-
-Történeti acceptance:
-
-- Debug/Release `13/13`;
-- canonical SHA-egyezés;
-- `100/100` determinisztika;
-- Godot pozitív/negatív smoke.
-
-### C.5B utáni production gameplay vertical slice
-
-`COMPLETE_AND_ACCEPTED`
-
-Megvalósult:
-
-- Wellspring;
-- player-visible Wellspring;
-- Beáramlás;
-- Magnitúdó/Aura payment preflight;
-- `play_card`;
-- Domain placement;
-- canonical ability/effect foundation;
-- damage/vitals;
-- continuous/modifier/keyword/duration;
-- draw/reference runtime.
+Ez a Wellspring / Infusion / Domain / `play_card` / ability-effect / damage-vitals /
+continuous-modifier-keyword-duration és kapcsolódó foundation réteg.
 
 ### Explicit Phase Foundation v1
 
@@ -782,19 +755,68 @@ Lezáró commit:
 
 `COMPLETE_AND_ACCEPTED`
 
-Canonical lifecycle:
+### Reaction / Priority Foundation v1
 
-`awakening -> infusion -> manifestation -> incursion -> distribution`
+Lezáró commit:
 
-### Következő architecture expansion
+`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
 
-1. Reaction / Priority minimal contract;
-2. Reaction / Priority production foundation;
-3. külön combat contract/foundation;
-4. Pecsét/Refresh/victory rétegek a saját rules gate-jeik után;
-5. replay/AI/UI/packaging későbbi mérföldkövek.
+`COMPLETE_AND_ACCEPTED`
 
-A korábbi Wellspring-first migrációs sor történeti, nem current roadmap.
+### Combat + Pecsét Foundation C0–C6
+
+Rules migration:
+
+`61ad2605dd1aa3d7ea95444f0bb66cebf819014e`
+
+Production commitlánc:
+
+- C0 `ca55bc3714de2692753fccc18a8f11d9dac1beea`;
+- C1+C2 `558d4453a1604c0ebe76065df08a207192c21c8b`;
+- C3 `d236f0e3c36994f65e7d00d25972660baac2a842`;
+- C4 `68b07dd6906fc8c37245325a855322d48f5f2635`;
+- C5 `d30f8a4c42383a0200e416acb7148facc3bbbc11`;
+- C6 `0862e1002dbef81ee203852714d377592272a0e9`.
+
+Current state:
+
+`COMBAT_AND_SEAL_FOUNDATION_C0_C6 = COMPLETE_AND_ACCEPTED`
+
+A C0–C6 nem külön engine vagy külön authority-réteg:
+a meglévő `Aeterna.Engine` authoritative MatchState/action/event/projection architektúrát bővíti.
+
+### Current next gate
+
+`VS1_READINESS_REQUIRED`
+
+Következő major product-facing cél:
+
+`VS1 / M6 – első ténylegesen játszható vertical slice`
+
+Canonical VS1 deckek:
+
+- `DECK-IGN-HAM-VS1-001`;
+- `DECK-AQU-MOR-VS1-001`.
+
+A következő architecture/implementation munka nem előre kijelölt generic engine-feature.
+Előbb a két VS1 deck tényleges card/mechanic readiness auditja azonosít blockert.
+
+VS1 előtt kötelező csak:
+
+1. a két canonical deck szabályos futásához szükséges capability; vagy
+2. általános rules-correct / deterministic / viewer-safe invariáns.
+
+Ezután:
+
+```text
+simple fair AI + match orchestration
+→ minimal playable Godot
+→ human-vs-AI full match
+→ reproducible AI-vs-AI smoke
+→ VS1 acceptance
+→ szükséges köztes mérföldkövek
+→ AETERNA 0.0.1
+```
 
 ## 18. Elvetett architektúrák
 
@@ -840,21 +862,28 @@ Alapszabály:
 - törlés/archiválás csak ellenőrzött utóddal történhet;
 - minden nagy mérföldkőnél célzott, nem tömeges consistency audit történhet.
 
-A `2608345b...` mérföldkőhöz tartozó A+B consistency pass lezárult.
+A current dokumentációs sync a `0862e100...` Combat + Pecsét C0–C6 lezárás utáni current-truth állapotot követi. A korábbi consistency passok történeti evidence-ként megmaradnak.
 
 ## 20. Rövid aktuális összefoglaló
 
-- A hivatalos játékszabályok az elsődleges források.
+- A hivatalos játékszabályok az elsődleges rules authority-k:
+  Core `1.5v`, Expansion `1.4.1v`.
 - A Python adatpipeline, audittooling és reference/oracle megmarad.
-- A Godot/GDScript a vizuális kliensréteg.
-- A C#/.NET az egyetlen aktív authoritative production runtime.
-- A Godot és a C# közvetlenül, ugyanazon processzen belül kommunikál.
-- A Python a C# headless interfészt használhatja AI-, batch- és elemzési célra.
-- A Python-sidecar proof lezárt és befagyasztott.
-- A C# in-process proof lezárt és elfogadott.
-- A C.5B production engine foundation lezárt.
-- A post-C.5B gameplay/ability vertical slice lezárt.
-- Az Explicit Phase Foundation v1 lezárt.
-- A `2608345b...` dokumentációs consistency pass lezárt.
-- A következő szakmai engine-fókusz Reaction / Priority rules és minimal contract.
-- Combat külön későbbi architecture/rules slice.
+- A Godot/GDScript a vizuális kliens- és presentation réteg.
+- A C#/.NET az egyetlen authoritative production rules runtime.
+- Godot ↔ C# production kapcsolat same-process; nincs production sidecar/TCP/HTTP/gRPC rules path.
+- Python ↔ engine tooling kapcsolat headless JSON/JSONL/subprocess alapon használható.
+- `MatchState` current productionben ReactionWindow, ResolutionStack, queued trigger,
+  pending Combat/Surge, Seal slot és terminal MatchResult state-et is tartalmaz.
+- Reaction / Priority Foundation v1 `COMPLETE_AND_ACCEPTED`.
+- Combat + Pecsét Foundation C0–C6 `COMPLETE_AND_ACCEPTED`.
+- Current production base:
+  `0862e1002dbef81ee203852714d377592272a0e9`.
+- Current OQ:
+  `52 answered / 15 partly_answered / 7 deferred / 0 open`.
+- Következő gate:
+  `VS1_READINESS_REQUIRED`.
+- Következő major product-facing cél:
+  `VS1 / M6 – első ténylegesen játszható vertical slice`.
+- A későbbi generic prevention/replacement, compound choice, Refresh Penalty,
+  Hasítás, full Burst/Jel, replay, AI orchestration, UI és packaging nem mind automatikus VS1-blocker.

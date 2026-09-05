@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.3\
-**Dátum:** 2026-07-22\
+**Dokumentumverzió:** 1.4
+**Dátum:** 2026-09-05
 **Státusz:** lezárt technológiai döntési kapu és aktív döntési referencia  
 **Döntés:** Godot/GDScript vizuális réteg + C# authoritative runtime + Python külső tooling  
-**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
+**Aktuális repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 
 Ez a dokumentum az AETERNA hosszú távú authoritative rules runtime nyelvi és futási modelljének lezárt döntési kapuja.
 
@@ -31,7 +31,7 @@ Kapcsolódó aktív dokumentumok:
 - `TECHNOLOGY_DECISIONS.md`
 - `ARCHITECTURE.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.4.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`
 
 ---
 
@@ -67,7 +67,7 @@ Feladata:
 - snapshotok;
 - hidden-information projection;
 - determinisztikus működés;
-- később a teljes gameplay, reakció-, harc- és győzelmi rendszer.
+- teljes authoritative gameplay, beleértve Reaction/Priority, Combat/Pecsét és győzelmi rendszert.
 
 Új kanonikus játékszabály kizárólag a production C# engine-ben implementálható.
 
@@ -321,28 +321,33 @@ Ez contracteltérést, determinisztikai kockázatot és nehéz hibakeresést oko
 
 ## 6. Python–C# kommunikációs irány
 
-A Python és a C# később API-szerű felületen kommunikálhat.
+Az elsődleges külső tooling-határ már implementált alap:
 
-### Első tervezett forma
-
-`Python → Aeterna.Engine.Headless → JSON/JSONL → Python`
+```text
+Python
+  ↓ subprocess + JSON/JSONL / file / stdin
+Aeterna.Engine.Headless
+  ↓ canonical JSON/JSONL
+Python
+```
 
 A Python:
 
-- fixture-t vagy scenario-t ad át;
-- elindítja a C# headless hostot;
-- eredményt gyűjt;
-- statisztikát készít;
-- AI-akciót választhat a C# legal action listájából.
+- fixture-t vagy scenario-t adhat át;
+- elindíthatja a C# headless hostot;
+- eredményt gyűjthet;
+- statisztikát készíthet;
+- AI-akciót választhat a C# által kiadott viewer-safe snapshot és legal action lista alapján.
 
 A C#:
 
-- létrehozza és módosítja a meccsállapotot;
+- létrehozza és módosítja az authoritative meccsállapotot;
 - validálja az action requestet;
 - eventet és snapshotot készít;
-- győzelmet vagy vereséget állapít meg.
+- `MatchResult` állapotig vezeti a meccset;
+- nem fogad el Pythonból közvetlen state mutationt.
 
-### Későbbi feltételes forma
+Későbbi feltételes forma:
 
 Localhost HTTP vagy gRPC csak akkor készülhet, ha mérések bizonyítják, hogy:
 
@@ -350,14 +355,15 @@ Localhost HTTP vagy gRPC csak akkor készülhet, ha mérések bizonyítják, hog
 - hosszú életű C# service szükséges;
 - nagy mennyiségű folyamatos Python–C# interakció történik.
 
-### Nem használható
+Ez reserved extension point, nem current production requirement.
 
-- HTTP a Godot és a C# között;
+Nem használható:
+
+- HTTP/TCP/gRPC a Godot és a C# production rules path között;
 - Python a Godot frame-loop kötelező részeként;
-- API, amely megkerüli a C# `SubmitAction` authority-kapuját;
-- Python által közvetlenül módosított C# MatchState.
-
----
+- API, amely megkerüli a C# `SubmitAction`/engine transition authority-kapuját;
+- Python által közvetlenül módosított C# `MatchState`;
+- külön Python legality engine AI számára.
 
 ## 7. Production C# migrációs szabályok
 
@@ -410,71 +416,125 @@ Minden migrációs egységhez szükséges:
 
 **Státusz:** `COMPLETE`
 
-Rögzítve:
-
-- production project-határok;
-- pure C# engine;
-- headless host;
-- tesztprojekt;
-- typed contractok;
-- EngineSession;
-- Godot production bridge;
-- Python headless tooling kapcsolat;
-- kontrollált fixture-alapú migráció.
-
 ### C.5B – Production C# engine foundation
 
 **Státusz:** `COMPLETE_AND_ACCEPTED`
 
 **Lezáró commit:** `931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
-Első scope:
+Történeti minimum scope:
 
 - `Aeterna.Engine`;
 - `Aeterna.Engine.Headless`;
 - `Aeterna.Engine.Tests`;
 - core contractok;
-- EngineSession;
+- `EngineSession`;
 - minimum runtime package loader;
 - draw/end-turn reprodukció;
 - production fixture adapter;
 - Godot production bridge;
 - RuntimeCandidate regresszió.
 
-Nem része:
+A C.5B scope-határ történeti. Az azóta megvalósult production rétegek ugyanebben
+a C# authoritative architektúrában épültek tovább.
 
-- Wellspring gameplay integráció;
-- Beáramlás;
-- Aura-payment;
-- Magnitúdó;
-- `play_card`;
-- harc;
-- effect engine;
-- trigger;
-- HTTP;
-- gRPC;
-- production packaging.
+### Korábbi production gameplay/ability foundation
 
----
+**Státusz:** `COMPLETE_AND_ACCEPTED`
+
+Többek között:
+
+- Wellspring / Beáramlás;
+- Magnitúdó/Aura preflight;
+- Domain / `play_card`;
+- canonical ability/effect foundation;
+- damage/vitals;
+- continuous/modifier/keyword/duration;
+- draw/reference runtime.
+
+### Explicit Phase Foundation v1
+
+**Státusz:** `COMPLETE_AND_ACCEPTED`
+
+Lezáró commit:
+
+`2608345b61526097fc0b118f05461f92cfed0a95`
+
+### Reaction / Priority Foundation v1
+
+**Státusz:** `COMPLETE_AND_ACCEPTED`
+
+Lezáró commit:
+
+`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
+
+### Combat + Pecsét Foundation C0–C6
+
+**Státusz:** `COMPLETE_AND_ACCEPTED`
+
+Current production base:
+
+`0862e1002dbef81ee203852714d377592272a0e9`
+
+Current foundation többek között:
+
+- canonical setup/Jóslat;
+- AttackCommit;
+- intervention / DefenseCommit;
+- Combat ReactionWindows;
+- Entity Combat;
+- Seal break/reveal/Surge;
+- Gondviselés;
+- Aeternal terminal outcome;
+- authoritative `MatchResult`.
+
+A nyelvi döntési gate szempontjából ez fontos follow-up evidence:
+a kiválasztott C# same-process architecture a nagyobb gameplay foundationökön is működőképes maradt.
+
+### Current next gate
+
+`VS1_READINESS_REQUIRED`
+
+Következő major product-facing cél:
+
+`VS1 / M6 – első ténylegesen játszható vertical slice`
 
 ## 9. Még nyitott technikai bizonyítások
 
-A runtime-nyelvi döntést nem blokkolják, de a későbbi release-ek előtt szükségesek:
+A runtime-nyelvi döntést nem blokkolják és nem nyitják újra automatikusan.
 
-- production C# Windows export;
+VS1 felé current nyitott:
+
+- canonical VS1 deck/card/mechanic readiness audit;
+- szükséges content/ability blocker lezárás;
+- simple fair AI;
+- match orchestration;
+- minimal playable Godot UI;
+- teljes human-vs-AI meccs;
+- reproducible AI-vs-AI smoke.
+
+0.0.1 / release felé később nyitott többek között:
+
+- production Windows export;
 - self-contained vagy egyszerű prerequisite packaging;
 - tiszta tesztgépes indítás;
 - hosszabb soak teszt;
-- teljes gameplay-migráció;
-- production runtime diagnosztikai log;
-- Python headless controller;
-- AI-vs-AI production C# futás;
-- replay és reprodukálhatóság;
-- teljesítmény és memória mérése valósabb meccseken.
+- replay/bug-report/diagnostics product workflow;
+- profile/save/tutorial/collection/economy;
+- teljesítmény és memória mérése valósabb meccseken;
+- final compatibility/release policy.
+
+Már nem nyitott nyelvi-gate bizonyítás:
+
+- production C# engine foundation;
+- Godot production bridge foundation;
+- Python headless C# tooling alap;
+- Reaction/Priority;
+- Combat/Pecsét;
+- terminal Aeternal/MatchResult core.
 
 A végleges nyelvi döntés csak új, erős és AETERNA-specifikus technikai bizonyíték alapján nyitható újra.
-
----
+A jövőbeli feature-hiány önmagában nem ilyen bizonyíték.
 
 ## 10. Dokumentumkezelési szabály
 
@@ -484,22 +544,31 @@ A dokumentumszaporodás elkerülése érdekében:
 - új eredmény a természetes aktív fődokumentumba kerüljön;
 - külön fájl csak önálló, tartós és más dokumentumba nem illeszthető canonical témának készülhet;
 - a `checkpoints/ENGINE_CHECKPOINT.md` a fő technikai folytatási pont;
-- történeti dokumentum nem törlendő audit nélkül;
 - azonos szerepű párhuzamos current dokumentum nem hozható létre;
-- minden későbbi összevonásnál tartalomvesztés-ellenőrzés szükséges;
-- nyitott kérdés vagy korábbi döntés nem veszhet el merge során.
+- fájlnévben verziózott current dokumentum ugyanazon fájl rename-jével lép új verzióra;
+- korábbi current verziót normál esetben a Git history őrzi;
+- Archive csak valódi historical/deprecated/replaced szerepre szolgál;
+- merge/migration során nyitott kérdés vagy döntés nem veszhet el;
+- current dokumentációs sync targeted patch + diff/consistency review módszerrel történik.
 
----
+Ez a nyelvi döntési gate aktív reference marad, de nem napi roadmap-dokumentum.
 
 ## 11. Rövid aktuális státusz
 
-**Döntési kapu:** lezárva.  
-**Authoritative runtime:** C#/.NET.  
-**Vizuális kliens:** Godot/GDScript.  
-**Külső tooling, AI és batch:** Python.  
-**Python sidecar proof:** `COMPLETE AND FROZEN`.  
-**C# in-process proof:** `COMPLETE AND ACCEPTED`.  
-**Közös canonical SHA:** `650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`.  
-**Production C# foundation:** C.5B `COMPLETE_AND_ACCEPTED`, commit `931bf5571d541c752aa421a9f0626768bd8ffbe7`.\
-**Következő kódolási szakasz:** Wellspring production state és player-visible Wellspring.\
-**Nem programozási aktív sáv:** célzott dokumentáció, open questions, LOOKUPS-, kártyaadat- és szabályaudit.
+**Döntési kapu:** lezárva.
+**Authoritative runtime:** C#/.NET.
+**Vizuális kliens:** Godot/GDScript.
+**Külső tooling, AI/batch koordináció és reference:** Python.
+**Godot–C# production rules path:** same-process.
+**Python sidecar proof:** `COMPLETE_AND_FROZEN`.
+**C# in-process proof:** `COMPLETE_AND_ACCEPTED`.
+**Közös történeti candidate canonical SHA:** `650053262681f79d354867793194a4e49e7862bcccf2475b8cbd34aa03bada6d`.
+**C.5B production foundation:** `COMPLETE_AND_ACCEPTED`.
+**Explicit Phase Foundation v1:** `COMPLETE_AND_ACCEPTED`.
+**Reaction / Priority Foundation v1:** `COMPLETE_AND_ACCEPTED`.
+**Combat + Pecsét Foundation C0–C6:** `COMPLETE_AND_ACCEPTED`.
+**Current production base:** `0862e1002dbef81ee203852714d377592272a0e9`.
+**Current OQ:** `52 answered / 15 partly_answered / 7 deferred / 0 open`.
+**Current next gate:** `VS1_READINESS_REQUIRED`.
+**Következő major product-facing cél:** `VS1 / M6 – első ténylegesen játszható vertical slice`.
+**Nyelvi döntés újranyitása:** `NOT_REQUIRED`.

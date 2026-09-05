@@ -2,13 +2,13 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.5
-**Dátum:** 2026-08-30
+**Dokumentumverzió:** 2.6
+**Dátum:** 2026-09-05
 **Státusz:** aktív dokumentációs mappaindex
-**Felváltott dokumentum:** `README.md` 2.2
-**Szinkronizációs repository-bázis:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
-**Production engine mérföldkő:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
-**Kapcsolódó fájlstátusz-térkép:** `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.11.md`
+**Előző aktív verzió:** 2.5 (Git history)
+**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
+**Kapcsolódó fájlstátusz-térkép:** `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`
 
 Ez a mappa az AETERNA projekt hivatalos szabály-, adat-, projektirányítási és munkafolyamat-dokumentumainak elsődleges helye.
 
@@ -20,12 +20,15 @@ A főszinten csak aktív, védett vagy közvetlenül a jelenlegi munkafolyamatot
 
 ### 1.1 Hivatalos szabályforrások
 
-- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`;
-- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`.
+- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
 
 Státusz: `ACTIVE_CANONICAL_RULE_SOURCE`
 
 Védett dokumentumok; tartalmi módosítás csak külön emberi döntéssel.
+
+A főforrások jelenlegi current authority szerepe ettől függetlenül megmarad.
+A későbbi szerkezeti újratervezés külön dokumentációs/design feladat, nem része ennek a szinkronkörnek.
 
 ### 1.2 Aktív adatforrások
 
@@ -45,10 +48,14 @@ A program validált runtime/canonical adatot fogyaszt; a programkimenet nem vál
 
 ### 1.3 Aktív projektirányító dokumentumok
 
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.8.md`;
-- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.11.md`;
+- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`;
 - jelen `README.md`;
-- `../Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md`.
+- `../Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md` v2.0.
+
+Current fő roadmap:
+
+`M5 / Combat + Victory Core → VS1 / M6 → szükséges köztes mérföldkövek → AETERNA 0.0.1`
 
 ### 1.4 Aktív munkaszabványok
 
@@ -86,12 +93,14 @@ Az archív példány nem aktív authority.
 
 Aktív:
 
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.8.md`;
-- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.11.md`.
+- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
+- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`.
 
-A felváltott verziók az archív projekt-guidance rétegbe kerülnek.
+A fájlnévben verziózott current dokumentum új verzióra lépésekor ugyanaz a dokumentum
+frissül és rename-elődik. A régi active copy nem marad párhuzamosan.
 
----
+A Git history őrzi a korábbi current verziót; külön Archive-példány csak valódi történeti/archív
+szerep esetén indokolt.
 
 ## 4. `reference/`
 
@@ -171,48 +180,87 @@ A `CURRENT_*` elődök nem aktív authority-k.
 
 Ellenőrzött production mérföldkő:
 
-`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
+`0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 
-Az előző C.5B foundation óta elkészült többek között:
+Current lezárt foundation többek között:
 
-- Wellspring;
-- Beáramlás;
+- runtime package/publish;
+- Wellspring / Beáramlás;
 - Magnitúdó/Aura preflight;
 - Domain és `play_card`;
 - canonical ability/effect runtime foundation;
 - damage/vitals;
 - modifier/keyword/duration;
 - draw/reference runtime;
-- explicit öt-fázisú authoritative turn lifecycle.
+- Explicit Phase Foundation v1;
+- Reaction / Priority Foundation v1;
+- Combat + Pecsét Foundation C0–C6;
+- terminal Aeternal / `MatchResult` victory core.
 
-A régi Wellspring-first fejlesztési sor már történeti.
+Combat + Pecsét C0–C6:
 
-Learning/OQ current: `59/58/30`; synthesis/blueprint committed; OQ `50/17/7/0`.
+`COMPLETE_AND_ACCEPTED`
 
-Következő engine-fókusz:
+Final acceptance:
 
-`Reaction / Priority Foundation v1` `COMPLETE_AND_ACCEPTED`; következő engine-fókusz a Combat + Pecsét Foundation contract.
+- Debug/Release C#: `301/301 PASS`;
+- targeted C6: `8/8 PASS`;
+- determinism/reference: `100/100 PASS`;
+- canonical SHA:
+  `97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8`;
+- Python isolated: `465/465 PASS` + 5 skip;
+- exporter: `23/23 PASS`;
+- Godot C# positive/negative smoke: PASS;
+- unresolved P0/P1: `0/0`.
 
----
+Learning/OQ current:
+
+- registry/project records: `59`;
+- current local source: `58`;
+- project analyses: `30`;
+- OQ: `52 answered / 15 partly_answered / 7 deferred / 0 open`.
+
+Következő major product-facing cél:
+
+`VS1 / M6 – első ténylegesen játszható vertical slice`
+
+Canonical VS1 deckek:
+
+- `DECK-IGN-HAM-VS1-001`;
+- `DECK-AQU-MOR-VS1-001`.
+
+VS1 előtt nem válik automatikusan minden future engine-hiány kötelezővé.
+Csak tényleges deck/mechanic blocker vagy általános rules-correct / deterministic / viewer-safe invariáns kötelező.
 
 ## 9. Dokumentumnév- és verziószabály
 
 - Stabil szerepű engine-dokumentum fájlneve lehet verziószám nélküli, de belső verzióblokk kötelező.
 - Projektterv és projekt-térkép verziója a fájlnévben is szerepel.
+- Fájlnévben verziózott current dokumentum ugyanazon fájl frissítésével + rename-jével lép új verzióra.
+- Régi és új verzió nem maradhat párhuzamos active authority-ként.
+- Git history a normál current verziótörténet.
+- Archive csak valódi történeti/deprecated/replaced szerephez kell; verzióemelés önmagában nem archiválási ok.
 - `CURRENT_`, `new`, `final`, `copy`, `másolat` nem maradhat indokolatlan tartós aktív név.
-- Az újabb verzió nevezze meg a felváltott elődöt.
-- Felváltott verzió ne maradjon párhuzamos aktív authority.
 - Minden aktív Markdown-dokumentumban legyen verzió, dátum és státusz.
-
----
 
 ## 10. Dokumentációs állapot
 
 A nagy archiválási és cleanup-szakasz: `COMPLETE`.
 
-A `2608345b...` production mérföldkőhöz tartozó célzott aktív A+B dokumentációs consistency pass tartalmilag lezárult.
+A jelenlegi célzott szinkron a Combat + Pecsét C0–C6 lezárás utáni current-truth
+dokumentációs frissítés.
 
-A továbbiakban nem indul új tömeges cleanup.
+Current szerkesztési elv:
+
+```text
+committed current file
+→ Git/Archive history comparison
+→ targeted patch
+→ diff/consistency review
+→ human commit/push
+```
+
+Nem indul új tömeges cleanup.
 
 Frissítendő csak az, ami:
 
@@ -221,16 +269,20 @@ Frissítendő csak az, ami:
 - authority- vagy contractváltozást követ;
 - közvetlenül érintett státusz- vagy irányító dokumentum.
 
+A hivatalos főforrások későbbi szerkezeti újratervezése külön tervezett munka,
+de nem változtatja meg a jelen dokumentációs szinkron sorrendjét.
+
 ## 11. Visszaellenőrzési minimum
 
 Dokumentációs frissítés lezárása előtt ellenőrizni kell:
 
 1. projektterv/projekt-térkép/checkpoint összhang;
-2. hivatalos 1.4.3v hivatkozások;
-3. elavult v6.5/v1.8 vagy régebbi „aktuális” hivatkozások;
-4. Wellspring-first stale roadmapok;
+2. current rules authority: Core `1.5v`, Expansion `1.4.1v`;
+3. elavult `v6.8 / v1.11` vagy régebbi aktuális hivatkozások;
+4. Reaction-only vagy Combat-még-nincs stale roadmapok;
 5. `CURRENT_*` authority-hivatkozások;
 6. archív fájl aktívként hivatkozása;
 7. generált output canonicalként hivatkozása;
-8. Git diff és stage-scope;
-9. TEMP/build/cache kizárása.
+8. OQ aggregate `52 / 15 / 7 / 0`;
+9. Git diff és stage-scope;
+10. TEMP/build/cache kizárása.

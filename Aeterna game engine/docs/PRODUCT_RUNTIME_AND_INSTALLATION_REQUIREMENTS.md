@@ -2,11 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.2  
-**Dátum:** 2026-07-20  
+**Dokumentumverzió:** 1.3
+**Dátum:** 2026-09-05
 **Státusz:** aktív termékkövetelmény és release-elfogadási mérce  
-**Kapcsolódó mérföldkő:** AETERNA 0.0.1 zárt tesztkiadás  
+**Kapcsolódó mérföldkövek:** VS1 / M6 → AETERNA 0.0.1 zárt tesztkiadás
 **Kiválasztott architektúra:** Godot/GDScript visual client + C# authoritative engine + Python external tooling
+**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
 
 Ez a dokumentum azt rögzíti, milyen programot kell a játékos és a tesztelő kezébe adni.
 
@@ -17,7 +18,32 @@ Nem:
 - csomagolóscript;
 - annak bizonyítéka, hogy a production build már elkészült.
 
-A runtime-nyelvi döntés lezárult, de a production C# packaging még külön bizonyítandó.
+A runtime-nyelvi döntés lezárult. A production C# engine és a Godot same-process bridge foundation
+már aktív; a végleges Windows packaging és a 0.0.1 teljes product runtime továbbra is külön bizonyítandó.
+
+### Mérföldkő-scope elhatárolás
+
+Ez a dokumentum két külön acceptance-szintet kezel:
+
+1. **VS1 / M6 – első ténylegesen játszható vertical slice**
+   - minimális product-facing Godot kliens;
+   - teljes human-vs-AI meccs;
+   - simple fair AI;
+   - viewer-safe state/legal-action/event használat;
+   - reproducible AI-vs-AI smoke;
+   - csak a két canonical VS1 deckhez szükséges engine/content coverage.
+
+2. **AETERNA 0.0.1 – zárt offline Windows tesztbuild**
+   - szélesebb termékruntime;
+   - profil/save;
+   - tutorial;
+   - collection/economy;
+   - tester tooling;
+   - bug-report/replay/diagnostics;
+   - release/portable Windows packaging.
+
+A 0.0.1 követelmény nem válik automatikusan VS1 blockeré.
+VS1 előtt csak a játszható slice correctnesséhez és használhatóságához szükséges minimum kötelező.
 
 ---
 
@@ -299,7 +325,7 @@ Elvárt:
 
 ## 15. Windows packaging proof
 
-A production C# engine után kötelező bizonyítás:
+A 0.0.1 zárt tesztbuild előtt kötelező production bizonyítás:
 
 1. Godot .NET export;
 2. tiszta tesztgépes indítás;
@@ -314,11 +340,15 @@ A production C# engine után kötelező bizonyítás:
 11. nincs SDK vagy Editor prerequisite;
 12. nincs orphan process vagy listener;
 13. legalább rövid soak teszt;
-14. verzió- és hibajelzés.
+14. verzió- és hibajelzés;
+15. player-facing EXE indítás;
+16. bug-report/diagnostics csomag minimum.
 
-Ez a proof még nincs kész.
+Ez a teljes packaging proof még nincs lezárva.
 
----
+VS1 elfogadásához nem szükséges a teljes 0.0.1 release-packaging bizonyítás.
+VS1-nél elegendő a reprodukálható, stabil fejlesztői/teszt futtatás,
+ha a minimal playable Godot kliens és a teljes human-vs-AI meccs bizonyítható.
 
 ## 16. Release profilok
 
@@ -349,44 +379,136 @@ Javasolt fokozatok:
 
 ---
 
-## 17. Elfogadási kapu 0.0.1 előtt
+## 17. Elfogadási kapuk
+
+### 17.1 VS1 / M6 acceptance
+
+A VS1 akkor tekinthető első ténylegesen játszható vertical slice-nak, ha:
+
+- a két canonical deck aktív és feloldható:
+  - `DECK-IGN-HAM-VS1-001`;
+  - `DECK-AQU-MOR-VS1-001`;
+- minden ténylegesen szükséges kártya/ability/mechanic executable;
+- nincs unsupported VS1 blocker;
+- simple fair AI kizárólag viewer-safe snapshotot és engine legal actiont használ;
+- az AI nem tart külön rules engine-t;
+- a meccs authoritative `MatchResult` állapotig eljut;
+- minimal Godot kliens megjeleníti legalább:
+  - kéz;
+  - board/zónák;
+  - Pecsétállapot;
+  - legal actionök;
+  - target/pending/reaction állapot;
+  - alap feedback;
+- teljes human-vs-AI meccs lejátszható;
+- reproducible AI-vs-AI smoke fut;
+- hidden information helyes;
+- determinism/regression zöld;
+- minimum log/diagnostics rendelkezésre áll.
+
+VS1-hez nem kötelező automatikusan:
+
+- profile/save;
+- tutorial;
+- collection/economy;
+- booster/shop;
+- teljes replay UI;
+- tester-mode teljes eszköztár;
+- final Windows packaging;
+- teljes content coverage.
+
+### 17.2 AETERNA 0.0.1 acceptance
 
 A program akkor tekinthető átadható zárt tesztbuildnek, ha:
 
-- egyszerűen indul;
+- egyszerűen, lehetőleg EXE-ből indul;
 - offline működik;
 - nem igényel fejlesztői eszközt;
-- teljes meccs lejátszható;
+- player és tester használati mód elérhető;
+- teljes human-vs-AI meccs működik;
+- AI-vs-AI tesztfutás elérhető;
+- legalább 3 AI nehézség támogatott;
 - szabálymotor determinisztikus és tesztelt;
 - hidden information védett;
-- mentés és beállítások kontrolláltak;
-- log és bug report használható;
+- helyi profil/save működik;
+- starter/tutorial flow működik;
+- első tutorial után pontosan egy ingyenes starter-választás adható, idempotens módon;
+- collection/deck editor/test economy működik;
+- booster és duplicate conversion alap működik;
+- log/replay/bug-report/diagnostics használható;
 - nincs ismert blocking crash;
 - nincs orphan process;
 - runtime package kompatibilis;
 - verziók visszakereshetők;
-- a fő gameplay vertical slice-ok zöldek.
+- portable/offline Windows packaging bizonyított.
 
----
+Nem 0.0.1 scope:
+
+- human-human multiplayer;
+- online account;
+- server economy;
+- real-money purchase;
+- trading;
+- ranking/matchmaking;
+- anti-cheat;
+- final animation/polish.
 
 ## 18. Aktuális állapot
 
+Current production base:
+
+`0862e1002dbef81ee203852714d377592272a0e9`
+
 Lezárt:
 
-- Python-sidecar proof;
-- C# in-process candidate proof;
-- runtime-nyelvi döntés;
+- Python-sidecar proof – `COMPLETE_AND_FROZEN`;
+- C# in-process candidate proof – `COMPLETE_AND_ACCEPTED`;
+- runtime-language decision;
+- C.5B production C# foundation;
+- korábbi production gameplay/ability foundation;
+- Explicit Phase Foundation v1;
+- Reaction / Priority Foundation v1;
+- Combat + Pecsét Foundation C0–C6;
+- terminal Aeternal / authoritative `MatchResult`;
+- production Godot C# bridge/smoke foundation;
 - Godot + C# + Python szerepfelosztás.
 
-Még nyitott:
+Current state:
 
-- production C# engine;
-- production Godot bridge;
-- Windows export;
+`COMBAT_AND_SEAL_FOUNDATION_C0_C6 = COMPLETE_AND_ACCEPTED`
+
+Következő gate:
+
+`VS1_READINESS_REQUIRED`
+
+Következő major product-facing cél:
+
+`VS1 / M6 – első ténylegesen játszható vertical slice`
+
+VS1 current nyitott rétegek:
+
+- canonical VS1 deck/card/mechanic readiness audit;
+- szükséges content/ability blocker lezárás;
+- simple fair AI;
+- match orchestration;
+- minimal playable Godot UI;
+- teljes human-vs-AI match;
+- reproducible AI-vs-AI smoke;
+- VS1 acceptance.
+
+0.0.1 felé később továbbra is nyitott többek között:
+
+- final Windows export/portable packaging;
 - self-contained/prerequisite döntés;
-- save/log végleges helye;
-- soak és tiszta gépes teszt;
-- release package identity;
-- 0.0.1 teljes gameplay.
+- profile/save;
+- tutorial/starter unlock;
+- collection/deck editor;
+- local test economy;
+- booster/duplicate conversion;
+- replay/bug-report/diagnostics UX;
+- legalább 3 AI difficulty;
+- tester-mode toolset;
+- clean-machine/soak acceptance.
 
-A termékruntime-követelmények továbbra is kötelező elfogadási mércék. A kiválasztott C# architektúra csak akkor tekinthető release-késznek, ha ezeket production builddel bizonyítja.
+A termékruntime-követelmények továbbra is kötelező acceptance-mércék,
+de mérföldkő szerint alkalmazandók: VS1 minimum és 0.0.1 teljes zárt-test product scope külön kezelendő.

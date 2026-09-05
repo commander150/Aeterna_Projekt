@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.2\
-**Dátum:** 2026-07-22\
+**Dokumentumverzió:** 1.3
+**Dátum:** 2026-09-06
 **Státusz:** történeti prototípusterv és proof-folytonossági referencia  
 **Aktuális státuszfájl:** `PROTOTYPE_STATUS.md`  
 **Aktuális checkpoint:** `checkpoints/ENGINE_CHECKPOINT.md`  
-**Aktuális repository-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7`
+**Aktuális repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
 
 Ez a dokumentum a korábbi prototípuslépések célját és egymásra épülését őrzi.
 
@@ -19,7 +19,11 @@ Nem:
 - Codex-prompt;
 - következő programozási feladat.
 
-Az aktuális feladatokat az `ENGINE_CHECKPOINT.md`, az `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.4.md` és a `PROTOTYPE_STATUS.md` tartalmazza.
+Az aktuális feladatokat a `checkpoints/ENGINE_CHECKPOINT.md`, az `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md` és a `PROTOTYPE_STATUS.md` tartalmazza.
+
+Current next gate: `VS1_READINESS_REQUIRED`.
+
+A jelen fájlban szereplő korábbi gameplay slice nem azonos a current `VS1 / M6 – első ténylegesen játszható vertical slice` mérföldkővel.
 
 ---
 
@@ -139,7 +143,7 @@ Csak új, erős technikai bizonyíték nyithatja újra a döntést.
 
 ---
 
-## 4. Production prototípus és vertical slice sorrend
+## 4. Production prototípus és történeti foundation-slice sorrend
 
 ### C.5A
 
@@ -158,9 +162,9 @@ Státusz:
 - `COMPLETE_AND_ACCEPTED`;
 - lezáró commit: `931bf5571d541c752aa421a9f0626768bd8ffbe7`.
 
-### Első gameplay vertical slice
+### Korábbi production gameplay foundation slice
 
-C.5B után, a tényleges első gameplay-migrációs sorrend szerint:
+C.5B után a korai production gameplay foundation történeti migrációs sorrendje:
 
 1. Wellspring production state;
 2. player-visible Wellspring;
