@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.9
-**Dátum:** 2026-08-14
+**Dokumentumverzió:** 2.0
+**Dátum:** 2026-09-05
 **Státusz:** aktív, technológiafüggetlen contract-specifikáció
 **Aktuális megvalósítási státusz:** `CONTRACT_STATUS.md`
 **Production authority:** C#/.NET
-**Aktuális repository-bázis:** `7af5bf7fec7b762ec41d1368b072ff6a3d818f5e` – `docs: update project guidance after OQ and learning sync`
+**Aktuális repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 
 Ez a dokumentum az AETERNA Game Engine contract-first rétegének aktív szerkezeti specifikációja.
 
@@ -121,14 +121,14 @@ Nem:
 
 A belső igaz állapot.
 
-Tartalmazhat/production foundationben már tartalmaz többek között:
+Current productionben többek között:
 
 - match ID;
 - seed;
 - state version;
 - turn number;
 - canonical phase;
-- `starting_player_id`;
+- `StartingPlayerId`;
 - active player;
 - priority player;
 - player state-ek;
@@ -136,17 +136,23 @@ Tartalmazhat/production foundationben már tartalmaz többek között:
 - deck/hand/Void/Wellspring zónák;
 - Domain topology/occupancy;
 - turn-scoped usage state;
-- pending trigger/decision state;
 - continuous effect state;
 - modifier/keyword/duration state;
 - event sequence és log;
-- match result.
+- `ReactionWindow`;
+- `ResolutionStack`;
+- `QueuedTriggerBatches`;
+- `MatchSetupState`;
+- `PendingCombatState`;
+- `PendingSurgeWindowState`;
+- `SealSlots`;
+- terminal `MatchResult`.
 
-Későbbi bővítés:
+Future/külön scope lehet:
 
-- teljes Reaction/Priority state;
-- teljes combat state;
-- további pending choice/replacement state.
+- generic compound non-Reaction choice;
+- generic prevention/replacement;
+- további Expansion-specifikus pending state.
 
 Nem adható ki módosítható player-facing objektumként.
 
@@ -402,7 +408,7 @@ Nem azonos:
 
 ### Player-visible snapshot
 
-Minimum:
+Minimum/current contract:
 
 - schema version;
 - snapshot ID;
@@ -410,43 +416,49 @@ Minimum:
 - viewer ID;
 - state version;
 - turn/phase/priority summary;
-- own public/private allowed data;
+- own allowed public/private data;
 - opponent redacted data;
-- board;
-- resource summary;
-- pending decision summary;
+- Domain board;
+- Wellspring summary;
+- Seal slot summary;
+- pending decision/reaction/combat/surge summary;
 - enabled legal actions vagy reference;
 - recent visible events vagy index;
-- match result.
+- terminal match result.
 
 ### Visibility
 
-- saját kéz: owner-visible;
-- ellenfél kéz: count/redacted;
+- own hand: owner-visible;
+- opponent hand: count/redacted;
 - deck: count-only;
-- Void: public, szabály szerint;
-- Domain: public;
-- saját Wellspring identity: owner-visible;
-- ellenfél Wellspring identity: redacted;
+- Void: public, rules szerint;
+- Domain: public, rules szerint;
+- own Wellspring identity: owner-visible;
+- opponent Wellspring identity: redacted;
 - Wellspring count/activity: public;
 - face-down Jel: viewer szerint szűrt;
+- Seal slot identity/lane/status: public;
+- standing Seal card identity: hidden mindkét player-facing viewer előtt, owner előtt is;
+- Seal break reveal: public;
+- Surge után hand identity: ismét viewer-private;
+- Reveal history: public;
 - debug: külön mód.
 
 Player-facing output nem tartalmaz szükségtelen internal instance ID-t vagy debug payloadot.
 
-A `discard` művelet-, költség-, ok- és eventjelentés; nem önálló canonical zóna. Normál eldobáskor a tényleges célzóna `void`, de replacement szabály ettől eltérő célzónát is meghatározhat.
+A `discard` művelet-, költség-, ok- és eventjelentés; nem önálló canonical zóna.
+Normál eldobáskor a tényleges célzóna `void`, de replacement szabály ettől eltérhet.
 
 ### Fair AI
 
-Ugyanazt az observationt, enabled legal action listát és visible eventet kapja, mint az adott emberi játékos.
+Ugyanazt a viewer-safe snapshotot, engine-issued enabled legal action listát és visible eventet kapja,
+mint az adott emberi játékos. Az AI nem implementálhat külön rules legality engine-t.
 
----
-
-## 11. Pending decision
+## 11. Pending decision és Reaction/Combat specializációk
 
 A complex choice authoritative state.
 
-Lehetséges window family-k:
+Lehetséges window family-k többek között:
 
 - main;
 - reaction;
@@ -454,43 +466,87 @@ Lehetséges window family-k:
 - choice;
 - payment;
 - combat;
+- surge;
 - system.
 
-Minimum:
+Általános pending minimum:
 
 - has pending;
 - window type;
-- priority player;
+- priority/current decision player;
 - expected action family;
-- can pass;
+- can pass/decline, ha releváns;
 - state version;
 - allowed choices/action IDs;
 - optional safe prompt key/params.
 
 A frontend nem tárolhat egyedüli igaz pending állapotot.
 
-### Reaction / Priority v1 accepted specialization
+### Reaction / Priority v1
 
-Az első production Reaction slice külön aktív contractja:
+Specializált contract:
 
-`REACTION_PRIORITY_CONTRACT.md` v1.0 – `ACCEPTED_FOR_IMPLEMENTATION`.
+`REACTION_PRIORITY_CONTRACT.md`
 
-Megőrzi a jelen top-level public contractot, és erre specializál:
+Current státusz:
+
+`COMPLETE_AND_ACCEPTED`
+
+Current production alap:
 
 - `react`;
 - `pass_priority`;
 - engine-issued `reaction_option_id`;
 - typed `response_policy_id`;
 - MatchState-owned `ReactionWindow`;
-- canonical ability resolution stack;
-- viewer-safe `pending_decision_summary`;
+- canonical `ResolutionStack`;
+- viewer-safe pending projection;
 - existing `expected_state_version` stale guard;
 - RC1 single-responder closure;
-- RC2 queued trigger + post-resolution checkpoint.
+- RC2 queued trigger + post-resolution checkpoint/FIFO;
+- LIFO;
+- final revalidation.
 
-A részletes first-slice non-goal és acceptance szabályokat a specializált contract tartalmazza.
+### Combat pending
 
----
+Current `PendingCombatState` a committed attack/defense lifecycle authoritative state-je.
+
+Minimum fogalmi elemek:
+
+- attacker long-term object reference;
+- original target;
+- committed defender, ha van;
+- declaration/commit state;
+- reaction-window state;
+- participant continuity identity;
+- contact/outcome revalidation context.
+
+Long-term object identity:
+
+```text
+GameObjectRef {
+  ObjectId,
+  ObjectKindId,
+  IncarnationSequence
+}
+```
+
+Leave/re-enter, row/lane move vagy új incarnation nem kapcsolódhat vissza automatikusan a régi participant reference-hez.
+
+### Surge pending
+
+Current `PendingSurgeWindowState` a Seal break utáni Surge opportunity authoritative state-je.
+
+Exact public action:
+
+`resolve_surge_opportunity`
+
+Current v1 choices:
+
+- `apply`;
+- `decline`.
+
+A surged card ekkor már a tulajdonos kezében van.
 
 ## 12. Legal action szabályok
 
@@ -635,60 +691,108 @@ Viewer projection:
 - fair AI = player view;
 - debug külön.
 
-Aktív reference eventek:
+Aktív production event family többek között:
 
-- `zone_move`;
-- `turn_transition`.
-
-Aktív production event foundation többek között:
-
-- phase és turn transition;
+- phase/turn transition;
 - zone move;
-- card ready/activity state;
-- támogatott payment transition;
-- támogatott card-play transition;
-- canonical ability/effect resolution.
-
-Későbbi contract-bővítés:
-
+- card ready/activity;
+- payment;
+- card play;
+- ability/effect resolution;
 - Reaction/Priority;
-- combat;
-- Pecsét-feltörés/restore;
-- victory/defeat;
-- további replacement/prevention és nem támogatott ability-resolution esetek.
+- Combat declaration/commit/resolution;
+- `combat_resolved`;
+- `seal_break_intent`;
+- `seal_broken`;
+- `seal_revealed`;
+- `seal_surged`;
+- `aeternal_hit`;
+- `match_ended`.
 
-A pontos event-type lista és payload mindig az aktuális `CONTRACT_STATUS.md` és production contract szerint értelmezendő.
+Future/külön scope:
+
+- special Seal restore/ward effect eventek;
+- generic prevention/replacement;
+- unsupported Expansion/ability event family-k.
+
+A pontos event-type lista és payload mindig az aktuális `CONTRACT_STATUS.md`
+és production implementation szerint értelmezendő.
 
 ## 17. Aeternal és Pecsét contract
 
-Rögzített:
+### Seal slot
 
-- Aeternal = játékos;
+Canonical minimum:
+
+```text
+SealSlot {
+  SealSlotId,
+  OwnerPlayerId,
+  LaneIndex,
+  Status standing|broken,
+  CardInstanceId?
+}
+```
+
+Current invariánsok:
+
+- playerenként pontosan 6 stabil Seal slot;
+- lane 1–6;
+- slot identity/lane/status public;
+- standing Seal card identity hidden mindkét player-facing viewer előtt, owner előtt is;
+- Sealnek nincs HP;
+- standing → broken transition break pipeline-on keresztül;
+- breakkor public reveal;
+- Surge után a lap owner handba kerül;
+- hand identity ezután ismét owner-only;
+- reveal event/history public marad.
+
+Break pipeline:
+
+```text
+successful unprevented Seal hit
+→ seal_break_intent
+→ break commit
+→ seal_broken
+→ seal_revealed
+→ Surge to owner hand
+→ seal_surged
+→ Surge opportunity, ha eligible
+→ close
+```
+
+### Gondviselés / Surge opportunity v1
+
+Ha a surged card Magnitude-ja nagyobb a current player Magnitude-jánál,
+a tulajdonos dönthet:
+
+- keep in hand; vagy
+- face-down Wellspringbe helyezés.
+
+Ez nem normál Beáramlás.
+
+### Aeternal
+
+- Aeternal = player;
 - nincs HP;
 - nem damage/heal target;
-- Pecsét nincs HP;
-- ward break/restore esemény;
-- védelem nélküli sikeres direkt támadás vereség.
+- csak 0 standing Seal mellett targetelhető;
+- successful physical Aeternal hit immediate loss;
+- zero-Seal feltétel outcome előtt újra validálandó;
+- restored Seal megakadályozhatja a hit outcome-ot;
+- Oltalom commit után nem retargetel/cancel;
+- terminal `MatchResult` authoritative.
 
-Preferált eventek:
+Current events:
 
-- `ward_broken`;
-- `ward_restored`;
-- `ward_break_prevented`;
-- `aeternal_unprotected`;
-- `direct_attack_victory`;
-- `player_defeated`.
+- `aeternal_hit`;
+- `combat_resolved`;
+- `match_ended`.
 
-Nyitott:
+Future/külön scope:
 
-- Pecsét létrehozása;
-- visibility;
-- linked current;
-- restore action/effect;
-- combat payload;
-- snapshot state.
-
----
+- special Seal restore/ward ability payload;
+- generic prevention/replacement.
 
 ## 18. AI contract
 
@@ -903,8 +1007,7 @@ Az `incursion -> distribution` boundary végzi az end-of-turn modifier/keyword e
 a túlélő Entitások sebzésének eltávolítását. A játékosváltás és az új Ébredés automatikus
 entry-je csak a `distribution -> awakening` transitionben történik.
 
-Az unresolved mandatory trigger továbbra is gate-eli a normál phase actionöket. Combat,
-reaction/priority és Refresh Penalty végrehajtás nem része ennek a foundationnek.
+Az unresolved mandatory trigger továbbra is gate-eli a normál phase actionöket. A fenti Explicit Phase Foundation lezárásakor Combat, reaction/priority és Refresh Penalty még nem volt része ennek a foundationnek; a későbbi Reaction és Combat/Pecsét réteget a 24.3–24.4 fejezet rögzíti.
 
 A public `ActionResponse.Events` viewerje a requestet beküldő játékos akkor is, ha a
 transition közben az aktív játékos megváltozik. A response ugyanazt a viewer-specifikus
@@ -945,17 +1048,121 @@ Aktív foundation többek között:
 - canonical draw/reference runtime;
 - Explicit Phase Foundation v1.
 
-Ez `foundation` státusz:
+Ez a 24.2 fejezet a korábbi gameplay/ability foundation történeti scope-ját rögzíti. Nem jelent teljes kártyacoverage-et vagy teljes keyword supportot. A Reaction/Priority és Combat/Pecsét későbbi current contractját a 24.3–24.4 fejezet tartalmazza.
 
-- nem jelent teljes kártyacoverage-et;
-- nem jelent teljes keyword supportot;
-- nem jelent Reaction/Priority implementációt;
-- nem jelent combat implementációt;
-- nem jelenti a Refresh Penalty vagy teljes victory/defeat lifecycle elkészültét.
-
-Aktuális implementation-bázis:
+Történeti implementation-bázis:
 
 `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+
+### 24.3 Reaction / Priority Foundation v1
+
+Lezáró commit:
+
+`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
+
+Státusz:
+
+`COMPLETE_AND_ACCEPTED`
+
+Current contract:
+
+- authoritative `ReactionWindow`;
+- `ResolutionStack`;
+- `QueuedTriggerBatches`;
+- `react`;
+- `pass_priority`;
+- engine-issued reaction option;
+- typed response policy;
+- RC1;
+- RC2;
+- LIFO;
+- viewer-safe pending projection;
+- final revalidation.
+
+### 24.4 Combat + Pecsét Foundation C0–C6
+
+Rules migration:
+
+`61ad2605dd1aa3d7ea95444f0bb66cebf819014e`
+
+Production commits:
+
+- C0 `ca55bc3714de2692753fccc18a8f11d9dac1beea`;
+- C1+C2 `558d4453a1604c0ebe76065df08a207192c21c8b`;
+- C3 `d236f0e3c36994f65e7d00d25972660baac2a842`;
+- C4 `68b07dd6906fc8c37245325a855322d48f5f2635`;
+- C5 `d30f8a4c42383a0200e416acb7148facc3bbbc11`;
+- C6 `0862e1002dbef81ee203852714d377592272a0e9`.
+
+Státusz:
+
+`COMBAT_AND_SEAL_FOUNDATION_C0_C6 = COMPLETE_AND_ACCEPTED`
+
+Current contract core:
+
+- canonical setup + Jóslat;
+- `MatchSetupState`;
+- six-Seal model/privacy;
+- `attack` / AttackCommit;
+- intervention / DefenseCommit;
+- two Combat ReactionWindows;
+- `PendingCombatState`;
+- participant continuity;
+- contact revalidation;
+- Entity Combat simultaneous damage;
+- SealBreak/reveal/Surge;
+- `PendingSurgeWindowState`;
+- Gondviselés;
+- Aeternal terminal outcome;
+- terminal `MatchResult`.
+
+Combat lifecycle:
+
+```text
+DECLARATION
+→ DECLARATION LEGALITY
+→ COMMIT
+→ TIMING ANCHOR
+→ TRIGGERS/REACTIONS
+→ PARTICIPANT CONTINUITY
+→ COMBAT CONTACT LEGALITY
+→ RESOLUTION CONDITIONS
+→ COMBAT OUTCOME
+→ AFTERMATH
+```
+
+Current implementation-bázis:
+
+`0862e1002dbef81ee203852714d377592272a0e9`
+
+Final acceptance:
+
+- Debug/Release C#: `301/301 PASS`;
+- targeted C6: `8/8 PASS`;
+- determinism/reference: `100/100 PASS`;
+- canonical byte count: `210676`;
+- canonical SHA:
+  `97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8`;
+- Python isolated `465/465 PASS` + 5 skip;
+- exporter `23/23 PASS`;
+- Godot positive/negative smoke PASS;
+- unresolved P0/P1 `0/0`.
+
+### 24.5 Current next contract gate
+
+Nincs előre kijelölt általános future engine-feature contract.
+
+Current gate:
+
+`VS1_READINESS_REQUIRED`
+
+A két canonical VS1 deck card/mechanic auditja dönti el, mely hiányból lesz következő finite contract:
+
+- `DECK-IGN-HAM-VS1-001`;
+- `DECK-AQU-MOR-VS1-001`.
+
+Generic prevention/replacement, Refresh Penalty, Hasítás, full Burst/Jel vagy más future mechanika
+csak akkor kötelező VS1 előtt, ha a readiness audit tényleges blockerként azonosítja.
 
 ---
 
@@ -986,9 +1193,18 @@ Történeti migráció:
 
 - `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`.
 
-Nyitott döntések:
+A migration map current konszolidációs triggerfeltételei a Reaction és Combat/Pecsét foundation
+lezárásával teljesültek. Ezért a map `ARCHIVE_CANDIDATE_AFTER_MIGRATION_CLOSE`, de csak
+cross-reference audit után mozgatható Archive-ba.
+
+Nyitott/részleges döntések:
 
 - `OPEN_QUESTIONS.md`;
 - `OPEN_QUESTIONS_DECISIONS.md`.
 
-A korábbi 1.4-es, Python-reference-központú specifikáció a Git-történetben megmarad. Az 1.5-ös változat a lezárt C# authority mellett technológiafüggetlen contractjelentést tart fenn.
+Current OQ aggregate:
+
+`52 answered / 15 partly_answered / 7 deferred / 0 open`.
+
+A korábbi 1.4-es, Python-reference-központú specifikáció a Git-történetben megmarad.
+A v2.0 a lezárt C# authority mellett a Reaction + Combat/Pecsét C0–C6 current contract meaninget is rögzíti.

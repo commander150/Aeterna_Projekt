@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.3
-**Dátum:** 2026-08-17
-**Státusz:** aktív current-decision kiegészítés – az OQ-regiszter 2.2 státuszait nem módosítja
+**Dokumentumverzió:** 2.4
+**Dátum:** 2026-09-05
+**Státusz:** aktív current-decision napló – C0–C6 current-truth sync után
 **Kapcsolódó kérdésregiszter:** `OPEN_QUESTIONS.md`
-**Dokumentációs remote bázis:** `70cabb59bd5e3f6f290dd1045b767df19483c8f8`
-**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95`
+**Dokumentációs remote bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 
 Ez a fájl az `OPEN_QUESTIONS.md` tételeihez tartozó current canonical/default,
 részleges, deferred, extension és superseding döntéseket rögzíti.
@@ -75,14 +75,14 @@ Minden OQ explicit módon visszakereshető ebben a dokumentumban.
 | `OQ-DATA-005` | `answered` | Runtime package, build és provenance |
 | `OQ-DATA-006` | `answered` | Runtime package, build és provenance |
 | `OQ-SNAP-001` | `answered` | Projection és visibility |
-| `OQ-SNAP-002` | `partly_answered` | Aeternal és Pecsét |
+| `OQ-SNAP-002` | `answered` | Aeternal és Pecsét |
 | `OQ-SNAP-003` | `answered` | Projection és visibility |
 | `OQ-SNAP-004` | `answered` | Projection és visibility |
 | `OQ-SNAP-005` | `partly_answered` | Reaction, timing és pending state |
 | `OQ-SNAP-006` | `answered` | Projection és visibility |
 | `OQ-LA-001` | `answered` | Legal action és request authority |
 | `OQ-LA-002` | `partly_answered` | Reaction, timing és pending state |
-| `OQ-LA-003` | `partly_answered` | Combat |
+| `OQ-LA-003` | `answered` | Combat |
 | `OQ-LA-004` | `partly_answered` | Aura és payment |
 | `OQ-LA-005` | `partly_answered` | Targeting, choice és partial resolution |
 | `OQ-LA-006` | `partly_answered` | Legal action és request authority |
@@ -160,8 +160,8 @@ Mindhárom OQ: `answered`.
 **OQ-DOC-001 / OQ-DOC-002 / OQ-DOC-003**
 
 - Official rules authority DOCX:
-  - `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`
-  - `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`
+  - `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`
+  - `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`
 - Engine/project docs aktív formátuma Markdown.
 - Nem tartunk kézzel párhuzamos canonical MD + DOCX másolatot ugyanarról a technical tartalomról.
 - Reader/export PDF/DOCX csak konkrét publishing/audience use case esetén készül; ez `RESERVED_EXTENSION_POINT`, nem current blocker.
@@ -275,159 +275,136 @@ külön projectionként bővíthető; nem kell ugyanazt a DTO-t minden consumerr
 
 **OQ-SNAP-002 / OQ-ABIL-006 / OQ-RULES-007**
 
-### Official Core már rögzíti
+### Current canonical core
 
-- Aeternal = játékos; nincs HP, nem damage/heal target.
-- Kezdő Pecsét-réteg: pakli felső 6 lapja, face-down, a hat Áramlathoz kötve.
-- Pecsét állapot: fennáll/feltört; nem HP-alapú.
-- Feltörés/felfedés/Surge és védtelen Aeternal elleni direct victory Core szabályai léteznek.
+A C0–C6 production contract lezárta:
 
-### Active gates
+- playerenként 6 stabil Seal slot;
+- lane 1–6;
+- `standing|broken` státusz;
+- slot identity/lane/status public;
+- standing Seal card identity hidden mindkét player-facing viewer előtt, owner előtt is;
+- Sealnek nincs HP;
+- break reveal public;
+- Surge owner handba;
+- Surge után hand identity ismét viewer-private;
+- reveal history public;
+- Combat-oldali Seal targeting/break/Surge;
+- Aeternal no-HP semantics;
+- Aeternal csak 0 standing Seal mellett targetelhető;
+- successful Aeternal physical hit terminal loss;
+- authoritative `MatchResult`.
 
-- exact owner/opponent Seal identity visibility;
-- snapshot schema;
-- combat integration;
-- special ward break/prevent/restore effect payload;
-- Expansion interaction.
+### OQ-SNAP-002
 
-Ezért:
-- `OQ-SNAP-002` `partly_answered`;
-- `OQ-ABIL-006` `partly_answered`;
-- `OQ-RULES-007` `partly_answered`.
+**Státusz:** `answered`
 
-A régi általános „Pecsét létrehozása nyitott” megfogalmazás **superseded** a Core source újraolvasása miatt.
+A current snapshot/visibility kérdés lezárt. Future special Seal restore/ward effect nem tartja ezt az OQ-t nyitva.
 
----
+### OQ-ABIL-006
+
+**Státusz:** `partly_answered`
+
+Current Combat Seal/Aeternal targeting és event core lezárt.
+
+Fennmaradó gate:
+
+- ability/ward targeting;
+- special Seal restore;
+- további effect/event payload.
+
+### OQ-RULES-007
+
+**Státusz:** `partly_answered`
+
+Current setup/visibility/combat/break/Surge/victory/snapshot/event/action core lezárt.
+
+Fennmaradó gate:
+
+- special Seal restore/ward effect;
+- további Expansion-interakciók.
+
+Rules authority current:
+
+- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
 
 ## 9. Reaction, timing és pending state
 
 **OQ-SNAP-005 / OQ-LA-002 / OQ-AR-005 / OQ-ABIL-004**
 
-### Official reaction foundation
+### Current production foundation
 
-- reaction window esemény és final resolution között;
-- nem minden event nyit windowt;
-- mindkét játékos eligible esetén non-initiator first;
-- pass;
-- két egymást követő passz zárja a két-player windowt;
-- reaction egymásra épülhet;
-- LIFO resolution;
-- resolution-time revalidation;
-- lezárt event nem nyílik újra visszamenőleg;
-- simultaneous-effect default ordering és mandatory/optional trigger semantics official 4.1-ben már definiált.
+Reaction / Priority Foundation v1:
 
-A korábbi decision-log `multi-trigger ordering` és `optional/mandatory trigger` általános
-nyitott gate-je **stale és superseded**.
+`COMPLETE_AND_ACCEPTED`
 
-### Ige / egyszeri Rituálé kijátszási és feloldási lifecycle – current default
+Current core:
 
-**Kapcsolat:** `EXTENDS` – a hivatalos 1.4.3v „feloldás után Üresség” szabályát
-és a Reaction/Priority current defaultot pontosítja.
+- event-specific ReactionWindow;
+- engine-issued `react` / `pass_priority`;
+- non-initiator first, ha mindkét player eligible;
+- RC1 single-responder closure;
+- két-player window két egymást követő passzal zár;
+- nested reaction;
+- canonical ResolutionStack;
+- LIFO;
+- final revalidation;
+- RC2 queued trigger + post-resolution checkpoint/FIFO;
+- viewer-safe pending projection;
+- Combat declaration-window integration;
+- `PendingCombatState`;
+- `PendingSurgeWindowState`.
 
-**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT / PLAYTEST_REVIEWABLE`
+### OQ-AR-005
 
-A fizikai terület jelenlegi munkaneve **„Feloldási Sáv”**.
-Ez `WORKING_NAME_ONLY / NOT_FINAL`; a későbbi végleges elnevezés nem gameplay authority.
+**Státusz:** `answered`
 
-Current rules default:
+Action response + Reaction pending authority current default lezárt.
 
-```text
-kéz
-→ kijátszás / költség / szükséges declaration
-→ közös resolution terület
-→ saját feloldási kísérlet
-→ Üresség
-```
+### OQ-SNAP-005
 
-Részletesen:
+**Státusz:** `partly_answered`
 
-- az Ige és az **egyszeri / feloldódó Rituálé** elfogadott kijátszáskor elhagyja
-  a normál kézállapotot;
-- a lap a két játékos által közösen használt, nyilvános `resolution` zónába kerül;
-- a `resolution` zóna nem Domínium, nem Horizont, nem Zenit, nem Ősforrás és nem Üresség;
-- a lap ettől nem számít Domain értelemben „játékba került” objektumnak;
-- a pending lap ugyanabból a kézből nem játszható ki újra;
-- ha a subject reagálható, a ReactionWindow a lap `resolution` állapota alatt nyílik meg;
-- a lap csak a **saját feloldási kísérletének lezárása után** kerül Ürességbe;
-- ez akkor is igaz, ha a feloldás érdemi hatás nélkül / invalidated állapotban zárul,
-  hacsak későbbi explicit replacement/destination szabály mást nem mond;
-- current default szerint a közös resolution terület **nem vezet be külön slot- vagy
-  férőhely-korlátot** a kijátszhatóságra;
-- non-reactable Ige/egyszeri Rituálé ugyanezt a szemantikai lifecycle-t követi,
-  csak a `resolution` állapot egyetlen atomikus engine transition belső része is lehet;
-- a fizikai grafikai kialakítás, a munkanév és a későbbi esetleges kapacitási szabály
-  playtest/design review során explicit döntéssel módosítható.
+Reaction, Combat és Surge pending state/projection current core lezárt.
 
-**Nem része ennek a döntésnek:**
+Fennmaradó gate:
 
-- tartósan játékban maradó Rituálé pontos zónája/lifecycle-ja;
-- Burst;
-- Jel;
-- replacement/prevention;
-- a fizikai játéktér végleges mérete és grafikai kialakítása.
+- generic compound target/payment/choice;
+- cancel/back;
+- nested non-Reaction decision schema/projection.
 
-Az OQ-státuszösszesítés ettől nem változik:
-`50 answered / 17 partly_answered / 7 deferred / 0 open`.
+### OQ-LA-002
 
-### Reaction current technical defaults – D1–D5
+**Státusz:** `partly_answered`
 
-- public actions: `react`, `pass_priority`;
-- engine-issued `reaction_option_id`;
-- typed `response_policy_id`;
-- authoritative reaction/pending state a `MatchState` része;
-- snapshotban a meglévő `pending_decision_summary` bővül viewer-safe reaction adatokkal.
+Reaction/Priority és Combat timing/integration current production core lezárt.
 
-### RC1 current default
+Fennmaradó gate:
 
-Single eligible responder:
-- egy opportunity;
-- `pass_priority` az ablakot lezárja;
-- nincs fake második pass.
+- generic prevention/replacement;
+- complex nested choice;
+- future explicit special timing policy.
 
-### RC2 current default – formálható
+### OQ-ABIL-004
 
-Ordinary trigger:
+**Státusz:** `partly_answered`
 
-```text
-committed event
-→ trigger created/discovered immediately
-→ pending queued trigger
-→ current reaction/effect resolution cycle continues
-→ current cycle fully unwinds
-→ post-resolution trigger checkpoint
-→ queued trigger processing
-```
+Ability-level Reaction hook + Combat integration aktív; timing authority az engine.
 
-Different-timing trigger batch current default:
+Fennmaradó gate:
 
-```text
-chronological FIFO by originating committed-event sequence
-```
+- generic prevention/replacement;
+- complex nested choice;
+- future special timing;
+- teljes content/ability coverage.
 
-Same-timing batch: official AETERNA simultaneous ordering.
-
-### Reserved timing extensions
-
-Az RC2 current default tudatosan nem zárja ki:
+Reserved extension:
 
 - `strict_event_window`;
-- `reaction_window`;
-- `delayed_effect`;
-- explicit immediate timing override;
+- delayed/immediate special timing;
 - future `TriggerActivationPolicy`;
 - future `TriggerBatchOrderPolicy`.
-
-A Yu-Gi-Oh implicit `when/if` / missed-timing nyelvi szabálya nincs globálisan importálva.
-Ha strict timing később szükséges, explicit typed policy legyen.
-
-### Státusz
-
-- `OQ-AR-005`: `answered` – action response + reaction pending authority current default lezárt.
-- `OQ-SNAP-005`: `partly_answered` – compound non-reaction pending choices maradnak.
-- `OQ-LA-002`: `partly_answered` – prevention/replacement, combat/special timing és komplex nested integration marad.
-- `OQ-ABIL-004`: `partly_answered` – prevention/replacement, coverage és special timing integration marad.
-
----
 
 ## 10. Legal action és request authority
 
@@ -472,24 +449,55 @@ Current:
 
 **OQ-LA-003**
 
-Az official 1.4.3 Core már szabályozza:
-- attack eligibility;
+### Current canonical production contract
+
+A Combat + Pecsét Foundation C0–C6 lezárta:
+
+- declaration legality;
+- AttackCommit;
 - attacker Exhaust;
-- target declaration;
-- Oltalom;
-- block;
-- simultaneous combat damage;
-- Pecsét break;
-- Surge;
-- unprotected Aeternal direct victory.
+- original target;
+- intervention / DefenseCommit;
+- adjacent own Active Horizon defense;
+- no lane wrap;
+- Oltalom normal intervention tiltás;
+- aerial-contact rules;
+- két Combat ReactionWindow;
+- participant continuity;
+- contact legality revalidation;
+- simultaneous Entity Combat damage;
+- SealBreak / reveal / Surge;
+- Gondviselés;
+- Aeternal terminal outcome.
 
-Ezért a régi `open` státusz **superseded**.
+Lifecycle:
 
-**Active gate:** production combat action/event/pending-state contract és Reaction-integráció.
+```text
+DECLARATION
+→ DECLARATION LEGALITY
+→ COMMIT
+→ TIMING ANCHOR
+→ TRIGGERS/REACTIONS
+→ PARTICIPANT CONTINUITY
+→ COMBAT CONTACT LEGALITY
+→ RESOLUTION CONDITIONS
+→ COMBAT OUTCOME
+→ AFTERMATH
+```
 
-**Státusz:** `partly_answered`.
+Current accepted edge semantics többek között:
 
----
+- defender intervention, nem target replacement;
+- committed defender eltűnése/contact failure esetén defended/no-hit;
+- original target eltűnése DefenseCommit után nem állítja vissza a targetet;
+- move/lane/row vagy leave/re-enter nem reconnectel;
+- exhausted defender retaliates;
+- damage simultaneous;
+- Seal/Aeternal outcome újravalidált.
+
+**Státusz:** `answered`
+
+Future Hasítás, special timing vagy Expansion-combat extension önmagában nem tartja az OQ-LA-003-at nyitva.
 
 ## 12. Aura és payment
 
@@ -732,13 +740,11 @@ A régi `perform_inflow` / `skip_inflow` tri-state technikai contract történet
 
 ## 21. Aktív nyitott döntési kapuk összefoglalása
 
-A 17 `partly_answered` OQ:
+A 15 `partly_answered` OQ:
 
 ```text
-OQ-SNAP-002
 OQ-SNAP-005
 OQ-LA-002
-OQ-LA-003
 OQ-LA-004
 OQ-LA-005
 OQ-LA-006
@@ -754,40 +760,48 @@ OQ-RULES-003
 OQ-RULES-007
 ```
 
-A 7 `deferred`:
+A 7 `deferred` OQ változatlan.
+
+Current aggregate:
 
 ```text
-OQ-EVENT-005
-OQ-EVENT-006
-OQ-DIAG-006
-OQ-AI-006
-OQ-AI-007
-OQ-RULES-002
-OQ-RULES-004
+52 answered
+15 partly_answered
+7 deferred
+0 open
+74 total
 ```
 
-`open`: 0.
+C0–C6 által lezárt státuszváltás:
 
----
+- `OQ-SNAP-002`: `partly_answered` → `answered`;
+- `OQ-LA-003`: `partly_answered` → `answered`.
+
+A részleges OQ-k fennmaradó gate-jeit nem szabad automatikusan VS1-blockernek tekinteni.
 
 ## 22. Változásnapló
+
+### 2.4 – 2026-09-05
+
+- C0–C6 milestone utáni current-decision sync.
+- `OQ-SNAP-002`: `partly_answered` → `answered`.
+- `OQ-LA-003`: `partly_answered` → `answered`.
+- `OQ-SNAP-005`: Reaction/Combat/Surge pending core lezárva; generic compound/non-Reaction gate maradt.
+- `OQ-LA-002`: Combat timing/integration lezárva; generic prevention/replacement, complex choice és future special timing maradt.
+- `OQ-ABIL-004`: Reaction + Combat integration lezárva; generic prevention/choice/coverage maradt.
+- `OQ-ABIL-006`: Combat Seal/Aeternal targeting/event core lezárva; ability/ward targeting + restore/payload maradt.
+- `OQ-RULES-007`: setup/visibility/combat/break/Surge/victory core lezárva; special restore/ward + Expansion maradt.
+- Current aggregate: `52 answered / 15 partly_answered / 7 deferred / 0 open`.
+- Production evidence base: `0862e1002dbef81ee203852714d377592272a0e9`.
+
+### 2.3 – 2026-08-17
+
+- A 2.2 OQ-regiszter státuszait nem módosító current-decision kiegészítés.
+- Evolving-design / current-default rugalmassági elv explicit rögzítve.
+- További current-decision és extension részletek szinkronizálva.
 
 ### 2.2 – 2026-08-15
 
 - Az OQ-regiszterrel együtt teljes páros consistency review.
 - Minden 74 OQ explicit decision coverage indexet kapott.
-- Három korábban hiányzó explicit anchor rendezve: `OQ-LA-003`, `OQ-LA-006`, `OQ-AR-001`.
-- Reaction stale multi-trigger/mandatory-optional gate eltávolítva az official 4.1 alapján.
-- Target/partial-resolution stale gate szűkítve.
-- Pecsét Core creation/state scope pontosítva.
-- Data build/fingerprint policy pontosítva.
-- Derived→human source automatic backwrite tiltás current defaultként rögzítve.
-- Typed exception-module current default rögzítve; silent fallback továbbra is tiltott.
-- Reaction D1–D5, RC1 és formálható RC2 default adminisztrálva.
-- RC2 strict timing/missed timing future explicit extension pointként fenntartva.
-- Event/projection/diagnostic current defaults lezárva.
-- Product runtime orphan blokk TECH-005 alá visszakötve.
-- `answered` fogalom current-default jelentése és superseding/evolving-design elv bevezetve.
-- Új státuszösszesítés: 50 answered / 17 partly_answered / 7 deferred / 0 open.
-
-A 2.1 tartalma és korábbi indoklásai a Git-történetben megmaradnak.
+- A0–A4 audit, Reaction D1–D5, RC1/RC2 és további current defaultok szinkronizálva.

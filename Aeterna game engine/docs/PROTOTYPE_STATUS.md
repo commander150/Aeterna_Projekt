@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.5
-**Dátum:** 2026-08-14
+**Dokumentumverzió:** 1.6
+**Dátum:** 2026-09-05
 **Státusz:** aktív prototípus- és technikai bizonyíték státusztérkép
-**Felváltott verzió:** `PROTOTYPE_STATUS.md` 1.4
-**Aktuális repository-bázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Előző aktív verzió:** 1.5 (Git history)
+**Aktuális repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 
 Ez a dokumentum rögzíti:
 
@@ -30,6 +30,7 @@ Ez a dokumentum rögzíti:
 | `REFERENCE_ORACLE` | Összehasonlítási/regressziós referencia. |
 | `IMPLEMENTED_AND_ACTIVE` | Productionben létező, tovább bővíthető réteg. |
 | `RULES_CONTRACT_PREP` | Következő feladat, de implementáció előtt rules/contract munka kell. |
+| `VS1_READINESS_REQUIRED` | Következő product-facing kapu; előbb deck/mechanic readiness audit szükséges. |
 | `RESEARCH_ONLY_DEFERRED` | Későbbi kutatási irány. |
 | `HISTORICAL_REFERENCE` | Történeti bizonyíték. |
 | `NOT_IMPLEMENTED` | Productionben még nincs megvalósítva. |
@@ -134,7 +135,7 @@ Az akkori hiánylista történeti; nem használható jelenlegi queue-ként.
 
 ---
 
-## 9. C.5B utáni production gameplay vertical slice
+## 9. Korábbi production gameplay foundation slice
 
 - Wellspring: `IMPLEMENTED_AND_ACTIVE`
 - player-visible Wellspring: `IMPLEMENTED_AND_ACTIVE`
@@ -203,45 +204,98 @@ Lezáró acceptance:
 
 ---
 
-## 12. Következő production réteg
+## 12. Reaction + Combat/Pecsét production foundation
 
 ### Reaction / Priority Foundation v1
 
-`RULES_CONTRACT_PREP`
+`COMPLETE_AND_ACCEPTED`
 
-Még nem kész implementation task.
+Lezáró commit:
 
-Előbb:
+`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
 
-- official rules audit;
-- OQ-frissítés;
-- pending/reaction contract;
-- pass;
-- resolution ordering;
-- exact public state/event boundary.
+Aktív productionben többek között:
 
-Combat nem része ennek az első slice-nak.
+- authoritative `ReactionWindow`;
+- `react`;
+- `pass_priority`;
+- resolution stack;
+- LIFO;
+- RC1;
+- RC2 queued-trigger checkpoint/FIFO;
+- viewer-safe pending projection.
 
----
+### Combat + Pecsét Foundation C0–C6
 
-## 13. Még nem teljes production
+`COMPLETE_AND_ACCEPTED`
 
-- teljes Reaction/Priority runtime;
-- combat;
-- attack/block;
-- Pecsétfeltörés;
-- teljes Pecsét state/visibility;
+Lezáró commit:
+
+`0862e1002dbef81ee203852714d377592272a0e9`
+
+Aktív productionben többek között:
+
+- canonical setup + Jóslat;
+- hat stabil Pecsét-slot;
+- viewer-safe Seal visibility;
+- `attack` / AttackCommit;
+- intervention / DefenseCommit;
+- két Combat ReactionWindow;
+- Entity Combat;
+- SealBreak / reveal / Surge;
+- Gondviselés;
+- Aeternal terminal outcome;
+- authoritative `MatchResult v2`.
+
+Final acceptance:
+
+- Debug/Release `301/301 PASS`;
+- determinism/reference `100/100 PASS`;
+- Python isolated `465/465 PASS` + 5 skip;
+- exporter `23/23 PASS`;
+- Godot positive/negative smoke PASS;
+- unresolved P0/P1: `0/0`.
+
+### Következő product-facing kapu
+
+`VS1_READINESS_REQUIRED`
+
+A következő lépés nem általános engine-bővítés, hanem a két canonical VS1 deck
+card/mechanic readiness auditja:
+
+- `DECK-IGN-HAM-VS1-001`;
+- `DECK-AQU-MOR-VS1-001`.
+
+Csak a tényleges VS1 blocker válik kötelező következő implementation slice-szá.
+
+## 13. Még nem teljes production / product layer
+
+Továbbra sem teljes többek között:
+
 - Refresh Penalty;
-- prevention/replacement teljes runtime;
-- teljes multi-trigger ordering;
-- teljes ability coverage;
-- victory/defeat;
-- replay;
-- production AI-vs-AI;
+- generic prevention/replacement;
+- compound non-reaction choice;
+- special timing/activation-policy kivételek;
+- teljes ability/content coverage;
+- special Seal restore/ward-effect runtime;
+- Hasítás runtime;
+- full Burst/Jel runtime;
+- replay runner;
+- production AI-vs-AI orchestration;
+- simple fair VS1 AI;
+- minimal playable Godot UI;
 - final Windows packaging;
-- full player UI.
+- profile/save;
+- tutorial;
+- collection/economy;
+- teljes player UI.
 
----
+Ezek közül nem mind VS1-blocker.
+
+VS1 előtt csak az a hiány kötelező, amely:
+
+1. a két canonical VS1 deck tényleges szabályos lejátszásához kell; vagy
+2. általános rules-correct / deterministic / viewer-safe invariáns.
 
 ## 14. Python–C# headless kapcsolat
 
@@ -277,8 +331,13 @@ A dokumentum célja státusztérkép, nem teljes roadmap vagy contract-specifik�
 - C# RuntimeCandidate: `COMPLETE_AND_ACCEPTED`.
 - Production authority: C#.
 - C.5B: `COMPLETE_AND_ACCEPTED`.
-- Első production gameplay vertical slice: elkészült.
+- Korábbi production gameplay foundation slice: `COMPLETE_AND_ACCEPTED`.
 - Ability/effect runtime foundation: aktív.
 - Explicit Phase Foundation v1: `COMPLETE_AND_ACCEPTED`.
-- Következő fókusz: Reaction / Priority rules/contract előkészítés.
-- Combat: még nem következő implementation slice.
+- Reaction / Priority Foundation v1: `COMPLETE_AND_ACCEPTED`.
+- Combat + Pecsét Foundation C0–C6: `COMPLETE_AND_ACCEPTED`.
+- Terminal victory core: `COMPLETE_AND_ACCEPTED`.
+- Current repository/production base: `0862e1002dbef81ee203852714d377592272a0e9`.
+- Current next gate: `VS1_READINESS_REQUIRED`.
+- Következő major product-facing cél: VS1 / M6.
+- 0.0.1: aktív hosszú távú product target.

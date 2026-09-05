@@ -1,13 +1,13 @@
-# AETERNA – Projekt Térkép és Fájlstátusz v1.11
+# AETERNA – Projekt Térkép és Fájlstátusz v1.12
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.11
-**Dátum:** 2026-08-30
+**Dokumentumverzió:** 1.12
+**Dátum:** 2026-09-05
 **Státusz:** aktív magas szintű projekt- és fájlszerep-térkép
-**Felváltott dokumentum:** `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.10.md`
-**Szinkronizációs repository-bázis:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
-**Production engine mérföldkő:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
+**Előző aktív verzió:** 1.11 (Git history)
+**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
 Ez a dokumentum a jelenlegi fő projekt-rétegeket, aktív forrásokat, fontos fájlszerepeket és történeti elhatárolásokat rögzíti. Nem teljes repository-inventár és nem részletes cleanup-napló.
@@ -29,7 +29,8 @@ Ez a dokumentum a jelenlegi fő projekt-rétegeket, aktív forrásokat, fontos f
 11. cross-project synthesis;
 12. AETERNA architecture blueprints;
 13. történeti archívum;
-14. regenerálható outputok és test fixture-ök.
+14. regenerálható outputok és test fixture-ök;
+15. machine-local external tooling.
 
 Elfogadott authority:
 
@@ -43,8 +44,8 @@ Elfogadott authority:
 
 ### 2.1 Hivatalos szabályforrások
 
-- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`;
-- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`.
+- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
 
 Státusz: `ACTIVE_CANONICAL_RULE_SOURCE`
 
@@ -78,8 +79,8 @@ Státusz: `ACTIVE_DATA_AUDIT`
 
 - root `README.md`;
 - `Aeterna dokumentációk/README.md`;
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.8.md`;
-- jelen `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.11.md`;
+- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
+- jelen `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`;
 - `Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md`.
 
 A korábbi projekttervek és projekt-térképek történeti/archív elődök.
@@ -114,7 +115,7 @@ C.5B foundation commit:
 
 Aktuális production mérföldkő:
 
-`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
+`0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 
 Jelenlegi bizonyított production scope többek között:
 
@@ -123,13 +124,11 @@ Jelenlegi bizonyított production scope többek között:
 - state version / stale rejection;
 - player-visible snapshot;
 - viewer-safe event projection;
-- Wellspring;
-- normál Beáramlás;
+- Wellspring / normál Beáramlás;
 - Magnitúdó- és Aura-preflight;
 - activity mutation;
 - Domain és `play_card`;
-- canonical zone transition;
-- Void;
+- canonical zone transition / Void;
 - canonical card/runtime binding;
 - canonical ability/effect execution foundation;
 - target/trigger/effect runtime;
@@ -138,19 +137,35 @@ Jelenlegi bizonyított production scope többek között:
 - modifier/keyword/duration;
 - draw/reference runtime;
 - explicit öt-fázisú turn lifecycle;
-- Godot production bridge;
 - Reaction / Priority Foundation v1;
-- shared `resolution` zone/lifecycle foundation.
+- shared `resolution` lifecycle;
+- canonical setup + Jóslat;
+- six-Seal state/visibility;
+- `attack` / AttackCommit;
+- intervention / DefenseCommit;
+- két Combat ReactionWindow;
+- Entity Combat;
+- SealBreak / reveal / Surge;
+- Gondviselés;
+- Aeternal outcome;
+- terminal `MatchResult v2`;
+- Godot production bridge.
 
-Nincs még teljes production:
-- combat;
-- Pecsét teljes state/visibility;
+Nem teljes többek között:
+
+- teljes ability/content coverage;
+- generic prevention/replacement;
+- compound choice framework;
 - Refresh Penalty;
-- teljes ability coverage;
-- victory/defeat;
+- Hasítás runtime;
+- full Burst/Jel;
+- special Seal restore/ward-effect runtime;
 - replay;
 - production AI-vs-AI;
-- teljes player UI.
+- teljes player UI;
+- final Windows packaging.
+
+Ezek közül nem mind VS1-blocker.
 
 ### 4.3 Python
 
@@ -238,7 +253,7 @@ isolated analysis → synthesis → blueprint → human decision → contract �
 
 ### 6.4 Open Questions
 
-OQ v2.2 current: `50 answered / 17 partly_answered / 7 deferred / 0 open`.
+OQ current: `52 answered / 15 partly_answered / 7 deferred / 0 open`.
 
 Reference, learning, synthesis vagy blueprint nem írhatja felül az AETERNA szabályt vagy contractot.
 
@@ -251,51 +266,88 @@ Fő történeti útvonalak:
 - `Archive/aeterna dokumentáciok/`;
 - `Archive/aeterna gaming engine/`.
 
-Az archív fájl:
+Az Archive:
 
 - nem aktív authority;
-- nem szerkesztendő canonical forrásként;
-- történeti és auditcélra megőrzendő.
+- nem canonical szerkesztési forrás;
+- történeti/audit bizonyíték;
+- nem automatikus recovery source.
 
----
+Current dokumentumba archív tartalom csak current szükség + emberi review alapján
+emelhető vissza. A korábbi részletesség önmagában nem ok visszaállításra.
 
-## 8. Generált és ideiglenes outputok
+## 8. Generált, TEMP és machine-local tooling
 
 Generált output nem válhat canonical szerkesztési forrássá.
 
-`TEMP/`, build output, cache vagy lokális tooling nem commitolandó pusztán azért, mert egy audit használta.
+A repository `TEMP/`:
 
----
+`DISPOSABLE_WORKSPACE`
+
+Szabály:
+
+- canonical/manual/single-copy source nem maradhat benne;
+- sikeres task saját TEMP footprintje normál esetben 0;
+- más task/process footprintje nem törölhető vakon;
+- retained proof/recovery explicit indoklást igényel;
+- tartós executable/tooling repository TEMP-en kívül tárolandó.
+
+A 2026-09-04-i deep audit után a repository TEMP kiürült; a tartós Godot Mono tooling
+machine-local `Tools` területre került. A konkrét abszolút gépi útvonal nem canonical repository-adat.
 
 ## 9. Fontos aktív munkasávok
 
 ### Production gameplay foundation
 
-Státusz: `COMPLETE_AND_ACCEPTED`
+Státusz: `COMPLETE_AND_ACCEPTED`.
 
-A Wellspring → Beáramlás → payment → `play_card` → ability/effect foundation → explicit phase szakasz elkészült production C#-ban.
+### Reaction / Priority Foundation v1
 
-### Következő engine-fókusz
+Státusz: `COMPLETE_AND_ACCEPTED`.
 
-`Combat + Pecsét Foundation`
+Lezáró commit:
 
-Státusz: `NEXT – CONTRACT_FINALIZATION`.
+`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`.
 
-A Reaction / Priority Foundation v1 implementáció és external re-audit elkészült. Lezáró commit: `f4e035bb...`.
+### Combat + Pecsét Foundation C0–C6
 
-Current következő lépés: Combat + Pecsét minimal production contract és Reaction-integrációs pontok finalizálása.
+Státusz: `COMPLETE_AND_ACCEPTED`.
 
-### Reaction / Priority
+Lezáró commit:
 
-`COMPLETE_AND_ACCEPTED` – production commit `f4e035bb...`.
+`0862e1002dbef81ee203852714d377592272a0e9`.
 
-### Combat + Pecsét
+Megvalósult current core:
 
-A következő közvetlen gameplay contract/implementation slice.
+- setup/Jóslat;
+- six-Seal model/privacy;
+- attack/defense;
+- Entity Combat;
+- SealBreak/Surge/Gondviselés;
+- Aeternal terminal outcome.
+
+### VS1 / M6
+
+Státusz: `NEXT MAJOR PRODUCT-FACING GOAL`.
+
+Canonical deckek:
+
+- `DECK-IGN-HAM-VS1-001`;
+- `DECK-AQU-MOR-VS1-001`.
+
+Következő lépés:
+
+`VS1 card/mechanic readiness audit`.
+
+### 0.0.1
+
+Státusz: `ACTIVE_LONG_TERM_TARGET`.
+
+VS1 és 0.0.1 közé szükség szerint további mérföldkövek iktathatók.
 
 ### Adat- és LOOKUPS-audit
 
-Továbbra is nyitott:
+Továbbra is külön munkasáv:
 
 - LOOKUPS-audit;
 - ID-contract;
@@ -303,8 +355,6 @@ Továbbra is nyitott:
 - aliasok;
 - master–export parity;
 - névprofil és decklista-segédnevek.
-
----
 
 ## 10. Dokumentációs minimum
 
@@ -325,14 +375,16 @@ Nem kell minden kisebb commit után teljes dokumentációs tömegfrissítés.
 - dokumentációs archív rendezés: `COMPLETE`;
 - C.5A: `COMPLETE_AND_ACCEPTED`;
 - C.5B: `COMPLETE_AND_ACCEPTED`;
-- első production gameplay vertical slice: `COMPLETE_AND_ACCEPTED`;
+- korábbi production gameplay foundation slice: `COMPLETE_AND_ACCEPTED`;
 - canonical ability/effect runtime foundation: `IMPLEMENTED_AND_ACTIVE`;
 - Explicit Phase Foundation v1: `COMPLETE_AND_ACCEPTED`;
-- aktív dokumentációs consistency pass: `COMPLETE`;
+- Reaction / Priority Foundation v1: `COMPLETE_AND_ACCEPTED`;
+- Combat + Pecsét Foundation C0–C6: `COMPLETE_AND_ACCEPTED`;
+- terminal victory core: `COMPLETE_AND_ACCEPTED`;
 - learning registry: `59 registry / 58 local`;
 - project analyses: `30`;
 - synthesis/blueprint program: `COMMITTED`;
-- OQ: `50 answered / 17 partly_answered / 7 deferred / 0 open`;
-- governance/ability/checkpoint recovery: `COMMITTED` (`14e315d...`);
-- Reaction contract/runtime: `COMPLETE_AND_ACCEPTED`;
-- következő engine munka: Combat + Pecsét Foundation contract finalization.
+- OQ: `52 answered / 15 partly_answered / 7 deferred / 0 open`;
+- VS1 / M6: `NEXT MAJOR PRODUCT-FACING GOAL`;
+- 0.0.1: `ACTIVE_LONG_TERM_TARGET`;
+- következő technikai lépés: VS1 readiness audit.

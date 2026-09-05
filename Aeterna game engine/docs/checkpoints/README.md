@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.7
-**Dátum:** 2026-08-16
+**Dokumentumverzió:** 1.8
+**Dátum:** 2026-09-05
 **Státusz:** aktív checkpoint-index
-**Szinkronizációs repository-bázis:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
-**Production kódbázis:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Production kódbázis:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét C0–C6 close
 
 Ez a dokumentum elválasztja az aktív technikai folytatási pontot, a történeti mérföldkőnaplót és a hosszú távú termékcélt.
 
@@ -14,7 +14,7 @@ Ez a dokumentum elválasztja az aktív technikai folytatási pontot, a történe
 
 ## 1. Aktív technikai checkpoint
 
-- `ENGINE_CHECKPOINT.md`
+- `ENGINE_CHECKPOINT.md` v2.0
 
 Szerepe:
 
@@ -22,20 +22,20 @@ Szerepe:
 - Python reference, sidecar, C# proof és production folytonosság;
 - lezárt runtime-döntés;
 - C.5A/C.5B státusz;
-- production gameplay vertical slice;
-- Explicit Phase Foundation;
+- korábbi production gameplay foundation slice;
+- Explicit Phase Foundation v1;
+- Reaction / Priority Foundation v1;
+- Combat + Pecsét Foundation C0–C6;
 - megőrzendő invariánsok;
 - learning/synthesis/OQ dokumentációs handoff;
-- current Reaction/Priority contract state;
+- VS1 / M6 technical handoff;
 - következő biztonságos technikai lépés.
 
 A korábbi checkpointelődök történeti állapotban maradnak; nem aktív authority-k.
 
----
-
 ## 2. Történeti checkpointnapló
 
-- `CHECKPOINTS.md`
+- `CHECKPOINTS.md` v1.4
 
 Szerepe a fő technikai mérföldkövek időrendi rövid megőrzése:
 
@@ -48,20 +48,26 @@ Szerepe a fő technikai mérföldkövek időrendi rövid megőrzése:
 - runtime-döntés;
 - C.5A;
 - C.5B;
-- első production gameplay vertical slice / Explicit Phase Foundation;
+- korábbi production gameplay foundation / Explicit Phase Foundation;
+- Reaction / Priority Foundation v1;
+- Combat + Pecsét Foundation C0–C6;
 - későbbi fő mérföldkövek.
 
 Nem aktív tasklista.
-
----
 
 ## 3. Hosszú távú termékcél
 
 - `../AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`
 
-Ez a későbbi első zárt, játszható tesztkiadás célállapota, nem technikai checkpoint.
+Current termékút:
 
----
+```text
+VS1 / M6
+→ szükséges köztes mérföldkövek
+→ AETERNA 0.0.1
+```
+
+A 0.0.1 az első zárt, játszható product target, nem napi technikai checkpoint.
 
 ## 4. Checkpointkészítési szabály
 
@@ -99,16 +105,23 @@ Szabályi kérdésben a hivatalos játékszabályforrás mindegyik fölött áll
 
 Aktív:
 
-- jelen `README.md`;
-- `ENGINE_CHECKPOINT.md` v1.9;
-- `CHECKPOINTS.md` v1.3.
+- jelen `README.md` v1.8;
+- `ENGINE_CHECKPOINT.md` v2.0;
+- `CHECKPOINTS.md` v1.4.
 
-Szinkronizációs dokumentációs bázis:
+Szinkronizációs dokumentációs / production bázis:
 
-`743c00d85ddc60bbbc70715fefab8ffc9dacbdae`
+`0862e1002dbef81ee203852714d377592272a0e9`
 
-Aktuális production implementation-bázis:
+Lezárt current foundation:
 
-`2608345b61526097fc0b118f05461f92cfed0a95`
+- Explicit Phase Foundation v1;
+- Reaction / Priority Foundation v1;
+- Combat + Pecsét Foundation C0–C6;
+- terminal victory core.
 
-A három fájl szerepe eltérő, ezért a mérföldkő részleges ismétlése nem fölösleges tartalmi duplikáció.
+Current következő major goal:
+
+`VS1 / M6 readiness`
+
+A három checkpointfájl szerepe eltérő, ezért a mérföldkő részleges ismétlése nem fölösleges tartalmi duplikáció.

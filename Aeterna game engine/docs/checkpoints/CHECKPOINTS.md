@@ -2,8 +2,8 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.3
-**Dátum:** 2026-08-14
+**Dokumentumverzió:** 1.4
+**Dátum:** 2026-09-05
 **Státusz:** történeti technikai mérföldkőnapló
 **Aktív folytatási checkpoint:** `ENGINE_CHECKPOINT.md`
 
@@ -160,7 +160,7 @@ Történeti acceptance:
 
 ---
 
-## Első production gameplay vertical slice
+## Korábbi production gameplay foundation slice
 
 Szakasz:
 
@@ -225,12 +225,99 @@ Státusz:
 
 ---
 
+## Reaction / Priority Foundation v1
+
+Lezáró production commit:
+
+`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
+
+Megvalósult fő rétegek:
+
+- authoritative `ReactionWindow`;
+- `react`;
+- `pass_priority`;
+- canonical resolution stack;
+- LIFO;
+- RC1;
+- RC2 queued-trigger checkpoint/FIFO;
+- viewer-safe pending projection.
+
+Lezáró acceptance:
+
+- Debug/Release `246/246 PASS`;
+- determinism `100/100 PASS`;
+- oracle/reference PASS;
+- Python isolated `465/465 PASS` + 5 skip;
+- Godot C# build + pozitív/negatív smoke PASS;
+- unresolved P0/P1: `0/0`.
+
+Státusz:
+
+`COMPLETE_AND_ACCEPTED`
+
+---
+
+## Combat + Pecsét Foundation C0–C6
+
+Rules migration:
+
+`61ad2605dd1aa3d7ea95444f0bb66cebf819014e`
+
+Production slice-ok:
+
+- `ca55bc3714de2692753fccc18a8f11d9dac1beea` – C0 setup + Seal foundation;
+- `558d4453a1604c0ebe76065df08a207192c21c8b` – C1+C2 attack + első Combat ReactionWindow;
+- `d236f0e3c36994f65e7d00d25972660baac2a842` – C3 intervention + DefenseCommit;
+- `68b07dd6906fc8c37245325a855322d48f5f2635` – C4 Entity Combat;
+- `d30f8a4c42383a0200e416acb7148facc3bbbc11` – C5 SealBreak + Surge + Gondviselés;
+- `0862e1002dbef81ee203852714d377592272a0e9` – C6 Aeternal + terminal MatchResult.
+
+Megvalósult fő rétegek:
+
+- canonical setup + Jóslat;
+- hat stabil Pecsét-slot és viewer-safe visibility;
+- `attack` / AttackCommit;
+- intervention / DefenseCommit;
+- két Combat ReactionWindow;
+- Entity Combat simultaneous damage;
+- SealBreak / public reveal / Surge;
+- Gondviselés Surge opportunity;
+- Aeternal outcome;
+- authoritative terminal `MatchResult v2`.
+
+Lezáró acceptance:
+
+- Debug/Release C#: `301/301 PASS`;
+- targeted C6: `8/8 PASS`;
+- determinism/reference: `100/100 PASS`;
+- canonical byte count: `210676`;
+- canonical SHA:
+  `97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8`;
+- Python isolated regression: `465/465 PASS`, `5 skip`;
+- exporter: `23/23 PASS`;
+- Godot C# consumer + pozitív/negatív smoke: PASS;
+- `git diff --check`: PASS;
+- unresolved P0/P1: `0/0`.
+
+Státusz:
+
+`COMBAT_AND_SEAL_FOUNDATION_C0_C6 = COMPLETE_AND_ACCEPTED`
+
+---
+
 ## Következő mérföldkőnapló-bejegyzés
 
-Új történeti bejegyzés csak következő nagy, lezárt production mérföldkőnél készül, például:
+Új történeti bejegyzés csak új nagy, lezárt production/product mérföldkőnél készül.
 
-- Reaction / Priority foundation;
-- jelentős combat foundation;
+Current következő nagy cél:
+
+`VS1 / M6 – első ténylegesen játszható vertical slice`
+
+A VS1 még nincs lezárva, ezért még nem kap történeti acceptance-bejegyzést.
+
+Későbbi példák:
+
+- VS1;
 - production AI/replay/packaging proof;
 - 0.0.1 fő mérföldkő.
 

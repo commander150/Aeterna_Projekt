@@ -2,12 +2,12 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.2  
-**Dátum:** 2026-08-15  
-**Státusz:** review draft – A0–A4 páros OQ-audit és a rugalmas current-default tervezési elv szerint újraszinkronizálva  
+**Dokumentumverzió:** 2.3
+**Dátum:** 2026-09-05
+**Státusz:** aktív OQ döntésikapu-regiszter – C0–C6 current-truth sync után
 **Kapcsolódó válasznapló:** `OPEN_QUESTIONS_DECISIONS.md`  
-**Dokumentációs remote bázis:** `b7c5a51a921d11779e50a127171b49166dd80b96` – `docs: align active documentation with explicit phase foundation`  
-**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95` – `engine: add explicit phase foundation`
+**Dokumentációs remote bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – current production sync base
+**Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 
 Ez a fájl az AETERNA Game Engine 74 OQ-tételének központi kérdés- és döntésikapu-regisztere.
 
@@ -51,9 +51,9 @@ kapcsolattal történetileg megmarad.
 ## 3. Összesítés
 
 - `open`: 0
-- `partly_answered`: 17
+- `partly_answered`: 15
 - `deferred`: 7
-- `answered`: 50
+- `answered`: 52
 - összes OQ: 74
 
 ## 4. Használati szabály
@@ -192,9 +192,9 @@ kapcsolattal történetileg megmarad.
 
 ### OQ-SNAP-002 – Pecsétmodell snapshotban
 
-**Státusz:** `partly_answered`  
-**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
-**Aktuális válasz / fennmaradó kapu:** Official Core már meghatározza a 6 face-down Pecsétet, Áramlat-kapcsolatot és fennáll/feltört állapotot. Nyitott: exact owner/opponent visibility és digitális snapshot schema.
+**Státusz:** `answered`
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`
+**Aktuális válasz / fennmaradó kapu:** A C0–C6 production contract lezárta a current Pecsét snapshot/visibility core-t: playerenként 6 stabil public slot; lane és `standing|broken` státusz public; standing Seal card identity mindkét player-facing viewer előtt hidden, owner előtt is; break reveal public; Surge után hand identity ismét viewer-private; reveal history public. Future special restore/ward effect nem tartja ezt az OQ-t nyitva.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-002`
 
@@ -218,7 +218,7 @@ kapcsolattal történetileg megmarad.
 
 **Státusz:** `partly_answered`  
 **Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
-**Aktuális válasz / fennmaradó kapu:** Reaction pending state iránya kialakult. Nyitott: compound target/payment/choice, cancel/back, combat és nested nem-reaction decision pontos schema/projection.
+**Aktuális válasz / fennmaradó kapu:** Reaction, Combat és Surge pending state/projection current core C0–C6-ban aktív. Fennmaradó gate: generic compound target/payment/choice, cancel/back és nested non-Reaction decision schema/projection.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-SNAP-005`
 
@@ -244,15 +244,15 @@ kapcsolattal történetileg megmarad.
 
 **Státusz:** `partly_answered`  
 **Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
-**Aktuális válasz / fennmaradó kapu:** Official reaction alap, pass/LIFO/ordering és current RC1/RC2 default rögzített. Nyitott: prevention/replacement, complex nested choice, combat timing/integration és future explicit special timing policyk.
+**Aktuális válasz / fennmaradó kapu:** Reaction/Priority v1 és a Combat timing-integráció productionben lezárt current core. Fennmaradó gate: generic prevention/replacement, complex nested choice és future explicit special timing policyk.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-002`
 
 ### OQ-LA-003 – Combat actionök
 
-**Státusz:** `partly_answered`  
-**Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
-**Aktuális válasz / fennmaradó kapu:** Official Core már rögzíti attack/target/block/simultaneous damage/Pecsét/Aeternal alapot. Nyitott: production combat action/event/pending-state contract.
+**Státusz:** `answered`
+**Döntési állapot:** `CURRENT_CANONICAL_DEFAULT`
+**Aktuális válasz / fennmaradó kapu:** A Combat + Pecsét Foundation C0–C6 lezárta a current production combat action/event/pending-state és Reaction-integrációs contractot: `attack`, AttackCommit, intervention/DefenseCommit, két Combat ReactionWindow, participant continuity/contact revalidation, Entity Combat, SealBreak/Surge és Aeternal terminal outcome. Future combat extension önmagában nem aktív gate ehhez az OQ-hoz.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-LA-003`
 
@@ -484,7 +484,7 @@ kapcsolattal történetileg megmarad.
 
 **Státusz:** `partly_answered`  
 **Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
-**Aktuális válasz / fennmaradó kapu:** Reaction ability-hook nem timing authority. Current default trigger/reaction processing rögzített; nyitott: prevention/replacement, complex nested choice, combat/special timing és coverage.
+**Aktuális válasz / fennmaradó kapu:** Ability-level Reaction hook és Combat integration current productionben aktív; timing authority továbbra is az engine. Fennmaradó gate: generic prevention/replacement, complex nested choice, future special timing és teljes content/ability coverage.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-004`
 
@@ -500,7 +500,7 @@ kapcsolattal történetileg megmarad.
 
 **Státusz:** `partly_answered`  
 **Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
-**Aktuális válasz / fennmaradó kapu:** Aeternal/Pecsét no-HP és Core target/combat szabály jelentős része official. Nyitott: exact special effect/event payload és future interaction contract.
+**Aktuális válasz / fennmaradó kapu:** Combat-oldali Seal/Aeternal targeting, no-HP semantics, visibility, break/Surge eventek és terminal Aeternal outcome current productionben aktív. Fennmaradó gate: ability/ward targeting, special Seal restore és további effect/event payload.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-ABIL-006`
 
@@ -682,14 +682,25 @@ kapcsolattal történetileg megmarad.
 
 **Státusz:** `partly_answered`  
 **Döntési állapot:** `CURRENT_DEFAULT + ACTIVE_GATE`  
-**Aktuális válasz / fennmaradó kapu:** Official Core jelentős Aeternal/Pecsét szabályt ad. Nyitott: combat integration, special break/restore, snapshot/event/action payload és Expansion-interakciók.
+**Aktuális válasz / fennmaradó kapu:** C0–C6 lezárta a current setup/visibility/combat/break/Surge/victory/snapshot/event/action core-t. Fennmaradó gate: special Seal restore/ward effect és további Expansion-interakciók.
 
 **Döntésnapló:** `OPEN_QUESTIONS_DECISIONS.md / OQ-RULES-007`
-
 
 ---
 
 ## 13. Változásnapló
+
+### 2.3 – 2026-09-05
+
+- C0–C6 milestone utáni OQ current-truth sync.
+- `OQ-SNAP-002`: `partly_answered` → `answered`.
+- `OQ-LA-003`: `partly_answered` → `answered`.
+- `OQ-SNAP-005`: Combat pending-state gate eltávolítva; generic compound/non-Reaction döntési schema maradt.
+- `OQ-LA-002`: Combat timing/integration gate eltávolítva; generic prevention/replacement, complex choice és future special timing maradt.
+- `OQ-ABIL-004`: Reaction + Combat integration current core lezárva; generic prevention/choice és coverage maradt.
+- `OQ-ABIL-006`: Combat Seal/Aeternal targeting/events lezárva; ability/ward targeting + restore/payload maradt.
+- `OQ-RULES-007`: core setup/visibility/combat/break/Surge/victory lezárva; special restore/ward + Expansion maradt.
+- Új aggregate: `52 answered / 15 partly_answered / 7 deferred / 0 open`.
 
 ### 2.2 – 2026-08-15
 
@@ -700,8 +711,3 @@ kapcsolattal történetileg megmarad.
 - RC2: ordinary trigger default immediate discovery + post-resolution processing; different-timing batch default FIFO; future strict timing reserved extension.
 - A3: projection/event/diagnostics/package témák jelentős része current-default szinten lezárva.
 - A4: structured ability, registry és text/structured mismatch current-default lezárva; balance/playtest/content kérdések tudatosan nyitva/deferred állapotban maradnak.
-- Új rugalmassági elv: `answered` nem jelent örök változtathatatlanságot.
-- Repository-bázis mező kettéválasztva dokumentációs remote bázisra és production engine mérföldkőre.
-- Új összesítés: 50 answered / 17 partly_answered / 7 deferred / 0 open.
-
-A 2.1 és korábbi verziók történeti tartalma a Git-történetben megmarad.

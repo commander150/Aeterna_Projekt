@@ -1,13 +1,13 @@
-# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.8
+# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.9
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 6.8
-**Dátum:** 2026-08-30
+**Dokumentumverzió:** 6.9
+**Dátum:** 2026-09-05
 **Státusz:** aktív projektirányító és prioritási dokumentum
-**Felváltott dokumentum:** `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.7.md`
-**Szinkronizációs repository-bázis:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
-**Production engine mérföldkő:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
+**Előző aktív verzió:** 6.8 (Git history)
+**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
+**Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **Előző technikai checkpoint-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 
 Ez a dokumentum az AETERNA projekt aktuális irányát, prioritásait, dokumentumelsőbbségét és a következő biztonságos munkaszakaszokat rögzíti.
@@ -22,8 +22,8 @@ Nem teljes repository-inventár, nem szabálykönyv, nem contract-specifikáció
 
 Elsődleges authority:
 
-1. `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v.docx`;
-2. `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4v.docx`;
+1. `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+2. `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`;
 3. explicit, verziózott emberi döntés, ha nem mond ellent a hivatalos forrásnak;
 4. aktív Open Questions döntésnapló;
 5. aktív engine-contract és specification;
@@ -183,10 +183,8 @@ Legutóbbi lezáró acceptance:
 
 - runtime package és publish foundation;
 - C# authoritative engine foundation;
-- Wellspring;
-- Beáramlás;
-- Magnitúdó- és Aura-preflight;
-- Domain és egyszerű `play_card`;
+- Wellspring / Beáramlás / payment foundation;
+- Domain és `play_card`;
 - canonical card/runtime binding;
 - canonical ability/effect execution foundation;
 - damage/vitals;
@@ -195,107 +193,163 @@ Legutóbbi lezáró acceptance:
 - draw/reference runtime;
 - explicit öt-fázisú turn lifecycle;
 - Reaction / Priority Foundation v1;
-- shared `resolution` lifecycle az Ige/egyszeri Rituálé számára;
+- shared `resolution` lifecycle;
+- canonical setup + Jóslat;
+- hat stabil Pecsét-slot és viewer-safe visibility;
+- `attack` / AttackCommit;
+- intervention / DefenseCommit;
+- két Combat ReactionWindow;
+- Entity Combat és simultaneous damage;
+- SealBreak / reveal / Surge;
+- Gondviselés Surge opportunity;
+- Aeternal outcome;
+- terminal `MatchResult v2`;
 - Godot production bridge és smoke foundation.
 
 ### RÉSZLEGES / TOVÁBB BŐVÍTENDŐ
 
 - ability coverage a teljes kártyaállományra;
-- target/choice komplexebb pending modell;
-- trigger-sorrend;
+- compound target/payment/choice;
+- generic prevention/replacement;
+- trigger-sorrend speciális esetei;
 - temporary/alternate payment;
+- special Seal restore/ward-effect runtime;
 - diagnostics és release support policy;
 - player-facing UI;
 - AI/headless orchestration;
-- replay-előkészítés.
+- replay.
 
-### NINCS MÉG TELJES PRODUCTION IMPLEMENTÁCIÓ
+### TUDATOSAN KÜLÖN KÉSŐBBI SLICE / PRODUCT LAYER
 
-- combat / attack / block / Pecsétfeltörés;
-- teljes Pecsét state- és visibility-modell;
 - Refresh Penalty;
-- teljes victory/defeat lifecycle;
-- production AI-vs-AI;
+- Hasítás runtime;
+- teljes Burst/Jel runtime;
+- Kényszerítés;
+- Token runtime;
 - replay runner;
+- production AI-vs-AI;
 - végleges Windows packaging;
+- profile/save;
+- tutorial/collection/economy;
 - teljes player UI.
 
----
+Ezek közül nem mind VS1-blocker.
 
-## 5. Következő biztonságos engine-szakasz
+## 5. Következő biztonságos engine-/product-szakasz
 
-### Combat + Pecsét Foundation – CONTRACT / RULES-TO-ENGINE FINALIZATION
+### Combat + Pecsét Foundation C0–C6 – LEZÁRVA
 
-**Előző mérföldkő:** Reaction / Priority Foundation v1 – `COMPLETE_AND_ACCEPTED`
-**Lezáró production commit:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
-**External re-audit:** `PASS – READY_FOR_COMMIT`
-**Production acceptance:** Debug/Release `246/246 PASS`, determinism `100/100`, oracle/reference PASS, Godot positive/negative smoke PASS.
+Rules migration:
 
-A Reaction v1 általános protocol foundation lezárt.
-Nem nyitjuk újra új bizonyíték nélkül.
+`61ad2605dd1aa3d7ea95444f0bb66cebf819014e`
 
-Következő cél:
+Production slice-ok:
+
+- `ca55bc3714de2692753fccc18a8f11d9dac1beea` – C0 setup + Seal foundation;
+- `558d4453a1604c0ebe76065df08a207192c21c8b` – C1+C2 attack + első Combat ReactionWindow;
+- `d236f0e3c36994f65e7d00d25972660baac2a842` – C3 intervention + DefenseCommit;
+- `68b07dd6906fc8c37245325a855322d48f5f2635` – C4 Entity Combat;
+- `d30f8a4c42383a0200e416acb7148facc3bbbc11` – C5 SealBreak + Surge + Gondviselés;
+- `0862e1002dbef81ee203852714d377592272a0e9` – C6 Aeternal + terminal MatchResult.
+
+Final acceptance:
+
+- Debug/Release C#: `301/301 PASS`;
+- targeted C6: `8/8 PASS`;
+- determinism/reference: `100/100 PASS`;
+- canonical SHA:
+  `97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8`;
+- Python isolated regression: `465/465 PASS`, `5 skip`;
+- exporter: `23/23 PASS`;
+- Godot build + positive/negative smoke: PASS;
+- unresolved P0/P1: `0/0`.
+
+Státusz:
+
+`COMBAT_AND_SEAL_FOUNDATION_C0_C6 = COMPLETE_AND_ACCEPTED`
+
+### Current roadmap
+
+A hosszabb projektút current kerete:
 
 ```text
-official Combat + Pecsét Core
-→ exact production contract
-→ Reaction-integrációs pontok
-→ Codex implementation
-→ tests / determinism / Godot smoke
-→ adversarial audit
+M5 / Combat + victory core
+→ M6 / VS1 – első ténylegesen játszható vertical slice
+→ szükséges köztes mérföldkövek
+→ AETERNA 0.0.1
 ```
 
-Első Combat/Pecsét contractban lezárandó:
+A VS1 nem azonos a korábbi, már lezárt production gameplay foundation slice-szal.
 
-- `attack` action és attacker eligibility;
-- attacker Exhaust timing;
-- target declaration;
-- Oltalom target priority;
-- Horizon/Zenith/Aeternal célpontlogika;
-- blocker declaration + blocker Exhaust;
-- simultaneous combat damage;
-- surviving damage lifecycle;
-- Pecsét standing/broken state;
-- successful unblocked attack → exactly one Seal break;
-- reveal + Surge;
-- Aeternal targetability csak 0 standing Sealnél;
-- attack/block declaration ReactionWindow integration;
-- viewer-safe Pecsét projection/event contract;
-- victory transition az Aeternal szabályai szerint.
+Canonical VS1 deckek:
 
-Tudatosan külön marad:
+- `DECK-IGN-HAM-VS1-001`;
+- `DECK-AQU-MOR-VS1-001`.
 
-- Refresh Penalty;
-- generic prevention/replacement;
-- Burst/Jel full support;
-- persistent Ritual;
-- generic simultaneous trigger ordering UI.
+VS1 előtt csak az a capability válik kötelező blockerré, amely a két VS1 pakli
+szabályos, elejétől `MatchResult`-ig tartó játékához ténylegesen szükséges, vagy
+olyan általános engine-invariáns, amely nélkül a VS1 nem tekinthető korrektnek.
 
----
+Következő tényleges szakmai lépés:
+
+```text
+VS1 content/mechanic readiness audit
+→ emberi prioritásdöntés
+→ szükséges finite contract/programozási slice-ok
+→ simple fair AI + minimal playable Godot
+→ VS1 end-to-end acceptance
+```
 
 ## 6. Aktuális döntési kapuk és Open Questions
 
-OQ v2.2: `50 answered / 17 partly_answered / 7 deferred / 0 open` (74 total).
+C0–C6 utáni OQ állapot:
+
+`52 answered / 15 partly_answered / 7 deferred / 0 open` (74 total).
 
 Az `answered` current canonical/default választ jelent, nem örök megváltoztathatatlanságot.
 
 ### OQ-SNAP-002 – Pecsétmodell
 
-`partly_answered`. Official Core már rögzíti a 6 face-down Pecsét, standing/broken, break/reveal/Surge és Aeternal-védelem alapját. Fennmaradó digitális gate: exact visibility, snapshot schema, special interaction/event payload.
+`answered`.
+
+Current production default:
+
+- playerenként 6 stabil public Seal slot;
+- lane + `standing|broken` public;
+- standing Seal card identity mindkét player-facing viewer előtt hidden, owner előtt is;
+- break után public reveal;
+- Surge után hand identity ismét owner-only;
+- reveal history public marad.
 
 ### OQ-LA-003 – Combat actionök
 
-`partly_answered`. Official Core már rögzíti az attack eligibility, attacker Exhaust, target declaration, block, simultaneous damage és Pecsét break/Surge alapot. Fennmaradó production gate: action/event/pending-state contract és Reaction integráció.
+`answered`.
 
-### Reaction
+C0–C6 productionben rögzítette:
 
-Nem nyitandó újra általános kérdésként a simultaneous trigger ordering és a mandatory/optional trigger semantics. A fennmaradó v1 contractmunka az 5. fejezetben szerepel.
+- `attack`;
+- AttackCommit;
+- intervention / decline;
+- DefenseCommit;
+- két Combat ReactionWindow;
+- `PendingCombat`;
+- participant/incarnation/contact revalidation;
+- Entity / Seal / Aeternal outcome;
+- deterministic cleanup.
+
+### Továbbra is részleges kapuk
+
+Többek között:
+
+- generic prevention/replacement;
+- compound non-reaction choice;
+- explicit special Seal restore/ward-effect ability contract;
+- C0–C6 scope-on túli Expansion-interakciók;
+- teljes ability coverage.
 
 ### Refresh Penalty
 
 Külön későbbi rules/implementation slice; a production draw runtime nem találhat ki placeholder-szabályt.
-
----
 
 ## 7. Dokumentációs konzisztencia-helyreállítás
 
@@ -384,6 +438,8 @@ Az AETERNA projektben Codexet csak akkor használunk, ha a feladat ténylegesen 
 
 A Codex nem hoz önálló játékszabályi vagy projektirányítási döntést.
 
+Current default szerint Codex lokális technikai módosítást és validációt készít, de nem commitol és nem pushol. Külső audit és emberi jóváhagyás után a felhasználó commitol/pushol.
+
 ---
 
 ## 9. Párhuzamos nem programozási prioritások
@@ -401,36 +457,59 @@ A learning projekt nem szabályforrás és nem közvetlen kódforrás.
 
 ## 10. Rövid aktuális állapot
 
-**Szinkronizációs repository-bázis:** `14e315d3f04f5baddb547dcb767c8b156b02551f`
-**Production engine mérföldkő:** `2608345b61526097fc0b118f05461f92cfed0a95`
+**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9`
 **Production authority:** C#/.NET
 **Visual client:** Godot/GDScript
 **External tooling/reference:** Python
 **C.5B foundation:** `COMPLETE_AND_ACCEPTED`
-**Első production gameplay vertical slice:** `COMPLETE_AND_ACCEPTED`
+**Korábbi production gameplay foundation slice:** `COMPLETE_AND_ACCEPTED`
 **Explicit Phase Foundation v1:** `COMPLETE_AND_ACCEPTED`
+**Reaction / Priority Foundation v1:** `COMPLETE_AND_ACCEPTED`
+**Combat + Pecsét Foundation C0–C6:** `COMPLETE_AND_ACCEPTED`
+**Terminal victory core:** `COMPLETE_AND_ACCEPTED`
 **Learning registry:** `59 registry / 58 local`
 **Project analyses:** `30`
 **Synthesis/blueprint program:** `COMMITTED`
-**Open Questions:** `50 answered / 17 partly_answered / 7 deferred / 0 open`
-**Reaction contract:** `COMPLETE_AND_ACCEPTED`
-**Reaction implementation:** `COMPLETE_AND_ACCEPTED`
-**Következő engine-fókusz:** Combat + Pecsét Foundation contract finalization
-**Combat:** külön későbbi implementation slice
-
----
+**Open Questions:** `52 answered / 15 partly_answered / 7 deferred / 0 open`
+**VS1 / M6:** `NEXT MAJOR PRODUCT-FACING GOAL`
+**0.0.1:** `ACTIVE_LONG_TERM_TARGET`
 
 ## 11. Következő szakmai munkasorrend
 
-1. Combat + Pecsét official Core célzott rules-audit;
-2. minimal production contract freeze;
-3. Reaction declaration-window integráció pontosítása;
-4. csak ezután Codex C# implementation;
-5. Debug/Release build és teljes teszt;
-6. determinism/reference regression;
-7. Godot positive/negative production smoke;
-8. adversarial read-only audit;
-9. PASS után felhasználói commit/push;
-10. milestone documentation sync.
+1. C0–C6 milestone dokumentációs current-truth sync lezárása;
+2. VS1 readiness audit a két canonical VS1 paklira;
+3. kártyánként/mechanikánként classification:
+   `executable / data issue / engine gap / rules decision / UI-AI dependency / non-blocking future`;
+4. emberi prioritásdöntés;
+5. csak a tényleges VS1 blockerre finite contract;
+6. Codex local implementation + build/test/smoke;
+7. külső audit;
+8. PASS után felhasználói commit/push;
+9. simple fair AI / match orchestration;
+10. minimal playable Godot;
+11. VS1 end-to-end acceptance;
+12. ezután szükséges köztes mérföldkövek a 0.0.1 felé.
 
 Reaction / Priority v1: `COMPLETE_AND_ACCEPTED`.
+
+Combat + Pecsét C0–C6: `COMPLETE_AND_ACCEPTED`.
+
+---
+
+## 12. Archive recovery szabály
+
+Az `Archive/` történeti bizonyítéktár, nem current authority és nem automatikus
+visszaállítási forrás.
+
+Archív információ csak akkor emelhető vissza current dokumentumba, ha:
+
+1. kompatibilis a current official rules/architecture réteggel;
+2. nincs újabb/current jobb megfelelője;
+3. a VS1 → 0.0.1 út szempontjából ténylegesen fontos;
+4. emberi review megerősíti, hogy a korábbi archiválás nem tartalmi elutasítás volt;
+5. az új current szerepe explicit.
+
+Nem állítunk vissza pusztán történeti részletesség miatt régi Python-authority modellt,
+régi rules authority-t, mappaszerkezet-pillanatképet, régi Codex commit/push policyt
+vagy más felváltott current állapotot.

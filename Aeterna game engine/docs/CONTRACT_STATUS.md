@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.5
-**Dátum:** 2026-08-30
+**Dokumentumverzió:** 1.6
+**Dátum:** 2026-09-05
 **Státusz:** aktív megvalósítási contract-státusz
-**Felváltott fájl:** `CURRENT_CONTRACT_STATUS.md`
-**Aktuális repository-bázis:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
+**Előző aktív verzió:** 1.5 (Git history); történeti előd: `CURRENT_CONTRACT_STATUS.md`
+**Aktuális repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 
 Ez a dokumentum röviden rögzíti:
 
@@ -58,7 +58,7 @@ Fontos elhatárolás:
 - a Python contract aktív lehet a referenciaengine-ben anélkül, hogy production C# contract lenne;
 - a C# candidate proofban használt fixture-specifikus contract nem válik automatikusan production API-vá;
 - a C.5B contractok a `931bf5571d541c752aa421a9f0626768bd8ffbe7` commit és tesztlánca alapján aktív production foundation státuszt kaptak;
-- a C.5B történeti minimuma nem tartalmazta a Wellspring, Beáramlás, payment, `play_card` vagy ability execution réteget; a `931bf... → 2608345b...` production szakaszban ezek közül több már megvalósult. Reaction / Priority Foundation v1 productionben implementált és elfogadott; Combat továbbra sincs productionben.
+- a C.5B történeti minimuma nem tartalmazta a Wellspring, Beáramlás, payment, `play_card` vagy ability execution réteget; a `931bf... → 2608345b...` production szakaszban ezek közül több már megvalósult. Reaction / Priority Foundation v1 és Combat + Pecsét Foundation C0–C6 productionben implementált és elfogadott.
 
 ---
 
@@ -171,25 +171,29 @@ Production C# státusz:
 
 **Státusz:** `FOUNDATION_ONLY`
 
-### 3.2 ObjectReference
+### 3.2 Object reference / long-term object identity
 
-Schema:
+A történeti Python projection `minimal-object-reference-v0` továbbra is reference evidence.
 
-- `minimal-object-reference-v0`
+Production current long-term identity contract:
 
-Python státusz:
+```text
+GameObjectRef {
+  ObjectId,
+  ObjectKindId,
+  IncarnationSequence
+}
+```
 
-- `ACTIVE_REFERENCE_PROJECTION`
+Szerepe:
 
-Szerep:
-
-- rövid, biztonságos card instance hivatkozás;
+- stabil objektumazonosság;
+- leave/re-enter eseteknél incarnation elhatárolás;
+- combat participant continuity és revalidation;
 - nem teljes card instance dump;
-- hidden-information-védett contract.
+- viewer-safe projectionnél továbbra is visibility policy érvényes.
 
-Production C# státusz:
-
-- typed `CardReference` projection contractként aktív a player snapshotban.
+A typed `CardReference` player projection továbbra is aktív.
 
 **Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
@@ -221,27 +225,31 @@ Python státusz:
 
 - `ACTIVE_REFERENCE_RUNTIME`
 
-Jelenlegi fő rétegek:
+Production C#:
+
+- egyetlen authoritative `MatchState`;
+- publikus hívónak nem adható ki módosítható referenciaként.
+
+Current fő production state-rétegek többek között:
 
 - player state-ek;
 - card instance registry;
 - state version;
-- aktív és priority player;
-- minimal phase;
+- active/priority player;
+- canonical phase;
 - event log;
-- Domain topológiák;
-- Domain occupancy state-ek.
+- Domain topology/occupancy;
+- Wellspring;
+- `ReactionWindow`;
+- `ResolutionStack`;
+- `QueuedTriggerBatches`;
+- `PendingCombatState`;
+- `PendingSurgeWindowState`;
+- `MatchSetupState`;
+- `SealSlots`;
+- terminal `MatchResult`.
 
-C# candidate:
-
-- fixture-specifikus minimal state és projection bizonyított.
-
-Production C#:
-
-- aktív egyetlen authoritative MatchState;
-- publikus hívó számára nem adható ki módosítható referenciaként.
-
-**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION / COMPLETE_CURRENT_CORE`
 
 ### 3.5 PlayerState zónalisták
 
@@ -265,6 +273,42 @@ A teljes jövőbeli zónakészlet és minden resolution/intermediate zone ettől
 
 **Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
+
+### 3.6 Setup, Seal, pending Combat/Surge és MatchResult state
+
+Current production contractok:
+
+- `MatchSetupState`;
+- `SealSlot`;
+- `PendingCombatState`;
+- `PendingSurgeWindowState`;
+- terminal `MatchResult`.
+
+Canonical Seal slot minimum:
+
+```text
+SealSlot {
+  SealSlotId,
+  OwnerPlayerId,
+  LaneIndex,
+  Status standing|broken,
+  CardInstanceId?
+}
+```
+
+Visibility:
+
+- slot identity/lane/status public;
+- standing Seal card identity hidden mindkét player-facing viewer előtt, owner előtt is;
+- break reveal public;
+- Surge után hand identity újra viewer-private;
+- reveal history public marad.
+
+Sealnek nincs HP-contractja.
+
+`MatchResult` authoritative és terminal: terminal állapot után normál gameplay action nem folytatható.
+
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION / COMPLETE_AND_ACCEPTED`
 
 ---
 
@@ -308,7 +352,7 @@ A Domain stabil topology/position reference elve productionben is megmarad.
 
 **Production státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
-A teljes combat- és Pecsét-state semantics külön későbbi rules/contract réteg.
+A Combat + Pecsét state semantics C0–C6 current production contractként külön state/pending/event rétegben aktív; a Domain topology ettől továbbra is külön fogalom.
 
 ### 4.3 Domain occupancy
 
@@ -330,7 +374,7 @@ Production C#:
 
 **Production státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
-A combat, attack/block és teljes Pecsétmodell nem következik automatikusan ebből.
+A Combat/Pecsét current contract külön C0–C6 state/action/event rétegként aktív; nem a Domain occupancy contractból következik.
 
 
 ---
@@ -347,34 +391,29 @@ Python státusz:
 
 - `ACTIVE_REFERENCE_PROJECTION`
 
-Visibility-policy:
-
-- saját kéz: owner-visible;
-- ellenfél kéz: redacted, count-only;
-- deck: count-only;
-- Void: public;
-- Domain board: public.
-
-Nem tartalmazhat:
-
-- teljes MatchState-et;
-- teljes registryt;
-- ellenfél rejtett kézadatait;
-- deck instance ID-kat;
-- nem engedélyezett diagnosticsot.
-
-C# candidate:
-
-- mindkét játékos snapshotja a comparison fixture részeként bizonyított.
-
-**Státusz:** `PROVEN_CSHARP_CANDIDATE`
-
 Production C#:
 
 - aktív viewer-specifikus typed `PlayerSnapshot`;
-- saját kéz látható;
-- ellenfél rejtett adatai csak számlálóként;
-- stabil state version és legal action kapcsolat.
+- own hand owner-visible;
+- opponent hand redacted/count-only;
+- deck count-only;
+- Void public;
+- Domain board public a rules visibility szerint;
+- Wellspring viewer-safe;
+- Seal slot/lane/status public;
+- standing Seal card identity hidden mindkét játékos elől;
+- current pending decision/combat/reaction/surge summary viewer-safe;
+- state version és legal action kapcsolat stabil;
+- terminal `MatchResult` viewer-safe módon elérhető.
+
+Nem tartalmazhat:
+
+- teljes mutable MatchState-et;
+- teljes registryt;
+- opponent hidden hand identityt;
+- deck instance ID-kat;
+- standing Seal hidden card identityt;
+- internal-only diagnosticsot/event payloadot.
 
 **Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
@@ -429,36 +468,37 @@ A production C# engine authoritative phase state machine-je:
 
 `awakening -> infusion -> manifestation -> incursion -> distribution`
 
-Canonical public progression action:
+Canonical public progression:
 
 - `advance_phase`.
 
-Aktuális minimum fázismátrix:
+Current minimum phase/action matrix:
 
 - Awakening: `advance_phase`;
 - Infusion: `normal_inflow`, `advance_phase`;
 - Manifestation: `play_card`, `advance_phase`;
-- Incursion: `advance_phase`;
+- Incursion: `attack` ha legális, valamint `advance_phase`;
 - Distribution: `advance_phase`.
 
-A normál production public action space-ben nincs:
+Pending state további engine-issued actionöket nyithat, például:
+
+- `react`;
+- `pass_priority`;
+- intervention/decline defense;
+- `resolve_surge_opportunity`.
+
+Normál public action space-ben nincs:
 
 - `draw_card`;
 - `end_turn`.
 
 A historical runtime-comparison adapter a régi draw/end-turn proofot izoláltan megtarthatja.
 
-Direct hand-crafted production requesttel:
+Direct hand-crafted invalid request stabilan rejected és nem mutál authoritative state-et vagy event historyt.
 
-- `draw_card`;
-- `end_turn`;
-- rossz fázisú `normal_inflow`
+Legal actiont mindig az engine számolja; frontend és AI nem építhet külön legality rules engine-t.
 
-stabilan elutasított és nem mutál authoritative state-et vagy event historyt.
-
-A pending-trigger gate továbbra is authoritative.
-
-A public `ActionResponse.Events` viewerje a requestet beküldő `player_id`; player switch nem cserélheti át a viewer identitását. Az internal event store full-fidelity.
+A public `ActionResponse.Events` viewerje a requestet beküldő `player_id`; player switch nem cserélheti át a viewer identityt. Internal event store full-fidelity.
 
 **Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
@@ -508,9 +548,8 @@ Production minimum:
 Továbbra sem jelenti:
 
 - teljes kártyaállomány teljes ability coverage-ét;
-- Reaction/Priority implementációt;
-- combatot;
-- minden alternate/temporary payment mechanikát.
+- minden alternate/temporary payment mechanikát;
+- generic prevention/replacement vagy compound choice teljes támogatását.
 
 
 ---
@@ -656,29 +695,36 @@ C# candidate:
 
 **Státusz:** `PROVEN_CSHARP_CANDIDATE`
 
-### 8.4 Production event lifecycle és további typed eventek
+### 8.4 Production event lifecycle és current typed eventek
 
-Aktív production foundation:
+Aktív production eventcsalád többek között:
 
 - `phase_transition`;
 - `turn_transition`;
 - `card_readied`;
 - canonical `zone_move`;
-- támogatott activity/payment transitionök structured eventjei;
-- támogatott card-play és canonical ability/effect resolution eventcsalád.
+- activity/payment transitionök;
+- card-play és canonical ability/effect resolution eventek;
+- Reaction/Priority eventek;
+- Combat declaration/commit/resolution eventek;
+- `combat_resolved`;
+- `seal_break_intent`;
+- `seal_broken`;
+- `seal_revealed`;
+- `seal_surged`;
+- `aeternal_hit`;
+- `match_ended`.
 
-Az explicit phase foundation eventjei viewer-safe public projectionön keresztül érhetők el; az internal event store full-fidelity marad.
+A Combat/Seal/Aeternal eventek viewer-safe public projectionön keresztül érhetők el;
+az internal event store full-fidelity marad.
 
-További későbbi event-réteg:
+Továbbra is future/külön scope:
 
-- Reaction/Priority;
-- combat attack/block/combat-damage;
-- Pecsét-feltörés és restore;
-- victory/defeat;
-- további még nem támogatott ability/replacement események.
+- special Seal restore/ward effect eventek;
+- generic prevention/replacement;
+- további unsupported ability/Expansion eventcsaládok.
 
-**Aktív alap státusza:** `ACTIVE_PRODUCTION_FOUNDATION`
-**További eventcsaládok:** `PLANNED_GAMEPLAY`
+**Státusz:** `ACTIVE_PRODUCTION_FOUNDATION`
 
 ## 9. Diagnostics contract
 
@@ -906,7 +952,7 @@ Lezáró commit:
 
 `931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
-A C.5B bizonyította többek között:
+A C.5B történeti minimum többek között:
 
 1. runtime package minimum loader;
 2. `CreateMatchRequest`;
@@ -919,47 +965,72 @@ A C.5B bizonyította többek között:
 9. viewer-safe event projection;
 10. Godot production bridge.
 
-Ez történeti scope-határ, nem a jelenlegi production maximum.
+Ez történeti scope-határ, nem current maximum.
 
-### C.5B utáni production gameplay/ability foundation
+### Korábbi production gameplay foundation slice
 
-A `931bf... -> 2608345b...` szakaszban aktív production foundation lett többek között:
+A `931bf... -> 2608345b...` szakaszban production foundation lett többek között:
 
-1. Wellspring state és projection;
-2. normal Infusion;
-3. Magnitúdó-preflight;
-4. Aura-payment preflight;
-5. activity mutation;
-6. Domain/placement;
-7. `play_card`;
-8. canonical zone/Void transition;
-9. canonical card/runtime binding;
-10. ability catalog/template compiler;
-11. condition/target/trigger/effect execution foundation;
-12. continuous effects;
-13. modifier/keyword/duration;
-14. damage/vitals/lethal lifecycle;
-15. draw/reference runtime;
-16. explicit phase lifecycle.
+- Wellspring / normal Infusion;
+- Magnitúdó/Aura preflight;
+- activity;
+- Domain/placement;
+- `play_card`;
+- canonical zone/Void;
+- card/runtime binding;
+- ability/effect execution foundation;
+- continuous effects;
+- modifiers/keywords/duration;
+- damage/vitals/lethal;
+- draw/reference runtime;
+- explicit phase lifecycle.
 
 ### Explicit Phase Foundation v1
 
-Lezáró commit:
-
 `2608345b61526097fc0b118f05461f92cfed0a95`
-
-Státusz:
 
 `COMPLETE_AND_ACCEPTED`
 
+### Reaction / Priority Foundation v1
+
+`f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
+
+`COMPLETE_AND_ACCEPTED`
+
+### Combat + Pecsét Foundation C0–C6
+
+Rules migration:
+
+`61ad2605dd1aa3d7ea95444f0bb66cebf819014e`
+
+Lezáró commit:
+
+`0862e1002dbef81ee203852714d377592272a0e9`
+
+`COMPLETE_AND_ACCEPTED`
+
+Current contract core:
+
+- setup/Jóslat;
+- Seal privacy/state;
+- AttackCommit;
+- DefenseCommit/intervention;
+- Combat ReactionWindows;
+- participant continuity/revalidation;
+- Entity Combat;
+- SealBreak/Surge/Gondviselés;
+- Aeternal;
+- terminal `MatchResult`.
+
 ### Következő contract-kapu
 
-`Reaction / Priority Foundation v1`
+Nincs előre kijelölt általános engine-feature contract.
 
-Előbb rules/OQ/contract audit szükséges. Combat külön későbbi slice.
+Current gate:
 
+`VS1_READINESS_REQUIRED`
 
----
+Előbb a két canonical VS1 deck card/mechanic auditja szükséges. Csak tényleges blockerből készül új finite contract.
 
 ## 15. Contract-validációs elvek
 
@@ -1026,10 +1097,13 @@ A repository aktuális állapota:
 
 ## 18. Rövid státuszösszegzés
 
-**Python aktív referencia state:** card instance v1, MatchState, Domain topology és occupancy
-**Python aktív player projection:** snapshot és public Domain board reference
-**Python aktív action/event:** történeti reference draw/end-turn és zone/turn eventek
-**C# candidate proof:** draw, stale rejection, end-turn, snapshot, event és legal action
-**Production C# contractok:** C.5B foundation + post-C.5B gameplay/ability + Explicit Phase Foundation aktív
-**Aktív production gameplay foundation:** Wellspring, normal Infusion, payment preflight, Domain, `play_card`, canonical ability/effect runtime foundation
-**Nem teljes production:** Reaction/Priority, combat, teljes Pecsétmodell, Refresh Penalty, teljes ability coverage, victory/defeat
+**Python reference:** comparison/oracle/tooling; nem production authority
+**C# candidate proof:** történeti accepted proof
+**Production authority:** C#/.NET
+**Production contractok:** C.5B + gameplay/ability + Explicit Phase + Reaction/Priority + Combat/Pecsét C0–C6
+**Current MatchState:** setup, reaction/resolution, queued trigger, pending combat/surge, Seal slots, terminal MatchResult state-et is tartalmaz
+**Current legal actions:** phase flow + engine-issued reaction/combat/surge actionök
+**Current events:** phase/zone/card/effect + Reaction + Combat + Seal + Aeternal + match end
+**Open production gap:** generic prevention/replacement, compound choice, special Seal restore/ward, full ability/content coverage, Refresh Penalty és további future mechanics
+**Current next gate:** `VS1_READINESS_REQUIRED`
+**Current repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`

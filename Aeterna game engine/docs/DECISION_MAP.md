@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 3.0
-**Dátum:** 2026-08-30
+**Dokumentumverzió:** 3.1
+**Dátum:** 2026-09-05
 **Státusz:** aktív rövid döntési és iránytérkép
-**Szinkronizációs repository-bázis:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
-**Production engine mérföldkő:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
+**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
+**Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 
 Ez a dokumentum röviden rögzíti:
 
@@ -27,7 +27,7 @@ Kapcsolódó aktív dokumentumok:
 - `OPEN_QUESTIONS.md`
 - `OPEN_QUESTIONS_DECISIONS.md`
 - `checkpoints/ENGINE_CHECKPOINT.md`
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.7.md`
+- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`
 
 ---
 
@@ -167,7 +167,7 @@ A production authority:
 Lezáró commit:
 `931bf5571d541c752aa421a9f0626768bd8ffbe7`
 
-### Első production gameplay vertical slice
+### Korábbi production gameplay foundation slice
 `COMPLETE_AND_ACCEPTED`
 
 Megvalósult többek között:
@@ -200,9 +200,7 @@ Public progression:
 
 ---
 
-## 7. Következő production irány
-
-### Reaction / Priority Foundation v1
+## 7. Reaction / Priority Foundation v1
 
 **Lezáró production commit:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c`
 **Acceptance:** Debug/Release `246/246 PASS`; determinism `100/100`; oracle + Godot smoke PASS; external re-audit PASS.
@@ -290,43 +288,111 @@ Reserved extension point:
 - future `TriggerActivationPolicy`;
 - future `TriggerBatchOrderPolicy`.
 
-Az első Reaction v1 contractnak még pontosítania kell:
+A Reaction / Priority Foundation v1 exact minimum contractja és production runtime-ja lezárult.
 
-- exact ReactionWindow/ResolutionStack minimum mezőket;
-- eligible responder/current priority representationt;
-- pass counter/reset semanticsot;
-- event/correlation és viewer-safe projection mezőket;
-- final revalidation result behavior;
-- unsupported content behavior.
+Current lezárt elemek többek között:
 
-Az első slice nem oldja meg automatikusan:
+- authoritative `ReactionWindow`;
+- `ResolutionStack`;
+- `QueuedTriggerBatches`;
+- eligible responder/current priority representation;
+- pass counter/reset semantics;
+- event/correlation;
+- viewer-safe pending projection;
+- final revalidation;
+- unsupported-path behavior a v1 scope szerint;
+- Combat declaration-window integráció.
+
+Továbbra is future extension / külön scope:
 
 - generic prevention/replacement;
-- teljes compound non-reaction choice frameworköt;
-- combat-specifikus Reaction integrációt;
-- every future special timing policyt;
-- teljes card/ability coverage-et.
+- teljes compound non-reaction choice framework;
+- every future special timing policy;
+- teljes card/ability coverage;
+- reserved `strict_event_window`;
+- delayed/immediate special timing;
+- future `TriggerActivationPolicy`;
+- future `TriggerBatchOrderPolicy`.
+
+Reaction / Priority v1:
+
+`COMPLETE_AND_ACCEPTED`
 
 ---
 
-## 8. További gameplay queue
+## 8. Combat + Pecsét C0–C6 és current roadmap
 
-A Reaction / Priority foundation után, külön döntési kapukkal:
+### Combat + Pecsét Foundation C0–C6
 
-1. combat contract;
-2. attack/target/block;
-3. Pecsétfeltörés;
-4. teljes Pecsét state/visibility;
-5. Refresh Penalty;
-6. ability coverage bővítése;
-7. victory/defeat;
-8. replay;
-9. production AI-vs-AI;
-10. packaging/UI.
+**Státusz:** `COMPLETE_AND_ACCEPTED`
 
-Ez iránysorrend, nem automatikus implementációs parancs.
+Rules migration:
 
----
+`61ad2605dd1aa3d7ea95444f0bb66cebf819014e`
+
+Lezáró production commit:
+
+`0862e1002dbef81ee203852714d377592272a0e9`
+
+Current core:
+
+- canonical setup + Jóslat;
+- hat stabil Pecsét-slot és viewer-safe visibility;
+- `attack` / AttackCommit;
+- intervention / DefenseCommit;
+- két Combat ReactionWindow;
+- participant continuity/revalidation;
+- Entity Combat simultaneous damage;
+- SealBreak / public reveal / Surge;
+- Gondviselés Surge opportunity;
+- Aeternal outcome;
+- terminal `MatchResult v2`.
+
+Final acceptance:
+
+- Debug/Release C#: `301/301 PASS`;
+- targeted C6: `8/8 PASS`;
+- determinism/reference: `100/100 PASS`;
+- canonical SHA:
+  `97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8`;
+- Python isolated `465/465 PASS` + 5 skip;
+- exporter `23/23 PASS`;
+- Godot positive/negative smoke PASS;
+- unresolved P0/P1: `0/0`.
+
+### VS1 / M6
+
+**Státusz:** `NEXT MAJOR PRODUCT-FACING GOAL`
+
+A VS1 nem azonos a korábbi production gameplay foundation slice-szal.
+
+Canonical VS1 deckek:
+
+- `DECK-IGN-HAM-VS1-001`;
+- `DECK-AQU-MOR-VS1-001`.
+
+Current sequence:
+
+```text
+VS1 card/mechanic readiness audit
+→ human scope/prioritásdöntés
+→ csak tényleges blockerre finite contract/implementation
+→ simple fair AI + match orchestration
+→ minimal playable Godot
+→ human-vs-AI + reproducible AI-vs-AI smoke
+→ VS1 end-to-end acceptance
+→ szükséges köztes mérföldkövek
+→ AETERNA 0.0.1
+```
+
+VS1 előtt csak az a capability kötelező, amelyet a két canonical VS1 deck ténylegesen igényel,
+vagy amely általános engine-invariánsként szükséges a rules-correct, deterministic,
+viewer-safe lejátszáshoz.
+
+Current rules authority:
+
+- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
 
 ## 9. Python–C# kommunikáció
 
@@ -364,29 +430,47 @@ HTTP/gRPC:
 
 ---
 
-## 11. Codex-szabály
+## 11. Codex / ChatGPT / ember munkamegosztás
 
-Codex csak szükséges technikai feladathoz:
+### Ember
+
+Végső project/rules/design/balance/priority/acceptance authority.
+
+### ChatGPT + ember
+
+- project-state reconstruction;
+- rules/OQ munka;
+- learning/synthesis értelmezés;
+- contract/scope;
+- Codex prompt;
+- Codex report/diff/test audit;
+- dokumentáció;
+- milestone acceptance.
+
+### Codex
 
 - programozás;
 - build/test/smoke;
-- lokális worktree/fájl elemzés, ha GitHubból nem érhető el.
+- szükséges célzott lokális technikai vizsgálat.
 
-Projekttervezés, dokumentáció és rules/contract döntés nem alapértelmezett Codex-feladat.
+Current programming workflow:
 
----
+```text
+Codex local edit + validation
+→ NO COMMIT / NO PUSH
+→ external audit
+→ human approval
+→ user commit/push
+→ remote verification
+```
+
+Codex nem hoz önálló rules- vagy projektirányítási döntést.
 
 ## 12. Dokumentációs állapot
 
-A nagy dokumentációs/archív cleanup lezárult.
+A nagy dokumentációs/archív cleanup történeti köre lezárult.
 
-A `2608345b...` mérföldkőhöz tartozó célzott A+B aktív consistency pass szintén lezárult.
-
-A 2026-08-15-i dokumentációs handoff:
-
-- `ae7d284...` – learning registry + analysis corpus;
-- `b0e4d9d...` – cross-project synthesis + AETERNA blueprints;
-- `743c00d...` – Open Questions v2.2 szinkron.
+A C0–C6 mérföldkő után targeted current-truth sync fut, history-aware szerkesztéssel.
 
 Aktuális learning/OQ állapot:
 
@@ -395,12 +479,18 @@ Aktuális learning/OQ állapot:
 58 current local source
 30 project analysis
 
-50 answered
-17 partly_answered
+52 answered
+15 partly_answered
 7 deferred
 0 open
 74 total
 ```
+
+OQ current változás C0–C6 után:
+
+- `OQ-SNAP-002`: `answered`;
+- `OQ-LA-003`: `answered`;
+- a fennmaradó részleges gate-ek scope-ja szűkült, de nem lett túlzárva.
 
 Továbbra is tilos:
 
@@ -408,7 +498,21 @@ Továbbra is tilos:
 - tartalomvesztés;
 - nyitott kérdés elvesztése;
 - aktív és történeti forrás összekeverése;
+- Archive automatikus visszaállítási forrásként kezelése;
 - learning/synthesis/blueprint automatikus rules authorityként kezelése.
+
+Current documentation rule:
+
+```text
+committed current file
+→ Git/Archive history comparison
+→ targeted patch
+→ diff review
+```
+
+Aktív current dokumentum verzióemelésekor ugyanaz a fájl frissül;
+ha a verzió a fájlnév része, ugyanaz a fájl rename-elődik az új verzióra.
+Régi active copy nem marad párhuzamosan.
 
 ## 13. Nyitott, de nem blokkoló tételek
 
@@ -427,7 +531,8 @@ Továbbra is tilos:
 
 ## 14. Rövid irány
 
-**Most:** Combat + Pecsét Foundation minimal production contract.
-**Ezután:** csak elfogadott contract alapján szükséges Codex implementation.
-**Combat:** külön későbbi slice.
-**Dokumentáció:** learning/synthesis/OQ handoff commitolva; current admin-sync célzott, history-aware szerkesztéssel folytatandó.
+**Most:** C0–C6 milestone documentation sync.
+**Ezután:** VS1 / M6 readiness audit.
+**Következő code:** csak readiness alapján azonosított tényleges blocker finite slice.
+**VS1 után:** szükséges köztes mérföldkövek → 0.0.1.
+**Dokumentáció:** history-aware targeted patch; meglévő current dokumentumból nem készül párhuzamos új active copy.
