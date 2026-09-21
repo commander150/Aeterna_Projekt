@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-ENGINE-CHECKPOINT
+kind: document
+type: checkpoint
+version: "2.0"
+lifecycle: active
+integration: current
+authority: technical-status
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA Game Engine – Engine Checkpoint
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

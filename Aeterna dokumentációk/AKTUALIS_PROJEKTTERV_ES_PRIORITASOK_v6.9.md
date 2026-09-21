@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-PROJECT-PLAN
+kind: document
+type: project-plan
+version: "6.9"
+lifecycle: active
+integration: current
+authority: project-direction
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.9
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
