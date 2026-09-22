@@ -48,3 +48,28 @@ class ArtifactMetadata:
 class ParseResult:
     metadata: ArtifactMetadata | None = None
     diagnostics: tuple[Diagnostic, ...] = ()
+
+
+@dataclass(frozen=True)
+class ArtifactRecord:
+    """Validated native metadata plus repository-derived artifact fields."""
+
+    artifact_id: str
+    kind: str
+    type: str
+    version: str | None
+    lifecycle: str
+    integration: str
+    authority: str
+    generated: bool
+    depends_on: tuple[str, ...]
+    supersedes: tuple[str, ...]
+    path: str
+    scope: Scope
+    title: str
+
+
+@dataclass(frozen=True)
+class ScanResult:
+    artifacts: tuple[ArtifactRecord, ...] = ()
+    diagnostics: tuple[Diagnostic, ...] = ()

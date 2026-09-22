@@ -1,0 +1,66 @@
+{
+  "registry_schema_version": "0.1",
+  "source_model": "native-artifact-metadata",
+  "artifacts": [
+    {
+      "artifact_id": "AET-DOC-DEVELOPMENT-ROADMAP",
+      "title": "AETERNA – FEJLESZTÉSI ROADMAP ÉS MÉRFÖLDKŐ-RENDSZER",
+      "kind": "document",
+      "type": "roadmap",
+      "version": "1.0",
+      "lifecycle": "active",
+      "integration": "pending_integration",
+      "authority": "project-direction",
+      "generated": false,
+      "depends_on": [],
+      "supersedes": [],
+      "scope": "ACTIVE",
+      "path": "Aeterna dokumentációk/DEVELOPMENT_ROADMAP.md"
+    },
+    {
+      "artifact_id": "AET-DOC-DOCUMENT-GOVERNANCE",
+      "title": "AETERNA dokumentum- és artifact-governance",
+      "kind": "document",
+      "type": "governance",
+      "version": "0.1",
+      "lifecycle": "active",
+      "integration": "current",
+      "authority": "document-governance",
+      "generated": false,
+      "depends_on": [],
+      "supersedes": [],
+      "scope": "ACTIVE",
+      "path": "Aeterna dokumentációk/DOCUMENT_GOVERNANCE.md"
+    },
+    {
+      "artifact_id": "AET-DOC-ENGINE-CHECKPOINT",
+      "title": "AETERNA Game Engine – Engine Checkpoint",
+      "kind": "document",
+      "type": "checkpoint",
+      "version": "2.0",
+      "lifecycle": "active",
+      "integration": "current",
+      "authority": "technical-status",
+      "generated": false,
+      "depends_on": [],
+      "supersedes": [],
+      "scope": "ACTIVE",
+      "path": "Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md"
+    },
+    {
+      "artifact_id": "AET-DOC-PROJECT-PLAN",
+      "title": "AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.9",
+      "kind": "document",
+      "type": "project-plan",
+      "version": "6.9",
+      "lifecycle": "active",
+      "integration": "current",
+      "authority": "project-direction",
+      "generated": false,
+      "depends_on": [],
+      "supersedes": [],
+      "scope": "ACTIVE",
+      "path": "Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md"
+    }
+  ]
+}
