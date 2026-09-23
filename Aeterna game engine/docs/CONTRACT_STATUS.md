@@ -34,7 +34,7 @@ Kapcsolódó aktív dokumentumok:
 - `OPEN_QUESTIONS_DECISIONS.md`
 - `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
 - `ARCHITECTURE.md`
-- `checkpoints/ENGINE_CHECKPOINT.md`
+- `../../project/status/checkpoints/ENGINE_CHECKPOINT.md`
 
 ---
 

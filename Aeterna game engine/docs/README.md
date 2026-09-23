@@ -29,8 +29,8 @@ Ez a fájl az `Aeterna game engine/docs/` aktív dokumentumainak szerepét, els�
 
 ## 1. Elsődleges folytatási dokumentumok
 
-- `checkpoints/ENGINE_CHECKPOINT.md` v2.0;
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
+- `../../project/status/checkpoints/ENGINE_CHECKPOINT.md` v2.0;
+- `../../project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
 - `../../Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`;
 - `AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`.
 
@@ -106,7 +106,7 @@ Szabályi kérdésben:
 
 Technikai folytatásban:
 
-1. `checkpoints/ENGINE_CHECKPOINT.md`;
+1. `../../project/status/checkpoints/ENGINE_CHECKPOINT.md`;
 2. aktuális projektterv;
 3. projekt-térkép;
 4. architecture/technology;

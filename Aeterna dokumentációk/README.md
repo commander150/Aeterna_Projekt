@@ -48,10 +48,10 @@ A program validált runtime/canonical adatot fogyaszt; a programkimenet nem vál
 
 ### 1.3 Aktív projektirányító dokumentumok
 
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
+- `../project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
 - `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`;
 - jelen `README.md`;
-- `../Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md` v2.0.
+- `../project/status/checkpoints/ENGINE_CHECKPOINT.md` v2.0.
 
 Current fő roadmap:
 
@@ -93,7 +93,7 @@ Az archív példány nem aktív authority.
 
 Aktív:
 
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
+- `../project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
 - `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`.
 
 A fájlnévben verziózott current dokumentum új verzióra lépésekor ugyanaz a dokumentum
@@ -152,7 +152,7 @@ Engine-index:
 
 Technikai folytatás:
 
-- `../Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md`.
+- `../project/status/checkpoints/ENGINE_CHECKPOINT.md`.
 
 Architektúra és döntések:
 

@@ -427,6 +427,6 @@ A fixture minimális authority-, determinism- és integration proof.
 - `TECHNOLOGY_DECISIONS.md`
 - `CONTRACT_STATUS.md`
 - `PROTOTYPE_STATUS.md`
-- `checkpoints/ENGINE_CHECKPOINT.md`
+- `../../project/status/checkpoints/ENGINE_CHECKPOINT.md`
 
 A korábbi 1.0-s, implementáció előtti megfogalmazás a Git-történetben megmarad. Az 1.1-es dokumentum a proof utáni aktív regressziós specifikáció.

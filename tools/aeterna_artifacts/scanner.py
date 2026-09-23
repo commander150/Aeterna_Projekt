@@ -16,7 +16,7 @@ from .validation import validate_metadata
 _ARTIFACT_KEY = re.compile(r"(?m)^[ \t]*artifact_id[ \t]*:")
 _H1 = re.compile(r"^#[ \t]+(.+?)[ \t]*$")
 _EXCLUDED_ROOTS = frozenset({".git", ".venv", "temp", "learning", "archive"})
-_GENERATED_DIRECTORY = ("aeterna dokumentációk", "generated")
+_GENERATED_DIRECTORY = ("project", "generated")
 
 
 def _front_matter_end(lines: list[str]) -> int | None:

@@ -35,7 +35,7 @@ Production mérföldkövek:
 - Reaction / Priority Foundation v1: `COMPLETE_AND_ACCEPTED`;
 - Combat + Pecsét Foundation C0–C6: `COMPLETE_AND_ACCEPTED`.
 
-Aktuális checkpoint: `docs/checkpoints/ENGINE_CHECKPOINT.md`
+Aktuális checkpoint: `../project/status/checkpoints/ENGINE_CHECKPOINT.md`
 
 ---
 

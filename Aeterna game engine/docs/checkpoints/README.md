@@ -14,7 +14,7 @@ Ez a dokumentum elválasztja az aktív technikai folytatási pontot, a történe
 
 ## 1. Aktív technikai checkpoint
 
-- `ENGINE_CHECKPOINT.md` v2.0
+- `../../../project/status/checkpoints/ENGINE_CHECKPOINT.md` v2.0
 
 Szerepe:
 
@@ -71,7 +71,7 @@ A 0.0.1 az első zárt, játszható product target, nem napi technikai checkpoin
 
 ## 4. Checkpointkészítési szabály
 
-Az aktív `ENGINE_CHECKPOINT.md` frissítendő, amikor:
+Az aktív `../../../project/status/checkpoints/ENGINE_CHECKPOINT.md` frissítendő, amikor:
 
 - érdemi technikai szakasz lezárult;
 - authority vagy architecture döntés változott;
@@ -89,7 +89,7 @@ A `CHECKPOINTS.md` csak nagy, lezárt mérföldkő után kap új történeti bej
 
 Technikai folytatás:
 
-1. `ENGINE_CHECKPOINT.md`;
+1. `../../../project/status/checkpoints/ENGINE_CHECKPOINT.md`;
 2. aktuális projektterv;
 3. aktuális projekt-térkép;
 4. `ARCHITECTURE.md` és `TECHNOLOGY_DECISIONS.md`;
@@ -106,7 +106,7 @@ Szabályi kérdésben a hivatalos játékszabályforrás mindegyik fölött áll
 Aktív:
 
 - jelen `README.md` v1.8;
-- `ENGINE_CHECKPOINT.md` v2.0;
+- `../../../project/status/checkpoints/ENGINE_CHECKPOINT.md` v2.0;
 - `CHECKPOINTS.md` v1.4.
 
 Szinkronizációs dokumentációs / production bázis:

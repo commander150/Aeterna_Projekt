@@ -11,8 +11,8 @@ from .model import ArtifactRecord, Diagnostic, Severity
 from .scanner import scan_repository, validate_record_set
 
 
-REGISTRY_PATH = Path("Aeterna dokumentációk/generated/artifacts_registry.json")
-DOCUMENT_INDEX_PATH = Path("Aeterna dokumentációk/generated/DOCUMENT_INDEX.md")
+REGISTRY_PATH = Path("project/generated/artifacts_registry.json")
+DOCUMENT_INDEX_PATH = Path("project/generated/DOCUMENT_INDEX.md")
 
 
 @dataclass(frozen=True)

@@ -79,9 +79,9 @@ Státusz: `ACTIVE_DATA_AUDIT`
 
 - root `README.md`;
 - `Aeterna dokumentációk/README.md`;
-- `AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
+- `../project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
 - jelen `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`;
-- `Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md`.
+- `../project/status/checkpoints/ENGINE_CHECKPOINT.md`.
 
 A korábbi projekttervek és projekt-térképek történeti/archív elődök.
 
@@ -206,7 +206,7 @@ Elsődleges technikai folytatás:
 - `TECHNOLOGY_DECISIONS.md`;
 - `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
 - `DECISION_MAP.md`;
-- `checkpoints/ENGINE_CHECKPOINT.md`.
+- `../project/status/checkpoints/ENGINE_CHECKPOINT.md`.
 
 Aktuális státusz:
 

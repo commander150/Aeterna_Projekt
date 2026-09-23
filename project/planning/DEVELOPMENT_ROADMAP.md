@@ -1410,7 +1410,7 @@ First Complete Product Release
 
 A roadmap tervezése során figyelembe vett főbb projektanyagok:
 
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
+- `project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
 - `Aeterna game engine/docs/PROTOTYPE_STATUS.md` v1.6;
 - `Aeterna game engine/docs/RUNTIME_PACKAGE_STATUS.md` v1.6;
 - `Aeterna game engine/docs/ABILITY_MODULE_SYSTEM.md` v1.5;

@@ -85,6 +85,10 @@ class GenerationTests(unittest.TestCase):
         self.assertEqual("native-artifact-metadata", payload["source_model"])
         self.assertEqual(EXPECTED_FIELDS, set(payload["artifacts"][0]))
 
+    def test_output_paths_use_project_generated_ownership(self) -> None:
+        self.assertEqual(Path("project/generated/artifacts_registry.json"), REGISTRY_PATH)
+        self.assertEqual(Path("project/generated/DOCUMENT_INDEX.md"), DOCUMENT_INDEX_PATH)
+
     def test_registry_is_sorted_by_artifact_id(self) -> None:
         payload = json.loads(build_generated_content(self.records).registry)
         self.assertEqual(

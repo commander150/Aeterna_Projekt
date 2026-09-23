@@ -32,7 +32,7 @@ Kapcsolódó dokumentumok:
 - `RUNTIME_PACKAGE_SPECIFICATION.md`
 - `ABILITY_MODULE_SYSTEM.md`
 - `RUNTIME_COMPARISON_FIXTURE_SPEC.md`
-- `checkpoints/ENGINE_CHECKPOINT.md`
+- `../../project/status/checkpoints/ENGINE_CHECKPOINT.md`
 
 ---
 

@@ -26,8 +26,8 @@ Kapcsolódó aktív dokumentumok:
 - `CONTRACT_STATUS.md`
 - `OPEN_QUESTIONS.md`
 - `OPEN_QUESTIONS_DECISIONS.md`
-- `checkpoints/ENGINE_CHECKPOINT.md`
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`
+- `../../project/status/checkpoints/ENGINE_CHECKPOINT.md`
+- `../../project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`
 
 ---
 

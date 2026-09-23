@@ -5,7 +5,7 @@
 **Dokumentumverzió:** 1.4
 **Dátum:** 2026-09-05
 **Státusz:** történeti technikai mérföldkőnapló
-**Aktív folytatási checkpoint:** `ENGINE_CHECKPOINT.md`
+**Aktív folytatási checkpoint:** `../../../project/status/checkpoints/ENGINE_CHECKPOINT.md`
 
 Ez a fájl az AETERNA Game Engine fő technikai mérföldköveinek időrendi összefoglalója.
 
@@ -16,7 +16,7 @@ Nem:
 - contract-status;
 - Open Questions-regiszter.
 
-Régi „következő lépés” nem írhatja felül az aktív `ENGINE_CHECKPOINT.md` vagy projektterv állapotát.
+Régi „következő lépés” nem írhatja felül az aktív `../../../project/status/checkpoints/ENGINE_CHECKPOINT.md` vagy projektterv állapotát.
 
 ---
 

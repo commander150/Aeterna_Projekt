@@ -30,8 +30,8 @@ Kapcsolódó aktív dokumentumok:
 - `CONTRACT_STATUS.md`
 - `TECHNOLOGY_DECISIONS.md`
 - `ARCHITECTURE.md`
-- `checkpoints/ENGINE_CHECKPOINT.md`
-- `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`
+- `../../project/status/checkpoints/ENGINE_CHECKPOINT.md`
+- `../../project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`
 
 ---
 
@@ -543,7 +543,7 @@ A dokumentumszaporodás elkerülése érdekében:
 - új alfeladathoz alapértelmezetten nem készül új dokumentum;
 - új eredmény a természetes aktív fődokumentumba kerüljön;
 - külön fájl csak önálló, tartós és más dokumentumba nem illeszthető canonical témának készülhet;
-- a `checkpoints/ENGINE_CHECKPOINT.md` a fő technikai folytatási pont;
+- a `../../project/status/checkpoints/ENGINE_CHECKPOINT.md` a fő technikai folytatási pont;
 - azonos szerepű párhuzamos current dokumentum nem hozható létre;
 - fájlnévben verziózott current dokumentum ugyanazon fájl rename-jével lép új verzióra;
 - korábbi current verziót normál esetben a Git history őrzi;

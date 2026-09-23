@@ -22,8 +22,8 @@ Kapcsolódó aktív dokumentumok:
 - `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`
 - `RUNTIME_PACKAGE_SPECIFICATION.md`
 - `PROTOTYPE_STATUS.md`
-- `checkpoints/ENGINE_CHECKPOINT.md`
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`
+- `../../project/status/checkpoints/ENGINE_CHECKPOINT.md`
+- `../../project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`
 
 ---
 

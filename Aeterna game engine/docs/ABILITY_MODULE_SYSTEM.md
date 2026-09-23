@@ -30,7 +30,7 @@ Kapcsolódó aktív dokumentumok:
 - `RUNTIME_PACKAGE_SPECIFICATION.md`
 - `ARCHITECTURE.md`
 - `TECHNOLOGY_DECISIONS.md`
-- `checkpoints/ENGINE_CHECKPOINT.md`
+- `../../project/status/checkpoints/ENGINE_CHECKPOINT.md`
 
 ---
 

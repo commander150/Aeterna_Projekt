@@ -100,8 +100,16 @@ class ScannerTests(unittest.TestCase):
         self.assertEqual((), scan_repository(self.root).artifacts)
 
     def test_generated_directory_is_excluded(self) -> None:
-        self.write("Aeterna dokumentációk/generated/managed.md", managed_markdown())
+        self.write("project/generated/managed.md", managed_markdown())
         self.assertEqual((), scan_repository(self.root).artifacts)
+
+    def test_project_managed_directories_are_not_broadly_excluded(self) -> None:
+        self.write("project/planning/managed.md", managed_markdown())
+
+        result = scan_repository(self.root)
+
+        self.assertEqual(("AET-DOC-TEST",), tuple(item.artifact_id for item in result.artifacts))
+        self.assertEqual(("project/planning/managed.md",), tuple(item.path for item in result.artifacts))
 
     def test_path_is_repository_relative_posix_and_unicode_safe(self) -> None:
         self.write("Dokumentáció/Árvíztűrő.md", managed_markdown())

@@ -6,7 +6,7 @@
 **Dátum:** 2026-09-06
 **Státusz:** történeti prototípusterv és proof-folytonossági referencia  
 **Aktuális státuszfájl:** `PROTOTYPE_STATUS.md`  
-**Aktuális checkpoint:** `checkpoints/ENGINE_CHECKPOINT.md`  
+**Aktuális checkpoint:** `../../project/status/checkpoints/ENGINE_CHECKPOINT.md`
 **Aktuális repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
 
 Ez a dokumentum a korábbi prototípuslépések célját és egymásra épülését őrzi.
@@ -19,7 +19,7 @@ Nem:
 - Codex-prompt;
 - következő programozási feladat.
 
-Az aktuális feladatokat a `checkpoints/ENGINE_CHECKPOINT.md`, az `../../Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md` és a `PROTOTYPE_STATUS.md` tartalmazza.
+Az aktuális feladatokat a `../../project/status/checkpoints/ENGINE_CHECKPOINT.md`, az `../../project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md` és a `PROTOTYPE_STATUS.md` tartalmazza.
 
 Current next gate: `VS1_READINESS_REQUIRED`.
 

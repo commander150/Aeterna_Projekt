@@ -48,9 +48,9 @@ A rules authority DOCX, a runtime package derived programadat. Egyik sem helyett
 
 Elsődleges current projektirányító réteg:
 
-- `Aeterna dokumentációk/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
+- `project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
 - `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`;
-- `Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md` v2.0.
+- `project/status/checkpoints/ENGINE_CHECKPOINT.md` v2.0.
 
 Aktuális engine-státusz és döntések:
 

@@ -34,7 +34,7 @@ Kapcsolódó aktív dokumentumok:
 - `ABILITY_MODULE_SYSTEM.md`
 - `OPEN_QUESTIONS.md`
 - `OPEN_QUESTIONS_DECISIONS.md`
-- `checkpoints/ENGINE_CHECKPOINT.md`
+- `../../project/status/checkpoints/ENGINE_CHECKPOINT.md`
 
 ---
 

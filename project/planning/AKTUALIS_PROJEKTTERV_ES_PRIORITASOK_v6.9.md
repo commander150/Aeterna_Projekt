@@ -61,7 +61,7 @@ Régi checkpoint vagy státuszdokumentum nem írhatja felül a későbbi impleme
 Aktív irányító réteg:
 
 1. jelen projektterv;
-2. `Aeterna game engine/docs/checkpoints/ENGINE_CHECKPOINT.md`;
+2. `project/status/checkpoints/ENGINE_CHECKPOINT.md`;
 3. `PROJEKT_TERKEP_ES_FAJLSTATUSZ` aktuális verziója;
 4. közvetlenül érintett aktív engine-státusz- és contractdokumentumok.
 
@@ -380,7 +380,7 @@ Frissítve és összehangolva:
 - `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.8.md`;
 - `Aeterna game engine/README.md`;
 - `Aeterna game engine/docs/README.md`;
-- `checkpoints/ENGINE_CHECKPOINT.md`;
+- `project/status/checkpoints/ENGINE_CHECKPOINT.md`;
 - `checkpoints/CHECKPOINTS.md`;
 - `checkpoints/README.md`;
 - `DECISION_MAP.md`;
