@@ -319,6 +319,16 @@ mindkettő `COMPLETE_AND_ACCEPTED`.
 
 ## 9. Codex-használat
 
+### Hordozható Godot smoke-konfiguráció
+
+A Godot smoke BAT futtatók az alábbi sorrendben oldják fel a futtatható állományt:
+
+1. `AETERNA_GODOT_EXE`, ha egy létező fájlra mutat;
+2. `godot4` a `PATH` környezeti változóban;
+3. `godot` a `PATH` környezeti változóban.
+
+Az `AETERNA_GODOT_EXE` értékét külső idézőjelek nélkül add meg. A szóközt tartalmazó elérési utak támogatottak. Ha a futtatható állomány nem oldható fel, a futtató egyértelmű hibával leáll; sikeres feloldás esetén változatlanul továbbadja a Godot folyamat kilépési kódját.
+
 Codex szerepe:
 
 - programozás;

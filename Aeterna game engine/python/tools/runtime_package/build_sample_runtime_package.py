@@ -654,6 +654,16 @@ def _build_report(
     )
 
 
+def _portable_provenance_path(path, logical_directory=None):
+    """Return a stable manifest identity without a machine-local absolute path."""
+    source_path = Path(path)
+    if logical_directory:
+        return (Path(logical_directory) / source_path.name).as_posix()
+    if source_path.is_absolute():
+        return (Path("external") / source_path.name).as_posix()
+    return source_path.as_posix()
+
+
 def build_package(
     output_dir=None,
     export_runtime_cards_path=None,
@@ -674,7 +684,7 @@ def build_package(
         lookups = lookup_adapter_result["lookups"]
         source_files.append(
             {
-                "path": str(Path(export_runtime_lookups_path)),
+                "path": _portable_provenance_path(export_runtime_lookups_path, logical_directory="exports"),
                 "type": "lookups_runtime_jsonl",
                 "adapter": "runtime_lookups_builder_adapter.py",
                 "summary": lookup_adapter_result["summary"],
@@ -687,7 +697,7 @@ def build_package(
         cards = adapter_result["cards"]
         source_files.append(
             {
-                "path": str(Path(export_runtime_cards_path)),
+                "path": _portable_provenance_path(export_runtime_cards_path, logical_directory="exports"),
                 "type": "export_runtime_cards_jsonl",
                 "adapter": "runtime_cards_builder_adapter.py",
                 "summary": adapter_result["summary"],
@@ -700,7 +710,7 @@ def build_package(
         decks = deck_adapter_result["decks"]
         source_files.append(
             {
-                "path": str(Path(export_runtime_decks_path)),
+                "path": _portable_provenance_path(export_runtime_decks_path, logical_directory="exports"),
                 "type": "product_decklists_jsonl",
                 "adapter": "runtime_decks_builder_adapter.py",
                 "summary": deck_adapter_result["summary"],
@@ -711,7 +721,11 @@ def build_package(
     if normalization_aliases_payload is None:
         normalization_aliases_payload = _empty_normalization_aliases_payload()
     elif normalization_aliases_source:
-        source_files.append(normalization_aliases_source)
+        portable_aliases_source = dict(normalization_aliases_source)
+        portable_aliases_source["path"] = _portable_provenance_path(
+            portable_aliases_source.get("path", "LOOKUPS.xlsx")
+        )
+        source_files.append(portable_aliases_source)
     ability_registry = _fixture_ability_registry()
     diagnostics = [] if _uses_export_inputs(export_runtime_cards_path, export_runtime_decks_path, export_runtime_lookups_path) else _fixture_base_diagnostics()
     ability_support_policy = collect_ability_support_diagnostics(ability_registry)

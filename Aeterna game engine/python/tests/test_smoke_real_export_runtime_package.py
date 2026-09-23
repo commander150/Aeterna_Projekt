@@ -82,6 +82,7 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
 
         manifest = json.loads((output_dir / "runtime_package" / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["source_files"][1]["type"], "export_runtime_cards_jsonl")
+        self.assertEqual(manifest["source_files"][1]["path"], "exports/EXPORT_RUNTIME.jsonl")
 
     def test_smoke_runner_can_include_real_decklists(self):
         xlsx_path = self.temp_dir / "aeterna_cards_and_decks.xlsx"
@@ -110,7 +111,9 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
 
         manifest = json.loads((output_dir / "runtime_package" / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["source_files"][1]["type"], "export_runtime_cards_jsonl")
+        self.assertEqual(manifest["source_files"][1]["path"], "exports/EXPORT_RUNTIME.jsonl")
         self.assertEqual(manifest["source_files"][2]["type"], "product_decklists_jsonl")
+        self.assertEqual(manifest["source_files"][2]["path"], "exports/PRODUCT_DECKLISTS.jsonl")
 
     def test_smoke_runner_can_include_real_runtime_lookups(self):
         xlsx_path = self.temp_dir / "aeterna_cards_decks_lookups.xlsx"
@@ -188,9 +191,14 @@ class TestSmokeRealExportRuntimePackage(unittest.TestCase):
 
         manifest = json.loads((output_dir / "runtime_package" / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["source_files"][1]["type"], "lookups_runtime_jsonl")
+        self.assertEqual(manifest["source_files"][1]["path"], "exports/LOOKUPS_RUNTIME.jsonl")
         self.assertEqual(manifest["source_files"][2]["type"], "export_runtime_cards_jsonl")
+        self.assertEqual(manifest["source_files"][2]["path"], "exports/EXPORT_RUNTIME.jsonl")
         self.assertEqual(manifest["source_files"][3]["type"], "product_decklists_jsonl")
+        self.assertEqual(manifest["source_files"][3]["path"], "exports/PRODUCT_DECKLISTS.jsonl")
         self.assertEqual(manifest["source_files"][4]["type"], "lookups_xlsx_runtime_legacy_aliases")
+        self.assertEqual(manifest["source_files"][4]["path"], "external/LOOKUPS.xlsx")
+        self.assertTrue(all(not Path(item["path"]).is_absolute() for item in manifest["source_files"]))
         manifest_files = {item["path"] for item in manifest["files"]}
         self.assertIn("normalization_aliases.json", manifest_files)
         self.assertIn("normalization_audit_report.json", manifest_files)

@@ -12,6 +12,16 @@ from pathlib import Path
 
 
 ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = ENGINE_PYTHON_DIR.parent.parent
+
+
+def _repository_source_identity(path):
+    """Return a repository-relative identity or a stable external-file identity."""
+    source_path = Path(path).resolve()
+    try:
+        return source_path.relative_to(PROJECT_ROOT.resolve()).as_posix()
+    except ValueError:
+        return (Path("external") / source_path.name).as_posix()
 
 
 def _load_module(module_name, path):
@@ -131,7 +141,7 @@ def run_smoke(
                 legacy_aliases_result["aliases"]
             )
             normalization_aliases_source = {
-                "path": str(Path(lookups_xlsx_path)),
+                "path": _repository_source_identity(lookups_xlsx_path),
                 "type": "lookups_xlsx_runtime_legacy_aliases",
                 "sheet": "RUNTIME_LEGACY_ALIAS",
                 "adapter": "runtime_legacy_aliases_reader.py",

@@ -10,7 +10,7 @@
       "type": "in_code_fixture"
     },
     {
-      "path": "E:\\Letöltések\\Aeterna\\Aeterna_Projekt\\TEMP\\publish_runtime_package_candidate_234e0365\\exports\\LOOKUPS_RUNTIME.jsonl",
+      "path": "exports/LOOKUPS_RUNTIME.jsonl",
       "type": "lookups_runtime_jsonl",
       "adapter": "runtime_lookups_builder_adapter.py",
       "summary": {
@@ -21,7 +21,7 @@
       }
     },
     {
-      "path": "E:\\Letöltések\\Aeterna\\Aeterna_Projekt\\TEMP\\publish_runtime_package_candidate_234e0365\\exports\\EXPORT_RUNTIME.jsonl",
+      "path": "exports/EXPORT_RUNTIME.jsonl",
       "type": "export_runtime_cards_jsonl",
       "adapter": "runtime_cards_builder_adapter.py",
       "summary": {
@@ -34,7 +34,7 @@
       }
     },
     {
-      "path": "E:\\Letöltések\\Aeterna\\Aeterna_Projekt\\TEMP\\publish_runtime_package_candidate_234e0365\\exports\\PRODUCT_DECKLISTS.jsonl",
+      "path": "exports/PRODUCT_DECKLISTS.jsonl",
       "type": "product_decklists_jsonl",
       "adapter": "runtime_decks_builder_adapter.py",
       "summary": {
@@ -45,7 +45,7 @@
       }
     },
     {
-      "path": "E:\\Letöltések\\Aeterna\\Aeterna_Projekt\\Aeterna dokumentációk\\LOOKUPS.xlsx",
+      "path": "Aeterna dokumentációk/LOOKUPS.xlsx",
       "type": "lookups_xlsx_runtime_legacy_aliases",
       "sheet": "RUNTIME_LEGACY_ALIAS",
       "adapter": "runtime_legacy_aliases_reader.py",

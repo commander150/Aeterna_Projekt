@@ -167,6 +167,7 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
             manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest["source_files"][0]["type"], "in_code_fixture")
             self.assertEqual(manifest["source_files"][1]["type"], "export_runtime_cards_jsonl")
+            self.assertEqual(manifest["source_files"][1]["path"], "exports/EXPORT_RUNTIME.jsonl")
             self.assertEqual(manifest["source_files"][1]["summary"]["records_loaded"], 5)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
@@ -210,7 +211,9 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
 
             manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest["source_files"][1]["type"], "lookups_runtime_jsonl")
+            self.assertEqual(manifest["source_files"][1]["path"], "exports/LOOKUPS_RUNTIME.jsonl")
             self.assertEqual(manifest["source_files"][2]["type"], "product_decklists_jsonl")
+            self.assertEqual(manifest["source_files"][2]["path"], "exports/PRODUCT_DECKLISTS.jsonl")
             self.assertEqual(manifest["source_files"][2]["summary"]["decks_loaded"], 1)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
@@ -236,6 +239,7 @@ class TestBuildSampleRuntimePackage(unittest.TestCase):
 
             manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest["source_files"][1]["type"], "lookups_runtime_jsonl")
+            self.assertEqual(manifest["source_files"][1]["path"], "exports/LOOKUPS_RUNTIME.jsonl")
             self.assertEqual(manifest["source_files"][1]["summary"]["lookups_loaded"], len(_fixture_lookup_rows_for_builder()))
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)

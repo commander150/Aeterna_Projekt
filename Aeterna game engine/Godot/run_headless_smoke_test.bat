@@ -1,1 +1,3 @@
-@echo off & cd /d "%~dp0" & if not exist "logs" mkdir "logs" & "G:\Godot\Godot_v4.7-stable_win64.exe" --verbose --headless --log-file "logs/headless_smoke.log" --path "." --script "res://scripts/debug/package_loader_smoke_test.gd" & exit /b %ERRORLEVEL%
+@echo off
+call "%~dp0_run_godot_smoke.bat" "headless_smoke.log" "res://scripts/debug/package_loader_smoke_test.gd"
+exit /b %ERRORLEVEL%
