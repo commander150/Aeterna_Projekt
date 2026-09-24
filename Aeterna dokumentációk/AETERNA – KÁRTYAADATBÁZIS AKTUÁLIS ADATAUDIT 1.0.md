@@ -40,14 +40,14 @@ A dokumentum:
 ### 2.1 Közvetlenül ellenőrzött források
 
 - `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
-- `AETERNA_EXCEL_STRUKTURA_ES_OSZLOPSZABVANY_1.2.md`;
+- `../data/specifications/CARD_DATA_MODEL.md`;
 - `kartya_tabla_szabvany v1.2.md`;
 - a három archivált 1.8v adataudit;
 - az archivált LOOKUPS-bővítési terv.
 
 ### 2.2 Külön ellenőrzendő forrás
 
-A canonical lookupok külön szerkesztési forrása a `LOOKUPS.xlsx`.
+A `LOOKUPS.xlsx` frozen transitional legacy-pipeline forrás, nem future canonical authority. A technikai value- és alias-authority a `REGISTRY.xlsx`; a LOOKUPS, az embedded lookupok és a REGISTRY semantic reconciliationje külön migrációs kapu.
 
 A jelen audit a munkaforrásban lévő:
 
@@ -489,11 +489,9 @@ Legacy érték nem válhat automatikusan active canonical értékké.
 
 Összehangolandó:
 
-1. `AETERNA_EXCEL_STRUKTURA_ES_OSZLOPSZABVANY_1.2.md`
-   - tényleges `Card_ID` / `Szabályi_Kártya_ID`;
-   - külön `LOOKUPS.xlsx`;
-   - aktuális `EXPORT_RUNTIME`;
-   - delimiter-policy.
+1. `../data/specifications/CARD_DATA_MODEL.md`
+   - a current canonical authority, a `Card_ID` / `Szabályi_Kártya_ID`, a runtime boundary és a delimiter-policy rögzítve;
+   - a LOOKUPS / embedded lookup / REGISTRY semantic reconciliation `P04 / HD-07 = OPEN`.
 
 2. `kartya_tabla_szabvany v1.2.md`
    - többértékű mezők delimiterje;

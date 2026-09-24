@@ -3,6 +3,42 @@
   "source_model": "native-artifact-metadata",
   "artifacts": [
     {
+      "artifact_id": "AET-DOC-CARD-DATA-MODEL",
+      "title": "AETERNA kártyaadatmodell",
+      "kind": "document",
+      "type": "specification",
+      "version": "1.0",
+      "lifecycle": "active",
+      "integration": "current",
+      "authority": "technical-contract",
+      "generated": false,
+      "depends_on": [
+        "AET-DOC-DOCUMENT-GOVERNANCE",
+        "AET-DOC-PROJECT-PLAN"
+      ],
+      "supersedes": [],
+      "scope": "ACTIVE",
+      "path": "data/specifications/CARD_DATA_MODEL.md"
+    },
+    {
+      "artifact_id": "AET-DOC-CARD-DATA-WORKFLOW",
+      "title": "AETERNA canonical kártyaadat-munkafolyamat",
+      "kind": "document",
+      "type": "workflow",
+      "version": "1.0",
+      "lifecycle": "active",
+      "integration": "current",
+      "authority": "operational-workflow",
+      "generated": false,
+      "depends_on": [
+        "AET-DOC-CARD-DATA-MODEL",
+        "AET-DOC-DOCUMENT-GOVERNANCE"
+      ],
+      "supersedes": [],
+      "scope": "ACTIVE",
+      "path": "data/workflows/CARD_DATA_WORKFLOW.md"
+    },
+    {
       "artifact_id": "AET-DOC-DEVELOPMENT-ROADMAP",
       "title": "AETERNA – FEJLESZTÉSI ROADMAP ÉS MÉRFÖLDKŐ-RENDSZER",
       "kind": "document",

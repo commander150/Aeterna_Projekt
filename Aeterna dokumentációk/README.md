@@ -2,10 +2,10 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.6
-**Dátum:** 2026-09-05
+**Dokumentumverzió:** 2.7
+**Dátum:** 2026-09-24
 **Státusz:** aktív dokumentációs mappaindex
-**Előző aktív verzió:** 2.5 (Git history)
+**Előző aktív verzió:** 2.6 (Git history)
 **Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **Kapcsolódó fájlstátusz-térkép:** `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`
@@ -32,15 +32,18 @@ A későbbi szerkezeti újratervezés külön dokumentációs/design feladat, ne
 
 ### 1.2 Aktív adatforrások
 
-Szerkesztési/munkaforrás:
+Canonical szerkesztési és adat-authority:
+
+- `CARDDATABASE.xlsx` – human-editing és card-data authority;
+- `REGISTRY.xlsx` – technical schema, value, alias és contract authority.
+
+Frozen migration/compatibility források:
 
 - `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
 - `LOOKUPS.xlsx`.
 
-Programfogyasztási/canonical adatút részei:
+Programfogyasztási/canonical adatút további részei:
 
-- `CARDDATABASE.xlsx`;
-- `REGISTRY.xlsx`;
 - canonical workbook export;
 - runtime package.
 
@@ -59,8 +62,8 @@ Current fő roadmap:
 
 ### 1.4 Aktív munkaszabványok
 
-- `AETERNA_MUNKAFOLYAMAT_ES_ADATKEZELES_1.2.md`;
-- `AETERNA_EXCEL_STRUKTURA_ES_OSZLOPSZABVANY_1.2.md`;
+- `../data/specifications/CARD_DATA_MODEL.md`;
+- `../data/workflows/CARD_DATA_WORKFLOW.md`;
 - `AETERNA – KÁRTYAÁLLOMÁNY AUDITÁLÁSI MUNKAREND ÉS HIBAKATEGÓRIÁK 1.2v.md`;
 - `kartya_tabla_szabvany v1.2.md`.
 
