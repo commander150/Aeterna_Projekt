@@ -229,9 +229,9 @@ A `CURRENT_*` elődök nem aktív authority-k.
 
 ---
 
-## 6. Reference-, learning-, synthesis- és blueprint-réteg
+## 6. Learning-, synthesis- és blueprint-réteg
 
-A `reference/` nem canonical háttér- és munkaforrás.
+A korábbi `reference/` réteg ownership-rendezése lezárult. Current operatív tulajdonosai a `project/governance/workflows/GITHUB_WORKFLOW.md`, a `project/requirements/testing/TEST_STRATEGY_AND_PROFILES.md` és a `project/requirements/testing/SEED_AND_REPRODUCIBILITY_CONVENTION.md`; a történeti tartalom az Archive-ban marad.
 
 ### 6.1 Learning registry és analyses
 

@@ -48,6 +48,25 @@
       "path": "project/status/checkpoints/ENGINE_CHECKPOINT.md"
     },
     {
+      "artifact_id": "AET-DOC-GITHUB-WORKFLOW",
+      "title": "AETERNA GitHub workflow",
+      "kind": "document",
+      "type": "workflow",
+      "version": "1.0",
+      "lifecycle": "active",
+      "integration": "current",
+      "authority": "operational-workflow",
+      "generated": false,
+      "depends_on": [
+        "AET-DOC-DOCUMENT-GOVERNANCE",
+        "AET-DOC-PROJECT-PLAN",
+        "AET-DOC-ENGINE-CHECKPOINT"
+      ],
+      "supersedes": [],
+      "scope": "ACTIVE",
+      "path": "project/governance/workflows/GITHUB_WORKFLOW.md"
+    },
+    {
       "artifact_id": "AET-DOC-PROJECT-PLAN",
       "title": "AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.9",
       "kind": "document",
@@ -61,6 +80,41 @@
       "supersedes": [],
       "scope": "ACTIVE",
       "path": "project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md"
+    },
+    {
+      "artifact_id": "AET-DOC-SEED-REPRODUCIBILITY",
+      "title": "AETERNA seed- és reprodukálhatósági konvenció",
+      "kind": "document",
+      "type": "specification",
+      "version": "1.0",
+      "lifecycle": "active",
+      "integration": "current",
+      "authority": "operational-workflow",
+      "generated": false,
+      "depends_on": [
+        "AET-DOC-ENGINE-CHECKPOINT",
+        "AET-DOC-TEST-STRATEGY-PROFILES"
+      ],
+      "supersedes": [],
+      "scope": "ACTIVE",
+      "path": "project/requirements/testing/SEED_AND_REPRODUCIBILITY_CONVENTION.md"
+    },
+    {
+      "artifact_id": "AET-DOC-TEST-STRATEGY-PROFILES",
+      "title": "AETERNA tesztstratégia és tesztprofilok",
+      "kind": "document",
+      "type": "specification",
+      "version": "1.0",
+      "lifecycle": "active",
+      "integration": "current",
+      "authority": "operational-workflow",
+      "generated": false,
+      "depends_on": [
+        "AET-DOC-ENGINE-CHECKPOINT"
+      ],
+      "supersedes": [],
+      "scope": "ACTIVE",
+      "path": "project/requirements/testing/TEST_STRATEGY_AND_PROFILES.md"
     }
   ]
 }

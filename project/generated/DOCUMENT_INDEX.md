@@ -8,4 +8,7 @@
 | AET-DOC-DEVELOPMENT-ROADMAP | AETERNA – FEJLESZTÉSI ROADMAP ÉS MÉRFÖLDKŐ-RENDSZER | roadmap | 1.0 | active | pending_integration | project-direction | `project/planning/DEVELOPMENT_ROADMAP.md` |
 | AET-DOC-DOCUMENT-GOVERNANCE | AETERNA dokumentum- és artifact-governance | governance | 0.1 | active | current | document-governance | `project/governance/DOCUMENT_GOVERNANCE.md` |
 | AET-DOC-ENGINE-CHECKPOINT | AETERNA Game Engine – Engine Checkpoint | checkpoint | 2.0 | active | current | technical-status | `project/status/checkpoints/ENGINE_CHECKPOINT.md` |
+| AET-DOC-GITHUB-WORKFLOW | AETERNA GitHub workflow | workflow | 1.0 | active | current | operational-workflow | `project/governance/workflows/GITHUB_WORKFLOW.md` |
 | AET-DOC-PROJECT-PLAN | AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.9 | project-plan | 6.9 | active | current | project-direction | `project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md` |
+| AET-DOC-SEED-REPRODUCIBILITY | AETERNA seed- és reprodukálhatósági konvenció | specification | 1.0 | active | current | operational-workflow | `project/requirements/testing/SEED_AND_REPRODUCIBILITY_CONVENTION.md` |
+| AET-DOC-TEST-STRATEGY-PROFILES | AETERNA tesztstratégia és tesztprofilok | specification | 1.0 | active | current | operational-workflow | `project/requirements/testing/TEST_STRATEGY_AND_PROFILES.md` |

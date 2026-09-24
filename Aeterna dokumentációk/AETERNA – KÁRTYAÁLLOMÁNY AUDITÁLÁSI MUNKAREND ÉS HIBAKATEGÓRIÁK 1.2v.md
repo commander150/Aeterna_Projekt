@@ -16,7 +16,8 @@ A dokumentum a következő aktív forrásokra és segéddokumentumokra támaszko
 - AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK
 - Aeterna kártyatáblázat – oszlopszabvány
 - cards.xlsx
-- tesztprogram- és warning-triage dokumentumok
+- `project/requirements/testing/TEST_STRATEGY_AND_PROFILES.md`
+- a jelen dokumentum 18. fejezete mint current warning-triage policy
 
 A jelen dokumentum nem ír felül semmilyen hivatalos főforrást. Ha az audit során a kártyaadat, a természetes kártyaszöveg, a structured mező vagy az engine-viselkedés eltér a hivatalos főforrásoktól, akkor a hivatalos főforrások az elsődlegesek.
 
@@ -207,7 +208,7 @@ A kártyaállomány auditja során az alábbi forráshierarchiát kell követni:
 4. Aeterna kártyatáblázat – oszlopszabvány
 5. AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK
 6. cards.xlsx
-7. engine / tesztprogram / warning-triage / runtime auditanyagok
+7. engine/runtime auditanyagok, `project/requirements/testing/TEST_STRATEGY_AND_PROFILES.md`, valamint a jelen dokumentum 18. fejezetének warning-triage policyja
 
 Az alapjátékos kártyák elsődleges szabályi ellenőrzése az alapjáték-főforrás alapján történik.
 

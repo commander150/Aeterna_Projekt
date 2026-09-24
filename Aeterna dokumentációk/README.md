@@ -102,9 +102,13 @@ frissül és rename-elődik. A régi active copy nem marad párhuzamosan.
 A Git history őrzi a korábbi current verziót; külön Archive-példány csak valódi történeti/archív
 szerep esetén indokolt.
 
-## 4. `reference/`
+## 4. Ownership szerint rendezett governance és testing dokumentumok
 
-A `reference/` mappa nem canonical, de hasznos karbantartható háttér- és munkaforrásokat tartalmazhat.
+Az operatív governance és testing dokumentumok current helye:
+
+- `../project/governance/workflows/GITHUB_WORKFLOW.md`;
+- `../project/requirements/testing/TEST_STRATEGY_AND_PROFILES.md`;
+- `../project/requirements/testing/SEED_AND_REPRODUCIBILITY_CONVENTION.md`.
 
 Az ownership szerint rendezett design dokumentumok current helye:
 
@@ -112,16 +116,6 @@ Az ownership szerint rendezett design dokumentumok current helye:
 - `../design/concepts/AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK 1.1v.md`;
 - `../design/naming/Általános névprofil-sablon.md`;
 - `../design/research/Master Duel  Hearthstone tanulságok v0.1.md`.
-
-A `reference/` mappában maradó fájlok többek között:
-
-- `AETERNA_Seed_Convention_v1.docx`;
-- `BACKEND_FRONTEND_MINIMAL_CONTRACT.md`;
-- `GITHUB_MUNKAREND_ES_COMMIT_SZABALYOK.md`;
-- `TESZTPROGRAM_WORKFLOW_ES_TESZTPROFILOK.md`;
-- `WARNING_TRIAGE_TESTPROGRAM_SZEMPONTBOL.md`.
-
-Reference dokumentum nem írhat felül hivatalos főforrást és nem válik automatikusan elfogadott döntéssé.
 
 Régi Python motor-, backend-, effect-, trigger- és redesign-anyagok történeti/archív státuszban maradnak.
 

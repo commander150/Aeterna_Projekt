@@ -203,6 +203,22 @@ A tömeges move vagy rename előtt logikailag rögzíteni kell:
 - a metadatát;
 - a dependencyket.
 
+### 10.2 File-level preservation
+
+Tracked vagy más durable project artifact teljes fájlként nem semmisíthető meg pusztán azért, mert current szerepe megszűnik. A retirement kötelező útja:
+
+```text
+active owner
+→ historical disposition
+→ Archive vagy más durable preservation owner
+```
+
+Superseded, obsolete, historical vagy current használatból kivont fájlt teljes eredeti példányként meg kell őrizni. Ha nincs más durable célhelye, append-only intake-ként az Archive-ba kerül. A Git history önmagában nem archive és nem megfelelő file-preservation mechanism.
+
+Az Archive meglévő tartalma immutable; új történeti artifact hozzáadható, de meglévő archív fájl nem szerkeszthető, mozgatható, nevezhető át, törölhető vagy írható felül. A szabály a file-level megőrzésre vonatkozik: current fájlon belül sor, fejezet vagy mező szerkeszthető vagy eltávolítható a rendes authority és review szerint.
+
+Durable fájl végleges, preservation nélküli törlése csak az adott fájlra vonatkozó explicit emberi kivétellel engedélyezett.
+
 ## 11. Scope profiles
 
 ### 11.1 ACTIVE
