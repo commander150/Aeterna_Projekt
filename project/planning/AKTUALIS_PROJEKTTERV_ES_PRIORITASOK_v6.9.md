@@ -35,8 +35,8 @@ Nem teljes repository-inventár, nem szabálykönyv, nem contract-specifikáció
 
 Elsődleges authority:
 
-1. `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
-2. `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`;
+1. `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+2. `rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`;
 3. explicit, verziózott emberi döntés, ha nem mond ellent a hivatalos forrásnak;
 4. aktív Open Questions döntésnapló;
 5. aktív engine-contract és specification;

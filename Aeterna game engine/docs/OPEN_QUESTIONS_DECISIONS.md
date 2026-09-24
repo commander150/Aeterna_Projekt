@@ -160,8 +160,8 @@ Mindhárom OQ: `answered`.
 **OQ-DOC-001 / OQ-DOC-002 / OQ-DOC-003**
 
 - Official rules authority DOCX:
-  - `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`
-  - `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`
+  - `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`
+  - `rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`
 - Engine/project docs aktív formátuma Markdown.
 - Nem tartunk kézzel párhuzamos canonical MD + DOCX másolatot ugyanarról a technical tartalomról.
 - Reader/export PDF/DOCX csak konkrét publishing/audience use case esetén készül; ez `RESERVED_EXTENSION_POINT`, nem current blocker.
@@ -326,8 +326,8 @@ Fennmaradó gate:
 
 Rules authority current:
 
-- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
-- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
+- `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+- `rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
 
 ## 9. Reaction, timing és pending state
 

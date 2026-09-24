@@ -98,8 +98,8 @@ A játékosnál futó normál Godot kliens nem igényel Python-processzt.
 
 Elsődleges szabályforrások:
 
-- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
-- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
+- `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+- `rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
 
 A kód, structured mező, learning projekt vagy régi Python-implementáció nem írhatja felül ezeket emberi döntés nélkül.
 

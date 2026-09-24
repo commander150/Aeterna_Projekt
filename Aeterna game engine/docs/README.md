@@ -97,8 +97,8 @@ A történeti proof nem írhatja felül az aktív checkpointot.
 
 Szabályi kérdésben:
 
-1. `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
-2. `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`;
+1. `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+2. `rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`;
 3. explicit emberi döntés;
 4. Open Questions decision log;
 5. contract/specification;

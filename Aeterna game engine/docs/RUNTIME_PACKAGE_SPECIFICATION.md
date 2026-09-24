@@ -44,8 +44,8 @@ A runtime package nem írhatja felül a hivatalos játékszabályokat.
 
 Adat- és szabályi elsőbbség:
 
-1. `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
-2. `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`;
+1. `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+2. `rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`;
 3. elfogadott, verziózott emberi döntések;
 4. emberi szerkesztési források / Google Sheets / aktív XLSX munkaforrás;
 5. külön `LOOKUPS.xlsx`;

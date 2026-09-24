@@ -44,8 +44,8 @@ Elfogadott authority:
 
 ### 2.1 Hivatalos szabályforrások
 
-- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
-- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
+- `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+- `rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
 
 Státusz: `ACTIVE_CANONICAL_RULE_SOURCE`
 

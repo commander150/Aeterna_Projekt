@@ -31,8 +31,8 @@ Bizonyított proofok:
 
 Current szabályforrás:
 
-- `Aeterna dokumentációk/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
-- `Aeterna dokumentációk/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
+- `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+- `rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
 
 Aktív adatút:
 
@@ -70,7 +70,9 @@ Current OQ aggregate:
 
 ## 4. Repository fő területei
 
-- `Aeterna dokumentációk/` – szabály-, adat-, projekt- és munkafolyamat-források.
+- `rules/` – hivatalos szabályforrások.
+- `design/` – kártyatervezési, koncepció-, névadási és kutatási tudásanyagok.
+- `Aeterna dokumentációk/` – adat-, projekt- és munkafolyamat-források.
 - `Aeterna game engine/` – C# engine, Python tooling/reference, Godot kliens, docs és fixture-ök.
 - `learning/` – clean-room source registry, izolált project analyses és cross-project synthesis.
 - `Aeterna game engine/docs/blueprints/` – AETERNA architecture proposal réteg.

@@ -10,18 +10,18 @@
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **Kapcsolódó fájlstátusz-térkép:** `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`
 
-Ez a mappa az AETERNA projekt hivatalos szabály-, adat-, projektirányítási és munkafolyamat-dokumentumainak elsődleges helye.
+Ez a mappa az AETERNA projekt adat-, projektirányítási és munkafolyamat-dokumentumainak elsődleges helye. A hivatalos szabályforrások current helye a repository `rules/sources/` területe.
 
 A főszinten csak aktív, védett vagy közvetlenül a jelenlegi munkafolyamatot irányító dokumentum maradhat. Felváltott vagy történeti tartalom nem maradhat párhuzamos aktív igazságforrásként.
 
 ---
 
-## 1. Főszinten megtartandó aktív fájlok
+## 1. Aktív fájlok
 
 ### 1.1 Hivatalos szabályforrások
 
-- `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
-- `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
+- `../rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+- `../rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
 
 Státusz: `ACTIVE_CANONICAL_RULE_SOURCE`
 
@@ -106,14 +106,20 @@ szerep esetén indokolt.
 
 A `reference/` mappa nem canonical, de hasznos karbantartható háttér- és munkaforrásokat tartalmazhat.
 
-Fontos reference fájlok többek között:
+Az ownership szerint rendezett design dokumentumok current helye:
 
-- `AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK 1.1v.md`;
-- `AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK 1.1v.md`;
-- `Általános névprofil-sablon.md`;
+- `../design/card_design/AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK 1.1v.md`;
+- `../design/concepts/AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK 1.1v.md`;
+- `../design/naming/Általános névprofil-sablon.md`;
+- `../design/research/Master Duel  Hearthstone tanulságok v0.1.md`.
+
+A `reference/` mappában maradó fájlok többek között:
+
+- `AETERNA_Seed_Convention_v1.docx`;
+- `BACKEND_FRONTEND_MINIMAL_CONTRACT.md`;
 - `GITHUB_MUNKAREND_ES_COMMIT_SZABALYOK.md`;
 - `TESZTPROGRAM_WORKFLOW_ES_TESZTPROFILOK.md`;
-- `ujratervezés/Master Duel  Hearthstone tanulságok v0.1.md`.
+- `WARNING_TRIAGE_TESTPROGRAM_SZEMPONTBOL.md`.
 
 Reference dokumentum nem írhat felül hivatalos főforrást és nem válik automatikusan elfogadott döntéssé.
 

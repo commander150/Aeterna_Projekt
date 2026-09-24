@@ -501,8 +501,8 @@ de néma vagy implicit drift nem megengedett.
 
 ### 9.1 Játékszabályi kérdésben
 
-1. `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
-2. `AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`;
+1. `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
+2. `rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`;
 3. explicit, verziózott emberi döntés;
 4. `OPEN_QUESTIONS_DECISIONS.md`;
 5. aktív contract/specification;
