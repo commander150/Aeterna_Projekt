@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-CARD-DATA-WORKFLOW
 kind: document
 type: workflow
-version: "1.0"
+version: "1.1"
 lifecycle: active
 integration: current
 authority: operational-workflow
@@ -17,9 +17,9 @@ supersedes: []
 
 ## Dokumentumállapot
 
-**Verzió:** 1.0
+**Verzió:** 1.1
 
-**Dátum:** 2026-09-24
+**Dátum:** 2026-09-25
 
 **Státusz:** aktív current workflow
 
@@ -140,21 +140,21 @@ A döntések négy állapota külön kezelendő:
 
 Egy historical sor nem marad current teendőként csak azért, mert a legacy workbookban szerepel.
 
-## 7. Jövőbeli review ledger
+## 7. Current review ledger schema-owner
 
-A tervezett current owner:
+A current owner:
 
 ```text
 data/workflows/DATA_REVIEW_LEDGER.xlsx
 ```
 
-Feladata az aktív audit itemek, durable döntések és controlled workflow statusok kezelése. Nem kártyaadat-authority, és nem veszi át a teljes legacy audit historyt. A teljes eredeti `AUDIT_LOG` és `DECISION_LOG` a MUNKAFORRÁS historical példányában marad meg.
+Feladata az aktív audit itemek, durable döntések és controlled workflow statusok kezelése. A workbook W3B.2-ben üres business táblákkal és aktív schema-governance réteggel létrejött. Dataset identityje `AET-DATA-REVIEW-LEDGER`.
 
-A ledger W3B.2/W3B.3 scope; W3B.1 nem hozza létre.
+Nem kártyaadat-authority, nem rules authority, nem Archive-helyettesítő, és nem veszi át automatikusan a teljes legacy audit historyt. A teljes eredeti `AUDIT_LOG` és `DECISION_LOG` a MUNKAFORRÁS historical példányában marad meg. A 205 audit- és 151 decision-sor tartalmi triage-ja és promotionje továbbra is nyitott; W3B.2-ben business row nem került a ledgerbe.
 
 ## 8. Naming review
 
-A `NAME_PROFILE` vagy jövőbeli `CARD_NAME_REVIEWS.xlsx` névjavaslatai design-review inputok. Canonical névváltoztatás előtt kötelező:
+A `NAME_PROFILE` vagy a current schema-owner `design/naming/reviews/CARD_NAME_REVIEWS.xlsx` névjavaslatai design-review inputok. A workbook dataset identityje `AET-DATA-CARD-NAME-REVIEWS`, és W3B.2 után továbbra is 0 business sort tartalmaz. Canonical névváltoztatás előtt kötelező:
 
 1. a Card_ID és aktuális kontextus friss ellenőrzése;
 2. explicit accept/reject döntés;
@@ -162,7 +162,12 @@ A `NAME_PROFILE` vagy jövőbeli `CARD_NAME_REVIEWS.xlsx` névjavaslatai design-
 4. külön CARDDATABASE change-set;
 5. audit/provenance bejegyzés.
 
-Javasolt név nem írható automatikusan a canonical lokalizációba.
+Javasolt név nem írható automatikusan a canonical lokalizációba. A schema létrejötte nem dönt a 391 eltérő proposalról, és nem javítja a 78 stale context cellát.
+
+```text
+proposal != canonical name
+review acceptance != automatic CARDDATABASE write
+```
 
 ## 9. Deck- és product-review
 
@@ -172,7 +177,11 @@ Product_ID != Deck_ID
 
 A reviewer külön osztályozza a commercial/distributable productot, starter decket, test decket, playtest decket és canonical gameplay decket. Legacy deck nem válik canonical gameplay deckké automatikusan. Canonical `DECKS`/`DECK_ENTRIES` promotion előtt gameplay-eligibility, kártyareferencia, mennyiség, sorrend és lifecycle review szükséges.
 
-A product/distribution adatok jövőbeli ownere a `PRODUCT_CATALOG.xlsx`; létrehozása nem W3B.1 feladat.
+A product/distribution schema current ownere a `data/canonical/PRODUCT_CATALOG.xlsx`, dataset identityje `AET-DATA-PRODUCT-CATALOG`. A business táblák W3B.2-ben üresek. A 28 legacy deck konkrét osztályozása, a 17 productrekord és az 5 generation profile promotionje későbbi content-review.
+
+A HD-03 szerkezeti döntés szerint a product identity, deck identity, product–deck relation és deck composition külön fogalom. A product-domain `DECKS` nem azonos a CARDDATABASE canonical gameplay `DECKS` táblájával; gameplay promotion csak külön elfogadás és CARDDATABASE change-set után történhet.
+
+A `BOOSTER_POOLS` schema létezik, de `SCHEMA_ONLY / INACTIVE`, business row countja 0. Ez nem runtime authority, nem aktív booster feature és nem VS1-követelmény.
 
 ## 10. Ability- és lookup-migráció
 
@@ -184,7 +193,7 @@ A LOOKUPS, embedded lookup és REGISTRY reconciliation állapota:
 P04 / HD-07 lookup semantic reconciliation = OPEN
 ```
 
-A W3B.0 187 azonos `Lookup_Group + Value` mappingje részleges evidence view, nem teljes parity bizonyíték. W3B.1 nem migrál lookupot és nem oldja fel HD-07-et.
+A W3B.0 187 azonos `Lookup_Group + Value` mappingje részleges evidence view, nem teljes parity bizonyíték. W3B.2 nem migrál lookupot és nem oldja fel HD-07-et.
 
 ## 11. Canonical build és quality gate
 
@@ -264,15 +273,24 @@ verified exact Archive owner
 
 Archive-példány nem current authority és nem módosítható.
 
-## 15. W3B.1 current határ
+## 15. W3B.2 current határ
 
-W3B.1 kizárólag a current adatmodell- és workflow-dokumentációt, a négy recovery input exact archiválását, a közvetlen current reference-eket és artifact-governance nézeteket változtatja.
+W3B.2 létrehozta a három governed, self-describing target schema-ownert, de legacy business/content sort nem promótált.
 
-Nem része:
+```text
+PROMOTED_LEGACY_BUSINESS_ROWS = 0
+P01–P10 = OPEN
+```
 
-- canonical workbook rekord- vagy path-módosítás;
-- PRODUCT_CATALOG, DATA_REVIEW_LEDGER vagy CARD_NAME_REVIEWS létrehozása;
-- lookup/ability/product/deck/naming promotion;
-- runtime producer vagy consumer módosítás;
-- HD-01–HD-08 feloldása;
-- MUNKAFORRÁS, LOOKUPS vagy cards.xlsx retirementje.
+Továbbra is nyitott emberi vagy content-döntés:
+
+- HD-01 runtime mismatch truth;
+- a 28 legacy deck lifecycle/classification és canonical gameplay-acceptance besorolása;
+- a 17 legacy productrekord és 5 generation profile konkrét promotionje;
+- a 391 eltérő névjavaslat, valamint a stale context rendezése;
+- audit- és decision-sorok tartalmi triage-ja;
+- P04 / HD-07 lookup semantic reconciliation;
+- structured ability mapping, amely továbbra is `LOSS_RISK`;
+- rarity design rationale targetja és konkrét content promotionje.
+
+A schema-lét nem kényszerít VS1 content-döntést. A frozen source workbookok, runtime producer/consumer, canonical gameplay deckek és Archive tartalma W3B.2-ben nem változnak.
