@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-CARD-DATA-MODEL
 kind: document
 type: specification
-version: "1.1"
+version: "1.2"
 lifecycle: active
 integration: current
 authority: technical-contract
@@ -17,7 +17,7 @@ supersedes: []
 
 ## Dokumentumállapot
 
-**Verzió:** 1.1
+**Verzió:** 1.2
 
 **Dátum:** 2026-09-25
 
@@ -127,7 +127,7 @@ Az eltérés feloldásáig nincs silent prose override és nincs silent workbook
 
 ### 4.5 `Product_ID`
 
-`Product_ID` kereskedelmi vagy disztribúciós termék identitása. Nem azonos a `Deck_ID`-val. Egy termék több decket is tartalmazhat, egy deck pedig külön döntés alapján kapcsolódhat termékhez. A product/distribution schema-owner a `data/canonical/PRODUCT_CATALOG.xlsx`. A workbook W3B.2-ben üres, validált sémával létrejött; legacy product- vagy deckrekordot még nem tartalmaz.
+`Product_ID` kereskedelmi vagy disztribúciós termék identitása. Nem azonos a `Deck_ID`-val. Egy termék több decket is tartalmazhat, egy deck pedig külön döntés alapján kapcsolódhat termékhez. A product/distribution schema-owner a `data/canonical/PRODUCT_CATALOG.xlsx`. A W3B.3B safe preservation promotion után a workbook neutral-state legacy product- és product-domain deckrekordokat tartalmaz; ezek egyike sem canonical gameplay- vagy kereskedelmi elfogadás.
 
 ### 4.6 Ability- és effect-azonosítók
 
@@ -207,23 +207,23 @@ Current schema-owner:
 ```text
 data/canonical/PRODUCT_CATALOG.xlsx
 artifact identity: AET-DATA-PRODUCT-CATALOG
-business data state: SCHEMA_ONLY / UNMIGRATED
+business data state: SAFE_PRESERVATION_PROMOTED / PENDING_REVIEW
 runtime authority: false
 ```
 
-A workbook külön táblában kezeli a product identityt, a product-domain deck identityt, a product–deck kapcsolatot és a deck compositiont. Ez a HD-03 elfogadott szerkezeti döntése. A `GENERATION_PROFILES`, `PRINTING_PRODUCT_RELATIONS`, `SET_RELEASE_POLICY` és `BOOSTER_POOLS` táblák szintén léteznek, de minden business tábla üres.
+A workbook külön táblában kezeli a product identityt, a product-domain deck identityt, a product–deck kapcsolatot és a deck compositiont. Ez a HD-03 elfogadott szerkezeti döntése. A W3B.3B 17 `PRODUCTS`, 28 `DECKS`, 28 `PRODUCT_DECKS`, 754 `DECK_ENTRIES` és 5 `GENERATION_PROFILES` sort őrzött meg `unmigrated`, `unclassified`, `pending_review` és `not_reviewed` neutral state-ekkel. A `PRINTING_PRODUCT_RELATIONS`, `SET_RELEASE_POLICY` és `BOOSTER_POOLS` üzleti sorainak száma továbbra is 0.
 
 ```text
 legacy deck classification != canonical gameplay acceptance
 ```
 
-A 28 legacy deck, 17 productrekord és 5 generation profile konkrét besorolása vagy promóciója továbbra is emberi content-review feladat. A `BOOSTER_POOLS` kizárólag üres, inaktív schema: nem runtime authority, nem aktív feature és nem VS1-követelmény.
+A 28 legacy deck lifecycle/classification és canonical gameplay-acceptance döntése, a 17 productrekord tartalmi elfogadása és az 5 generation profile aktiválása továbbra is nyitott emberi content-review feladat. A lossless preservation nem oldotta fel ezeket. A `BOOSTER_POOLS` kizárólag üres, inaktív schema: nem runtime authority, nem aktív feature és nem VS1-követelmény.
 
 A HD-08 szerkezeti határ:
 
 - technical rarity identity/value → `REGISTRY`;
 - card printing rarity assignment → `CARDDATABASE/CARD_PRINTINGS`;
-- rarity design rationale → későbbi design-owner, amelyet a W3B.3 tartalmi diff jelöl ki.
+- rarity design rationale → `design/card_design/AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK 1.1v.md`, 16. fejezet; a content reconciliation továbbra is nyitott.
 
 ## 8. Naming boundary
 
@@ -238,10 +238,10 @@ Current schema-owner:
 ```text
 design/naming/reviews/CARD_NAME_REVIEWS.xlsx
 artifact identity: AET-DATA-CARD-NAME-REVIEWS
-business data state: SCHEMA_ONLY / UNMIGRATED
+business data state: SAFE_PRESERVATION_PROMOTED / PENDING_REVIEW
 ```
 
-Az owner W3B.2-ben üres, validált review-sémával létrejött. A 814 legacy sort és a 391 eltérő névjavaslatot nem migrálta, a 78 stale context cellát nem javította. Canonical névváltoztatás csak explicit accept/reject döntés, friss kontextusellenőrzés és külön CARDDATABASE change-set után történhet.
+Az owner W3B.2-ben üres, validált review-sémával létrejött. W3B.3B-ben mind a 814 legacy sor veszteségmentes review-inputként bekerült: 391 javaslat eltér a current névtől, 78 stale context cella 74 kártyán megőrzött és `stale` állapotú. Minden review `pending_review`, minden emberi döntés `pending`, a canonical write pedig `not_authorized`. A stale context nem lett javítva. Canonical névváltoztatás csak explicit accept/reject döntés, friss kontextusellenőrzés és külön CARDDATABASE change-set után történhet.
 
 ```text
 proposal != canonical name
@@ -324,29 +324,28 @@ Az operational audit- és decision-schema current ownere:
 ```text
 data/workflows/DATA_REVIEW_LEDGER.xlsx
 artifact identity: AET-DATA-REVIEW-LEDGER
-business data state: SCHEMA_ONLY / UNMIGRATED
+business data state: SAFE_PRESERVATION_PROMOTED / PENDING_REVIEW
 ```
 
-A workbook az `AUDIT_ITEMS`, `DECISIONS` és saját `STATUS_REGISTRY` táblákat deklarálja. A workflow-státuszok helyi operational authority alatt maradnak; csak valós technical consumer contract indokolhat későbbi REGISTRY-onboardingot. A ledger nem card-data authority, nem rules authority és nem Archive-helyettesítő. A 205 legacy audit- és 151 decision-sort W3B.2 nem importálta.
+A workbook az `AUDIT_ITEMS`, `DECISIONS` és saját `STATUS_REGISTRY` táblákat deklarálja. A workflow-státuszok helyi operational authority alatt maradnak; csak valós technical consumer contract indokolhat későbbi REGISTRY-onboardingot. A ledger nem card-data authority, nem rules authority és nem Archive-helyettesítő. W3B.3B-ben 205 legacy audit- és 151 decision-sor került bele teljes eredeti payload és provenance mellett. Az audit státusz `unclassified`, a döntés státusz `pending_review`, kapcsolata `migration_provenance`; ez nem current vagy accepted tartalmi besorolás.
 
 ## 15. Current migrációs és content-kapuk
 
-W3B.2 kizárólag üres, self-describing target sémákat hozott létre. `PROMOTED_LEGACY_BUSINESS_ROWS = 0`, és a schema létrejötte nem jelent VS1 content-lezárást.
+W3B.3B a W3B.3A által safe-ként azonosított P02, P03, P05, P06, P07 és P10 rekordokat veszteségmentesen, neutral state-ben megőrizte. A 1946 fizikai forrássorból 2002 target business row jött létre; a különbséget a 28 deck identity és 28 product–deck relation adja. Ez preservation, nem semantic acceptance.
 
 ```text
-P01–P10 = OPEN
+W3B3B_SAFE_PROMOTION_COMPLETE
+FULL_W3B3_CONTENT_RESOLUTION_DEFERRED
 ```
 
-Különösen nyitott marad:
+Current nyitott státuszok:
 
-- P01 structured ability/hint mapping; a migráció továbbra is `LOSS_RISK`;
-- audit- és decision-sorok tartalmi triage-ja és promotionje;
-- P04 / HD-07 lookup semantic reconciliation;
-- HD-01 runtime mismatch truth;
-- a 28 legacy deck konkrét lifecycle/classification és gameplay-acceptance döntése;
-- a 17 legacy productrekord és 5 generation profile promotionje;
-- a 391 eltérő névjavaslat emberi review-ja és a stale kontextus rendezése;
-- rarity-rationale konkrét content-ownere és promotionje;
+- P01 = `OPEN / REQUIRES_TECHNICAL_SEMANTIC_REVIEW`; az executable ability migration továbbra is loss risk;
+- P04 / HD-07 = `OPEN`; lookup- és alias-szemantikai reconciliation szükséges;
+- P08 = `SCHEMA_GAP`; három set-planning és három printing-product planning sor nem promótálható a current contractba;
+- P09 = `OPEN`; a rarity design rationale current ownere ismert, a content reconciliation nincs lezárva;
+- HD-01 = `OPEN`; két kártyán négy runtime/master cella truth-döntést igényel;
+- a megőrzött deck-, product-, profile-, audit-, decision- és name-review rekordok tartalmi elfogadása továbbra is nyitott;
 - canonical runtime materializer és consumer cutover;
 - canonical workbookok fizikai path-move-ja.
 
