@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-CARD-DATA-WORKFLOW
 kind: document
 type: workflow
-version: "1.2"
+version: "1.3"
 lifecycle: active
 integration: current
 authority: operational-workflow
@@ -17,7 +17,7 @@ supersedes: []
 
 ## Dokumentumállapot
 
-**Verzió:** 1.2
+**Verzió:** 1.3
 
 **Dátum:** 2026-09-25
 
@@ -196,6 +196,16 @@ P04 / HD-07 lookup semantic reconciliation = OPEN
 A W3B.0 187 azonos `Lookup_Group + Value` mappingje részleges evidence view, nem teljes parity bizonyíték. W3B.3B nem migrál lookupot és nem oldja fel HD-07-et.
 
 ## 11. Canonical build és quality gate
+
+W3B.4A-ban a `tools/data/canonical_producer` entrypoint megvalósult. Kizárólag a
+`CARDDATABASE.xlsx` és `REGISTRY.xlsx` current canonical forráspárból készít
+deterministic canonical component candidate-et a `TEMP/data_build/` alatt. A legacy
+MUNKAFORRÁS, LOOKUPS és `cards.xlsx` jelenléte nem indít fallbacket; canonical input
+hiányakor vagy hibájánál a producer hard faillel megáll.
+
+Az elkészült candidate még nem production runtime package. P01, P04 / HD-07 és
+HD-01 nyitottsága miatt a publish gate blokkolt, a consumer cutover nem kezdődött el,
+és a teljes legacy pipeline fallbackjének eltávolítása nem fejeződött be.
 
 A target buildút:
 

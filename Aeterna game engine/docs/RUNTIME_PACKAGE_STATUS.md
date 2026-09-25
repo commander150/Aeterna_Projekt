@@ -3,10 +3,10 @@
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
 **Dokumentumverzió:** 1.6
-**Dátum:** 2026-09-05
+**Dátum:** 2026-09-25
 **Státusz:** aktív runtime package-, lookup- és publish-pipeline státuszdokumentum
 **Történeti előd:** `CURRENT_RUNTIME_PACKAGE_STATUS.md` (migráció lezárva)
-**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Szinkronizációs repository-bázis:** `01c57236e78cb8c02fbdedd3745b87832c2b965c`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 
 Ez a dokumentum a runtime package, a kártyaadatforrás, a külön LOOKUPS-forrás és a Godot-fogyasztási út tényleges állapotát rögzíti.
@@ -29,21 +29,40 @@ Kapcsolódó aktív dokumentumok:
 
 ## 1. Rövid státusz
 
+W3B.4A státusz:
+
+- canonical producer scaffolding: `IMPLEMENTED`;
+- canonical component candidate: `DETERMINISTIC`;
+- production runtime parity: `NOT READY`;
+- consumer cutover: `NOT STARTED`;
+- legacy fallback removal a teljes pipeline-ból: `NOT COMPLETE`.
+
+A `tools/data/canonical_producer` kizárólag a current `CARDDATABASE.xlsx` és
+`REGISTRY.xlsx` forráspárt olvassa, és immutable package-set candidate-et készít a
+`TEMP/data_build/` alatt. A producerben nincs MUNKAFORRÁS-, LOOKUPS- vagy legacy
+`cards.xlsx` fallback. A current consumer és a publikált Godot package változatlan.
+
+A candidate build sikeres, de `production_ready = false` és
+`publish_allowed = false`. Production parityt blokkolja a P01 technical-semantic
+review, a P04 / HD-07 lookup- és alias-reconciliation, valamint a HD-01 négy nyitott
+runtime/master cellája. P08 és P09 a current canonical component contractban
+`NON_RUNTIME_BLOCKER`; közvetlen package dependency nem igazolt.
+
 A runtime package–Godot alapozási mérföldkő elkészült és működik.
 
-Bizonyított adatút:
+W3B.4A-ban bizonyított canonical producer-adatút:
 
 ```text
-Szerkesztési XLSX / LOOKUPS
+CARDDATABASE.xlsx + REGISTRY.xlsx
         ↓
-Python export, normalizálás és validáció
+canonical export és validation
         ↓
-canonical workbook / runtime package candidate
-        ↓
-blocking publish validation
-        ↓
-Godot consumption + production C# package/canonical loader
+immutable canonical component candidate + package-set identity
 ```
+
+A current published Godot/C# package továbbra is a korábbi transitional pipeline
+kimenete. A W3B.4A candidate nem került materializálásra vagy publikálásra, és a
+consumer nem váltott át rá.
 
 Aktuális minősítés:
 
@@ -92,48 +111,34 @@ nem az authority/provenance alapelvét.
 
 A workbook/source delimiter migráció nem része ennek a dokumentációs syncnek.
 
-## 2. Aktív források
+## 2. Canonical authority és transitional források
 
 ### 2.1 Kártyák és decklisták
 
-Aktív szerkesztési forrás:
+Current canonical card-data és emberi szerkesztési authority:
 
-- `Aeterna dokumentációk/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`
+- `Aeterna dokumentációk/CARDDATABASE.xlsx`
 
-Fő runtime card sheet:
+A korábbi MUNKAFORRÁS frozen migration/provenance és transitional compatibility
+input. A W3B.4A producer nem olvassa, és nem használhatja fallbackként. A jelenlegi
+publikált consumer-pipeline még nem esett át cutoveren.
 
-- `7. EXPORT_RUNTIME`
+### 2.2 Technical schema, value és alias authority
 
-A package ebből veszi többek között:
+Current canonical technical authority:
 
-- Card_ID;
-- kártyanév és típus;
-- Birodalom és Klán;
-- nyomtatott Magnitúdó- és Aura-érték;
-- természetes kártyaszöveg;
-- structured auditmezők;
-- set- és printing-adatok.
+- `Aeterna dokumentációk/REGISTRY.xlsx`
 
-### 2.2 Runtime lookupok
-
-Aktív lookupforrás:
-
-- `Aeterna dokumentációk/LOOKUPS.xlsx`
-
-Aktív runtime sheetek:
-
-- `RUNTIME_CORE`;
-- `RUNTIME_ABILITY`.
-
-Legacy alias és normalizációs forrás:
-
-- `RUNTIME_LEGACY_ALIAS`.
+Az önálló `LOOKUPS.xlsx` és az embedded lookup lapok frozen legacy-pipeline és
+reconciliation evidence. P04 / HD-07 nyitott; ezek jelenléte nem tölthet ki REGISTRY
+hiányt és nem bizonyítja a retirement readiness állapotát.
 
 Publikált runtime kimenet:
 
 - `Aeterna game engine/Godot/runtime_package/lookups.json`.
 
-A kártyaadatbázis munkaforrás saját `5A. LOOKUPS_RUNTIME` lapja munkafájl-validációs és történeti segédforrás. Nem írhatja felül automatikusan a külön `LOOKUPS.xlsx` aktív canonical runtime értékeit.
+A legacy lookup-réteg nem írhatja felül automatikusan a REGISTRY current canonical
+értékeit.
 
 ### 2.3 Szabályforrások
 
@@ -148,28 +153,29 @@ Szabályi elsőbbség:
 
 ---
 
-### 2.4 Canonical workbook és production C# fogyasztási réteg
+### 2.4 Canonical producer és production C# fogyasztási réteg
 
-A szerkesztési munkaforrás és a statikus Godot runtime package mellett aktív derived/canonical programadat-réteg is létezik:
+A canonical authority és a statikus Godot runtime package között külön producer- és
+generated-representation réteg létezik:
 
-- `CARDDATABASE.xlsx`;
-- `REGISTRY.xlsx`;
+- `CARDDATABASE.xlsx` és `REGISTRY.xlsx` mint canonical source authority;
 - canonical workbook exporter;
+- W3B.4A canonical component candidate és package-set;
 - production `CanonicalPackageLoader`;
 - runtime lookup/card binding.
 
 Szerepük:
 
-- programfogyasztásra stabilabb canonical adatút;
+- programfogyasztásra stabil canonical adatút és provenance;
 - determinisztikus mapping;
 - card/ability/runtime binding;
 - production C# loader input.
 
 Nem:
 
-- új emberi szerkesztési authority;
+- production publish-engedély;
 - hivatalos játékszabályforrás;
-- a `LOOKUPS.xlsx` automatikus felülírója.
+- a legacy LOOKUPS automatikus migrációja vagy felülírója.
 
 Eltérés esetén a hivatalos szabályforrás és az elfogadott emberi adat-/contract-döntés az elsődleges.
 

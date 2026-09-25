@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-CARD-DATA-MODEL
 kind: document
 type: specification
-version: "1.2"
+version: "1.3"
 lifecycle: active
 integration: current
 authority: technical-contract
@@ -17,7 +17,7 @@ supersedes: []
 
 ## Dokumentumállapot
 
-**Verzió:** 1.2
+**Verzió:** 1.3
 
 **Dátum:** 2026-09-25
 
@@ -302,6 +302,17 @@ CARDDATABASE + REGISTRY
 A runtime package determinisztikus, validált, source hash-ekkel és tool identityvel rendelkező representation. Nem szerkesztési authority és nem ír vissza a canonical workbookokba.
 
 A current runtime pipeline átmenetileg még MUNKAFORRÁS/LOOKUPS inputot is használ. Ennek eltávolítása későbbi producer/consumer cutover. A target állapotban nincs legacy canonical fallback.
+
+### 12.1 W3B.4A producerállapot
+
+A `tools/data/canonical_producer` repository-owned entrypoint a két canonical
+workbookból determinisztikus, validált canonical component candidate-et készít. A
+candidate a meglévő exporter-, validation- és package-set contractot használja; a
+MUNKAFORRÁS, a LOOKUPS és a legacy `cards.xlsx` nem input és nem fallback.
+
+A candidate létezése nem production parity-bizonyíték. P01, P04 / HD-07 és HD-01
+nyitott, ezért `production_ready = false` és `publish_allowed = false`. Runtime
+materializálás, consumer cutover és publish ebben a wave-ben nem történt.
 
 ## 13. Változtatási és review-követelmény
 

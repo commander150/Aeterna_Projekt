@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.2
-**Dátum:** 2026-09-05
+**Dokumentumverzió:** 2.3
+**Dátum:** 2026-09-25
 **Státusz:** aktív kanonikus runtime package-specifikáció
 **Aktuális státuszfájl:** `RUNTIME_PACKAGE_STATUS.md`
-**Aktuális repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
+**Aktuális repository-bázis:** `01c57236e78cb8c02fbdedd3745b87832c2b965c` – `data: promote legacy records into governed review datasets`
 
 Ez a dokumentum az AETERNA statikus runtime package rétegének kötelező jelentését, határait és buildelveit rögzíti.
 
@@ -47,15 +47,15 @@ Adat- és szabályi elsőbbség:
 1. `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
 2. `rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`;
 3. elfogadott, verziózott emberi döntések;
-4. emberi szerkesztési források / Google Sheets / aktív XLSX munkaforrás;
-5. külön `LOOKUPS.xlsx`;
-6. Python normalizálás, validáció és canonical export;
-7. derived canonical workbook réteg (`CARDDATABASE.xlsx`, `REGISTRY.xlsx`);
-8. runtime package;
-9. Godot-, C#- és Python-fogyasztók.
+4. canonical emberi szerkesztési és card-data authority: `CARDDATABASE.xlsx`;
+5. canonical technical schema-, value- és alias-authority: `REGISTRY.xlsx`;
+6. canonical producer, validáció és immutable package-set candidate;
+7. runtime materializálás és production package;
+8. Godot-, C#- és Python-fogyasztók.
 
-A derived/canonical workbook és a runtime package generált programadat.
-Egyik sem írhatja felül a hivatalos szabályforrást vagy az elfogadott emberi szerkesztési authorityt.
+A két canonical workbook együtt a future runtime producer adat-authorityje. A runtime
+package generált programadat; nem írhatja felül a canonical workbookokat, a hivatalos
+szabályforrást vagy az elfogadott emberi döntéseket.
 
 Eltérés esetén a build álljon meg vagy adjon blocking diagnosticot;
 a builder nem találgathat új szabályt.
@@ -63,41 +63,29 @@ a builder nem találgathat új szabályt.
 ## 2. Elfogadott adatút
 
 ```text
-Google Sheets / emberi szerkesztési forrás
+CARDDATABASE.xlsx + REGISTRY.xlsx
         ↓
-lokális XLSX munkaforrások + LOOKUPS
+canonical producer és canonical validation
         ↓
-Python export, normalizálás és validáció
+validated immutable canonical package-set candidate
         ↓
-canonical workbook export
-        ├── CARDDATABASE.xlsx
-        └── REGISTRY.xlsx
-        ↓
-runtime package candidate / canonical package binding
+runtime materializálás
         ↓
 blocking publish gate
         ↓
 Godot consumption copy + production C# engine input
 ```
 
-Aktív források:
+Current canonical producer inputok:
 
-- kártyák és decklisták:
-  `Aeterna dokumentációk/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
-- runtime lookupok:
-  `Aeterna dokumentációk/LOOKUPS.xlsx`;
-- canonical derived workbookok:
-  `CARDDATABASE.xlsx`, `REGISTRY.xlsx`;
-- canonical/export tooling:
-  Python exporter/normalizáló réteg;
-- fő kártyalap:
-  `7. EXPORT_RUNTIME`;
-- aktív lookup-lapok:
-  `RUNTIME_CORE`, `RUNTIME_ABILITY`;
-- alias- és normalizációs forrás:
-  `RUNTIME_LEGACY_ALIAS`.
+- `Aeterna dokumentációk/CARDDATABASE.xlsx`;
+- `Aeterna dokumentációk/REGISTRY.xlsx`.
 
-A builder több külön forrásból dolgozhat. Nem feltételezheti, hogy minden adat egyetlen workbookban található.
+A `MUNKAFORRÁS`, a `LOOKUPS.xlsx` és a legacy `cards.xlsx` kizárólag
+transitional compatibility- és evidence-forrás. A target producerben legacy fallback
+nincs; hiányzó vagy hibás canonical input esetén a build megáll. A W3B.4A producer
+canonical component candidate-et készít a `TEMP/data_build/` alatt. Ez még nem
+production runtime package, és nem változtatja meg a jelenlegi consumert.
 
 
 ---
