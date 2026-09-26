@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Aeterna.Engine.Contracts;
 
@@ -15,14 +16,45 @@ public sealed record RuntimeDeckDefinition(
     string DeckId,
     ImmutableArray<string> OrderedCardIds);
 
+public sealed record RuntimePackageReadiness(
+    bool MaterializationValid,
+    bool ProductionReady,
+    bool PublishAllowed);
+
+public sealed record RuntimeSourceComponentProvenance(
+    string ComponentIdentity,
+    string ContentHash);
+
+public sealed record RuntimePackageProvenance(
+    string RuntimePackageId,
+    string CandidateId,
+    string PackageSetId,
+    string MaterializerId,
+    string MaterializerContractVersion,
+    string MaterializationProfileId,
+    string MaterializationPolicyId,
+    bool CandidateOnly,
+    int LegacySourceReadCount,
+    ImmutableDictionary<string, RuntimeSourceComponentProvenance> SourceComponents,
+    RuntimePackageReadiness Readiness,
+    ImmutableDictionary<string, string> FileHashes,
+    ImmutableDictionary<string, string> IdentityPayloadFileHashes);
+
 public sealed record RuntimePackageCatalog(
     string PackageId,
     ImmutableDictionary<string, RuntimeCardDefinition> Cards,
     ImmutableDictionary<string, RuntimeDeckDefinition> Decks,
-    RuntimeLookupCatalog Lookups);
+    RuntimeLookupCatalog Lookups,
+    RuntimePackageProvenance? Provenance = null);
 
 public static class RuntimePackageLoader
 {
+    private const string CanonicalMaterializerId = "canonical-runtime-materializer";
+    private const string CanonicalMaterializerContractVersion = "1";
+    private const string CanonicalMaterializationPolicyId = "canonical-runtime-materialization-policy-v1";
+    private const string CanonicalMaterializationProfileId = "runtime-package-source-compatible-v1";
+    private const string CanonicalFileHashScope = "all package files except self-referential provenance.json";
+
     private static readonly string[] RequiredFiles =
     [
         "manifest.json",
@@ -77,6 +109,10 @@ public static class RuntimePackageLoader
                 "RUNTIME_PACKAGE_ID_MISMATCH",
                 "Runtime package ID does not match the requested package.");
         }
+
+        var provenance = IsCanonicalDerived(manifest.RootElement)
+            ? ReadAndValidateCanonicalProvenance(packageDirectory, manifest.RootElement, packageId)
+            : null;
 
         var runtimeLookups = ReadRuntimeLookupCatalog(Path.Combine(packageDirectory, "lookups.json"));
         var cards = ImmutableDictionary.CreateBuilder<string, RuntimeCardDefinition>(StringComparer.Ordinal);
@@ -161,9 +197,445 @@ public static class RuntimePackageLoader
             packageId,
             cards.ToImmutable(),
             decks.ToImmutable(),
-            runtimeLookups);
+            runtimeLookups,
+            provenance);
         ValidateCatalog(catalog);
         return catalog;
+    }
+
+    private static bool IsCanonicalDerived(JsonElement manifest)
+    {
+        if (manifest.TryGetProperty("metadata", out var metadata)
+            && metadata.ValueKind == JsonValueKind.Object
+            && metadata.TryGetProperty("generator", out var generator)
+            && generator.ValueKind == JsonValueKind.String
+            && string.Equals(generator.GetString(), CanonicalMaterializerId, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return manifest.TryGetProperty("runtime_package_id", out _)
+            || manifest.TryGetProperty("source_identity", out _)
+            || manifest.TryGetProperty("source_components", out _)
+            || manifest.TryGetProperty("identity_payload_file_hashes", out _)
+            || manifest.TryGetProperty("build_profile", out _)
+            || (manifest.TryGetProperty("metadata", out metadata)
+                && metadata.ValueKind == JsonValueKind.Object
+                && metadata.TryGetProperty("materialization_policy_id", out _));
+    }
+
+    private static RuntimePackageProvenance ReadAndValidateCanonicalProvenance(
+        string packageDirectory,
+        JsonElement manifest,
+        string packageId)
+    {
+        var provenancePath = Path.Combine(packageDirectory, "provenance.json");
+        if (!File.Exists(provenancePath))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_PROVENANCE_MISSING",
+                "Canonical-derived runtime package provenance is missing.");
+        }
+
+        using var provenanceDocument = ParseJsonFile(provenancePath);
+        var provenance = provenanceDocument.RootElement;
+        RequireProvenanceObject(provenance, "Canonical runtime provenance must be an object.");
+
+        var manifestRuntimeId = ReadProvenanceString(manifest, "runtime_package_id");
+        var provenanceRuntimeId = ReadProvenanceString(provenance, "runtime_package_id");
+        var manifestSourceIdentity = ReadProvenanceObject(manifest, "source_identity");
+        var manifestCandidateId = ReadProvenanceString(manifestSourceIdentity, "candidate_id");
+        var manifestPackageSetId = ReadProvenanceString(manifestSourceIdentity, "package_set_id");
+        var provenanceCandidateId = ReadProvenanceString(provenance, "candidate_id");
+        var provenancePackageSetId = ReadProvenanceString(provenance, "package_set_id");
+
+        foreach (var identity in new[]
+                 {
+                     packageId,
+                     manifestRuntimeId,
+                     provenanceRuntimeId,
+                     manifestCandidateId,
+                     manifestPackageSetId,
+                     provenanceCandidateId,
+                     provenancePackageSetId,
+                 })
+        {
+            RequireSha256Identity(identity);
+        }
+
+        if (!string.Equals(packageId, manifestRuntimeId, StringComparison.Ordinal)
+            || !string.Equals(packageId, provenanceRuntimeId, StringComparison.Ordinal)
+            || !string.Equals(manifestCandidateId, provenanceCandidateId, StringComparison.Ordinal)
+            || !string.Equals(manifestPackageSetId, provenancePackageSetId, StringComparison.Ordinal))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_PROVENANCE_ID_MISMATCH",
+                "Canonical runtime manifest and provenance identities do not agree.");
+        }
+
+        var metadata = ReadProvenanceObject(manifest, "metadata");
+        var manifestGenerator = ReadProvenanceString(metadata, "generator");
+        var manifestPolicy = ReadProvenanceString(metadata, "materialization_policy_id");
+        var manifestProfile = ReadProvenanceString(manifest, "build_profile");
+        var materializer = ReadProvenanceObject(provenance, "materializer");
+        var materializerId = ReadProvenanceString(materializer, "id");
+        var materializerContractVersion = ReadProvenanceString(materializer, "contract_version");
+        var provenancePolicy = ReadProvenanceString(provenance, "materialization_policy_id");
+        var provenanceProfile = ReadProvenanceString(provenance, "materialization_profile_id");
+        if (!string.Equals(manifestGenerator, CanonicalMaterializerId, StringComparison.Ordinal)
+            || !string.Equals(materializerId, CanonicalMaterializerId, StringComparison.Ordinal)
+            || !string.Equals(materializerContractVersion, CanonicalMaterializerContractVersion, StringComparison.Ordinal)
+            || !string.Equals(manifestPolicy, CanonicalMaterializationPolicyId, StringComparison.Ordinal)
+            || !string.Equals(provenancePolicy, CanonicalMaterializationPolicyId, StringComparison.Ordinal)
+            || !string.Equals(manifestProfile, CanonicalMaterializationProfileId, StringComparison.Ordinal)
+            || !string.Equals(provenanceProfile, CanonicalMaterializationProfileId, StringComparison.Ordinal))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_MATERIALIZER_CONTRACT_INVALID",
+                "Canonical runtime materializer contract is invalid or inconsistent.");
+        }
+
+        var readAudit = ReadProvenanceObject(provenance, "read_audit");
+        var candidateOnly = ReadProvenanceBool(readAudit, "candidate_only");
+        var legacySourceReadCount = ReadProvenanceInt(readAudit, "legacy_source_read_count");
+        if (!candidateOnly || legacySourceReadCount != 0)
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_PROVENANCE_INVALID",
+                "Canonical runtime provenance does not prove candidate-only materialization.");
+        }
+
+        var manifestReadiness = ReadReadiness(ReadProvenanceObject(manifest, "readiness"));
+        var provenanceReadiness = ReadReadiness(ReadProvenanceObject(provenance, "readiness"));
+        if (manifestReadiness != provenanceReadiness || !provenanceReadiness.MaterializationValid)
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_PROVENANCE_INVALID",
+                "Canonical runtime readiness differs between manifest and provenance.");
+        }
+
+        var sourceComponents = ReadAndValidateSourceComponents(manifest, provenance);
+        var manifestFiles = ReadManifestFiles(manifest);
+        var fileHashes = ReadHashMap(provenance, "file_hashes");
+        var manifestIdentityHashes = ReadHashMap(manifest, "identity_payload_file_hashes");
+        var provenanceIdentityHashes = ReadHashMap(provenance, "identity_payload_file_hashes");
+        if (!string.Equals(
+                ReadProvenanceString(provenance, "file_hash_scope"),
+                CanonicalFileHashScope,
+                StringComparison.Ordinal))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_HASH_SET_INVALID",
+                "Canonical runtime provenance uses an unsupported file hash scope.");
+        }
+
+        var expectedHashedFiles = manifestFiles
+            .Where(path => !string.Equals(path, "provenance.json", StringComparison.Ordinal))
+            .ToHashSet(StringComparer.Ordinal);
+        if (!expectedHashedFiles.SetEquals(fileHashes.Keys)
+            || !HashMapsEqual(manifestIdentityHashes, provenanceIdentityHashes)
+            || manifestIdentityHashes.Any(pair =>
+                !fileHashes.TryGetValue(pair.Key, out var fileHash)
+                || !string.Equals(pair.Value, fileHash, StringComparison.Ordinal)))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_HASH_SET_INVALID",
+                "Canonical runtime hash declarations do not match the manifest contract.");
+        }
+
+        foreach (var (relativePath, expectedHash) in fileHashes)
+        {
+            var fullPath = ResolveSafePackagePath(packageDirectory, relativePath);
+            if (!File.Exists(fullPath))
+            {
+                throw new EngineInputException(
+                    "RUNTIME_PACKAGE_HASHED_FILE_MISSING",
+                    "A canonical runtime hashed file is missing.");
+            }
+
+            string actualHash;
+            try
+            {
+                actualHash = "sha256:" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(fullPath))).ToLowerInvariant();
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                throw new EngineInputException(
+                    "RUNTIME_PACKAGE_HASHED_FILE_MISSING",
+                    "A canonical runtime hashed file could not be read.",
+                    exception);
+            }
+            if (!string.Equals(actualHash, expectedHash, StringComparison.Ordinal))
+            {
+                throw new EngineInputException(
+                    "RUNTIME_PACKAGE_HASH_MISMATCH",
+                    "A canonical runtime file hash does not match its provenance declaration.");
+            }
+        }
+
+        return new RuntimePackageProvenance(
+            provenanceRuntimeId,
+            provenanceCandidateId,
+            provenancePackageSetId,
+            materializerId,
+            materializerContractVersion,
+            provenanceProfile,
+            provenancePolicy,
+            candidateOnly,
+            legacySourceReadCount,
+            sourceComponents,
+            provenanceReadiness,
+            fileHashes,
+            provenanceIdentityHashes);
+    }
+
+    private static ImmutableDictionary<string, RuntimeSourceComponentProvenance> ReadAndValidateSourceComponents(
+        JsonElement manifest,
+        JsonElement provenance)
+    {
+        var manifestComponents = ReadProvenanceArray(manifest, "source_components");
+        var manifestIdentities = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var component in manifestComponents.EnumerateArray())
+        {
+            RequireProvenanceObject(component, "Canonical runtime source component must be an object.");
+            var kind = ReadProvenanceString(component, "component_kind");
+            var identity = ReadProvenanceString(component, "component_identity");
+            RequireSha256Identity(identity);
+            if (!manifestIdentities.TryAdd(kind, identity))
+            {
+                throw new EngineInputException(
+                    "RUNTIME_PACKAGE_PROVENANCE_INVALID",
+                    "Canonical runtime source component kind is duplicated.");
+            }
+        }
+
+        var requiredKinds = new HashSet<string>(["CARDDATABASE", "REGISTRY"], StringComparer.Ordinal);
+        if (!requiredKinds.SetEquals(manifestIdentities.Keys))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_PROVENANCE_INVALID",
+                "Canonical runtime source components must be CARDDATABASE and REGISTRY.");
+        }
+
+        var provenanceComponents = ReadProvenanceObject(provenance, "source_components");
+        var result = ImmutableDictionary.CreateBuilder<string, RuntimeSourceComponentProvenance>(StringComparer.Ordinal);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var property in provenanceComponents.EnumerateObject())
+        {
+            if (!seen.Add(property.Name))
+            {
+                throw new EngineInputException(
+                    "RUNTIME_PACKAGE_PROVENANCE_INVALID",
+                    "Canonical runtime source component kind is duplicated.");
+            }
+
+            RequireProvenanceObject(property.Value, "Canonical runtime source component provenance must be an object.");
+            var identity = ReadProvenanceString(property.Value, "component_identity");
+            var contentHash = ReadProvenanceString(property.Value, "content_hash");
+            RequireSha256Identity(identity);
+            RequireSha256Identity(contentHash);
+            if (!manifestIdentities.TryGetValue(property.Name, out var manifestIdentity)
+                || !string.Equals(manifestIdentity, identity, StringComparison.Ordinal))
+            {
+                throw new EngineInputException(
+                    "RUNTIME_PACKAGE_PROVENANCE_ID_MISMATCH",
+                    "Canonical runtime source component identities do not agree.");
+            }
+
+            result.Add(property.Name, new RuntimeSourceComponentProvenance(identity, contentHash));
+        }
+
+        if (!requiredKinds.SetEquals(result.Keys))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_PROVENANCE_INVALID",
+                "Canonical runtime provenance source components must be CARDDATABASE and REGISTRY.");
+        }
+
+        return result.ToImmutable();
+    }
+
+    private static HashSet<string> ReadManifestFiles(JsonElement manifest)
+    {
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var entry in ReadProvenanceArray(manifest, "files").EnumerateArray())
+        {
+            RequireProvenanceObject(entry, "Canonical runtime manifest file entry must be an object.");
+            var path = ReadProvenanceString(entry, "path");
+            ValidateSafeRelativePath(path);
+            if (!result.Add(path))
+            {
+                throw new EngineInputException(
+                    "RUNTIME_PACKAGE_HASH_PATH_DUPLICATE",
+                    "Canonical runtime manifest contains a duplicate file path.");
+            }
+        }
+
+        if (!result.Contains("provenance.json") || RequiredFiles.Any(path => !result.Contains(path)))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_HASH_SET_INVALID",
+                "Canonical runtime manifest file set is incomplete.");
+        }
+
+        return result;
+    }
+
+    private static ImmutableDictionary<string, string> ReadHashMap(JsonElement root, string propertyName)
+    {
+        var hashObject = ReadProvenanceObject(root, propertyName);
+        var result = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
+        foreach (var property in hashObject.EnumerateObject())
+        {
+            ValidateSafeRelativePath(property.Name);
+            if (property.Value.ValueKind != JsonValueKind.String || property.Value.GetString() is not { } hash)
+            {
+                throw new EngineInputException(
+                    "RUNTIME_PACKAGE_HASH_INVALID",
+                    "Canonical runtime hash must be a SHA-256 string.");
+            }
+
+            RequireSha256Identity(hash);
+            if (!result.TryAdd(property.Name, hash))
+            {
+                throw new EngineInputException(
+                    "RUNTIME_PACKAGE_HASH_PATH_DUPLICATE",
+                    "Canonical runtime hash declaration contains a duplicate path.");
+            }
+        }
+
+        return result.ToImmutable();
+    }
+
+    private static bool HashMapsEqual(
+        IReadOnlyDictionary<string, string> left,
+        IReadOnlyDictionary<string, string> right) =>
+        left.Count == right.Count
+        && left.All(pair => right.TryGetValue(pair.Key, out var value)
+            && string.Equals(pair.Value, value, StringComparison.Ordinal));
+
+    private static string ResolveSafePackagePath(string packageDirectory, string relativePath)
+    {
+        ValidateSafeRelativePath(relativePath);
+        var root = Path.GetFullPath(packageDirectory);
+        var fullPath = Path.GetFullPath(Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+        var rootPrefix = root.EndsWith(Path.DirectorySeparatorChar)
+            ? root
+            : root + Path.DirectorySeparatorChar;
+        if (!fullPath.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_HASH_PATH_INVALID",
+                "Canonical runtime hash path escapes the package directory.");
+        }
+
+        return fullPath;
+    }
+
+    private static void ValidateSafeRelativePath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)
+            || Path.IsPathRooted(path)
+            || path.Contains('\\')
+            || path.Contains(':')
+            || path.Split('/').Any(segment => segment.Length == 0 || segment is "." or ".."))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_HASH_PATH_INVALID",
+                "Canonical runtime hash path must be a safe normalized relative path.");
+        }
+    }
+
+    private static void RequireSha256Identity(string value)
+    {
+        const string prefix = "sha256:";
+        if (!value.StartsWith(prefix, StringComparison.Ordinal)
+            || value.Length != prefix.Length + 64
+            || value.AsSpan(prefix.Length).ToString().Any(character =>
+                character is not (>= '0' and <= '9') and not (>= 'a' and <= 'f')))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_HASH_INVALID",
+                "Canonical runtime identity must use lowercase sha256:<64 hex> format.");
+        }
+    }
+
+    private static RuntimePackageReadiness ReadReadiness(JsonElement readiness) => new(
+        ReadProvenanceBool(readiness, "materialization_valid"),
+        ReadProvenanceBool(readiness, "production_ready"),
+        ReadProvenanceBool(readiness, "publish_allowed"));
+
+    private static JsonElement ReadProvenanceObject(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var value) || value.ValueKind != JsonValueKind.Object)
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_PROVENANCE_INVALID",
+                $"Canonical runtime object is missing: {propertyName}");
+        }
+
+        return value;
+    }
+
+    private static JsonElement ReadProvenanceArray(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var value) || value.ValueKind != JsonValueKind.Array)
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_PROVENANCE_INVALID",
+                $"Canonical runtime array is missing: {propertyName}");
+        }
+
+        return value;
+    }
+
+    private static string ReadProvenanceString(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var value)
+            || value.ValueKind != JsonValueKind.String
+            || string.IsNullOrWhiteSpace(value.GetString()))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_PROVENANCE_INVALID",
+                $"Canonical runtime string is missing: {propertyName}");
+        }
+
+        return value.GetString()!;
+    }
+
+    private static bool ReadProvenanceBool(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var value)
+            || value.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_PROVENANCE_INVALID",
+                $"Canonical runtime boolean is missing: {propertyName}");
+        }
+
+        return value.GetBoolean();
+    }
+
+    private static int ReadProvenanceInt(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var value)
+            || value.ValueKind != JsonValueKind.Number
+            || !value.TryGetInt32(out var result))
+        {
+            throw new EngineInputException(
+                "RUNTIME_PACKAGE_PROVENANCE_INVALID",
+                $"Canonical runtime integer is missing: {propertyName}");
+        }
+
+        return result;
+    }
+
+    private static void RequireProvenanceObject(JsonElement value, string message)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+        {
+            throw new EngineInputException("RUNTIME_PACKAGE_PROVENANCE_INVALID", message);
+        }
     }
 
     internal static void ValidateCatalog(RuntimePackageCatalog? catalog)
