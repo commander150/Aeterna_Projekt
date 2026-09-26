@@ -117,7 +117,7 @@ A workbook/source delimiter migráció nem része ennek a dokumentációs syncne
 
 Current canonical card-data és emberi szerkesztési authority:
 
-- `Aeterna dokumentációk/CARDDATABASE.xlsx`
+- `data/canonical/CARDDATABASE.xlsx`
 
 A korábbi MUNKAFORRÁS frozen migration/provenance és transitional compatibility
 input. A W3B.4A producer nem olvassa, és nem használhatja fallbackként. A jelenlegi
@@ -127,7 +127,7 @@ publikált consumer-pipeline még nem esett át cutoveren.
 
 Current canonical technical authority:
 
-- `Aeterna dokumentációk/REGISTRY.xlsx`
+- `data/canonical/REGISTRY.xlsx`
 
 Az önálló `LOOKUPS.xlsx` és az embedded lookup lapok frozen legacy-pipeline és
 reconciliation evidence. P04 / HD-07 nyitott; ezek jelenléte nem tölthet ki REGISTRY

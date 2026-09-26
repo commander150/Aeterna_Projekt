@@ -38,8 +38,8 @@ Aktív adatút:
 
 - `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
 - `LOOKUPS.xlsx`;
-- `CARDDATABASE.xlsx`;
-- `REGISTRY.xlsx`;
+- `data/canonical/CARDDATABASE.xlsx`;
+- `data/canonical/REGISTRY.xlsx`;
 - validált canonical export/runtime package.
 
 A rules authority DOCX, a runtime package derived programadat. Egyik sem helyettesíti a másikat.

@@ -78,8 +78,8 @@ Godot consumption copy + production C# engine input
 
 Current canonical producer inputok:
 
-- `Aeterna dokumentációk/CARDDATABASE.xlsx`;
-- `Aeterna dokumentációk/REGISTRY.xlsx`.
+- `data/canonical/CARDDATABASE.xlsx`;
+- `data/canonical/REGISTRY.xlsx`.
 
 A `MUNKAFORRÁS`, a `LOOKUPS.xlsx` és a legacy `cards.xlsx` kizárólag
 transitional compatibility- és evidence-forrás. A target producerben legacy fallback

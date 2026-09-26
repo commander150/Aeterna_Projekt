@@ -69,6 +69,67 @@ class TestCandidateIdentity(unittest.TestCase):
         self.assertEqual("v1", preimage["tool_contract_version"])
         self.assertNotIn("w3b4a", json.dumps(preimage).casefold())
 
+    def test_v2_profile_contract_contains_roles_without_repository_paths(self) -> None:
+        contract = producer._profile_contract()
+        serialized = json.dumps(contract, ensure_ascii=False, sort_keys=True)
+        self.assertEqual("canonical-component-candidate-v2", producer.PROFILE_ID)
+        self.assertEqual(["CARDDATABASE", "REGISTRY"], contract["producer_source_roles"])
+        self.assertNotIn("producer_sources", contract)
+        for role in contract["producer_source_roles"]:
+            self.assertNotIn("/", role)
+            self.assertNotIn("\\", role)
+        for forbidden in (
+            "data/canonical/CARDDATABASE.xlsx",
+            "data/canonical/REGISTRY.xlsx",
+            ("Aeterna " + "dokumentációk") + "/CARDDATABASE.xlsx",
+            ("Aeterna " + "dokumentációk") + "/REGISTRY.xlsx",
+        ):
+            self.assertNotIn(forbidden, serialized)
+
+    def test_package_set_identity_is_independent_of_physical_source_paths(self) -> None:
+        component = self.package_set.ComponentDescriptor(
+            component_format_version=self.package_set.COMPONENT_FORMAT_VERSION,
+            component_identity=HASH_A,
+            component_id="carddatabase",
+            component_kind="CARDDATABASE",
+            package_id="aeterna_carddatabase",
+            schema_version="1",
+            data_version="1",
+            content_hash=HASH_B,
+            manifest_file="components/CARDDATABASE/manifest.json",
+            manifest_hash=HASH_C,
+            dependencies=(),
+            consumer_requirement=self.package_set.CONSUMER_REQUIRED,
+        )
+        component = replace(
+            component,
+            component_identity=self.package_set.compute_component_identity(component),
+        )
+
+        def compute(card_path: str, registry_path: str) -> str:
+            with (
+                mock.patch.object(producer, "CARDDATABASE_PATH", card_path),
+                mock.patch.object(producer, "REGISTRY_PATH", registry_path),
+            ):
+                profile_hash = self.package_set.sha256_bytes(
+                    self.package_set.canonical_json_bytes(producer._profile_contract())
+                )
+                value = self.package_set.PackageSet(
+                    package_set_format_version=self.package_set.PACKAGE_SET_FORMAT_VERSION,
+                    package_set_id=HASH_A,
+                    package_set_profile_id=producer.PROFILE_ID,
+                    profile_contract_hash=profile_hash,
+                    validation_policy_id=producer.VALIDATION_POLICY_ID,
+                    components=(component,),
+                    validation_ledger_file="validation/ledger.json",
+                    validation_ledger_hash=HASH_C,
+                )
+                return self.package_set.compute_package_set_identity(value)
+
+        first = compute("location-a/CARDDATABASE.xlsx", "location-a/REGISTRY.xlsx")
+        second = compute("location-b/CARDDATABASE.xlsx", "location-b/REGISTRY.xlsx")
+        self.assertEqual(first, second)
+
 
 class TestProducerConfiguration(unittest.TestCase):
     def setUp(self) -> None:
@@ -93,6 +154,29 @@ class TestProducerConfiguration(unittest.TestCase):
         self.assertEqual(output, REPOSITORY_ROOT / producer.DEFAULT_OUTPUT_ROOT)
         self.assertEqual(config.carddatabase_path, producer.CARDDATABASE_PATH)
         self.assertEqual(config.registry_path, producer.REGISTRY_PATH)
+
+    def test_default_canonical_sources_use_data_owner(self) -> None:
+        config = producer.default_config(REPOSITORY_ROOT)
+        card, registry, _ = producer._validate_config(config, self.package_set)
+        self.assertEqual("data/canonical/CARDDATABASE.xlsx", config.carddatabase_path)
+        self.assertEqual("data/canonical/REGISTRY.xlsx", config.registry_path)
+        self.assertEqual(REPOSITORY_ROOT / "data" / "canonical" / "CARDDATABASE.xlsx", card)
+        self.assertEqual(REPOSITORY_ROOT / "data" / "canonical" / "REGISTRY.xlsx", registry)
+
+    def test_old_canonical_source_paths_are_rejected(self) -> None:
+        old_owner = "Aeterna " + "dokumentációk"
+        substitutions = (
+            {"carddatabase_path": f"{old_owner}/CARDDATABASE.xlsx"},
+            {"registry_path": f"{old_owner}/REGISTRY.xlsx"},
+        )
+        for substitution in substitutions:
+            with self.subTest(substitution=substitution):
+                config = replace(producer.default_config(REPOSITORY_ROOT), **substitution)
+                with self.assertRaisesRegex(
+                    producer.ProducerError,
+                    "CANONICAL_SOURCE_SUBSTITUTION_REJECTED",
+                ):
+                    producer._validate_config(config, self.package_set)
 
     def test_munkaforras_substitution_is_rejected(self) -> None:
         config = replace(

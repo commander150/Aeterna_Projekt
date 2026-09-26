@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-CARD-DATA-MODEL
 kind: document
 type: specification
-version: "1.3"
+version: "1.4"
 lifecycle: active
 integration: current
 authority: technical-contract
@@ -17,9 +17,9 @@ supersedes: []
 
 ## Dokumentumállapot
 
-**Verzió:** 1.3
+**Verzió:** 1.4
 
-**Dátum:** 2026-09-25
+**Dátum:** 2026-09-26
 
 **Státusz:** aktív current specifikáció
 
@@ -47,16 +47,10 @@ A dokumentum nem hivatalos játékszabályforrás, nem termékterv, és nem hely
 Current fizikai path:
 
 ```text
-Aeterna dokumentációk/CARDDATABASE.xlsx
-```
-
-A későbbi kontrollált célpath:
-
-```text
 data/canonical/CARDDATABASE.xlsx
 ```
 
-A fizikai move külön implementációs hullám. Ez a dokumentum nem hajtja végre.
+A W3B.6 migráció a workbookot byte-azonosan helyezte át a canonical data ownerhez.
 
 ### 2.2 `REGISTRY.xlsx`
 
@@ -65,14 +59,10 @@ A fizikai move külön implementációs hullám. Ez a dokumentum nem hajtja vég
 Current fizikai path:
 
 ```text
-Aeterna dokumentációk/REGISTRY.xlsx
-```
-
-A későbbi kontrollált célpath:
-
-```text
 data/canonical/REGISTRY.xlsx
 ```
+
+A W3B.6 migráció a workbookot byte-azonosan helyezte át a canonical data ownerhez.
 
 ### 2.3 Közös authority
 

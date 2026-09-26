@@ -22,8 +22,8 @@ QUALIFIED_REFERENCE_PATH = (
     MODULE_DIRECTORY / "canonical_validation_qualified_reference.py"
 )
 WORKBOOKS = (
-    REPOSITORY_ROOT / "Aeterna dokumentációk" / "REGISTRY.xlsx",
-    REPOSITORY_ROOT / "Aeterna dokumentációk" / "CARDDATABASE.xlsx",
+    REPOSITORY_ROOT / "data" / "canonical" / "REGISTRY.xlsx",
+    REPOSITORY_ROOT / "data" / "canonical" / "CARDDATABASE.xlsx",
 )
 
 

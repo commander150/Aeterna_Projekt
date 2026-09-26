@@ -34,8 +34,8 @@ A későbbi szerkezeti újratervezés külön dokumentációs/design feladat, ne
 
 Canonical szerkesztési és adat-authority:
 
-- `CARDDATABASE.xlsx` – human-editing és card-data authority;
-- `REGISTRY.xlsx` – technical schema, value, alias és contract authority.
+- `data/canonical/CARDDATABASE.xlsx` – human-editing és card-data authority;
+- `data/canonical/REGISTRY.xlsx` – technical schema, value, alias és contract authority.
 
 Frozen migration/compatibility források:
 

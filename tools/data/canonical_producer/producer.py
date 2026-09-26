@@ -12,8 +12,8 @@ from typing import Any, Mapping, Sequence
 from .bridge import MODULE_NAMES, TOOL_ROOT, load_existing_modules
 
 
-CARDDATABASE_PATH = "Aeterna dokumentációk/CARDDATABASE.xlsx"
-REGISTRY_PATH = "Aeterna dokumentációk/REGISTRY.xlsx"
+CARDDATABASE_PATH = "data/canonical/CARDDATABASE.xlsx"
+REGISTRY_PATH = "data/canonical/REGISTRY.xlsx"
 DEFAULT_OUTPUT_ROOT = "TEMP/data_build"
 
 AUDITED_DATASETS = (
@@ -27,7 +27,8 @@ AUDITED_DATASETS = (
     "design/naming/reviews/CARD_NAME_REVIEWS.xlsx",
 )
 
-PROFILE_ID = "canonical-component-candidate-v1"
+PROFILE_ID = "canonical-component-candidate-v2"
+PROFILE_SOURCE_ROLES = ("CARDDATABASE", "REGISTRY")
 VALIDATION_POLICY_ID = "canonical-development-export-with-production-blockers-v1"
 TOOL_CONTRACT_ID = "canonical-producer"
 TOOL_CONTRACT_VERSION = "v1"
@@ -378,6 +379,18 @@ def _candidate_identity_preimage(
     }
 
 
+def _profile_contract() -> dict[str, Any]:
+    """Return the path-independent semantic package-set profile contract."""
+
+    return {
+        "component_kinds": list(PROFILE_SOURCE_ROLES),
+        "legacy_fallback_allowed": False,
+        "producer_source_roles": list(PROFILE_SOURCE_ROLES),
+        "tool_contract_id": TOOL_CONTRACT_ID,
+        "tool_contract_version": TOOL_CONTRACT_VERSION,
+    }
+
+
 def _compute_candidate_id(
     *,
     package_set_id: str,
@@ -481,13 +494,7 @@ def build_candidate(config: ProducerConfig | None = None) -> BuildResult:
         package_set,
     )
 
-    profile_contract = {
-        "component_kinds": ["CARDDATABASE", "REGISTRY"],
-        "legacy_fallback_allowed": False,
-        "producer_sources": [CARDDATABASE_PATH, REGISTRY_PATH],
-        "tool_contract_id": TOOL_CONTRACT_ID,
-        "tool_contract_version": TOOL_CONTRACT_VERSION,
-    }
+    profile_contract = _profile_contract()
     value = package_set.PackageSet(
         package_set_format_version=package_set.PACKAGE_SET_FORMAT_VERSION,
         package_set_id=ZERO_HASH,

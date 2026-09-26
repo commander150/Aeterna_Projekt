@@ -14,8 +14,8 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 MODULE_DIRECTORY = PYTHON_ROOT / "tools" / "canonical_export"
 SCRIPT_PATH = MODULE_DIRECTORY / "canonical_validation_expr.py"
 WORKBOOKS = (
-    REPOSITORY_ROOT / "Aeterna dokumentációk" / "REGISTRY.xlsx",
-    REPOSITORY_ROOT / "Aeterna dokumentációk" / "CARDDATABASE.xlsx",
+    REPOSITORY_ROOT / "data" / "canonical" / "REGISTRY.xlsx",
+    REPOSITORY_ROOT / "data" / "canonical" / "CARDDATABASE.xlsx",
 )
 
 

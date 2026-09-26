@@ -60,8 +60,8 @@ Státusz: `ACTIVE_EDITING_SOURCE`
 
 ### 2.3 Canonical runtime-adatforrások / programfogyasztási réteg
 
-- `CARDDATABASE.xlsx`;
-- `REGISTRY.xlsx`;
+- `data/canonical/CARDDATABASE.xlsx`;
+- `data/canonical/REGISTRY.xlsx`;
 - canonical workbook export;
 - validált runtime package.
 
