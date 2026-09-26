@@ -1,0 +1,144 @@
+{
+  "package_id": "aeterna.sample_runtime_package",
+  "package_version": "0.1.0",
+  "schema_version": "sample-runtime-package-v1",
+  "created_at": "2026-07-06T08:07:37+00:00",
+  "ruleset_version": "sample-ruleset-v0",
+  "source_files": [
+    {
+      "path": "tools/runtime_package/build_sample_runtime_package.py",
+      "type": "in_code_fixture"
+    },
+    {
+      "path": "exports/LOOKUPS_RUNTIME.jsonl",
+      "type": "lookups_runtime_jsonl",
+      "adapter": "runtime_lookups_builder_adapter.py",
+      "summary": {
+        "records_read": 2080,
+        "lookups_loaded": 2080,
+        "diagnostics": [],
+        "error_count": 0
+      }
+    },
+    {
+      "path": "exports/EXPORT_RUNTIME.jsonl",
+      "type": "export_runtime_cards_jsonl",
+      "adapter": "runtime_cards_builder_adapter.py",
+      "summary": {
+        "records_read": 814,
+        "records_written": 814,
+        "ok_count": 814,
+        "error_count": 0,
+        "diagnostics": [],
+        "records_loaded": 814
+      }
+    },
+    {
+      "path": "exports/PRODUCT_DECKLISTS.jsonl",
+      "type": "product_decklists_jsonl",
+      "adapter": "runtime_decks_builder_adapter.py",
+      "summary": {
+        "records_read": 754,
+        "decks_loaded": 28,
+        "diagnostics": [],
+        "error_count": 0
+      }
+    },
+    {
+      "path": "Aeterna dokumentációk/LOOKUPS.xlsx",
+      "type": "lookups_xlsx_runtime_legacy_aliases",
+      "sheet": "RUNTIME_LEGACY_ALIAS",
+      "adapter": "runtime_legacy_aliases_reader.py",
+      "summary": {
+        "sheet_read": "RUNTIME_LEGACY_ALIAS",
+        "records_read": 1014,
+        "aliases_loaded": 1011,
+        "skipped_empty_value": 3,
+        "requires_audit_count": 108,
+        "normalization_allowed_count": 903,
+        "diagnostics": []
+      }
+    }
+  ],
+  "files": [
+    {
+      "path": "manifest.json",
+      "format": "json"
+    },
+    {
+      "path": "cards.jsonl",
+      "format": "jsonl"
+    },
+    {
+      "path": "decks.jsonl",
+      "format": "jsonl"
+    },
+    {
+      "path": "lookups.json",
+      "format": "json"
+    },
+    {
+      "path": "aliases.json",
+      "format": "json"
+    },
+    {
+      "path": "normalization_aliases.json",
+      "format": "json"
+    },
+    {
+      "path": "normalization_audit_report.json",
+      "format": "json"
+    },
+    {
+      "path": "normalization_preview_report.json",
+      "format": "json"
+    },
+    {
+      "path": "normalization_patch_plan.json",
+      "format": "json"
+    },
+    {
+      "path": "normalization_apply_report.json",
+      "format": "json"
+    },
+    {
+      "path": "ability_registry.json",
+      "format": "json"
+    },
+    {
+      "path": "engine_support.json",
+      "format": "json"
+    },
+    {
+      "path": "diagnostics.json",
+      "format": "json"
+    },
+    {
+      "path": "build_report.md",
+      "format": "md"
+    }
+  ],
+  "validation_summary": {
+    "blocking": false,
+    "card_count": 814,
+    "deck_count": 28,
+    "diagnostic_count": 0,
+    "warning_count": 0,
+    "error_count": 0
+  },
+  "engine_support_summary": {
+    "card_statuses": {
+      "not_evaluated": 814
+    },
+    "ability_module_statuses": {
+      "declared_only": 2
+    },
+    "runtime_executes_abilities": false,
+    "notes_hu": "A sample package csak deklaralja a kepesseg modulokat, nem futtatja oket."
+  },
+  "metadata": {
+    "generator": "build_sample_runtime_package.py",
+    "purpose_hu": "Minimalis sample runtime package szerkezet bizonyitasa.",
+    "production_export": false
+  }
+}

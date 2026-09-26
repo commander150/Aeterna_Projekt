@@ -1,0 +1,44 @@
+{
+    "schema_version":  "aeterna-legacy-source-archive-manifest-v1",
+    "retirement_wave":  "W3B.7",
+    "retirement_baseline_commit":  "d7a40269c01286b8b2f83569f0cb46f10bb30b43",
+    "source_count":  3,
+    "preservation_status":  "byte_exact",
+    "semantic_parity_claimed":  false,
+    "production_runtime_parity":  "blocked",
+    "sources":  [
+                    {
+                        "original_path":  "Aeterna dokumentációk/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx",
+                        "archive_path":  "Archive/data_layer/legacy_sources/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx",
+                        "sha256":  "3331c48496b80056e37392d6b82c14336d442565cf3f48829e8be663db1c318a",
+                        "size":  1079041,
+                        "historical_role":  "Legacy card-authoring workbook and embedded lookup source",
+                        "retirement_reason":  "Canonical source cutover complete; legacy source preserved whole after active readers reached zero",
+                        "retirement_baseline_commit":  "d7a40269c01286b8b2f83569f0cb46f10bb30b43",
+                        "active_reader_count_at_retirement":  0,
+                        "active_writer_count_at_retirement":  0
+                    },
+                    {
+                        "original_path":  "Aeterna dokumentációk/LOOKUPS.xlsx",
+                        "archive_path":  "Archive/data_layer/legacy_sources/LOOKUPS.xlsx",
+                        "sha256":  "0e0e8f79491af81de813f5ea83632c9c9496ddddbc217f949440e6edac8cdd30",
+                        "size":  153050,
+                        "historical_role":  "Frozen transitional runtime lookup and alias source",
+                        "retirement_reason":  "Legacy publishing route retired; complete workbook preserved without claiming semantic parity",
+                        "retirement_baseline_commit":  "d7a40269c01286b8b2f83569f0cb46f10bb30b43",
+                        "active_reader_count_at_retirement":  0,
+                        "active_writer_count_at_retirement":  0
+                    },
+                    {
+                        "original_path":  "Aeterna dokumentációk/cards.xlsx",
+                        "archive_path":  "Archive/data_layer/legacy_sources/cards.xlsx",
+                        "sha256":  "ca4d3852293b79298838614bbf6cab818173c4988bb94633079539210f205f82",
+                        "size":  195338,
+                        "historical_role":  "Legacy seven-realm card snapshot and compatibility evidence",
+                        "retirement_reason":  "Stale cards.xlsx fallback retired; historical data preserved whole",
+                        "retirement_baseline_commit":  "d7a40269c01286b8b2f83569f0cb46f10bb30b43",
+                        "active_reader_count_at_retirement":  0,
+                        "active_writer_count_at_retirement":  0
+                    }
+                ]
+}

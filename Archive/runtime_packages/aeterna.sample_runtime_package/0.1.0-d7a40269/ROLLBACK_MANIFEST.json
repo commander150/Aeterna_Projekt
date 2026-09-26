@@ -1,0 +1,82 @@
+{
+  "source_repository_commit": "d7a40269c01286b8b2f83569f0cb46f10bb30b43",
+  "source_package_path": "Aeterna game engine/Godot/runtime_package",
+  "archive_package_path": "Archive/runtime_packages/aeterna.sample_runtime_package/0.1.0-d7a40269/package",
+  "package_id": "aeterna.sample_runtime_package",
+  "package_version": "0.1.0",
+  "schema_version": "sample-runtime-package-v1",
+  "file_count": 14,
+  "files": [
+    {
+      "path": "ability_registry.json",
+      "sha256": "a404f9958d53813b0159c20c4db60fac70b3aa52c40224a897df491a0cfeb89c",
+      "size": 850
+    },
+    {
+      "path": "aliases.json",
+      "sha256": "dfe042d00a54a86c12d441c16ba6d834e72c88eb3e18e21a5ed583a90c9aa240",
+      "size": 521
+    },
+    {
+      "path": "build_report.md",
+      "sha256": "062623f03b695d02921e6cd3b1229abc9b35d2fdf688fdf85c924a64e93e741d",
+      "size": 995
+    },
+    {
+      "path": "cards.jsonl",
+      "sha256": "998ebd3a3df41dffc93e618cd31eaabe71bc5ebab7625898041a90a1241f3d88",
+      "size": 946642
+    },
+    {
+      "path": "decks.jsonl",
+      "sha256": "7549a54c3396a90973e9cc9e521c7fb5bb37f379612df353e69f1fcfd5d725aa",
+      "size": 32821
+    },
+    {
+      "path": "diagnostics.json",
+      "sha256": "026e7478d1fce9c547ba59d3caf1c5526275d4bd7a710dbd614729ce40916b1d",
+      "size": 27
+    },
+    {
+      "path": "engine_support.json",
+      "sha256": "26cfcd82387c433d052d2b3adec6136c05ec23a2db4a62a394ce7c5613e4bc9f",
+      "size": 1294
+    },
+    {
+      "path": "lookups.json",
+      "sha256": "7f2b34b5fa10e7686a1423e1cc51439ae21814f3151a386c0d63a2fb660cb847",
+      "size": 550053
+    },
+    {
+      "path": "manifest.json",
+      "sha256": "46ed946a338a454d0c6bc631278ce1492c10c732a5e89f8adc4990d123caf70e",
+      "size": 3621
+    },
+    {
+      "path": "normalization_aliases.json",
+      "sha256": "5d20b8853b1c695e029f2f25581558c6871e50e25e160d547d2e8f5d819286b4",
+      "size": 477163
+    },
+    {
+      "path": "normalization_apply_report.json",
+      "sha256": "251a2fac98b81c419ee42db0fb591a9210037dab34d54671acd2a7530c5d8ee6",
+      "size": 206237
+    },
+    {
+      "path": "normalization_audit_report.json",
+      "sha256": "8c894cd92da1cf5c9f92b6517615e08e9c6aa054d50b542ca615afdfc3a81c27",
+      "size": 336411
+    },
+    {
+      "path": "normalization_patch_plan.json",
+      "sha256": "309b0548d37bd410b94f28108a0dff8a28e1b50ca89424f048499b34c8035e2b",
+      "size": 234443
+    },
+    {
+      "path": "normalization_preview_report.json",
+      "sha256": "3e22bb6a6d7ec4b72bc6f5f0ed83ea87de366c9b4a7dad0a6a3c3f3aea43e90c",
+      "size": 316330
+    }
+  ],
+  "snapshot_status": "byte_exact"
+}

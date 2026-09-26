@@ -1,0 +1,58 @@
+{
+  "schema_version": "aeterna-retired-entrypoint-archive-manifest-v1",
+  "retirement_wave": "W3B.7",
+  "retirement_baseline_commit": "d7a40269c01286b8b2f83569f0cb46f10bb30b43",
+  "file_count": 6,
+  "preservation_status": "whole_file_byte_exact",
+  "replacement_pipeline_activated": false,
+  "files": [
+    {
+      "original_path": "Aeterna game engine/python/tools/runtime_package/publish_runtime_package_to_godot.py",
+      "archive_path": "Archive/data_layer/retired_entrypoints/d7a40269/Aeterna game engine/python/tools/runtime_package/publish_runtime_package_to_godot.py",
+      "sha256": "8b76f6b02e5e358406acc02ed87923af37a8eb52417dfa3ac9353868f565f74d",
+      "size": 12392,
+      "disposition": "RETIRED_LEGACY_PUBLISHER",
+      "retirement_reason": "Direct legacy workbook defaults and current Godot package writer retired without replacement activation."
+    },
+    {
+      "original_path": "Aeterna game engine/python/publish_runtime_package_to_godot.bat",
+      "archive_path": "Archive/data_layer/retired_entrypoints/d7a40269/Aeterna game engine/python/publish_runtime_package_to_godot.bat",
+      "sha256": "71aed22c2d4f02a785eef7cd5f91c40f494cd006ac5a47127da2a98a5a1166a7",
+      "size": 113,
+      "disposition": "RETIRED_LEGACY_PUBLISHER_WRAPPER",
+      "retirement_reason": "Wrapper invoked the retired legacy publisher."
+    },
+    {
+      "original_path": "Aeterna game engine/python/copy_package_to_godot.bat",
+      "archive_path": "Archive/data_layer/retired_entrypoints/d7a40269/Aeterna game engine/python/copy_package_to_godot.bat",
+      "sha256": "6ed34a5569817045a1f6c8ad592ef0d8e0ac579a4c97cf5102c89ba69164a217",
+      "size": 227,
+      "disposition": "RETIRED_LEGACY_PUBLISHER_WRAPPER",
+      "retirement_reason": "Compatibility wrapper delegated to the retired legacy publisher."
+    },
+    {
+      "original_path": "Aeterna game engine/python/run_xlsx_export.bat",
+      "archive_path": "Archive/data_layer/retired_entrypoints/d7a40269/Aeterna game engine/python/run_xlsx_export.bat",
+      "sha256": "4be33b5bbb1f4c986da95711a484c50ae805d39e1b0d3dfa840853fafb305146",
+      "size": 464,
+      "disposition": "RETIRED_MUNKAFORRAS_EXPORT_ENTRYPOINT",
+      "retirement_reason": "Direct legacy workbook export launcher retired; generic XLSX library remains active for W5 disposition."
+    },
+    {
+      "original_path": "Aeterna game engine/python/main.py",
+      "archive_path": "Archive/data_layer/retired_entrypoints/d7a40269/Aeterna game engine/python/main.py",
+      "sha256": "38992422d81b3dbad43b474c75561436e258df48a34fe2bb1a50abde513aef16",
+      "size": 2487,
+      "disposition": "STALE_LEGACY_ENTRYPOINT",
+      "retirement_reason": "Stale EXPORT_RUNTIME.jsonl/cards.xlsx fallback entrypoint retired without redesign."
+    },
+    {
+      "original_path": "Aeterna game engine/python/tests/test_publish_runtime_package_to_godot.py",
+      "archive_path": "Archive/data_layer/retired_entrypoints/d7a40269/Aeterna game engine/python/tests/test_publish_runtime_package_to_godot.py",
+      "sha256": "d6e4858a61e2cc2fd059e23ac1265c3f079dd35a28c54df08b0c33f7256dde1d",
+      "size": 11249,
+      "disposition": "ARCHIVE_TEST_WITH_RETIRED_TOOL",
+      "retirement_reason": "Test exclusively covered the retired legacy publisher and is preserved with it."
+    }
+  ]
+}

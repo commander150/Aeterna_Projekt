@@ -1,0 +1,60 @@
+{
+  "schema_version": "sample-runtime-package-v1",
+  "summary": {
+    "card_statuses": {
+      "not_evaluated": 814
+    },
+    "ability_module_statuses": {
+      "declared_only": 2
+    },
+    "runtime_executes_abilities": false,
+    "notes_hu": "A sample package csak deklaralja a kepesseg modulokat, nem futtatja oket."
+  },
+  "supported_card_types": [
+    "Entitás",
+    "Ige",
+    "Jel",
+    "Rituálé",
+    "Sík",
+    "entity",
+    "incantation",
+    "plane",
+    "ritual",
+    "sigil"
+  ],
+  "supported_realms": [
+    "AETHER",
+    "AQUA",
+    "IGNIS",
+    "LUX",
+    "TERRA",
+    "UMBRA",
+    "VENTUS",
+    "aether",
+    "aqua",
+    "ignis",
+    "lux",
+    "terra",
+    "umbra",
+    "ventus"
+  ],
+  "ability_execution": "not_implemented",
+  "ability_support_summary": {
+    "warnings": 0,
+    "audit_notes": 1,
+    "declared_only": 2,
+    "unsupported": 0,
+    "partial": 0,
+    "fallback_required": 0,
+    "not_checked": 0,
+    "manual_review_required": 0,
+    "unknown_support_status": 0
+  },
+  "ability_support_audit_notes": [
+    {
+      "code": "ABILITY_SUPPORT_DECLARED_ONLY_AUDIT_NOTE",
+      "message_hu": "declared_only nem canonical support_status; jelenleg fejlesztoi/audit allapot.",
+      "count": 2
+    }
+  ]
+}
