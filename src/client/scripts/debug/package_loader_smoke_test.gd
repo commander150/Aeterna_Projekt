@@ -2,14 +2,15 @@ extends SceneTree
 
 
 const RuntimePackageLoaderScript = preload("res://scripts/contract_loader/runtime_package_loader.gd")
-const PACKAGE_PATH = "res://runtime_package"
+const PACKAGE_PATH = "res://../../Aeterna game engine/Godot/runtime_package"
 
 
 func _init() -> void:
 	print("Running AETERNA package loader smoke test...")
 
 	var loader = RuntimePackageLoaderScript.new()
-	var result = loader.load_package(PACKAGE_PATH)
+	var resolved_package_path := ProjectSettings.globalize_path(PACKAGE_PATH).simplify_path()
+	var result = loader.load_package(resolved_package_path)
 	var counts = result.get("loaded_counts", {})
 	var ability_support_statuses = result.get("ability_support_statuses", {})
 	var diagnostics = result.get("diagnostics_summary", {})

@@ -175,6 +175,8 @@ public partial class CsharpProductionEngineBridgeNegativeSmoke : Node
         var path = Path.GetFullPath(Path.Combine(
             projectRoot,
             "..",
+            "..",
+            "Aeterna game engine",
             "runtime_comparison",
             "fixtures",
             "minimal_draw_end_turn_v2",

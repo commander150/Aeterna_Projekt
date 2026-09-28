@@ -186,7 +186,7 @@ func _resolve_python_executable() -> Dictionary:
 
 
 func _resolve_python_project_root() -> Dictionary:
-	python_project_root = ProjectSettings.globalize_path("res://../python").simplify_path()
+	python_project_root = ProjectSettings.globalize_path("res://../../Aeterna game engine/python").simplify_path()
 	if not DirAccess.dir_exists_absolute(python_project_root):
 		return _failure("SIDECAR_PYTHON_ROOT_INVALID", "Python project root does not exist.")
 	var server_path := python_project_root.path_join("tools/runtime_comparison/python_sidecar_server.py")

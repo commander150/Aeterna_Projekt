@@ -6,7 +6,7 @@ const DebugContractsLoaderScript = preload("res://scripts/contract_loader/debug_
 const CardReferenceResolverScript = preload("res://scripts/debug/card_reference_resolver.gd")
 
 const CONTRACTS_PATH = "res://debug_contracts"
-const RUNTIME_PACKAGE_PATH = "res://runtime_package"
+const RUNTIME_PACKAGE_PATH = "res://../../Aeterna game engine/Godot/runtime_package"
 const SNAPSHOT_SCHEMA = "sample-snapshot-v1"
 const LEGAL_ACTIONS_SCHEMA = "sample-legal-actions-v1"
 const EVENTS_SCHEMA = "sample-events-v1"
@@ -15,7 +15,8 @@ const EVENTS_SCHEMA = "sample-events-v1"
 func _init() -> void:
 	print("Running AETERNA contract consistency smoke test...")
 
-	var result = _run_consistency_check(CONTRACTS_PATH, RUNTIME_PACKAGE_PATH)
+	var runtime_package_path := ProjectSettings.globalize_path(RUNTIME_PACKAGE_PATH).simplify_path()
+	var result = _run_consistency_check(CONTRACTS_PATH, runtime_package_path)
 	var failed = false
 
 	failed = _check_bool(result.get("ok", false), true, "consistency.ok") or failed

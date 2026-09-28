@@ -52,6 +52,8 @@ public static class CsharpRuntimeCandidateBridge
         var fixturePath = Path.GetFullPath(Path.Combine(
             godotProjectRoot,
             "..",
+            "..",
+            "Aeterna game engine",
             "runtime_comparison",
             "fixtures",
             "minimal_draw_end_turn_v2",

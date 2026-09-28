@@ -7,7 +7,7 @@ const DebugContractsLoaderScript = preload("res://scripts/contract_loader/debug_
 const CardReferenceResolverScript = preload("res://scripts/debug/card_reference_resolver.gd")
 
 @export var contracts_path := "res://debug_contracts"
-@export var runtime_package_path := "res://runtime_package"
+@export var runtime_package_path := "res://../../Aeterna game engine/Godot/runtime_package"
 
 var _label: Label
 var _card_resolver
@@ -28,7 +28,8 @@ func _ready() -> void:
 func load_event_log_view(base_path):
 	var result = _empty_result()
 	_card_resolver = CardReferenceResolverScript.new()
-	var package_result = _card_resolver.load_runtime_package(runtime_package_path)
+	var resolved_package_path := ProjectSettings.globalize_path(runtime_package_path).simplify_path()
+	var package_result = _card_resolver.load_runtime_package(resolved_package_path)
 	if not bool(package_result.get("ok", false)):
 		result["errors"].append_array(package_result.get("errors", []))
 

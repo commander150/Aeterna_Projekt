@@ -1,0 +1,26 @@
+<Project Sdk="Godot.NET.Sdk/4.7.1">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <RootNamespace>Aeterna.GodotRuntime</RootNamespace>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AeternaHarnessBuild Condition="'$(AeternaHarnessBuild)' == ''">false</AeternaHarnessBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="scripts\engine\AeternaEngineBridge.cs" />
+    <ProjectReference Include="..\engine\Aeterna.Engine\Aeterna.Engine.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(AeternaHarnessBuild)' == 'true'">
+    <Compile Include="scripts\debug\CsharpMinimalRuntimeProof.cs" />
+    <Compile Include="scripts\debug\CsharpMinimalRuntimeProofSmoke.cs" />
+    <Compile Include="scripts\debug\CsharpProductionEngineBridgeSmoke.cs" />
+    <Compile Include="scripts\debug\CsharpProductionEngineBridgeNegativeSmoke.cs" />
+    <Compile Include="scripts\runtime_comparison\csharp\CsharpRuntimeCandidateBridge.cs" />
+    <ProjectReference Include="..\..\Aeterna game engine\C#\Aeterna.RuntimeCandidate\Aeterna.RuntimeCandidate.csproj" />
+  </ItemGroup>
+</Project>

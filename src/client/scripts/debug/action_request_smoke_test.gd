@@ -5,14 +5,15 @@ const JsonFileLoaderScript = preload("res://scripts/contract_loader/json_file_lo
 const CardReferenceResolverScript = preload("res://scripts/debug/card_reference_resolver.gd")
 
 const CONTRACTS_PATH = "res://debug_contracts"
-const RUNTIME_PACKAGE_PATH = "res://runtime_package"
+const RUNTIME_PACKAGE_PATH = "res://../../Aeterna game engine/Godot/runtime_package"
 const ACTION_REQUEST_SCHEMA = "sample-action-request-v1"
 
 
 func _init() -> void:
 	print("Running AETERNA action request smoke test...")
 
-	var result = _run_action_request_check(CONTRACTS_PATH, RUNTIME_PACKAGE_PATH)
+	var runtime_package_path := ProjectSettings.globalize_path(RUNTIME_PACKAGE_PATH).simplify_path()
+	var result = _run_action_request_check(CONTRACTS_PATH, runtime_package_path)
 	var failed = false
 
 	failed = _check_bool(result.get("ok", false), true, "action_request.ok") or failed

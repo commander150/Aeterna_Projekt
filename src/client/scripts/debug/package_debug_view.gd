@@ -4,7 +4,7 @@ class_name PackageDebugView
 
 const RuntimePackageLoaderScript = preload("res://scripts/contract_loader/runtime_package_loader.gd")
 
-@export var package_path := "res://runtime_package"
+@export var package_path := "res://../../Aeterna game engine/Godot/runtime_package"
 
 var _label: Label
 
@@ -22,7 +22,8 @@ func _ready() -> void:
 	_label.offset_bottom = -16.0
 
 	var loader = RuntimePackageLoaderScript.new()
-	var result := loader.load_package(package_path)
+	var resolved_package_path := ProjectSettings.globalize_path(package_path).simplify_path()
+	var result := loader.load_package(resolved_package_path)
 	loader.print_debug_summary(result)
 	_label.text = _format_result(result)
 
