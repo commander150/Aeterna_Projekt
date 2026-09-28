@@ -6,7 +6,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aeterna.Engine", "..\..\src
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aeterna.Engine.Headless", "..\..\src\engine\Aeterna.Engine.Headless\Aeterna.Engine.Headless.csproj", "{A9A15772-A6D8-4A0A-9BA7-CB6A8AE60F99}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aeterna.Engine.Tests", "Aeterna.Engine.Tests\Aeterna.Engine.Tests.csproj", "{35540321-84D0-4BE6-A7E6-D68D35C480C9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aeterna.Engine.Tests", "..\..\tests\engine\Aeterna.Engine.Tests\Aeterna.Engine.Tests.csproj", "{35540321-84D0-4BE6-A7E6-D68D35C480C9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
