@@ -9,7 +9,7 @@
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Aeterna.Engine\Aeterna.Engine.csproj" />
-    <ProjectReference Include="..\Aeterna.Engine.Headless\Aeterna.Engine.Headless.csproj" />
+    <ProjectReference Include="..\..\..\src\engine\Aeterna.Engine\Aeterna.Engine.csproj" />
+    <ProjectReference Include="..\..\..\src\engine\Aeterna.Engine.Headless\Aeterna.Engine.Headless.csproj" />
   </ItemGroup>
 </Project>

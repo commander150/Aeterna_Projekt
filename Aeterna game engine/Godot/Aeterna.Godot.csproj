@@ -10,7 +10,7 @@
     <RootNamespace>Aeterna.GodotRuntime</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\C#\Aeterna.Engine\Aeterna.Engine.csproj" />
+    <ProjectReference Include="..\..\src\engine\Aeterna.Engine\Aeterna.Engine.csproj" />
     <ProjectReference Include="..\C#\Aeterna.RuntimeCandidate\Aeterna.RuntimeCandidate.csproj" />
   </ItemGroup>
 </Project>
