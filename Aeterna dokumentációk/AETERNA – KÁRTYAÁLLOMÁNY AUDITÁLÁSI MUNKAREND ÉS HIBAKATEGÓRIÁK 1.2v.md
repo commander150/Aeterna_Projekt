@@ -6,7 +6,7 @@ A jelen dokumentum az AETERNA kártyaállományának auditálási és újraterve
 
 A dokumentum nem hivatalos szabályforrás, nem alapjáték-főforrás, nem kiegészítő-főforrás, nem kártyatáblázat, és nem önálló kártyatervezési katalógus.
 
-Feladata az, hogy meghatározza, milyen sorrendben, milyen szempontok szerint, milyen hibakategóriákkal és milyen státuszolási logikával kell vizsgálni a `cards.xlsx` kártyaállományt.
+Feladata az, hogy meghatározza, milyen sorrendben, milyen szempontok szerint, milyen hibakategóriákkal és milyen státuszolási logikával kell vizsgálni a canonical kártyaállományt.
 
 A dokumentum a következő aktív forrásokra és segéddokumentumokra támaszkodik:
 
@@ -15,9 +15,17 @@ A dokumentum a következő aktív forrásokra és segéddokumentumokra támaszko
 - AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK
 - AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK
 - Aeterna kártyatáblázat – oszlopszabvány
-- cards.xlsx
+- `data/canonical/CARDDATABASE.xlsx`
+- `data/canonical/REGISTRY.xlsx`
 - `project/requirements/testing/TEST_STRATEGY_AND_PROFILES.md`
 - a jelen dokumentum 18. fejezete mint current warning-triage policy
+
+**Current data-authority note (2026-09-28):** A current audit célja a
+`data/canonical/CARDDATABASE.xlsx`; a technikai schema-, value-, alias- és
+contract-authority a `data/canonical/REGISTRY.xlsx`. A dokumentumban megőrzött
+`cards.xlsx` hivatkozások az eredeti 22 oszlopos auditfolyamat történeti/design
+kontextusát írják le. A fájl current helye
+`Archive/data_layer/legacy_sources/cards.xlsx`, és nem current input vagy fallback.
 
 A jelen dokumentum nem ír felül semmilyen hivatalos főforrást. Ha az audit során a kártyaadat, a természetes kártyaszöveg, a structured mező vagy az engine-viselkedés eltér a hivatalos főforrásoktól, akkor a hivatalos főforrások az elsődlegesek.
 
@@ -172,7 +180,10 @@ A dokumentum elsődlegesen a jelenlegi alapjátékos kártyaújratervezési munk
 
 ## 1. A dokumentum célja
 
-A dokumentum célja, hogy egységes auditálási módszert adjon a `cards.xlsx` kártyaállomány javításához és újratervezéséhez.
+A dokumentum célja, hogy egységes auditálási módszert adjon a
+`data/canonical/CARDDATABASE.xlsx` kártyaállomány auditjához és kontrollált
+újratervezéséhez. A történeti `cards.xlsx`-workflow leírásai auditmódszertani
+evidence-ként maradnak meg.
 
 Az audit nem pusztán helyesírási vagy táblázatjavítási feladat.
 
@@ -207,7 +218,7 @@ A kártyaállomány auditja során az alábbi forráshierarchiát kell követni:
 3. AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK
 4. Aeterna kártyatáblázat – oszlopszabvány
 5. AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK
-6. cards.xlsx
+6. `data/canonical/CARDDATABASE.xlsx` és `data/canonical/REGISTRY.xlsx`
 7. engine/runtime auditanyagok, `project/requirements/testing/TEST_STRATEGY_AND_PROFILES.md`, valamint a jelen dokumentum 18. fejezetének warning-triage policyja
 
 Az alapjátékos kártyák elsődleges szabályi ellenőrzése az alapjáték-főforrás alapján történik.

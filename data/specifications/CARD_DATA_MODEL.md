@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-CARD-DATA-MODEL
 kind: document
 type: specification
-version: "1.4"
+version: "1.5"
 lifecycle: active
 integration: current
 authority: technical-contract
@@ -17,9 +17,9 @@ supersedes: []
 
 ## Dokumentumállapot
 
-**Verzió:** 1.4
+**Verzió:** 1.5
 
-**Dátum:** 2026-09-26
+**Dátum:** 2026-09-28
 
 **Státusz:** aktív current specifikáció
 
@@ -242,14 +242,16 @@ review acceptance != automatic CARDDATABASE write
 
 Az alábbi rétegek nem current authoring authorityk:
 
-- `cards.xlsx`: hét realm-lapos legacy kártyasnapshot és compatibility/import evidence;
+- `Archive/data_layer/legacy_sources/cards.xlsx`: hét realm-lapos legacy kártyasnapshot és compatibility/import evidence;
 - legacy 22-column structure: egyszerűsített import/runtime-előkészítő forma;
 - `CARDS_MASTER` 43-column structure: korábbi szerkesztési, audit- és migrációs munkalap;
-- MUNKAFORRÁS 21 sheetje: frozen migration/provenance és átmeneti compatibility input;
-- `LOOKUPS.xlsx` runtime-, alias-, workflow-, product- és design-rétegei: frozen legacy-pipeline input;
+- `Archive/data_layer/legacy_sources/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx` 21 sheetje: frozen migration/provenance evidence;
+- `Archive/data_layer/legacy_sources/LOOKUPS.xlsx` runtime-, alias-, workflow-, product- és design-rétegei: frozen legacy-pipeline evidence;
 - a MUNKAFORRÁS embedded lookup lapjai: migrációs és összehasonlítási evidence.
 
-Ezekből adat csak explicit disposition, target owner, semantic review és reconciliation evidence alapján emelhető át. A teljes MUNKAFORRÁS és LOOKUPS a consumer cutover után historical Archive artifact lesz.
+Ezek current durable ownere az Archive. Nem current inputok, nem fallbackek, és adat
+belőlük csak explicit disposition, target owner, semantic review és reconciliation
+evidence alapján emelhető át.
 
 ## 10. Structured ability migration
 
@@ -283,15 +285,19 @@ A W3B.0 `Lookup_Group + Value` evidence view 187 közös kulcsnál azonos canoni
 Az authoring source nem runtime package. A target adatút:
 
 ```text
-CARDDATABASE + REGISTRY
--> tools/data
--> TEMP validated candidate
--> generated runtime package
+data/canonical/CARDDATABASE.xlsx + data/canonical/REGISTRY.xlsx
+-> tools/data/canonical_producer
+-> canonical-component-candidate-v2
+-> tools/data/runtime_materializer
+-> canonical-derived runtime package
 ```
 
 A runtime package determinisztikus, validált, source hash-ekkel és tool identityvel rendelkező representation. Nem szerkesztési authority és nem ír vissza a canonical workbookokba.
 
-A current runtime pipeline átmenetileg még MUNKAFORRÁS/LOOKUPS inputot is használ. Ennek eltávolítása későbbi producer/consumer cutover. A target állapotban nincs legacy canonical fallback.
+A current canonical producer és runtime materializer nem olvas MUNKAFORRÁS-,
+LOOKUPS- vagy legacy `cards.xlsx` inputot, és nincs legacy fallback. Az aktív legacy
+readerek, writerek és default entrypointok száma nulla. A legacy publisher retired,
+current durable ownere az `Archive/data_layer/retired_entrypoints/d7a40269/`.
 
 ### 12.1 W3B.4A producerállapot
 
@@ -300,9 +306,29 @@ workbookból determinisztikus, validált canonical component candidate-et kész�
 candidate a meglévő exporter-, validation- és package-set contractot használja; a
 MUNKAFORRÁS, a LOOKUPS és a legacy `cards.xlsx` nem input és nem fallback.
 
-A candidate létezése nem production parity-bizonyíték. P01, P04 / HD-07 és HD-01
-nyitott, ezért `production_ready = false` és `publish_allowed = false`. Runtime
-materializálás, consumer cutover és publish ebben a wave-ben nem történt.
+A candidate és a belőle determinisztikusan előállított runtime package nem production
+parity-bizonyíték. Stable identityk:
+
+```text
+package_set_id = sha256:46fb085e5696869c8f705dec218621637b9c049b924fba1c4bc84a2a7edbd629
+candidate_id = sha256:983ac2bd8125ef383ccb9de990cd876600629154e20dfd75e48cfbf1b55acef0
+runtime_package_id = sha256:909b842e1989cdfd7528169711ef84e00c76d5f3dc990002a283965cf14c0adb
+```
+
+A canonical-derived package C# loader/binding kompatibilis, de P01, P04 / HD-07 és
+HD-01 nyitott, ezért `production_ready = false` és `publish_allowed = false`.
+AQU-MOR-017 is unresolved. A current Godot package változatlan sample/compatibility
+evidence; canonical production activation nem történt.
+
+### 12.2 W3B structural migration status
+
+```text
+W3B.6 canonical source/path move = COMPLETE
+W3B.7 legacy retirement/archive = COMPLETE
+W3B.8 data documentation/registry reconciliation = COMPLETE
+production runtime parity = BLOCKED
+Godot canonical package activation = NOT PERFORMED
+```
 
 ## 13. Változtatási és review-követelmény
 

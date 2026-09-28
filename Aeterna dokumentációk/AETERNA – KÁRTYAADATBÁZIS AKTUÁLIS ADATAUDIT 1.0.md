@@ -11,6 +11,17 @@
 **Adatmódosítás történt:** nem  
 **Kapcsolódó külön lookup-forrás:** `LOOKUPS.xlsx` – külön végső ellenőrzési kapu szükséges
 
+**Current repository disposition (2026-09-28):** Az audit alábbi megállapításai az
+1.9v munkaforrás vizsgálatakor fennálló történeti állapotot őrzik. A vizsgált
+MUNKAFORRÁS, a `LOOKUPS.xlsx` és a legacy `cards.xlsx` current helye rendre
+`Archive/data_layer/legacy_sources/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`,
+`Archive/data_layer/legacy_sources/LOOKUPS.xlsx` és
+`Archive/data_layer/legacy_sources/cards.xlsx`; egyik sem current input vagy fallback.
+A current card-data authority `data/canonical/CARDDATABASE.xlsx`, a technical schema-,
+value-, alias- és contract-authority `data/canonical/REGISTRY.xlsx`. Ez a disposition
+nem zárja le a P01, P04 / HD-07 vagy HD-01 kérdéseket, és nem írja át az audit idején
+rögzített tényeket.
+
 Ez a dokumentum a jelenlegi 1.9v kártyaadatbázis szerkezeti, azonosító-, export-, decklista-, névprofil- és lookup-konzisztenciájának aktuális állapotát rögzíti.
 
 A dokumentum:

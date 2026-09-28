@@ -2,10 +2,10 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.7
-**Dátum:** 2026-09-05
+**Dokumentumverzió:** 2.8
+**Dátum:** 2026-09-28
 **Státusz:** aktív kanonikus rendszerarchitektúra
-**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Szinkronizációs repository-bázis:** `bc4465a2bd63d30b29c9277cbef3f631de12ad3f`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 
 Ez a dokumentum az AETERNA digitális rendszerének aktív architektúráját, réteghatárait és authority-szabályait rögzíti.
@@ -63,13 +63,13 @@ A következő elvek kötelezőek:
 ## 2. Felső szintű rendszerkép
 
 ```text
-Hivatalos szabályforrások
+Hivatalos szabályforrások + emberi döntések
         ↓
-Google Sheets / XLSX / LOOKUPS
+data/canonical/CARDDATABASE.xlsx + REGISTRY.xlsx
         ↓
-Python adatpipeline
+canonical producer → canonical-component-candidate-v2
         ↓
-Validált runtime package
+runtime materializer → canonical-derived runtime package
         ↓
 C# authoritative engine
         ↓
@@ -121,24 +121,27 @@ A Python referencia nem automatikus szabályspecifikáció. A működő producti
 
 ### 4.1 Szerkesztési forrás
 
-- Google Sheets;
-- abból letöltött XLSX munkaforrások;
-- aktív kártyaadatbázis;
-- `LOOKUPS.xlsx`;
-- hivatalos főforrások.
+- `data/canonical/CARDDATABASE.xlsx`: human-editing és card-data authority;
+- `data/canonical/REGISTRY.xlsx`: technical schema-, value-, alias- és contract-authority;
+- hivatalos főforrások és elfogadott emberi döntések.
+
+A MUNKAFORRÁS, a `LOOKUPS.xlsx` és a legacy `cards.xlsx` az
+`Archive/data_layer/legacy_sources/` alatt historical/transitional evidence. Nem
+current inputok és nem fallbackek.
 
 ### 4.2 Python adatpipeline
 
 Feladata:
 
-- XLSX beolvasás;
-- export;
-- canonical normalizálás;
-- legacy alias audit;
-- validáció;
-- runtime package build;
-- diagnostics és report;
-- Godot consumption copy publikálása.
+- canonical XLSX beolvasás és export;
+- canonical normalizálás és validáció;
+- determinisztikus package-set candidate build;
+- runtime materializálás;
+- diagnostics és report.
+
+A legacy publisher és wrapper entrypointok retired állapotúak az
+`Archive/data_layer/retired_entrypoints/d7a40269/` alatt. Production Godot publish
+vagy activation nincs engedélyezve.
 
 ### 4.3 Runtime package
 
@@ -161,6 +164,14 @@ A runtime package nem tartalmaz:
 - authoritative rules runtime-ot.
 
 A C# engine runtime package-et fogyaszt, de nem olvas közvetlenül XLSX-et.
+
+Két külön package-állapotot kell megkülönböztetni:
+
+- az `Aeterna game engine/Godot/runtime_package/` változatlan
+  `aeterna.sample_runtime_package` / `0.1.0` compatibility evidence;
+- a canonical producer és materializer által TEMP alatt készített canonical-derived
+  package, amely C# loader/binding kompatibilis, de `production_ready = false`,
+  `publish_allowed = false`, és még nincs Godot production activationben.
 
 ---
 

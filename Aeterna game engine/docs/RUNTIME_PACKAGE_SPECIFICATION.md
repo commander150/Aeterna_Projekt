@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.3
-**Dátum:** 2026-09-25
+**Dokumentumverzió:** 2.4
+**Dátum:** 2026-09-28
 **Státusz:** aktív kanonikus runtime package-specifikáció
 **Aktuális státuszfájl:** `RUNTIME_PACKAGE_STATUS.md`
-**Aktuális repository-bázis:** `01c57236e78cb8c02fbdedd3745b87832c2b965c` – `data: promote legacy records into governed review datasets`
+**Aktuális repository-bázis:** `bc4465a2bd63d30b29c9277cbef3f631de12ad3f` – `data: archive legacy sources and preserve runtime rollback`
 
 Ez a dokumentum az AETERNA statikus runtime package rétegének kötelező jelentését, határait és buildelveit rögzíti.
 
@@ -50,10 +50,10 @@ Adat- és szabályi elsőbbség:
 4. canonical emberi szerkesztési és card-data authority: `CARDDATABASE.xlsx`;
 5. canonical technical schema-, value- és alias-authority: `REGISTRY.xlsx`;
 6. canonical producer, validáció és immutable package-set candidate;
-7. runtime materializálás és production package;
+7. runtime materializálás és canonical-derived package;
 8. Godot-, C#- és Python-fogyasztók.
 
-A két canonical workbook együtt a future runtime producer adat-authorityje. A runtime
+A két canonical workbook együtt a current runtime producer adat-authorityje. A runtime
 package generált programadat; nem írhatja felül a canonical workbookokat, a hivatalos
 szabályforrást vagy az elfogadott emberi döntéseket.
 
@@ -71,9 +71,9 @@ validated immutable canonical package-set candidate
         ↓
 runtime materializálás
         ↓
-blocking publish gate
+C# loader/binding compatibility gate
         ↓
-Godot consumption copy + production C# engine input
+blocking production publish/activation gate
 ```
 
 Current canonical producer inputok:
@@ -81,11 +81,22 @@ Current canonical producer inputok:
 - `data/canonical/CARDDATABASE.xlsx`;
 - `data/canonical/REGISTRY.xlsx`.
 
-A `MUNKAFORRÁS`, a `LOOKUPS.xlsx` és a legacy `cards.xlsx` kizárólag
-transitional compatibility- és evidence-forrás. A target producerben legacy fallback
-nincs; hiányzó vagy hibás canonical input esetén a build megáll. A W3B.4A producer
-canonical component candidate-et készít a `TEMP/data_build/` alatt. Ez még nem
-production runtime package, és nem változtatja meg a jelenlegi consumert.
+A `MUNKAFORRÁS`, a `LOOKUPS.xlsx` és a legacy `cards.xlsx` az
+`Archive/data_layer/legacy_sources/` alatt kizárólag historical/transitional evidence.
+A producerben és a materializerben legacy fallback nincs; hiányzó vagy hibás canonical
+input esetén a build megáll. A producer `canonical-component-candidate-v2` profile-lal
+immutable candidate-et készít, amelyből a materializer determinisztikus
+canonical-derived runtime package-et állít elő. Ez C# loader/binding kompatibilis, de
+nem production-ready, és nem aktiválta a current Godot package-et.
+
+Current stable identities:
+
+- `package_set_id = sha256:46fb085e5696869c8f705dec218621637b9c049b924fba1c4bc84a2a7edbd629`;
+- `candidate_id = sha256:983ac2bd8125ef383ccb9de990cd876600629154e20dfd75e48cfbf1b55acef0`;
+- `runtime_package_id = sha256:909b842e1989cdfd7528169711ef84e00c76d5f3dc990002a283965cf14c0adb`.
+
+`production_ready = false`, `publish_allowed = false`; production runtime parity
+blokkolt, Godot canonical package activation nem történt.
 
 
 ---
@@ -545,13 +556,15 @@ Működik:
 
 - valós card/deck/lookup package build;
 - blocking validation;
-- Godot consumption copy;
-- loader és registry;
+- canonical producer és deterministic runtime materializer;
+- C# loader/binding compatibility;
 - diagnostics;
-- publish pipeline;
 - canonical workbook export;
 - production C# canonical/package loader és runtime binding;
 - canonical deck/deck-entry membership fogyasztás.
+
+A current Godot consumption copy változatlan sample/compatibility package. A legacy
+publisher retired; canonical production publication/activation nem történt.
 
 Nem végleges:
 
@@ -568,9 +581,12 @@ Ability/content elhatárolás:
 - teljes card/keyword/content coverage külön audit;
 - VS1 readiness konkrétan a két canonical deck tényleges requirementjeit vizsgálja.
 
-Current package-facing next gate:
+Current structural migration boundary:
 
-`VS1_READINESS_REQUIRED`
+`platform production source relocation / W4`
+
+Ez nem oldja fel a külön VS1/content readiness gate-et és nem teszi readyvé a PILOT-5
+stable-name cutovert.
 
 A package-réteg VS1 előtt akkor igényel módosítást, ha a readiness audit tényleges blockert talál például:
 
@@ -605,5 +621,6 @@ Current OQ aggregate:
 `52 answered / 15 partly_answered / 7 deferred / 0 open`.
 
 A korábbi sample-központú és korai production specifikációk a Git-történetben megmaradnak.
-A v2.2 a current runtime-package contractot, a semicolon delimiter-policyt és a VS1 readiness
-package-határát rögzíti.
+A v2.4 a canonical producer/materializer capabilityt, az archivált legacy source
+dispositiont, a változatlan Godot sample package-et és a blokkolt production activation
+határát rögzíti.

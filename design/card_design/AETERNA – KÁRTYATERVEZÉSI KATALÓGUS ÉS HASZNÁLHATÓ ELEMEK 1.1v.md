@@ -185,7 +185,8 @@ AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS
 AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS
 AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK
 AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK
-cards.xlsx
+data/canonical/CARDDATABASE.xlsx
+data/canonical/REGISTRY.xlsx
 engine / tesztprogram / runtime auditanyagok
 
 Az alapjáték-főforrás határozza meg, mi használható az alapjátékban.
@@ -196,7 +197,12 @@ A Kártyatervezési katalógus ezekből készít használati kivonatot a kártya
 
 Az Ötletláda nem ad használati engedélyt, csak megőriz és rendszerez.
 
-A cards.xlsx a tényleges kártyaadat-tábla, amelynek strukturált mezői kötött oszlopszabvány szerint működnek. A jelenlegi táblaszerkezet fixen 22 oszlopból áll, és a strukturált mezők kitöltését külön szabvány rögzíti.
+A current kártyaadat-tábla és human/card-data authority a
+`data/canonical/CARDDATABASE.xlsx`; a technical schema-, value-, alias- és
+contract-authority a `data/canonical/REGISTRY.xlsx`. A dokumentumban fennmaradó
+`cards.xlsx` és 22 oszlopos hivatkozások a katalógus eredeti design/audit kontextusát
+őrzik; a workbook current helye `Archive/data_layer/legacy_sources/cards.xlsx`, és
+nem current input vagy fallback.
 
 # 3. Kártyatervezési státuszok
 
@@ -5184,7 +5190,10 @@ A kártyatervezés és kártyaújratervezés során a structured / canonical mez
 
 A Kártyatervezési katalógus nem helyettesíti ezt a dokumentumot. A katalógus feladata az, hogy szabályi és tervezési oldalról meghatározza, milyen elemek használhatók; a kártyatáblázat-szabvány feladata pedig az, hogy megmondja, ezeket hogyan kell a cards.xlsx strukturált mezőiben rögzíteni.
 
-A cards.xlsx táblázat fixen 22 oszlopból áll. Minden sorban pontosan 22 mezőnek kell lennie, és nem maradhat üres cella. Ha egy mezőbe nem kerül tényleges érték, a szabvány szerint blank vagy none értéket kell használni.
+A katalógus készítésekor használt legacy `cards.xlsx` táblázat fixen 22 oszlopból
+állt. Minden sorban pontosan 22 mezőnek kellett lennie, és nem maradhatott üres cella.
+Ha egy mezőbe nem került tényleges érték, az akkori szabvány szerint `blank` vagy
+`none` értéket kellett használni.
 
 A structured mezők kitöltésekor különösen figyelni kell arra, hogy:
 
@@ -6670,7 +6679,9 @@ A lap aktív alapjátékos, kiegészítői, archív vagy újratervezendő státu
 
 # 19. Kapcsolat a cards.xlsx táblával
 
-A cards.xlsx a tényleges kártyaadat-forrás.
+A fejezet `cards.xlsx`-leírása történeti design kontextus. A current kártyaadat-forrás
+és human/card-data authority a `data/canonical/CARDDATABASE.xlsx`; a legacy
+`cards.xlsx` archivált evidence.
 
 A jelenlegi kártyatáblázat fix 22 oszlopos szabványt követ. Ezek között szerepelnek a természetes kártyaszöveghez és structured értelmezéshez kapcsolódó mezők, például:
 

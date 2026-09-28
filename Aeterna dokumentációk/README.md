@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.7
-**Dátum:** 2026-09-24
+**Dokumentumverzió:** 2.8
+**Dátum:** 2026-09-28
 **Státusz:** aktív dokumentációs mappaindex
-**Előző aktív verzió:** 2.6 (Git history)
-**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Előző aktív verzió:** 2.7 (Git history)
+**Szinkronizációs repository-bázis:** `bc4465a2bd63d30b29c9277cbef3f631de12ad3f`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **Kapcsolódó fájlstátusz-térkép:** `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`
 
@@ -37,17 +37,22 @@ Canonical szerkesztési és adat-authority:
 - `data/canonical/CARDDATABASE.xlsx` – human-editing és card-data authority;
 - `data/canonical/REGISTRY.xlsx` – technical schema, value, alias és contract authority.
 
-Frozen migration/compatibility források:
+Archivált historical/transitional evidence:
 
-- `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
-- `LOOKUPS.xlsx`.
+- `../Archive/data_layer/legacy_sources/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
+- `../Archive/data_layer/legacy_sources/LOOKUPS.xlsx`;
+- `../Archive/data_layer/legacy_sources/cards.xlsx`.
 
 Programfogyasztási/canonical adatút további részei:
 
-- canonical workbook export;
-- runtime package.
+- canonical producer és `canonical-component-candidate-v2`;
+- runtime materializer és canonical-derived runtime package.
 
 A program validált runtime/canonical adatot fogyaszt; a programkimenet nem válik automatikusan szerkesztési authorityvé.
+A legacy publisher, standalone exporter launcher, stale `main.py` és wrapperek retired
+állapotúak az `../Archive/data_layer/retired_entrypoints/d7a40269/` alatt. A current
+Godot `runtime_package/` változatlan sample/compatibility evidence; a canonical-derived
+package production Godot-aktiválása nem történt meg, és a publish gate blokkolt.
 
 ### 1.3 Aktív projektirányító dokumentumok
 
@@ -128,7 +133,9 @@ Régi Python motor-, backend-, effect-, trigger- és redesign-anyagok történet
 
 A korábbi `archive_review/` és `generated_review/` auditja és rendezése elkészült.
 
-A régi kártyaadat/LOOKUPS auditok, Python-backend dokumentumok és generált `cards.xlsx` exportbatch történeti archív rétegben maradnak.
+A régi kártyaadat/LOOKUPS auditok, Python-backend dokumentumok és generált `cards.xlsx`
+exportbatch történeti archív rétegben maradnak. A három legacy workbook current durable
+ownere az `../Archive/data_layer/legacy_sources/`.
 
 Generált output:
 
@@ -250,8 +257,10 @@ Csak tényleges deck/mechanic blocker vagy általános rules-correct / determini
 
 A nagy archiválási és cleanup-szakasz: `COMPLETE`.
 
-A jelenlegi célzott szinkron a Combat + Pecsét C0–C6 lezárás utáni current-truth
-dokumentációs frissítés.
+A W3B.6 canonical source/path move, a W3B.7 legacy retirement/archive és a W3B.8
+data documentation/registry reconciliation lezárt. A production runtime parity
+`BLOCKED`, a Godot canonical package activation `NOT PERFORMED`, a P01, P04 / HD-07,
+HD-01 és AQU-MOR-017 kérdések pedig nyitottak maradnak.
 
 Current szerkesztési elv:
 

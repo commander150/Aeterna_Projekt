@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.7
-**Dátum:** 2026-09-05
+**Dokumentumverzió:** 2.8
+**Dátum:** 2026-09-28
 **Státusz:** aktív repository-szintű belépési dokumentum
-**Előző aktív verzió:** 2.6 (Git history)
-**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Előző aktív verzió:** 2.7 (Git history)
+**Szinkronizációs repository-bázis:** `bc4465a2bd63d30b29c9277cbef3f631de12ad3f`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 
 Az **AETERNA** saját fejlesztésű fizikai és digitális gyűjtögetős kártyajáték-projekt.
@@ -34,13 +34,19 @@ Current szabályforrás:
 - `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
 - `rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
 
-Aktív adatút:
+Current data authority és adatút:
 
-- `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
-- `LOOKUPS.xlsx`;
-- `data/canonical/CARDDATABASE.xlsx`;
-- `data/canonical/REGISTRY.xlsx`;
-- validált canonical export/runtime package.
+- `data/canonical/CARDDATABASE.xlsx` – human-editing és card-data authority;
+- `data/canonical/REGISTRY.xlsx` – technical schema-, value-, alias- és contract-authority;
+- canonical producer → `canonical-component-candidate-v2` → runtime materializer;
+- validált canonical-derived runtime package.
+
+A MUNKAFORRÁS, a `LOOKUPS.xlsx` és a legacy `cards.xlsx` az
+`Archive/data_layer/legacy_sources/` alatt történeti/transitional evidence, nem current
+input vagy fallback. A legacy publisher és wrapper entrypointok retired állapotúak.
+A current Godot package változatlan sample/compatibility package; a canonical-derived
+package production aktiválása nem történt meg. `production_ready = false`,
+`publish_allowed = false`, a production runtime parity blokkolt.
 
 A rules authority DOCX, a runtime package derived programadat. Egyik sem helyettesíti a másikat.
 
@@ -79,6 +85,10 @@ Current OQ aggregate:
 - `Archive/` – történeti anyagok.
 
 Az archívum és a learning réteg nem aktív authority.
+
+W3B.6 canonical path move, W3B.7 legacy retirement/archive és W3B.8 data
+documentation/registry reconciliation: `COMPLETE`. A következő structural migration
+wave: `platform production source relocation / W4`; a PILOT-5 ettől még nem ready.
 
 ---
 

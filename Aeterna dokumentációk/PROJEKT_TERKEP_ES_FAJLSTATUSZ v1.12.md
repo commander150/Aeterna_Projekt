@@ -3,10 +3,10 @@
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
 **Dokumentumverzió:** 1.12
-**Dátum:** 2026-09-05
+**Dátum:** 2026-09-28
 **Státusz:** aktív magas szintű projekt- és fájlszerep-térkép
 **Előző aktív verzió:** 1.11 (Git history)
-**Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9`
+**Szinkronizációs repository-bázis:** `bc4465a2bd63d30b29c9277cbef3f631de12ad3f`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
@@ -17,7 +17,7 @@ Ez a dokumentum a jelenlegi fő projekt-rétegeket, aktív forrásokat, fontos f
 ## 1. Projekt fő rétegei
 
 1. hivatalos szabályforrások;
-2. kártyaadatbázis, REGISTRY és LOOKUPS;
+2. canonical kártyaadatbázis és REGISTRY;
 3. Python adat-, export-, audit-, AI-, batch- és reference tooling;
 4. Python reference engine;
 5. Godot vizuális kliens és debugréteg;
@@ -51,23 +51,38 @@ Státusz: `ACTIVE_CANONICAL_RULE_SOURCE`
 
 A kód, runtime package, learning projekt vagy technikai dokumentum nem írhatja felül őket.
 
-### 2.2 Aktív szerkesztési adatforrások
+### 2.2 Aktív canonical szerkesztési adatforrások
 
-- `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
-- `LOOKUPS.xlsx`.
+- `data/canonical/CARDDATABASE.xlsx` – human-editing és card-data authority;
+- `data/canonical/REGISTRY.xlsx` – technical schema-, value-, alias- és contract-authority.
 
-Státusz: `ACTIVE_EDITING_SOURCE`
+Státusz: `ACTIVE_CANONICAL_DATA_AUTHORITY`
 
-### 2.3 Canonical runtime-adatforrások / programfogyasztási réteg
+### 2.3 Legacy adatforrások dispositionje
 
-- `data/canonical/CARDDATABASE.xlsx`;
-- `data/canonical/REGISTRY.xlsx`;
-- canonical workbook export;
-- validált runtime package.
+- `Archive/data_layer/legacy_sources/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
+- `Archive/data_layer/legacy_sources/LOOKUPS.xlsx`;
+- `Archive/data_layer/legacy_sources/cards.xlsx`.
 
-Ezek programfogyasztási/canonical adatút részei; nem helyettesítik automatikusan a szerkesztési munkaforrást vagy a hivatalos szabályforrást.
+Státusz: `ARCHIVED_HISTORICAL_OR_TRANSITIONAL_EVIDENCE`. Ezek nem current inputok,
+nem fallbackek és nem írhatják felül a canonical authorityt.
 
-### 2.4 Aktuális adataudit
+### 2.4 Canonical programfogyasztási réteg
+
+```text
+data/canonical/CARDDATABASE.xlsx + data/canonical/REGISTRY.xlsx
+-> canonical producer
+-> canonical-component-candidate-v2
+-> runtime materializer
+-> canonical-derived runtime package
+```
+
+A canonical-derived package C# loader/binding kompatibilis, de
+`production_ready = false`, `publish_allowed = false`, és Godot production activation
+nem történt. Az `Aeterna game engine/Godot/runtime_package/` ettől különálló,
+változatlan sample/compatibility package.
+
+### 2.5 Aktuális adataudit
 
 - `AETERNA – KÁRTYAADATBÁZIS AKTUÁLIS ADATAUDIT 1.0.md`.
 
@@ -264,7 +279,10 @@ Reference, learning, synthesis vagy blueprint nem írhatja felül az AETERNA sza
 Fő történeti útvonalak:
 
 - `Archive/aeterna dokumentáciok/`;
-- `Archive/aeterna gaming engine/`.
+- `Archive/aeterna gaming engine/`;
+- `Archive/data_layer/legacy_sources/`;
+- `Archive/data_layer/retired_entrypoints/d7a40269/`;
+- `Archive/runtime_packages/aeterna.sample_runtime_package/0.1.0-d7a40269/`.
 
 Az Archive:
 
@@ -356,6 +374,21 @@ Továbbra is külön munkasáv:
 - master–export parity;
 - névprofil és decklista-segédnevek.
 
+### W3B data-domain structural migration
+
+- W3B.6 canonical source/path move: `COMPLETE`;
+- W3B.7 legacy retirement/archive: `COMPLETE`;
+- W3B.8 data documentation/registry reconciliation: `COMPLETE`;
+- production runtime parity: `BLOCKED`;
+- Godot canonical package activation: `NOT PERFORMED`;
+- P01, P04 / HD-07, HD-01 és AQU-MOR-017: `UNRESOLVED`.
+
+A legacy publisher, a standalone exporter launcher, a stale `main.py` és a kapcsolódó
+wrapperek retired állapotúak az `Archive/data_layer/retired_entrypoints/d7a40269/`
+alatt. A következő dependency-vezérelt structural migration wave:
+`platform production source relocation / W4`. A PILOT-5 stable-name cutover ettől
+nem válik ready állapotúvá.
+
 ## 10. Dokumentációs minimum
 
 Aktív projektfolytatásnál kritikus:
@@ -381,10 +414,13 @@ Nem kell minden kisebb commit után teljes dokumentációs tömegfrissítés.
 - Reaction / Priority Foundation v1: `COMPLETE_AND_ACCEPTED`;
 - Combat + Pecsét Foundation C0–C6: `COMPLETE_AND_ACCEPTED`;
 - terminal victory core: `COMPLETE_AND_ACCEPTED`;
+- W3B data-domain structural migration: `COMPLETE`;
+- production runtime parity: `BLOCKED`;
+- Godot canonical package activation: `NOT PERFORMED`;
 - learning registry: `59 registry / 58 local`;
 - project analyses: `30`;
 - synthesis/blueprint program: `COMMITTED`;
 - OQ: `52 answered / 15 partly_answered / 7 deferred / 0 open`;
 - VS1 / M6: `NEXT MAJOR PRODUCT-FACING GOAL`;
 - 0.0.1: `ACTIVE_LONG_TERM_TARGET`;
-- következő technikai lépés: VS1 readiness audit.
+- következő structural migration wave: `platform production source relocation / W4`.

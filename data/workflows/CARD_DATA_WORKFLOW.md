@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-CARD-DATA-WORKFLOW
 kind: document
 type: workflow
-version: "1.3"
+version: "1.4"
 lifecycle: active
 integration: current
 authority: operational-workflow
@@ -17,9 +17,9 @@ supersedes: []
 
 ## Dokumentumállapot
 
-**Verzió:** 1.3
+**Verzió:** 1.4
 
-**Dátum:** 2026-09-25
+**Dátum:** 2026-09-28
 
 **Státusz:** aktív current workflow
 
@@ -46,18 +46,19 @@ A workflow célja, hogy minden változás egyértelmű authorityvel, kiszámíth
 
 ### 2.1 Current canonical források
 
-- `CARDDATABASE.xlsx`: canonical human-editing és card-data authority;
-- `REGISTRY.xlsx`: canonical technical schema, value, alias és contract authority.
+- `data/canonical/CARDDATABASE.xlsx`: canonical human-editing és card-data authority;
+- `data/canonical/REGISTRY.xlsx`: canonical technical schema, value, alias és contract authority.
 
-A workbookok current pathja az `Aeterna dokumentációk/` könyvtár. Későbbi `data/canonical/` move csak külön, reference rewrite-tal együtt végrehajtott hullámban történhet.
+A W3B.6 path move complete; ez a két path a current canonical owner.
 
 ### 2.2 Frozen compatibility források
 
-- `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
-- `LOOKUPS.xlsx`;
-- legacy `cards.xlsx` és származtatott exportok.
+- `Archive/data_layer/legacy_sources/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`;
+- `Archive/data_layer/legacy_sources/LOOKUPS.xlsx`;
+- `Archive/data_layer/legacy_sources/cards.xlsx`.
 
-Ezek read-only migration/provenance vagy compatibility inputok. Nem fogadnak current szerkesztést, és nem írhatják felül automatikusan a canonical forrásokat.
+Ezek read-only historical/transitional evidence-ek. Nem current inputok vagy fallbackek,
+nem fogadnak current szerkesztést, és nem írhatják felül a canonical forrásokat.
 
 ## 3. Change-set mint munkegység
 
@@ -203,17 +204,20 @@ deterministic canonical component candidate-et a `TEMP/data_build/` alatt. A leg
 MUNKAFORRÁS, LOOKUPS és `cards.xlsx` jelenléte nem indít fallbacket; canonical input
 hiányakor vagy hibájánál a producer hard faillel megáll.
 
-Az elkészült candidate még nem production runtime package. P01, P04 / HD-07 és
-HD-01 nyitottsága miatt a publish gate blokkolt, a consumer cutover nem kezdődött el,
-és a teljes legacy pipeline fallbackjének eltávolítása nem fejeződött be.
+Az elkészült candidate-ből a runtime materializer determinisztikus canonical-derived
+runtime package-et készít. A package C# loader/binding kompatibilis, de még nem
+production runtime package. P01, P04 / HD-07 és HD-01 nyitottsága miatt a publish gate
+blokkolt; Godot canonical production activation nem történt. A legacy pipeline aktív
+readereinek, writereinek és default entrypointjainak száma nulla.
 
 A target buildút:
 
 ```text
-CARDDATABASE + REGISTRY
--> tools/data
--> TEMP validated candidate
--> generated runtime package
+data/canonical/CARDDATABASE.xlsx + data/canonical/REGISTRY.xlsx
+-> tools/data/canonical_producer
+-> canonical-component-candidate-v2
+-> tools/data/runtime_materializer
+-> canonical-derived runtime package
 ```
 
 A quality gate legalább:
@@ -229,7 +233,8 @@ A quality gate legalább:
 
 ## 12. Publish
 
-Csak teljesen validált TEMP candidate publikálható. A publish atomikus vagy biztonságosan visszagörgethető legyen, és rögzítse:
+Csak teljesen validált canonical-derived package léphet egy későbbi explicit production
+publish/activation gate-be. A publish atomikus vagy biztonságosan visszagörgethető legyen, és rögzítse:
 
 - canonical source identityket;
 - exporter/materializer identityt;
@@ -240,7 +245,9 @@ Csak teljesen validált TEMP candidate publikálható. A publish atomikus vagy b
 
 A runtime package generált representation. Nem szerkeszthető authorityként és nem ír vissza a workbookokba.
 
-A current pipeline legacy inputja átmeneti. A producer/consumer cutover után legacy fallback tilos. Ennek implementációja későbbi W3B hullám.
+A legacy publisher, standalone exporter launcher, stale `main.py` és wrapperek retired
+állapotúak az `Archive/data_layer/retired_entrypoints/d7a40269/` alatt. Legacy fallback
+tilos; a megmaradó explicit-input low-level helperek nem repository defaultok.
 
 ## 13. Rollback és preservation
 

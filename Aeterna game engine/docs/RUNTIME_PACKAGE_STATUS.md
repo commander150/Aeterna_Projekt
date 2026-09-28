@@ -2,11 +2,11 @@
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.6
-**Dátum:** 2026-09-25
+**Dokumentumverzió:** 1.7
+**Dátum:** 2026-09-28
 **Státusz:** aktív runtime package-, lookup- és publish-pipeline státuszdokumentum
 **Történeti előd:** `CURRENT_RUNTIME_PACKAGE_STATUS.md` (migráció lezárva)
-**Szinkronizációs repository-bázis:** `01c57236e78cb8c02fbdedd3745b87832c2b965c`
+**Szinkronizációs repository-bázis:** `bc4465a2bd63d30b29c9277cbef3f631de12ad3f`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 
 Ez a dokumentum a runtime package, a kártyaadatforrás, a külön LOOKUPS-forrás és a Godot-fogyasztási út tényleges állapotát rögzíti.
@@ -29,46 +29,53 @@ Kapcsolódó aktív dokumentumok:
 
 ## 1. Rövid státusz
 
-W3B.4A státusz:
+W3B data-domain státusz:
 
-- canonical producer scaffolding: `IMPLEMENTED`;
-- canonical component candidate: `DETERMINISTIC`;
-- production runtime parity: `NOT READY`;
-- consumer cutover: `NOT STARTED`;
-- legacy fallback removal a teljes pipeline-ból: `NOT COMPLETE`.
+- W3B.6 canonical source/path move: `COMPLETE`;
+- W3B.7 legacy retirement/archive: `COMPLETE`;
+- W3B.8 data documentation/registry reconciliation: `COMPLETE`;
+- canonical producer és component candidate: `DETERMINISTIC`;
+- runtime materializer: `DETERMINISTIC`;
+- C# loader/binding compatibility: `PASS`;
+- production runtime parity: `BLOCKED`;
+- Godot canonical package activation: `NOT PERFORMED`;
+- active legacy readers/writers/default entrypoints: `0 / 0 / 0`.
 
-A `tools/data/canonical_producer` kizárólag a current `CARDDATABASE.xlsx` és
-`REGISTRY.xlsx` forráspárt olvassa, és immutable package-set candidate-et készít a
-`TEMP/data_build/` alatt. A producerben nincs MUNKAFORRÁS-, LOOKUPS- vagy legacy
-`cards.xlsx` fallback. A current consumer és a publikált Godot package változatlan.
-
-A candidate build sikeres, de `production_ready = false` és
-`publish_allowed = false`. Production parityt blokkolja a P01 technical-semantic
-review, a P04 / HD-07 lookup- és alias-reconciliation, valamint a HD-01 négy nyitott
-runtime/master cellája. P08 és P09 a current canonical component contractban
-`NON_RUNTIME_BLOCKER`; közvetlen package dependency nem igazolt.
-
-A runtime package–Godot alapozási mérföldkő elkészült és működik.
-
-W3B.4A-ban bizonyított canonical producer-adatút:
+A current canonical adatút:
 
 ```text
-CARDDATABASE.xlsx + REGISTRY.xlsx
+data/canonical/CARDDATABASE.xlsx + data/canonical/REGISTRY.xlsx
         ↓
-canonical export és validation
+canonical producer
         ↓
-immutable canonical component candidate + package-set identity
+canonical-component-candidate-v2
+        ↓
+runtime materializer
+        ↓
+canonical-derived runtime package
 ```
 
-A current published Godot/C# package továbbra is a korábbi transitional pipeline
-kimenete. A W3B.4A candidate nem került materializálásra vagy publikálásra, és a
-consumer nem váltott át rá.
+A canonical-derived package C# loaderrel és bindinggal validálható. Stable identityi:
+
+- `package_set_id = sha256:46fb085e5696869c8f705dec218621637b9c049b924fba1c4bc84a2a7edbd629`;
+- `candidate_id = sha256:983ac2bd8125ef383ccb9de990cd876600629154e20dfd75e48cfbf1b55acef0`;
+- `runtime_package_id = sha256:909b842e1989cdfd7528169711ef84e00c76d5f3dc990002a283965cf14c0adb`.
+
+A build sikeres, de `production_ready = false` és `publish_allowed = false`.
+Production parityt blokkolja a P01 technical-semantic review, a P04 / HD-07 lookup-
+és alias-reconciliation, valamint a HD-01. Az AQU-MOR-017 tartalmi döntés szintén
+nyitott. A W3B.8 egyik kérdést sem oldja fel.
+
+A current Godot package különálló, változatlan compatibility evidence:
+`aeterna.sample_runtime_package` / `0.1.0` / `sample-runtime-package-v1`. Nem canonical
+production package. A canonical-derived package nem került Godot production
+activationbe.
 
 Aktuális minősítés:
 
 - alap adatpipeline: `COMPLETED_FOUNDATION`;
 - valós adatokból package build: `WORKING`;
-- Godot consumption copy: `WORKING`;
+- Godot sample/compatibility package: `PRESERVED_UNCHANGED`;
 - Godot loader és smoke: `WORKING`;
 - canonical workbook export: `WORKING`;
 - production C# canonical/package consumption: `WORKING`;
@@ -119,9 +126,9 @@ Current canonical card-data és emberi szerkesztési authority:
 
 - `data/canonical/CARDDATABASE.xlsx`
 
-A korábbi MUNKAFORRÁS frozen migration/provenance és transitional compatibility
-input. A W3B.4A producer nem olvassa, és nem használhatja fallbackként. A jelenlegi
-publikált consumer-pipeline még nem esett át cutoveren.
+A korábbi MUNKAFORRÁS current durable helye
+`Archive/data_layer/legacy_sources/AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`.
+Frozen migration/provenance evidence, nem current input vagy fallback.
 
 ### 2.2 Technical schema, value és alias authority
 
@@ -129,9 +136,10 @@ Current canonical technical authority:
 
 - `data/canonical/REGISTRY.xlsx`
 
-Az önálló `LOOKUPS.xlsx` és az embedded lookup lapok frozen legacy-pipeline és
-reconciliation evidence. P04 / HD-07 nyitott; ezek jelenléte nem tölthet ki REGISTRY
-hiányt és nem bizonyítja a retirement readiness állapotát.
+Az önálló `LOOKUPS.xlsx` current durable helye
+`Archive/data_layer/legacy_sources/LOOKUPS.xlsx`; az embedded lookup lapokkal együtt
+frozen legacy-pipeline és reconciliation evidence. P04 / HD-07 nyitott; jelenlétük
+nem tölthet ki REGISTRY-hiányt és nem jogosít semantic resolution állítására.
 
 Publikált runtime kimenet:
 
@@ -160,7 +168,8 @@ generated-representation réteg létezik:
 
 - `CARDDATABASE.xlsx` és `REGISTRY.xlsx` mint canonical source authority;
 - canonical workbook exporter;
-- W3B.4A canonical component candidate és package-set;
+- `canonical-component-candidate-v2` candidate és package-set;
+- canonical runtime materializer;
 - production `CanonicalPackageLoader`;
 - runtime lookup/card binding.
 
@@ -183,33 +192,23 @@ Eltérés esetén a hivatalos szabályforrás és az elfogadott emberi adat-/con
 
 ## 3. Package- és publish-út
 
-Aktív Python tooling:
+Current repository-owned tooling:
 
-- `Aeterna game engine/python/`
+- `tools/data/canonical_producer/` – canonical candidate build és validation;
+- `tools/data/runtime_materializer/` – deterministic runtime materialization.
 
-Fő szerepek:
+A korábbi publisher, `main.py`, standalone exporter launcher és wrapper entrypointok
+retired állapotúak az `Archive/data_layer/retired_entrypoints/d7a40269/` alatt. Aktív
+default legacy entrypoint, reader vagy writer nincs. A megmaradó explicit-input
+low-level Python helperek nem repository defaultok és nem adnak legacy fallbacket.
 
-- XLSX export;
-- JSONL előállítás;
-- runtime card- és deckadapter;
-- LOOKUPS- és legacy alias reader;
-- normalizációs preview és report;
-- candidate package build;
-- blocking validation;
-- Godot consumption copy publikálása;
-- smoke és unit tesztek.
+Current publish-elv:
 
-Elsődleges fejlesztői publish runner:
-
-- `Aeterna game engine/python/publish_runtime_package_to_godot.bat`
-
-Publish-elv:
-
-1. ideiglenes candidate készül;
+1. immutable canonical candidate készül;
 2. blocking validation lefut;
-3. blocking hiba esetén nincs publish;
-4. sikeres validáció után frissül a Godot consumption copy;
-5. diagnostics és build report készül.
+3. a runtime materializer determinisztikus package-et állít elő;
+4. C# loader/binding compatibility ellenőrizhető;
+5. production parity vagy publish tiltás esetén nincs Godot activation.
 
 Aktív Godot fogyasztási mappa:
 
@@ -682,7 +681,7 @@ Runtime-package-specifikus későbbi prioritások:
 
 Ezek közül csak a tényleges VS1 blocker válik VS1 előfeltétellé.
 
-A kártyaadatbázis és a külön LOOKUPS munkaforrás e dokumentumfrissítés során nem módosul.
+A canonical workbookok és az archivált legacy workbookok e dokumentumfrissítés során nem módosulnak.
 
 ## 12. Dokumentumkezelési hatás
 
@@ -702,7 +701,10 @@ Current szabály:
 ## 13. Rövid összefoglaló
 
 **Runtime package build:** működik
-**Godot consumption copy:** működik
+**Canonical producer/materializer:** deterministic és validált
+**Godot sample/compatibility package:** változatlan
+**Godot canonical production activation:** `NOT PERFORMED`
+**Production runtime parity:** `BLOCKED`
 **Production C# canonical/package consumption:** `WORKING`
 **Canonical deck/deck-entry membership consumption:** `WORKING`
 **Történeti rögzített kártyaszám:** 814
@@ -716,6 +718,7 @@ Current szabály:
 **Runtime package ability-support metadata:** declared-only / nem teljes support matrix
 **Production C# ability/effect + Reaction + Combat/Pecsét foundation:** `IMPLEMENTED_AND_ACTIVE`
 **Current production base:** `0862e1002dbef81ee203852714d377592272a0e9`
-**Current next gate:** `VS1_READINESS_REQUIRED`
+**Next structural migration wave:** `platform production source relocation / W4`
 **Canonical VS1 deckek:** `DECK-IGN-HAM-VS1-001`, `DECK-AQU-MOR-VS1-001`
+**P01 / P04 / HD-01 / AQU-MOR-017:** unresolved
 **LOOKUPS/workbook módosítás:** e dokumentációs körben nem történt
