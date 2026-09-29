@@ -10,3 +10,15 @@ log_*.txt
 LOG/
 TEMP/
 learning/sources
+
+# .NET build outputs for role-owned C# projects
+/src/engine/**/bin/
+/src/engine/**/obj/
+/tests/engine/**/bin/
+/tests/engine/**/obj/
+/src/client/**/bin/
+/src/client/**/obj/
+/tools/reference_engine/csharp/**/bin/
+/tools/reference_engine/csharp/**/obj/
+/tests/reference_engine/csharp/**/bin/
+/tests/reference_engine/csharp/**/obj/
