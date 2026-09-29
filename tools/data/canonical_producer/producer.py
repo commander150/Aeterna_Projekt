@@ -31,8 +31,9 @@ PROFILE_ID = "canonical-component-candidate-v2"
 PROFILE_SOURCE_ROLES = ("CARDDATABASE", "REGISTRY")
 VALIDATION_POLICY_ID = "canonical-development-export-with-production-blockers-v1"
 TOOL_CONTRACT_ID = "canonical-producer"
-TOOL_CONTRACT_VERSION = "v1"
-CANDIDATE_ID_DOMAIN = "aeterna-canonical-candidate-v1"
+TOOL_CONTRACT_VERSION = "v2"
+PACKAGE_SET_TOOL_CONTRACT_VERSION = "v1"
+CANDIDATE_ID_DOMAIN = "aeterna-canonical-candidate-v2"
 ZERO_HASH = "sha256:" + "0" * 64
 
 
@@ -345,17 +346,21 @@ def _blocker_markdown(readiness: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _tool_identities(root: Path, package_set: Any) -> list[dict[str, str]]:
+def _tool_identities(
+    root: Path,
+    package_set: Any,
+    tool_root: Path = TOOL_ROOT,
+) -> list[dict[str, str]]:
     paths = [
-        TOOL_ROOT / "canonical_export" / (module.rsplit(".", 1)[-1] + ".py")
+        (module, tool_root / "canonical_export" / (module.rsplit(".", 1)[-1] + ".py"))
         for module in MODULE_NAMES
     ]
     return [
         {
-            "path": path.as_posix(),
+            "tool_id": module,
             "sha256": package_set.sha256_bytes((root / path).read_bytes()),
         }
-        for path in paths
+        for module, path in paths
     ]
 
 
@@ -387,7 +392,7 @@ def _profile_contract() -> dict[str, Any]:
         "legacy_fallback_allowed": False,
         "producer_source_roles": list(PROFILE_SOURCE_ROLES),
         "tool_contract_id": TOOL_CONTRACT_ID,
-        "tool_contract_version": TOOL_CONTRACT_VERSION,
+        "tool_contract_version": PACKAGE_SET_TOOL_CONTRACT_VERSION,
     }
 
 
@@ -726,17 +731,48 @@ def verify_candidate(candidate_root: Path, repository_root: Path | None = None) 
                     errors.append(f"unsafe provenance source path: {source_path}")
 
         tool_identities = provenance.get("tool_identities", [])
+        tool_identity_valid = True
         if not isinstance(tool_identities, list) or not tool_identities:
             errors.append("low-level tool identities are missing")
+            tool_identity_valid = False
         else:
+            expected_tool_ids = set(MODULE_NAMES)
+            seen_tool_ids: set[str] = set()
             for item in tool_identities:
-                if not isinstance(item, dict) or not package_set.is_sha256(item.get("sha256")):
-                    errors.append("low-level tool identity hash is invalid")
+                if not isinstance(item, dict):
+                    errors.append("low-level tool identity record is invalid")
+                    tool_identity_valid = False
                     continue
-                try:
-                    package_set.canonical_relative_path(item.get("path"))
-                except package_set.PackageSetContractError:
-                    errors.append("low-level tool identity path is unsafe")
+                if set(item) != {"tool_id", "sha256"}:
+                    errors.append("low-level tool identity record fields are invalid")
+                    tool_identity_valid = False
+                if "path" in item:
+                    errors.append("physical path is forbidden in low-level tool identity")
+                    tool_identity_valid = False
+                tool_id = item.get("tool_id")
+                if not isinstance(tool_id, str) or not tool_id:
+                    errors.append("low-level tool_id is missing or invalid")
+                    tool_identity_valid = False
+                elif tool_id not in expected_tool_ids:
+                    errors.append(f"unknown low-level tool_id: {tool_id}")
+                    tool_identity_valid = False
+                elif tool_id in seen_tool_ids:
+                    errors.append(f"duplicate low-level tool_id: {tool_id}")
+                    tool_identity_valid = False
+                else:
+                    seen_tool_ids.add(tool_id)
+                if not package_set.is_sha256(item.get("sha256")):
+                    errors.append("low-level tool identity hash is invalid")
+                    tool_identity_valid = False
+            if len(tool_identities) != len(MODULE_NAMES):
+                errors.append("low-level tool identity count mismatch")
+                tool_identity_valid = False
+            missing_tool_ids = expected_tool_ids - seen_tool_ids
+            if missing_tool_ids:
+                errors.append(
+                    "missing expected low-level tool_id: " + ", ".join(sorted(missing_tool_ids))
+                )
+                tool_identity_valid = False
 
         if provenance.get("package_set_id") != payload.get("package_set_id"):
             errors.append("provenance package_set_id mismatch")
@@ -752,7 +788,7 @@ def verify_candidate(candidate_root: Path, repository_root: Path | None = None) 
         if all(
             package_set.is_sha256(sources.get(path))
             for path in (CARDDATABASE_PATH, REGISTRY_PATH)
-        ) and isinstance(tool_identities, list) and tool_identities:
+        ) and tool_identity_valid:
             try:
                 expected_candidate_id = _compute_candidate_id(
                     package_set_id=payload.get("package_set_id"),

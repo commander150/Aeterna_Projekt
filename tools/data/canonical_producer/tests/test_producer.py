@@ -4,6 +4,8 @@ from dataclasses import replace
 import hashlib
 import json
 from pathlib import Path
+import shutil
+import tempfile
 import unittest
 from unittest import mock
 
@@ -28,7 +30,7 @@ class TestCandidateIdentity(unittest.TestCase):
             producer.REGISTRY_PATH: HASH_C,
         }
         cls.tools = (
-            {"path": "canonical/tool.py", "sha256": HASH_A},
+            {"tool_id": producer.MODULE_NAMES[0], "sha256": HASH_A},
         )
 
     def candidate_id(self, sources=None) -> str:
@@ -64,16 +66,107 @@ class TestCandidateIdentity(unittest.TestCase):
             source_hashes=self.sources,
             tool_identities=self.tools,
         )
-        self.assertEqual("aeterna-canonical-candidate-v1", preimage["domain"])
+        self.assertEqual("aeterna-canonical-candidate-v2", preimage["domain"])
         self.assertEqual("canonical-producer", preimage["tool_contract_id"])
-        self.assertEqual("v1", preimage["tool_contract_version"])
+        self.assertEqual("v2", preimage["tool_contract_version"])
+        self.assertEqual({"tool_id", "sha256"}, set(preimage["low_level_tools"][0]))
         self.assertNotIn("w3b4a", json.dumps(preimage).casefold())
+
+    def test_tool_identity_is_invariant_across_physical_roots(self) -> None:
+        with tempfile.TemporaryDirectory() as first_temp, tempfile.TemporaryDirectory() as second_temp:
+            first_root = Path(first_temp)
+            second_root = Path(second_temp)
+            for root in (first_root, second_root):
+                package = root / "canonical_export"
+                package.mkdir()
+                for module in producer.MODULE_NAMES:
+                    (package / (module.rsplit(".", 1)[-1] + ".py")).write_bytes(
+                        ("tool bytes for " + module).encode("utf-8")
+                    )
+
+            first_tools = producer._tool_identities(
+                REPOSITORY_ROOT, self.package_set, first_root
+            )
+            second_tools = producer._tool_identities(
+                REPOSITORY_ROOT, self.package_set, second_root
+            )
+            first_preimage = producer._candidate_identity_preimage(
+                package_set_id=self.package_set_id,
+                source_hashes=self.sources,
+                tool_identities=first_tools,
+            )
+            second_preimage = producer._candidate_identity_preimage(
+                package_set_id=self.package_set_id,
+                source_hashes=self.sources,
+                tool_identities=second_tools,
+            )
+
+            self.assertEqual(first_tools, second_tools)
+            self.assertEqual(first_preimage, second_preimage)
+            self.assertEqual(
+                producer._compute_candidate_id(
+                    package_set_id=self.package_set_id,
+                    source_hashes=self.sources,
+                    tool_identities=first_tools,
+                    package_set=self.package_set,
+                ),
+                producer._compute_candidate_id(
+                    package_set_id=self.package_set_id,
+                    source_hashes=self.sources,
+                    tool_identities=second_tools,
+                    package_set=self.package_set,
+                ),
+            )
+
+    def test_candidate_tool_payload_is_invariant_across_physical_roots(self) -> None:
+        with tempfile.TemporaryDirectory() as first_temp, tempfile.TemporaryDirectory() as second_temp:
+            roots = (Path(first_temp), Path(second_temp))
+            identities = []
+            for root in roots:
+                package = root / "canonical_export"
+                package.mkdir()
+                for module in producer.MODULE_NAMES:
+                    (package / (module.rsplit(".", 1)[-1] + ".py")).write_bytes(
+                        ("stable bytes for " + module).encode("utf-8")
+                    )
+                identities.append(
+                    producer._tool_identities(REPOSITORY_ROOT, self.package_set, root)
+                )
+
+            preimages = [
+                producer._candidate_identity_preimage(
+                    package_set_id=self.package_set_id,
+                    source_hashes=self.sources,
+                    tool_identities=value,
+                )
+                for value in identities
+            ]
+            candidate_ids = [
+                producer._compute_candidate_id(
+                    package_set_id=self.package_set_id,
+                    source_hashes=self.sources,
+                    tool_identities=value,
+                    package_set=self.package_set,
+                )
+                for value in identities
+            ]
+            provenance_sections = [
+                {"tool_identities": value, "candidate_identity_domain": producer.CANDIDATE_ID_DOMAIN}
+                for value in identities
+            ]
+
+            self.assertEqual(identities[0], identities[1])
+            self.assertEqual(preimages[0], preimages[1])
+            self.assertEqual(candidate_ids[0], candidate_ids[1])
+            self.assertEqual(provenance_sections[0], provenance_sections[1])
 
     def test_v2_profile_contract_contains_roles_without_repository_paths(self) -> None:
         contract = producer._profile_contract()
         serialized = json.dumps(contract, ensure_ascii=False, sort_keys=True)
         self.assertEqual("canonical-component-candidate-v2", producer.PROFILE_ID)
         self.assertEqual(["CARDDATABASE", "REGISTRY"], contract["producer_source_roles"])
+        self.assertEqual("v1", contract["tool_contract_version"])
+        self.assertEqual("v2", producer.TOOL_CONTRACT_VERSION)
         self.assertNotIn("producer_sources", contract)
         for role in contract["producer_source_roles"]:
             self.assertNotIn("/", role)
@@ -274,6 +367,65 @@ class TestReadinessAndCandidate(unittest.TestCase):
             recomputed.removeprefix("sha256:"),
         )
 
+    def test_v2_tool_identity_contract_has_exact_logical_tool_set(self) -> None:
+        provenance = json.loads(
+            (self.result.candidate_root / "provenance.json").read_text(encoding="utf-8")
+        )
+        identities = provenance["tool_identities"]
+        self.assertEqual(5, len(identities))
+        self.assertEqual(set(producer.MODULE_NAMES), {item["tool_id"] for item in identities})
+        self.assertTrue(all(set(item) == {"tool_id", "sha256"} for item in identities))
+        self.assertEqual("aeterna-canonical-candidate-v2", provenance["candidate_identity_domain"])
+        self.assertEqual("v2", provenance["tool_contract_version"])
+
+    def test_duplicate_tool_id_is_rejected(self) -> None:
+        self._assert_provenance_mutation_rejected(
+            lambda value: value["tool_identities"][1].update(
+                tool_id=value["tool_identities"][0]["tool_id"]
+            ),
+            "duplicate low-level tool_id",
+        )
+
+    def test_missing_tool_id_is_rejected(self) -> None:
+        self._assert_provenance_mutation_rejected(
+            lambda value: value["tool_identities"][0].pop("tool_id"),
+            "low-level tool_id is missing or invalid",
+        )
+
+    def test_unknown_tool_id_is_rejected(self) -> None:
+        self._assert_provenance_mutation_rejected(
+            lambda value: value["tool_identities"][0].update(tool_id="canonical_export.unknown"),
+            "unknown low-level tool_id",
+        )
+
+    def test_missing_expected_tool_is_rejected(self) -> None:
+        self._assert_provenance_mutation_rejected(
+            lambda value: value["tool_identities"].pop(),
+            "missing expected low-level tool_id",
+        )
+
+    def test_invalid_tool_sha_is_rejected(self) -> None:
+        self._assert_provenance_mutation_rejected(
+            lambda value: value["tool_identities"][0].update(sha256="invalid"),
+            "low-level tool identity hash is invalid",
+        )
+
+    def test_candidate_id_mismatch_is_rejected(self) -> None:
+        self._assert_provenance_mutation_rejected(
+            lambda value: value.update(candidate_id=HASH_A),
+            "candidate_id mismatch",
+        )
+
+    def test_v1_physical_path_identity_is_rejected(self) -> None:
+        def replace_with_path(value) -> None:
+            identity = value["tool_identities"][0]
+            identity["path"] = identity.pop("tool_id") + ".py"
+
+        self._assert_provenance_mutation_rejected(
+            replace_with_path,
+            "physical path is forbidden in low-level tool identity",
+        )
+
     def test_producer_execution_reads_only_canonical_pair(self) -> None:
         self.assertGreater(self.result.read_counts[producer.CARDDATABASE_PATH], 0)
         self.assertGreater(self.result.read_counts[producer.REGISTRY_PATH], 0)
@@ -286,6 +438,24 @@ class TestReadinessAndCandidate(unittest.TestCase):
         second = self._hashes(repeated.candidate_root)
         self.assertEqual(self.result.candidate_id, repeated.candidate_id)
         self.assertEqual(first, second)
+
+    def _assert_provenance_mutation_rejected(self, mutate, expected_error: str) -> None:
+        with tempfile.TemporaryDirectory(dir=REPOSITORY_ROOT / "TEMP") as temp:
+            candidate = Path(temp) / self.result.candidate_root.name
+            shutil.copytree(self.result.candidate_root, candidate)
+            provenance_path = candidate / "provenance.json"
+            provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+            mutate(provenance)
+            provenance_path.write_text(
+                json.dumps(provenance, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            errors = producer.verify_candidate(candidate, REPOSITORY_ROOT)
+            self.assertTrue(
+                any(expected_error in error for error in errors),
+                f"Expected {expected_error!r} in {errors!r}",
+            )
 
     @staticmethod
     def _hashes(root: Path) -> dict[str, str]:
