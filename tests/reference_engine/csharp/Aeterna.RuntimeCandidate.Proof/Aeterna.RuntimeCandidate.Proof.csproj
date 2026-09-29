@@ -9,6 +9,6 @@
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Aeterna.RuntimeCandidate\Aeterna.RuntimeCandidate.csproj" />
+    <ProjectReference Include="..\..\..\..\tools\reference_engine\csharp\Aeterna.RuntimeCandidate\Aeterna.RuntimeCandidate.csproj" />
   </ItemGroup>
 </Project>

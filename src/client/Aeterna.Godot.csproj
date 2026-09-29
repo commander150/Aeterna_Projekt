@@ -21,6 +21,6 @@
     <Compile Include="scripts\debug\CsharpProductionEngineBridgeSmoke.cs" />
     <Compile Include="scripts\debug\CsharpProductionEngineBridgeNegativeSmoke.cs" />
     <Compile Include="scripts\runtime_comparison\csharp\CsharpRuntimeCandidateBridge.cs" />
-    <ProjectReference Include="..\..\Aeterna game engine\C#\Aeterna.RuntimeCandidate\Aeterna.RuntimeCandidate.csproj" />
+    <ProjectReference Include="..\..\tools\reference_engine\csharp\Aeterna.RuntimeCandidate\Aeterna.RuntimeCandidate.csproj" />
   </ItemGroup>
 </Project>
