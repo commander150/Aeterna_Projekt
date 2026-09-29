@@ -7,9 +7,7 @@ from pathlib import Path
 
 
 SCRIPT_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "tools"
-    / "canonical_export"
+    Path(__file__).resolve().parents[3] / "tools" / "data" / "canonical_export"
     / "canonical_package_set.py"
 )
 

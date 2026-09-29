@@ -673,7 +673,7 @@ def build_package(
     normalization_aliases_source=None,
     apply_normalization_patches=False,
 ):
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "python"
     target_dir = Path(output_dir) if output_dir else repo_root / "fixture_runtime_package"
     target_dir.mkdir(parents=True, exist_ok=True)
 

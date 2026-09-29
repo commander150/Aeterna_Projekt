@@ -10,7 +10,7 @@ from pathlib import Path
 from openpyxl import Workbook
 
 
-SCRIPT_PATH = Path(__file__).resolve().parents[1] / "tools" / "xlsx_export" / "xlsx_export.py"
+SCRIPT_PATH = Path(__file__).resolve().parents[3] / "tools" / "data" / "xlsx_export" / "xlsx_export.py"
 
 
 def load_exporter_module():

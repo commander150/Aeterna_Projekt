@@ -11,8 +11,9 @@ from importlib import util
 from pathlib import Path
 
 
-ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[2]
-PROJECT_ROOT = ENGINE_PYTHON_DIR.parent.parent
+DATA_TOOLS_DIR = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+ENGINE_PYTHON_DIR = PROJECT_ROOT / "Aeterna game engine" / "python"
 
 
 def _repository_source_identity(path):
@@ -33,20 +34,20 @@ def _load_module(module_name, path):
 
 
 XLSX_EXPORT = _load_module(
-    "xlsx_export",
-    ENGINE_PYTHON_DIR / "tools" / "xlsx_export" / "xlsx_export.py",
+    "aeterna_data_xlsx_export",
+    DATA_TOOLS_DIR / "xlsx_export" / "xlsx_export.py",
 )
 PACKAGE_BUILDER = _load_module(
     "build_sample_runtime_package",
-    ENGINE_PYTHON_DIR / "tools" / "runtime_package" / "build_sample_runtime_package.py",
+    DATA_TOOLS_DIR / "runtime_package" / "build_sample_runtime_package.py",
 )
 LOOKUPS_XLSX_READER = _load_module(
     "lookups_xlsx_reader",
-    ENGINE_PYTHON_DIR / "tools" / "runtime_package" / "lookups_xlsx_reader.py",
+    DATA_TOOLS_DIR / "runtime_package" / "lookups_xlsx_reader.py",
 )
 LEGACY_ALIASES_READER = _load_module(
     "runtime_legacy_aliases_reader",
-    ENGINE_PYTHON_DIR / "tools" / "runtime_package" / "runtime_legacy_aliases_reader.py",
+    DATA_TOOLS_DIR / "runtime_package" / "runtime_legacy_aliases_reader.py",
 )
 
 

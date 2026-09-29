@@ -17,7 +17,8 @@ from openpyxl import load_workbook
 
 
 PROGRAM_DIR = Path(__file__).resolve().parent
-ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[2]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+ENGINE_PYTHON_DIR = REPOSITORY_ROOT / "Aeterna game engine" / "python"
 DEFAULT_SOURCE_DIR = ENGINE_PYTHON_DIR / "input" / "xlsx"
 DEFAULT_OUTPUT_DIR = ENGINE_PYTHON_DIR / "exports" / "jsonl"
 SOURCE_DIR = DEFAULT_SOURCE_DIR

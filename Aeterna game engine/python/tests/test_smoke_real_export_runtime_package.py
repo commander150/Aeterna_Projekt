@@ -11,21 +11,15 @@ from openpyxl import Workbook
 
 
 SCRIPT_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "tools"
-    / "runtime_package"
+    Path(__file__).resolve().parents[3] / "tools" / "data" / "runtime_package"
     / "smoke_real_export_runtime_package.py"
 )
 MAPPER_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "tools"
-    / "runtime_package"
+    Path(__file__).resolve().parents[3] / "tools" / "data" / "runtime_package"
     / "runtime_card_mapper.py"
 )
 BUILDER_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "tools"
-    / "runtime_package"
+    Path(__file__).resolve().parents[3] / "tools" / "data" / "runtime_package"
     / "build_sample_runtime_package.py"
 )
 ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[1]

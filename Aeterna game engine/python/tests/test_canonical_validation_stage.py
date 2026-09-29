@@ -16,7 +16,7 @@ from test_canonical_validation_execution import (
 
 
 PYTHON_ROOT = Path(__file__).resolve().parents[1]
-MODULE_DIRECTORY = PYTHON_ROOT / "tools" / "canonical_export"
+MODULE_DIRECTORY = Path(__file__).resolve().parents[3] / "tools" / "data" / "canonical_export"
 STAGE_PATH = MODULE_DIRECTORY / "canonical_validation_stage.py"
 _previous_rules_module = sys.modules.get("canonical_validation_rules")
 _previous_execution_module = sys.modules.get("canonical_validation_execution")

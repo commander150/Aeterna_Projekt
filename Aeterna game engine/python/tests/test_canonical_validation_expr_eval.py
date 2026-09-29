@@ -7,7 +7,7 @@ import test_canonical_validation_execution as execution_tests
 
 
 PYTHON_ROOT = Path(__file__).resolve().parents[1]
-MODULE_DIRECTORY = PYTHON_ROOT / "tools" / "canonical_export"
+MODULE_DIRECTORY = Path(__file__).resolve().parents[3] / "tools" / "data" / "canonical_export"
 EVALUATOR_PATH = MODULE_DIRECTORY / "canonical_validation_expr_eval.py"
 
 validation = execution_tests.validation_expr

@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 
 
-SCRIPT_PATH = Path(__file__).resolve().parents[1] / "tools" / "runtime_package" / "build_sample_runtime_package.py"
-MAPPER_PATH = Path(__file__).resolve().parents[1] / "tools" / "runtime_package" / "runtime_card_mapper.py"
+SCRIPT_PATH = Path(__file__).resolve().parents[3] / "tools" / "data" / "runtime_package" / "build_sample_runtime_package.py"
+MAPPER_PATH = Path(__file__).resolve().parents[3] / "tools" / "data" / "runtime_package" / "runtime_card_mapper.py"
 
 
 def _load_builder_module():

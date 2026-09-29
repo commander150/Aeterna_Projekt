@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 
-SCRIPT_PATH = Path(__file__).resolve().parents[1] / "tools" / "runtime_package" / "normalization_apply.py"
+SCRIPT_PATH = Path(__file__).resolve().parents[3] / "tools" / "data" / "runtime_package" / "normalization_apply.py"
 
 
 def _load_module():

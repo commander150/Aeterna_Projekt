@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 
-ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[2]
+ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "python"
 ENGINE_DIR = ENGINE_PYTHON_DIR.parent
 DEFAULT_PACKAGE_DIR = ENGINE_DIR / "Godot" / "runtime_package"
 

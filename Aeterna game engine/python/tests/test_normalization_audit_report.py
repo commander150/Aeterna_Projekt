@@ -4,9 +4,7 @@ from pathlib import Path
 
 
 SCRIPT_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "tools"
-    / "runtime_package"
+    Path(__file__).resolve().parents[3] / "tools" / "data" / "runtime_package"
     / "normalization_audit_report.py"
 )
 

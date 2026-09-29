@@ -1,12 +1,4 @@
-"""TRANSITIONAL_TOOLING_BRIDGE to the existing canonical export modules.
-
-The low-level implementation currently lives below
-``Aeterna game engine/python/tools/canonical_export``.  This adapter discovers
-that directory from the repository root, imports it as a namespace package,
-and exposes the existing modules without copying their implementation.  It is
-intentionally small so it can disappear when those modules move to their
-permanent owner.
-"""
+"""Bridge to the canonical export modules under their permanent data-tool owner."""
 
 from __future__ import annotations
 
@@ -16,7 +8,7 @@ import sys
 from types import ModuleType
 
 
-TOOL_ROOT = Path("Aeterna game engine/python/tools")
+TOOL_ROOT = Path("tools/data")
 MODULE_NAMES = (
     "canonical_export.canonical_workbook_exporter",
     "canonical_export.canonical_package_set",

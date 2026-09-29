@@ -10,7 +10,7 @@ from unittest import mock
 from openpyxl import Workbook, load_workbook
 
 
-SCRIPT_PATH = Path(__file__).resolve().parents[1] / "tools" / "canonical_export" / "canonical_workbook_exporter.py"
+SCRIPT_PATH = Path(__file__).resolve().parents[3] / "tools" / "data" / "canonical_export" / "canonical_workbook_exporter.py"
 
 
 def load_exporter_module():

@@ -13,7 +13,7 @@ from openpyxl import load_workbook
 
 PYTHON_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-MODULE_DIRECTORY = PYTHON_ROOT / "tools" / "canonical_export"
+MODULE_DIRECTORY = Path(__file__).resolve().parents[3] / "tools" / "data" / "canonical_export"
 RULES_PATH = MODULE_DIRECTORY / "canonical_validation_rules.py"
 CORE_PATH = MODULE_DIRECTORY / "canonical_validation_execution_core.py"
 EXECUTION_PATH = MODULE_DIRECTORY / "canonical_validation_execution.py"
