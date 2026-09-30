@@ -3,7 +3,7 @@ namespace Aeterna.Engine.Headless;
 public static class FixtureLocator
 {
     private const string RelativeFixturePath =
-        "runtime_comparison/fixtures/minimal_draw_end_turn_v2/fixture.json";
+        "tests/fixtures/runtime_comparison/minimal_draw_end_turn_v2/fixture.json";
 
     public static string LocateCanonicalFixture()
     {
@@ -16,12 +16,6 @@ public static class FixtureLocator
                 if (File.Exists(direct))
                 {
                     return direct;
-                }
-
-                var underEngine = Path.Combine(directory.FullName, "Aeterna game engine", RelativeFixturePath);
-                if (File.Exists(underEngine))
-                {
-                    return underEngine;
                 }
 
                 directory = directory.Parent;

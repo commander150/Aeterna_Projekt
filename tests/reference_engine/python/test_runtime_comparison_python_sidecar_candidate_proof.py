@@ -29,7 +29,7 @@ PYTHON_DIR = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "pyth
 ENGINE_DIR = PYTHON_DIR.parent
 PROJECT_ROOT = ENGINE_DIR.parent
 PROJECT_TEMP = PROJECT_ROOT / "TEMP"
-FIXTURE_DIR = ENGINE_DIR / "runtime_comparison" / "fixtures" / "minimal_draw_end_turn_v2"
+FIXTURE_DIR = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "runtime_comparison" / "minimal_draw_end_turn_v2"
 FIXTURE_REQUEST_PATH = "minimal_draw_end_turn_v2/fixture.json"
 TRACKED_ORACLE = FIXTURE_DIR / "expected" / "python_reference_v1"
 

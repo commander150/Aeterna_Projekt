@@ -136,7 +136,7 @@ static string? GetOption(IReadOnlyList<string> arguments, string option)
 static string LocateCanonicalFixture()
 {
     const string relativePath =
-        "runtime_comparison/fixtures/minimal_draw_end_turn_v2/fixture.json";
+        "tests/fixtures/runtime_comparison/minimal_draw_end_turn_v2/fixture.json";
     foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
     {
         var directory = new DirectoryInfo(Path.GetFullPath(start));
@@ -146,12 +146,6 @@ static string LocateCanonicalFixture()
             if (File.Exists(direct))
             {
                 return direct;
-            }
-
-            var underEngine = Path.Combine(directory.FullName, "Aeterna game engine", relativePath);
-            if (File.Exists(underEngine))
-            {
-                return underEngine;
             }
 
             directory = directory.Parent;

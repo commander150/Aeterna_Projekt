@@ -40,7 +40,7 @@ from tools.reference_engine.python.runtime_comparison.parent_process_watchdog im
 LOOPBACK_HOST = "127.0.0.1"
 RUNTIME_CANDIDATE = "python_sidecar_headless"
 DEFAULT_FIXTURE_ROOT = (
-    Path(__file__).resolve().parents[4] / "Aeterna game engine" / "runtime_comparison" / "fixtures"
+    Path(__file__).resolve().parents[4] / "tests" / "fixtures" / "runtime_comparison"
 )
 
 

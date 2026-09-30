@@ -10,9 +10,10 @@ ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "Aeterna game engine" 
 ENGINE_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python" / "engine"
 AI_VS_AI_DIR = Path(__file__).resolve().parents[3] / "tools" / "ai" / "ai_vs_ai"
 FIXTURE_DIR = (
-    ENGINE_PYTHON_DIR.parent
-    / "runtime_comparison"
+    Path(__file__).resolve().parents[3]
+    / "tests"
     / "fixtures"
+    / "runtime_comparison"
     / "minimal_draw_end_turn_v2"
 )
 FIXTURE_PATH = FIXTURE_DIR / "fixture.json"

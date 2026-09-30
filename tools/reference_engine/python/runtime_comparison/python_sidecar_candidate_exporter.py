@@ -40,7 +40,7 @@ from tools.reference_engine.python.runtime_comparison.sidecar_protocol import MA
 CANDIDATE_EXPORT_SCHEMA_VERSION = "aeterna-python-sidecar-candidate-export-result-v1"
 CANDIDATE_EXPORT_CONTRACT_TYPE = "python_sidecar_candidate_export_result"
 RUNTIME_CANDIDATE = "python_sidecar_headless"
-FIXTURE_ROOT = Path(__file__).resolve().parents[4] / "Aeterna game engine" / "runtime_comparison" / "fixtures"
+FIXTURE_ROOT = Path(__file__).resolve().parents[4] / "tests" / "fixtures" / "runtime_comparison"
 FIXTURE_REQUEST_PATH = "minimal_draw_end_turn_v2/fixture.json"
 
 _KNOWN_DEVIATION_CODES = (

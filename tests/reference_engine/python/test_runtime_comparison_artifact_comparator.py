@@ -30,9 +30,10 @@ ENGINE_DIR = PYTHON_DIR.parent
 PROJECT_ROOT = ENGINE_DIR.parent
 PROJECT_TEMP = PROJECT_ROOT / "TEMP"
 TRACKED_ORACLE = (
-    ENGINE_DIR
-    / "runtime_comparison"
+    Path(__file__).resolve().parents[3]
+    / "tests"
     / "fixtures"
+    / "runtime_comparison"
     / "minimal_draw_end_turn_v2"
     / "expected"
     / "python_reference_v1"

@@ -191,9 +191,9 @@ public partial class CsharpProductionEngineBridgeSmoke : Node
             projectRoot,
             "..",
             "..",
-            "Aeterna game engine",
-            "runtime_comparison",
+            "tests",
             "fixtures",
+            "runtime_comparison",
             "minimal_draw_end_turn_v2",
             "runtime_package"));
         if (!Directory.Exists(path))
