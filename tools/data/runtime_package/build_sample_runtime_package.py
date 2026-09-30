@@ -673,8 +673,12 @@ def build_package(
     normalization_aliases_source=None,
     apply_normalization_patches=False,
 ):
-    repo_root = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "python"
-    target_dir = Path(output_dir) if output_dir else repo_root / "fixture_runtime_package"
+    repository_root = Path(__file__).resolve().parents[3]
+    target_dir = (
+        Path(output_dir)
+        if output_dir
+        else repository_root / "tests" / "fixtures" / "runtime_package"
+    )
     target_dir.mkdir(parents=True, exist_ok=True)
 
     aliases = _fixture_aliases()
@@ -819,7 +823,7 @@ def main(argv=None):
         "--output-dir",
         "--output",
         default=None,
-        help="Optional output directory. Defaults to ./fixture_runtime_package from the repository root.",
+        help="Optional output directory. Defaults to tests/fixtures/runtime_package from the repository root.",
     )
     parser.add_argument(
         "--export-runtime-cards",
