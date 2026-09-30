@@ -20,6 +20,6 @@ if not "%AETERNA_RESOLVE_EXIT%"=="0" exit /b %AETERNA_RESOLVE_EXIT%
 if not exist "logs" mkdir "logs"
 if errorlevel 1 exit /b %ERRORLEVEL%
 
-"%AETERNA_RESOLVED_GODOT_EXE%" --verbose --headless --log-file "logs/%~1" --path "." --script "%~2"
+"%AETERNA_RESOLVED_GODOT_EXE%" --verbose --headless --log-file "logs/%~1" --path "%~dp0..\..\..\src\client" --script "%~2"
 set "AETERNA_GODOT_EXIT=%ERRORLEVEL%"
 exit /b %AETERNA_GODOT_EXIT%
