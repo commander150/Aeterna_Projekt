@@ -15,16 +15,16 @@ import tempfile
 from copy import deepcopy
 from pathlib import Path
 
-from tools.runtime_comparison.canonical_json import canonical_json_bytes, sha256_bytes
-from tools.runtime_comparison.python_reference_fixture import (
+from tools.reference_engine.python.runtime_comparison.canonical_json import canonical_json_bytes, sha256_bytes
+from tools.reference_engine.python.runtime_comparison.python_reference_fixture import (
     RuntimeComparisonFixtureError,
     run_python_reference_fixture,
 )
-from tools.runtime_comparison.python_sidecar_server import (
+from tools.reference_engine.python.runtime_comparison.python_sidecar_server import (
     DEFAULT_FIXTURE_ROOT,
     resolve_fixture_path,
 )
-from tools.runtime_comparison.sidecar_protocol import (
+from tools.reference_engine.python.runtime_comparison.sidecar_protocol import (
     PROTOCOL_VERSION,
     SidecarProtocolError,
     validate_response,
@@ -38,9 +38,9 @@ RESULT_SCHEMA_VERSION = "aeterna-godot-python-sidecar-proof-result-v1"
 FIXTURE_REQUEST_PATH = "minimal_draw_end_turn_v2/fixture.json"
 EXPECTED_RESULT_SHA256 = "97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c86b16a1ee8"
 
-PYTHON_PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ENGINE_ROOT = PYTHON_PROJECT_ROOT.parent
-REPOSITORY_ROOT = ENGINE_ROOT.parent
+REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
+PYTHON_PROJECT_ROOT = REPOSITORY_ROOT
+ENGINE_ROOT = REPOSITORY_ROOT / "Aeterna game engine"
 GODOT_PROJECT_ROOT = ENGINE_ROOT / "Godot"
 TEMP_ROOT = REPOSITORY_ROOT / "TEMP"
 GODOT_PROOF_SCRIPT = "res://scripts/debug/python_sidecar_integration_smoke_test.gd"

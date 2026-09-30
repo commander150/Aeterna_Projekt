@@ -10,8 +10,9 @@ from pathlib import Path
 ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[1]
 PROJECT_DIR = ENGINE_PYTHON_DIR.parents[1]
 GODOT_RUNTIME_PACKAGE_DIR = PROJECT_DIR / "Aeterna game engine" / "Godot" / "runtime_package"
-ENGINE_DIR = ENGINE_PYTHON_DIR / "engine"
-AI_VS_AI_DIR = ENGINE_PYTHON_DIR / "tools" / "ai_vs_ai"
+ENGINE_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python" / "engine"
+REFERENCE_ENGINE_PYTHON_DIR = ENGINE_DIR.parent
+AI_VS_AI_DIR = Path(__file__).resolve().parents[3] / "tools" / "ai" / "ai_vs_ai"
 CARD_INSTANCE_PATH = ENGINE_DIR / "card_instance.py"
 ENGINE_EVENT_PATH = ENGINE_DIR / "engine_event.py"
 ZONE_MOVE_PATH = ENGINE_DIR / "zone_move.py"
@@ -20,7 +21,7 @@ READER_PATH = AI_VS_AI_DIR / "runtime_package_reader.py"
 
 
 def _load_module(module_name, path):
-    for module_dir in (str(ENGINE_PYTHON_DIR), str(ENGINE_DIR), str(AI_VS_AI_DIR)):
+    for module_dir in (str(ENGINE_PYTHON_DIR), str(REFERENCE_ENGINE_PYTHON_DIR), str(ENGINE_DIR), str(AI_VS_AI_DIR)):
         if module_dir not in sys.path:
             sys.path.insert(0, module_dir)
     spec = importlib.util.spec_from_file_location(module_name, path)

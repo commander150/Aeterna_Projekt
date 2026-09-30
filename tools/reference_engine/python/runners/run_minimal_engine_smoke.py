@@ -8,9 +8,10 @@ import sys
 from pathlib import Path
 
 
-ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[2]
-ENGINE_DIR = ENGINE_PYTHON_DIR / "engine"
-AI_VS_AI_DIR = ENGINE_PYTHON_DIR / "tools" / "ai_vs_ai"
+REFERENCE_PYTHON_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
+ENGINE_DIR = REFERENCE_PYTHON_ROOT / "engine"
+AI_VS_AI_DIR = REPOSITORY_ROOT / "tools" / "ai" / "ai_vs_ai"
 for module_dir in (ENGINE_DIR, AI_VS_AI_DIR):
     if str(module_dir) not in sys.path:
         sys.path.insert(0, str(module_dir))
@@ -23,7 +24,7 @@ RUNTIME_DECISION_NOTE = "Python engine facade is a reference smoke/backend candi
 
 
 def default_runtime_package_dir():
-    return ENGINE_PYTHON_DIR.parent / "Godot" / "runtime_package"
+    return REPOSITORY_ROOT / "Aeterna game engine" / "Godot" / "runtime_package"
 
 
 def run_minimal_engine_smoke(runtime_package_dir=None, match_id="ENGINE-SMOKE-COMMAND-001"):

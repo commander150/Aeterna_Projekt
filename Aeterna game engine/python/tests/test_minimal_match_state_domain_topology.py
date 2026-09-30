@@ -9,8 +9,8 @@ from pathlib import Path
 ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[1]
 PROJECT_DIR = ENGINE_PYTHON_DIR.parents[1]
 GODOT_RUNTIME_PACKAGE_DIR = PROJECT_DIR / "Aeterna game engine" / "Godot" / "runtime_package"
-ENGINE_DIR = ENGINE_PYTHON_DIR / "engine"
-AI_VS_AI_DIR = ENGINE_PYTHON_DIR / "tools" / "ai_vs_ai"
+ENGINE_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python" / "engine"
+AI_VS_AI_DIR = Path(__file__).resolve().parents[3] / "tools" / "ai" / "ai_vs_ai"
 DOMAIN_POSITION_PATH = ENGINE_DIR / "domain_position.py"
 ENVIRONMENT_PATH = ENGINE_DIR / "minimal_engine_environment.py"
 PLAYER_SNAPSHOT_PATH = ENGINE_DIR / "player_visible_snapshot.py"

@@ -6,8 +6,8 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
-from engine.minimal_engine_session import MinimalEngineSession
-from tools.ai_vs_ai.runtime_package_reader import RuntimePackageReadError, load_runtime_package
+from tools.reference_engine.python.engine.minimal_engine_session import MinimalEngineSession
+from tools.ai.ai_vs_ai.runtime_package_reader import RuntimePackageReadError, load_runtime_package
 
 from .canonical_json import canonical_json_bytes, sha256_bytes
 

@@ -8,7 +8,9 @@ from pathlib import Path
 ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[1]
 PROJECT_DIR = ENGINE_PYTHON_DIR.parents[1]
 GODOT_RUNTIME_PACKAGE_DIR = PROJECT_DIR / "Aeterna game engine" / "Godot" / "runtime_package"
-AI_VS_AI_DIR = ENGINE_PYTHON_DIR / "tools" / "ai_vs_ai"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+AI_VS_AI_DIR = Path(__file__).resolve().parents[3] / "tools" / "ai" / "ai_vs_ai"
+REFERENCE_ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python"
 EVENT_LOG_SUMMARY_PATH = AI_VS_AI_DIR / "event_log_summary.py"
 READER_PATH = AI_VS_AI_DIR / "runtime_package_reader.py"
 SCENARIO_CONFIG_PATH = AI_VS_AI_DIR / "scenario_config.py"
@@ -16,9 +18,9 @@ SCENARIO_RUNNER_PATH = AI_VS_AI_DIR / "scenario_runner.py"
 
 
 def _load_module(module_name, path):
-    ai_vs_ai_dir = str(AI_VS_AI_DIR)
-    if ai_vs_ai_dir not in sys.path:
-        sys.path.insert(0, ai_vs_ai_dir)
+    for module_dir in (str(AI_VS_AI_DIR), str(REFERENCE_ENGINE_PYTHON_DIR), str(REPOSITORY_ROOT)):
+        if module_dir not in sys.path:
+            sys.path.insert(0, module_dir)
     spec = importlib.util.spec_from_file_location(module_name, path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module

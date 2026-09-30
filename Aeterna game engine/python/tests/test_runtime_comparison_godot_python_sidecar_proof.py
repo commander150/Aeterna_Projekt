@@ -1,11 +1,17 @@
+import sys
 import os
 import tempfile
 import unittest
 from copy import deepcopy
 from pathlib import Path
 
-from tools.runtime_comparison.canonical_json import canonical_json_bytes, sha256_bytes
-from tools.runtime_comparison.godot_python_sidecar_proof import (
+_W5B3B_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+if str(_W5B3B_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_W5B3B_REPOSITORY_ROOT))
+
+
+from tools.reference_engine.python.runtime_comparison.canonical_json import canonical_json_bytes, sha256_bytes
+from tools.reference_engine.python.runtime_comparison.godot_python_sidecar_proof import (
     EXPECTED_RESULT_SHA256,
     FIXTURE_REQUEST_PATH,
     GodotPythonSidecarProofError,
@@ -13,7 +19,7 @@ from tools.runtime_comparison.godot_python_sidecar_proof import (
     run_godot_python_sidecar_proof,
     validate_godot_proof_metadata,
 )
-from tools.runtime_comparison.sidecar_protocol import validate_response
+from tools.reference_engine.python.runtime_comparison.sidecar_protocol import validate_response
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]

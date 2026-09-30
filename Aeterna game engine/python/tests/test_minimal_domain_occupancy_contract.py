@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[1]
-ENGINE_DIR = ENGINE_PYTHON_DIR / "engine"
+ENGINE_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python" / "engine"
 DOMAIN_OCCUPANCY_PATH = ENGINE_DIR / "domain_occupancy.py"
 DOMAIN_POSITION_PATH = ENGINE_DIR / "domain_position.py"
 

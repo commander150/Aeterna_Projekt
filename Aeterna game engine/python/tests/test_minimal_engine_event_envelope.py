@@ -8,12 +8,13 @@ from pathlib import Path
 
 
 ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[1]
-ENGINE_DIR = ENGINE_PYTHON_DIR / "engine"
+ENGINE_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python" / "engine"
+REFERENCE_ENGINE_PYTHON_DIR = ENGINE_DIR.parent
 ENGINE_EVENT_PATH = ENGINE_DIR / "engine_event.py"
 
 
 def _load_module(module_name, path):
-    for module_dir in (str(ENGINE_PYTHON_DIR), str(ENGINE_DIR)):
+    for module_dir in (str(ENGINE_PYTHON_DIR), str(REFERENCE_ENGINE_PYTHON_DIR), str(ENGINE_DIR)):
         if module_dir not in sys.path:
             sys.path.insert(0, module_dir)
     spec = importlib.util.spec_from_file_location(module_name, path)

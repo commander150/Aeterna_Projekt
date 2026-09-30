@@ -10,11 +10,11 @@ import sys
 import threading
 from pathlib import Path
 
-from tools.runtime_comparison.python_sidecar_client import (
+from tools.reference_engine.python.runtime_comparison.python_sidecar_client import (
     PythonSidecarClient,
     PythonSidecarClientError,
 )
-from tools.runtime_comparison.sidecar_protocol import (
+from tools.reference_engine.python.runtime_comparison.sidecar_protocol import (
     DEFAULT_SOCKET_TIMEOUT,
     SidecarProtocolError,
     validate_startup_handshake,
@@ -22,7 +22,7 @@ from tools.runtime_comparison.sidecar_protocol import (
 
 
 DEFAULT_PROCESS_TIMEOUT = 10.0
-PYTHON_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PYTHON_PROJECT_ROOT = Path(__file__).resolve().parents[4]
 
 
 class PythonSidecarProcessError(Exception):
@@ -83,7 +83,7 @@ class PythonSidecarProcess:
             sys.executable,
             "-B",
             "-m",
-            "tools.runtime_comparison.python_sidecar_server",
+            "tools.reference_engine.python.runtime_comparison.python_sidecar_server",
             "--host",
             "127.0.0.1",
             "--port",

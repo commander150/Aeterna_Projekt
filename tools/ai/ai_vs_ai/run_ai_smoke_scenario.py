@@ -6,6 +6,13 @@ import argparse
 import sys
 from pathlib import Path
 
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+REFERENCE_PYTHON_ROOT = REPOSITORY_ROOT / "tools" / "reference_engine" / "python"
+for module_dir in (REFERENCE_PYTHON_ROOT, REPOSITORY_ROOT):
+    if str(module_dir) not in sys.path:
+        sys.path.insert(0, str(module_dir))
+
+
 try:
     from event_log_summary import format_scenario_summary
     from runtime_package_reader import load_runtime_package
@@ -19,8 +26,7 @@ except ModuleNotFoundError:
 
 
 def default_runtime_package_dir():
-    python_dir = Path(__file__).resolve().parents[2]
-    return python_dir.parent / "Godot" / "runtime_package"
+    return REPOSITORY_ROOT / "Aeterna game engine" / "Godot" / "runtime_package"
 
 
 def run_default_smoke(runtime_package_dir=None):

@@ -5,7 +5,7 @@ from __future__ import annotations
 import socket
 from copy import deepcopy
 
-from tools.runtime_comparison.sidecar_protocol import (
+from tools.reference_engine.python.runtime_comparison.sidecar_protocol import (
     DEFAULT_SOCKET_TIMEOUT,
     SidecarProtocolError,
     build_request,

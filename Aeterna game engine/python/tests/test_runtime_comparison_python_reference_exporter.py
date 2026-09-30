@@ -1,3 +1,4 @@
+import sys
 import io
 import json
 import secrets
@@ -7,12 +8,17 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.runtime_comparison.canonical_json import (
+_W5B3B_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+if str(_W5B3B_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_W5B3B_REPOSITORY_ROOT))
+
+
+from tools.reference_engine.python.runtime_comparison.canonical_json import (
     canonical_json_bytes,
     canonical_jsonl_bytes,
     sha256_bytes,
 )
-from tools.runtime_comparison import python_reference_exporter as exporter
+from tools.reference_engine.python.runtime_comparison import python_reference_exporter as exporter
 
 
 PYTHON_DIR = Path(__file__).resolve().parents[1]

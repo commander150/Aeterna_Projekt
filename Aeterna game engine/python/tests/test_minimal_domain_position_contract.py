@@ -7,8 +7,8 @@ from pathlib import Path
 
 
 ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[1]
-ENGINE_DIR = ENGINE_PYTHON_DIR / "engine"
-AI_VS_AI_DIR = ENGINE_PYTHON_DIR / "tools" / "ai_vs_ai"
+ENGINE_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python" / "engine"
+AI_VS_AI_DIR = Path(__file__).resolve().parents[3] / "tools" / "ai" / "ai_vs_ai"
 DOMAIN_POSITION_PATH = ENGINE_DIR / "domain_position.py"
 MATCH_STATE_PATH = AI_VS_AI_DIR / "match_state.py"
 

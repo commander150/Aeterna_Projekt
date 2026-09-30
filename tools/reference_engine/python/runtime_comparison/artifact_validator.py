@@ -14,7 +14,7 @@ import re
 import sys
 from pathlib import Path
 
-from tools.runtime_comparison.canonical_json import (
+from tools.reference_engine.python.runtime_comparison.canonical_json import (
     CanonicalJsonError,
     canonical_json_bytes,
     canonical_jsonl_bytes,

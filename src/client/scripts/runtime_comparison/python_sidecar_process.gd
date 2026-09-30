@@ -44,7 +44,7 @@ func start(
 	var arguments := PackedStringArray([
 		"-B",
 		"-m",
-		"tools.runtime_comparison.python_sidecar_server",
+		"tools.reference_engine.python.runtime_comparison.python_sidecar_server",
 		"--host",
 		"127.0.0.1",
 		"--port",
@@ -186,10 +186,10 @@ func _resolve_python_executable() -> Dictionary:
 
 
 func _resolve_python_project_root() -> Dictionary:
-	python_project_root = ProjectSettings.globalize_path("res://../../Aeterna game engine/python").simplify_path()
+	python_project_root = ProjectSettings.globalize_path("res://../..").simplify_path()
 	if not DirAccess.dir_exists_absolute(python_project_root):
 		return _failure("SIDECAR_PYTHON_ROOT_INVALID", "Python project root does not exist.")
-	var server_path := python_project_root.path_join("tools/runtime_comparison/python_sidecar_server.py")
+	var server_path := python_project_root.path_join("tools/reference_engine/python/runtime_comparison/python_sidecar_server.py")
 	if not FileAccess.file_exists(server_path):
 		return _failure("SIDECAR_PYTHON_ROOT_INVALID", "Python sidecar server module is missing.")
 	return {"ok": true}

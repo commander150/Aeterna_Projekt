@@ -16,12 +16,12 @@ except ModuleNotFoundError:
 try:
     from card_instance import create_card_instance_id, create_card_instance_record
 except ModuleNotFoundError:
-    from engine.card_instance import create_card_instance_id, create_card_instance_record
+    from tools.reference_engine.python.engine.card_instance import create_card_instance_id, create_card_instance_record
 
 try:
     from zone_move import create_zone_move_record, validate_zone_move_record, zone_move_to_event
 except ModuleNotFoundError:
-    from engine.zone_move import create_zone_move_record, validate_zone_move_record, zone_move_to_event
+    from tools.reference_engine.python.engine.zone_move import create_zone_move_record, validate_zone_move_record, zone_move_to_event
 
 try:
     from turn_transition import (
@@ -30,7 +30,7 @@ try:
         validate_turn_transition_record,
     )
 except ModuleNotFoundError:
-    from engine.turn_transition import (
+    from tools.reference_engine.python.engine.turn_transition import (
         create_turn_transition_record,
         turn_transition_to_event,
         validate_turn_transition_record,
@@ -39,12 +39,12 @@ except ModuleNotFoundError:
 try:
     from domain_position import create_player_domain_topology
 except ModuleNotFoundError:
-    from engine.domain_position import create_player_domain_topology
+    from tools.reference_engine.python.engine.domain_position import create_player_domain_topology
 
 try:
     from domain_occupancy import create_empty_player_domain_occupancy
 except ModuleNotFoundError:
-    from engine.domain_occupancy import create_empty_player_domain_occupancy
+    from tools.reference_engine.python.engine.domain_occupancy import create_empty_player_domain_occupancy
 
 
 class RulesKernelError(Exception):

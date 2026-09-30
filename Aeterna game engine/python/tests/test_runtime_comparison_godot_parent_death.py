@@ -3,7 +3,12 @@ import sys
 import unittest
 from pathlib import Path
 
-from tools.runtime_comparison.godot_sidecar_parent_death_proof import (
+_W5B3B_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+if str(_W5B3B_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_W5B3B_REPOSITORY_ROOT))
+
+
+from tools.reference_engine.python.runtime_comparison.godot_sidecar_parent_death_proof import (
     DEFAULT_DIAGNOSTICS_DIR,
     _parse_ready_log,
     run_parent_death_proofs,

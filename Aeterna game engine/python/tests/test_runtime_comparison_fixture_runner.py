@@ -1,13 +1,19 @@
+import sys
 import json
 import unittest
 from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch
 
-from engine.minimal_engine_session import MinimalEngineSession
-from tools.ai_vs_ai.runtime_package_reader import load_runtime_package
-from tools.runtime_comparison.canonical_json import canonical_json_bytes, sha256_bytes
-from tools.runtime_comparison import python_reference_fixture as fixture_runner
+_W5B3B_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+if str(_W5B3B_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_W5B3B_REPOSITORY_ROOT))
+
+
+from tools.reference_engine.python.engine.minimal_engine_session import MinimalEngineSession
+from tools.ai.ai_vs_ai.runtime_package_reader import load_runtime_package
+from tools.reference_engine.python.runtime_comparison.canonical_json import canonical_json_bytes, sha256_bytes
+from tools.reference_engine.python.runtime_comparison import python_reference_fixture as fixture_runner
 
 
 ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[1]

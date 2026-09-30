@@ -7,22 +7,22 @@ import os
 import socket
 import sys
 
-from tools.runtime_comparison.canonical_json import canonical_json_bytes, sha256_bytes
-from tools.runtime_comparison.python_reference_fixture import (
+from tools.reference_engine.python.runtime_comparison.canonical_json import canonical_json_bytes, sha256_bytes
+from tools.reference_engine.python.runtime_comparison.python_reference_fixture import (
     RuntimeComparisonFixtureError,
     run_python_reference_fixture,
 )
-from tools.runtime_comparison.python_sidecar_client import PythonSidecarClientError
-from tools.runtime_comparison.python_sidecar_process import (
+from tools.reference_engine.python.runtime_comparison.python_sidecar_client import PythonSidecarClientError
+from tools.reference_engine.python.runtime_comparison.python_sidecar_process import (
     PythonSidecarProcess,
     PythonSidecarProcessError,
 )
-from tools.runtime_comparison.python_sidecar_server import (
+from tools.reference_engine.python.runtime_comparison.python_sidecar_server import (
     DEFAULT_FIXTURE_ROOT,
     RUNTIME_CANDIDATE,
     resolve_fixture_path,
 )
-from tools.runtime_comparison.sidecar_protocol import (
+from tools.reference_engine.python.runtime_comparison.sidecar_protocol import (
     MAX_FRAME_SIZE,
     PROTOCOL_VERSION,
     SidecarProtocolError,

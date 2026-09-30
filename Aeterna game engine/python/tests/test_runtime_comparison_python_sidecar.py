@@ -1,3 +1,4 @@
+import sys
 import io
 import json
 import os
@@ -8,18 +9,23 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.runtime_comparison.canonical_json import canonical_json_bytes, sha256_bytes
-from tools.runtime_comparison import python_reference_fixture as fixture_runner
-from tools.runtime_comparison import python_sidecar_proof as proof_module
-from tools.runtime_comparison import python_sidecar_server as server_module
-from tools.runtime_comparison.python_sidecar_client import PythonSidecarClientError
-from tools.runtime_comparison.python_sidecar_process import PythonSidecarProcess
-from tools.runtime_comparison.python_sidecar_proof import (
+_W5B3B_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+if str(_W5B3B_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_W5B3B_REPOSITORY_ROOT))
+
+
+from tools.reference_engine.python.runtime_comparison.canonical_json import canonical_json_bytes, sha256_bytes
+from tools.reference_engine.python.runtime_comparison import python_reference_fixture as fixture_runner
+from tools.reference_engine.python.runtime_comparison import python_sidecar_proof as proof_module
+from tools.reference_engine.python.runtime_comparison import python_sidecar_server as server_module
+from tools.reference_engine.python.runtime_comparison.python_sidecar_client import PythonSidecarClientError
+from tools.reference_engine.python.runtime_comparison.python_sidecar_process import PythonSidecarProcess
+from tools.reference_engine.python.runtime_comparison.python_sidecar_proof import (
     PROOF_RESULT_CONTRACT_TYPE,
     PROOF_RESULT_SCHEMA_VERSION,
     run_python_sidecar_fixture_proof,
 )
-from tools.runtime_comparison.sidecar_protocol import (
+from tools.reference_engine.python.runtime_comparison.sidecar_protocol import (
     PROTOCOL_VERSION,
     REQUEST_SCHEMA_VERSION,
     RESPONSE_SCHEMA_VERSION,
@@ -35,8 +41,10 @@ FIXTURE_ROOT = ENGINE_PYTHON_DIR.parent / "runtime_comparison" / "fixtures"
 FIXTURE_RELATIVE_PATH = "minimal_draw_end_turn_v2/fixture.json"
 FIXTURE_PATH = FIXTURE_ROOT / "minimal_draw_end_turn_v2" / "fixture.json"
 CLIENT_MODULE_PATH = (
-    ENGINE_PYTHON_DIR
+    Path(__file__).resolve().parents[3]
     / "tools"
+    / "reference_engine"
+    / "python"
     / "runtime_comparison"
     / "python_sidecar_client.py"
 )

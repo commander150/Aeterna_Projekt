@@ -1,3 +1,4 @@
+import sys
 import hashlib
 import json
 import math
@@ -6,7 +7,12 @@ import unittest
 from copy import deepcopy
 from pathlib import Path
 
-from tools.runtime_comparison import canonical_json
+_W5B3B_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+if str(_W5B3B_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_W5B3B_REPOSITORY_ROOT))
+
+
+from tools.reference_engine.python.runtime_comparison import canonical_json
 
 
 class TestRuntimeComparisonCanonicalJson(unittest.TestCase):

@@ -38,7 +38,7 @@ except ModuleNotFoundError:
 try:
     from state_invariants import validate_state_invariants
 except ModuleNotFoundError:
-    from tools.ai_vs_ai.state_invariants import validate_state_invariants
+    from tools.ai.ai_vs_ai.state_invariants import validate_state_invariants
 
 
 CANONICAL_MATCH_STATE_SCHEMA_VERSION = "aeterna-canonical-match-state-v2"

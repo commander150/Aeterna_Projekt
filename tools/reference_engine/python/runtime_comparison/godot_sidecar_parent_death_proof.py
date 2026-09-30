@@ -13,12 +13,12 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from tools.runtime_comparison.parent_process_watchdog import WindowsProcessHandle
+from tools.reference_engine.python.runtime_comparison.parent_process_watchdog import WindowsProcessHandle
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 REPOSITORY_TEMP_ROOT = REPOSITORY_ROOT / "TEMP"
-GODOT_PROJECT_DIR = Path(__file__).resolve().parents[3] / "Godot"
+GODOT_PROJECT_DIR = REPOSITORY_ROOT / "Aeterna game engine" / "Godot"
 VISUAL_PROOF_LOG = REPOSITORY_TEMP_ROOT / "godot_visual_sidecar_proof_latest.log"
 DEFAULT_DIAGNOSTICS_DIR = (
     REPOSITORY_TEMP_ROOT / "c3b2b_parent_watchdog_and_f8_cleanup"

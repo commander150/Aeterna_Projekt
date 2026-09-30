@@ -1,3 +1,4 @@
+import sys
 import io
 import json
 import os
@@ -9,13 +10,18 @@ from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.runtime_comparison import python_reference_fixture as fixture_runner
-from tools.runtime_comparison import python_sidecar_candidate_exporter as exporter
-from tools.runtime_comparison import runtime_comparison_artifact_builder as artifact_builder
-from tools.runtime_comparison.artifact_comparator import compare_runtime_comparison_artifacts
-from tools.runtime_comparison.artifact_validator import validate_runtime_comparison_artifacts
-from tools.runtime_comparison.canonical_json import canonical_json_bytes, sha256_bytes
-from tools.runtime_comparison.python_sidecar_candidate_exporter import (
+_W5B3B_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+if str(_W5B3B_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_W5B3B_REPOSITORY_ROOT))
+
+
+from tools.reference_engine.python.runtime_comparison import python_reference_fixture as fixture_runner
+from tools.reference_engine.python.runtime_comparison import python_sidecar_candidate_exporter as exporter
+from tools.reference_engine.python.runtime_comparison import runtime_comparison_artifact_builder as artifact_builder
+from tools.reference_engine.python.runtime_comparison.artifact_comparator import compare_runtime_comparison_artifacts
+from tools.reference_engine.python.runtime_comparison.artifact_validator import validate_runtime_comparison_artifacts
+from tools.reference_engine.python.runtime_comparison.canonical_json import canonical_json_bytes, sha256_bytes
+from tools.reference_engine.python.runtime_comparison.python_sidecar_candidate_exporter import (
     PythonSidecarCandidateExportError,
     export_python_sidecar_candidate_artifacts,
 )

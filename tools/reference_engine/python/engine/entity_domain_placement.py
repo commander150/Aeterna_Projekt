@@ -38,7 +38,7 @@ except ModuleNotFoundError:
 try:
     from state_invariants import validate_state_invariants
 except ModuleNotFoundError:
-    from tools.ai_vs_ai.state_invariants import validate_state_invariants
+    from tools.ai.ai_vs_ai.state_invariants import validate_state_invariants
 
 
 ENTITY_DOMAIN_PLACEMENT_OPTION_SCHEMA_VERSION = (

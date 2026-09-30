@@ -11,21 +11,21 @@ import sys
 from copy import deepcopy
 from pathlib import Path, PurePosixPath
 
-from tools.runtime_comparison.artifact_validator import (
+from tools.reference_engine.python.runtime_comparison.artifact_validator import (
     ArtifactValidatorInputError,
     validate_runtime_comparison_artifacts,
 )
-from tools.runtime_comparison.canonical_json import (
+from tools.reference_engine.python.runtime_comparison.canonical_json import (
     CanonicalJsonError,
     canonical_json_bytes,
     sha256_bytes,
 )
-from tools.runtime_comparison.python_sidecar_client import PythonSidecarClientError
-from tools.runtime_comparison.python_sidecar_process import (
+from tools.reference_engine.python.runtime_comparison.python_sidecar_client import PythonSidecarClientError
+from tools.reference_engine.python.runtime_comparison.python_sidecar_process import (
     PythonSidecarProcess,
     PythonSidecarProcessError,
 )
-from tools.runtime_comparison.runtime_comparison_artifact_builder import (
+from tools.reference_engine.python.runtime_comparison.runtime_comparison_artifact_builder import (
     CANONICAL_ARTIFACT_PATHS,
     FIXTURE_ID,
     RuntimeComparisonArtifactBuildError,
@@ -34,13 +34,13 @@ from tools.runtime_comparison.runtime_comparison_artifact_builder import (
     validate_fixture_result,
     write_atomic_artifact_package,
 )
-from tools.runtime_comparison.sidecar_protocol import MAX_FRAME_SIZE, PROTOCOL_VERSION
+from tools.reference_engine.python.runtime_comparison.sidecar_protocol import MAX_FRAME_SIZE, PROTOCOL_VERSION
 
 
 CANDIDATE_EXPORT_SCHEMA_VERSION = "aeterna-python-sidecar-candidate-export-result-v1"
 CANDIDATE_EXPORT_CONTRACT_TYPE = "python_sidecar_candidate_export_result"
 RUNTIME_CANDIDATE = "python_sidecar_headless"
-FIXTURE_ROOT = Path(__file__).resolve().parents[3] / "runtime_comparison" / "fixtures"
+FIXTURE_ROOT = Path(__file__).resolve().parents[4] / "Aeterna game engine" / "runtime_comparison" / "fixtures"
 FIXTURE_REQUEST_PATH = "minimal_draw_end_turn_v2/fixture.json"
 
 _KNOWN_DEVIATION_CODES = (

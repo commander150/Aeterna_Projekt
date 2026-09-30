@@ -1,3 +1,4 @@
+import sys
 import io
 import json
 import secrets
@@ -6,13 +7,18 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
-from tools.runtime_comparison import artifact_comparator as comparator
-from tools.runtime_comparison.artifact_comparator import (
+_W5B3B_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+if str(_W5B3B_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_W5B3B_REPOSITORY_ROOT))
+
+
+from tools.reference_engine.python.runtime_comparison import artifact_comparator as comparator
+from tools.reference_engine.python.runtime_comparison.artifact_comparator import (
     MAX_MISMATCHES_PER_ARTIFACT,
     compare_runtime_comparison_artifacts,
     main,
 )
-from tools.runtime_comparison.canonical_json import (
+from tools.reference_engine.python.runtime_comparison.canonical_json import (
     canonical_json_bytes,
     canonical_jsonl_bytes,
     sha256_bytes,

@@ -8,8 +8,8 @@ from pathlib import Path
 ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[1]
 PROJECT_DIR = ENGINE_PYTHON_DIR.parents[1]
 GODOT_RUNTIME_PACKAGE_DIR = PROJECT_DIR / "Aeterna game engine" / "Godot" / "runtime_package"
-ENGINE_DIR = ENGINE_PYTHON_DIR / "engine"
-AI_VS_AI_DIR = ENGINE_PYTHON_DIR / "tools" / "ai_vs_ai"
+ENGINE_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python" / "engine"
+AI_VS_AI_DIR = Path(__file__).resolve().parents[3] / "tools" / "ai" / "ai_vs_ai"
 CARD_INSTANCE_PATH = ENGINE_DIR / "card_instance.py"
 SESSION_PATH = ENGINE_DIR / "minimal_engine_session.py"
 READER_PATH = AI_VS_AI_DIR / "runtime_package_reader.py"

@@ -12,9 +12,11 @@ import sys
 from pathlib import Path
 
 
-AI_VS_AI_DIR = Path(__file__).resolve().parents[1] / "tools" / "ai_vs_ai"
-if str(AI_VS_AI_DIR) not in sys.path:
-    sys.path.insert(0, str(AI_VS_AI_DIR))
+REFERENCE_PYTHON_ROOT = Path(__file__).resolve().parents[1]
+AI_VS_AI_DIR = Path(__file__).resolve().parents[4] / "tools" / "ai" / "ai_vs_ai"
+for module_dir in (REFERENCE_PYTHON_ROOT, AI_VS_AI_DIR):
+    if str(module_dir) not in sys.path:
+        sys.path.insert(0, str(module_dir))
 
 from action_request import create_action_request, resolve_action_request, validate_action_request  # noqa: E402
 from rules_kernel import create_initial_match_state, list_legal_actions  # noqa: E402

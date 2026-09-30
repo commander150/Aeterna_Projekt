@@ -8,7 +8,12 @@ import threading
 import unittest
 from pathlib import Path
 
-from tools.runtime_comparison.parent_process_watchdog import (
+_W5B3B_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+if str(_W5B3B_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_W5B3B_REPOSITORY_ROOT))
+
+
+from tools.reference_engine.python.runtime_comparison.parent_process_watchdog import (
     DEFAULT_POLL_INTERVAL_SECONDS,
     DEFAULT_REPOSITORY_TEMP_ROOT,
     ParentProcessWatchdog,
@@ -17,7 +22,7 @@ from tools.runtime_comparison.parent_process_watchdog import (
     append_parent_exit_tombstone,
     build_parent_watchdog_config,
 )
-from tools.runtime_comparison.sidecar_protocol import (
+from tools.reference_engine.python.runtime_comparison.sidecar_protocol import (
     PROTOCOL_VERSION,
     REQUEST_SCHEMA_VERSION,
     read_frame,
@@ -25,7 +30,7 @@ from tools.runtime_comparison.sidecar_protocol import (
 )
 
 
-PYTHON_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PYTHON_PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 class TestRuntimeComparisonParentWatchdog(unittest.TestCase):
@@ -115,7 +120,7 @@ class TestRuntimeComparisonParentWatchdog(unittest.TestCase):
                 sys.executable,
                 "-B",
                 "-m",
-                "tools.runtime_comparison.python_sidecar_server",
+                "tools.reference_engine.python.runtime_comparison.python_sidecar_server",
                 "--host",
                 "127.0.0.1",
                 "--port",

@@ -8,9 +8,9 @@ import sys
 from pathlib import Path
 
 
-ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[2]
-ENGINE_DIR = ENGINE_PYTHON_DIR / "engine"
-AI_VS_AI_DIR = ENGINE_PYTHON_DIR / "tools" / "ai_vs_ai"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+ENGINE_DIR = REPOSITORY_ROOT / "tools" / "reference_engine" / "python" / "engine"
+AI_VS_AI_DIR = Path(__file__).resolve().parent
 for module_dir in (ENGINE_DIR, AI_VS_AI_DIR):
     if str(module_dir) not in sys.path:
         sys.path.insert(0, str(module_dir))
@@ -20,7 +20,7 @@ from runtime_package_reader import load_runtime_package  # noqa: E402
 
 
 def default_runtime_package_dir():
-    return ENGINE_PYTHON_DIR.parent / "Godot" / "runtime_package"
+    return REPOSITORY_ROOT / "Aeterna game engine" / "Godot" / "runtime_package"
 
 
 def run_episode(runtime_package_dir=None, max_steps=8, match_id="AI-VS-AI-EPISODE-001"):

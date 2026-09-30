@@ -10,32 +10,32 @@ from __future__ import annotations
 try:
     from card_instance import SUPPORTED_ACTIVITY_STATES, validate_card_instance_record
 except ModuleNotFoundError:
-    from engine.card_instance import SUPPORTED_ACTIVITY_STATES, validate_card_instance_record
+    from tools.reference_engine.python.engine.card_instance import SUPPORTED_ACTIVITY_STATES, validate_card_instance_record
 
 try:
     from zone_move import validate_zone_move_record
 except ModuleNotFoundError:
-    from engine.zone_move import validate_zone_move_record
+    from tools.reference_engine.python.engine.zone_move import validate_zone_move_record
 
 try:
     from engine_event import validate_engine_event_envelope
 except ModuleNotFoundError:
-    from engine.engine_event import validate_engine_event_envelope
+    from tools.reference_engine.python.engine.engine_event import validate_engine_event_envelope
 
 try:
     from turn_transition import validate_turn_transition_record
 except ModuleNotFoundError:
-    from engine.turn_transition import validate_turn_transition_record
+    from tools.reference_engine.python.engine.turn_transition import validate_turn_transition_record
 
 try:
     from domain_position import validate_player_domain_topology
 except ModuleNotFoundError:
-    from engine.domain_position import validate_player_domain_topology
+    from tools.reference_engine.python.engine.domain_position import validate_player_domain_topology
 
 try:
     from domain_occupancy import validate_player_domain_occupancy
 except ModuleNotFoundError:
-    from engine.domain_occupancy import validate_player_domain_occupancy
+    from tools.reference_engine.python.engine.domain_occupancy import validate_player_domain_occupancy
 
 _LEGACY_DRAW_ENVELOPE_FIELDS = (
     "card_instance_id",

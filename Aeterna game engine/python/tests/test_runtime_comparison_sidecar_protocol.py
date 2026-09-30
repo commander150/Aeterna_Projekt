@@ -1,9 +1,16 @@
+from pathlib import Path
+import sys
 import socket
 import struct
 import unittest
 from copy import deepcopy
 
-from tools.runtime_comparison.sidecar_protocol import (
+_W5B3B_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+if str(_W5B3B_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_W5B3B_REPOSITORY_ROOT))
+
+
+from tools.reference_engine.python.runtime_comparison.sidecar_protocol import (
     MAX_FRAME_SIZE,
     PROTOCOL_VERSION,
     REQUEST_SCHEMA_VERSION,

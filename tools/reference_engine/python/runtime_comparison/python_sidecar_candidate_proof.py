@@ -6,25 +6,25 @@ import argparse
 import sys
 from copy import deepcopy
 
-from tools.runtime_comparison.artifact_comparator import (
+from tools.reference_engine.python.runtime_comparison.artifact_comparator import (
     ArtifactComparatorInputError,
     compare_runtime_comparison_artifacts,
 )
-from tools.runtime_comparison.artifact_validator import (
+from tools.reference_engine.python.runtime_comparison.artifact_validator import (
     ArtifactValidatorInputError,
     validate_runtime_comparison_artifacts,
 )
-from tools.runtime_comparison.canonical_json import canonical_json_bytes
-from tools.runtime_comparison.python_sidecar_candidate_exporter import (
+from tools.reference_engine.python.runtime_comparison.canonical_json import canonical_json_bytes
+from tools.reference_engine.python.runtime_comparison.python_sidecar_candidate_exporter import (
     PythonSidecarCandidateExportError,
     RUNTIME_CANDIDATE,
     export_python_sidecar_candidate_artifacts,
 )
-from tools.runtime_comparison.runtime_comparison_artifact_builder import (
+from tools.reference_engine.python.runtime_comparison.runtime_comparison_artifact_builder import (
     CANONICAL_ARTIFACT_PATHS,
     FIXTURE_ID,
 )
-from tools.runtime_comparison.sidecar_protocol import PROTOCOL_VERSION
+from tools.reference_engine.python.runtime_comparison.sidecar_protocol import PROTOCOL_VERSION
 
 
 PROOF_RESULT_SCHEMA_VERSION = "aeterna-python-sidecar-candidate-proof-result-v1"

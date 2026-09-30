@@ -9,14 +9,14 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from tools.runtime_comparison.artifact_validator import (
+from tools.reference_engine.python.runtime_comparison.artifact_validator import (
     ArtifactValidatorInputError,
     CANONICAL_ARTIFACT_PATHS,
     JSONL_ARTIFACT_PATHS,
     REQUIRED_ARTIFACT_PATHS,
     validate_runtime_comparison_artifacts,
 )
-from tools.runtime_comparison.canonical_json import (
+from tools.reference_engine.python.runtime_comparison.canonical_json import (
     canonical_json_bytes,
     sha256_bytes,
 )

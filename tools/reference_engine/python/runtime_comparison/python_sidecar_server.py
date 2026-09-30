@@ -9,11 +9,11 @@ import socket
 import threading
 from pathlib import Path, PurePosixPath
 
-from tools.runtime_comparison.python_reference_fixture import (
+from tools.reference_engine.python.runtime_comparison.python_reference_fixture import (
     RuntimeComparisonFixtureError,
     run_python_reference_fixture,
 )
-from tools.runtime_comparison.sidecar_protocol import (
+from tools.reference_engine.python.runtime_comparison.sidecar_protocol import (
     DEFAULT_SOCKET_TIMEOUT,
     PROTOCOL_VERSION,
     REQUEST_SCHEMA_VERSION,
@@ -28,7 +28,7 @@ from tools.runtime_comparison.sidecar_protocol import (
     send_frame,
     validate_request,
 )
-from tools.runtime_comparison.parent_process_watchdog import (
+from tools.reference_engine.python.runtime_comparison.parent_process_watchdog import (
     PARENT_EXIT_CODE,
     ParentProcessWatchdog,
     ParentProcessWatchdogError,
@@ -40,7 +40,7 @@ from tools.runtime_comparison.parent_process_watchdog import (
 LOOPBACK_HOST = "127.0.0.1"
 RUNTIME_CANDIDATE = "python_sidecar_headless"
 DEFAULT_FIXTURE_ROOT = (
-    Path(__file__).resolve().parents[3] / "runtime_comparison" / "fixtures"
+    Path(__file__).resolve().parents[4] / "Aeterna game engine" / "runtime_comparison" / "fixtures"
 )
 
 
