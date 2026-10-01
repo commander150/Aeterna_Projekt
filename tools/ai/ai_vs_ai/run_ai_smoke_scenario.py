@@ -26,7 +26,7 @@ except ModuleNotFoundError:
 
 
 def default_runtime_package_dir():
-    return REPOSITORY_ROOT / "Aeterna game engine" / "Godot" / "runtime_package"
+    return REPOSITORY_ROOT / "src" / "client" / "runtime_package"
 
 
 def run_default_smoke(runtime_package_dir=None):
@@ -57,7 +57,7 @@ def _build_parser():
     parser.add_argument(
         "--runtime-package-dir",
         default=None,
-        help="Runtime package directory. Defaults to ../Godot/runtime_package relative to python/.",
+        help="Runtime package directory. Defaults to src/client/runtime_package relative to the repository root.",
     )
     return parser
 

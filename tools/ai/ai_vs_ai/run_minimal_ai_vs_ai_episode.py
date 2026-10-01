@@ -20,7 +20,7 @@ from runtime_package_reader import load_runtime_package  # noqa: E402
 
 
 def default_runtime_package_dir():
-    return REPOSITORY_ROOT / "Aeterna game engine" / "Godot" / "runtime_package"
+    return REPOSITORY_ROOT / "src" / "client" / "runtime_package"
 
 
 def run_episode(runtime_package_dir=None, max_steps=8, match_id="AI-VS-AI-EPISODE-001"):

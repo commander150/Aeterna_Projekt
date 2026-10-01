@@ -7,7 +7,7 @@ const DebugContractsLoaderScript = preload("res://scripts/contract_loader/debug_
 const CardReferenceResolverScript = preload("res://scripts/debug/card_reference_resolver.gd")
 
 @export var contracts_path := "res://debug_contracts"
-@export var runtime_package_path := "res://../../Aeterna game engine/Godot/runtime_package"
+@export var runtime_package_path := "res://runtime_package"
 
 var _label: Label
 var _card_resolver

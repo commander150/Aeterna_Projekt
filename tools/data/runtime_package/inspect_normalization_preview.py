@@ -8,9 +8,8 @@ import sys
 from pathlib import Path
 
 
-ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "python"
-ENGINE_DIR = ENGINE_PYTHON_DIR.parent
-DEFAULT_PACKAGE_DIR = ENGINE_DIR / "Godot" / "runtime_package"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_PACKAGE_DIR = REPOSITORY_ROOT / "src" / "client" / "runtime_package"
 
 
 class InspectError(Exception):

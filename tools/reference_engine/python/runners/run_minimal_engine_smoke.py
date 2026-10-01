@@ -24,7 +24,7 @@ RUNTIME_DECISION_NOTE = "Python engine facade is a reference smoke/backend candi
 
 
 def default_runtime_package_dir():
-    return REPOSITORY_ROOT / "Aeterna game engine" / "Godot" / "runtime_package"
+    return REPOSITORY_ROOT / "src" / "client" / "runtime_package"
 
 
 def run_minimal_engine_smoke(runtime_package_dir=None, match_id="ENGINE-SMOKE-COMMAND-001"):
@@ -189,7 +189,7 @@ def _build_parser():
     parser.add_argument(
         "--runtime-package-dir",
         default=None,
-        help="Runtime package directory. Defaults to ../Godot/runtime_package relative to python/.",
+        help="Runtime package directory. Defaults to src/client/runtime_package relative to the repository root.",
     )
     parser.add_argument("--match-id", default="ENGINE-SMOKE-COMMAND-001")
     parser.add_argument(

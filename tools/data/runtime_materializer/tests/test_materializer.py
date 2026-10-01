@@ -170,7 +170,7 @@ class TestCanonicalRuntimeMaterializer(unittest.TestCase):
         self.assertEqual(TOKEN_ADAPTER_ALLOWLIST, actual)
 
     def test_17_existing_godot_package_is_untouched(self) -> None:
-        godot = ROOT / "Aeterna game engine" / "Godot" / "runtime_package"
+        godot = ROOT / "src" / "client" / "runtime_package"
         before = file_hashes(godot)
         materialize(self.candidate, self.output_root, ROOT)
         self.assertEqual(before, file_hashes(godot))
@@ -199,7 +199,7 @@ class TestCanonicalRuntimeMaterializer(unittest.TestCase):
 
     def test_20_output_path_outside_repository_temp_is_rejected(self) -> None:
         with self.assertRaises(MaterializationError) as context:
-            materialize(self.candidate, ROOT / "Aeterna game engine" / "Godot" / "runtime_package", ROOT)
+            materialize(self.candidate, ROOT / "src" / "client" / "runtime_package", ROOT)
         self.assertEqual("OUTPUT_PATH_FORBIDDEN", context.exception.code)
 
     def test_21_candidate_only_provenance_and_readiness_are_explicit(self) -> None:

@@ -8,7 +8,7 @@ const EventLogDebugViewScript = preload("res://scripts/debug/event_log_debug_vie
 const RuntimePackageLoaderScript = preload("res://scripts/contract_loader/runtime_package_loader.gd")
 
 @export var contracts_path := "res://debug_contracts"
-@export var package_path := "res://../../Aeterna game engine/Godot/runtime_package"
+@export var package_path := "res://runtime_package"
 
 var _label: Label
 var _snapshot_viewer

@@ -570,7 +570,7 @@ def _validate_output_location(output_root: Path, repository_root: Path) -> Path:
     except ValueError as exc:
         raise MaterializationError("OUTPUT_PATH_FORBIDDEN", "Runtime materialization output must remain under repository TEMP/.") from exc
     forbidden = [
-        (repository_root / "Aeterna game engine" / "Godot" / "runtime_package").resolve(),
+        (repository_root / "src" / "client" / "runtime_package").resolve(),
         (repository_root / "game" / "data").resolve(),
     ]
     if any(resolved == item or item in resolved.parents for item in forbidden):
