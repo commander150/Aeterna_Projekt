@@ -89,7 +89,7 @@ Kötelező elvek:
 
 ### 2.1 Evolving-design / kontrollált felülvizsgálat
 
-A `DECISION_MAP.md` helyreállított governance-elve alapján:
+A `project/decisions/DECISION_MAP.md` helyreállított governance-elve alapján:
 
 - az elfogadott szabály vagy döntés az aktuális rulesetben canonical/current default;
 - playtest, Expansion, meta vagy bizonyított design/architecture probléma indokolhat felülvizsgálatot;
@@ -383,33 +383,33 @@ Frissítve és összehangolva:
 - `project/status/checkpoints/ENGINE_CHECKPOINT.md`;
 - `checkpoints/CHECKPOINTS.md`;
 - `checkpoints/README.md`;
-- `DECISION_MAP.md`;
-- `PROTOTYPE_STATUS.md`.
+- `project/decisions/DECISION_MAP.md`;
+- `project/status/PROTOTYPE_STATUS.md`.
 
 ### B kör – contract, runtime és OQ konzisztencia
 
 Frissítve és összehangolva:
 
-- `CONTRACT_STATUS.md`;
-- `CONTRACT_SPECIFICATION.md`;
-- `RUNTIME_PACKAGE_STATUS.md`;
-- `RUNTIME_PACKAGE_SPECIFICATION.md`;
-- `ABILITY_MODULE_SYSTEM.md`;
-- `OPEN_QUESTIONS.md`;
-- `OPEN_QUESTIONS_DECISIONS.md`;
-- `ARCHITECTURE.md`.
+- `src/engine/docs/CONTRACT_STATUS.md`;
+- `src/engine/docs/CONTRACT_SPECIFICATION.md`;
+- `data/status/RUNTIME_PACKAGE_STATUS.md`;
+- `data/specifications/RUNTIME_PACKAGE_SPECIFICATION.md`;
+- `src/engine/docs/ABILITY_MODULE_SYSTEM.md`;
+- `project/planning/OPEN_QUESTIONS.md`;
+- `project/decisions/OPEN_QUESTIONS_DECISIONS.md`;
+- `project/architecture/ARCHITECTURE.md`.
 
 ### Tudatosan nem frissített történeti/lezárt proofok
 
 Megmarad:
 
 - `PROTOTYPE_PLANS.md`;
-- `RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
-- `RUNTIME_COMPARISON_FIXTURE_SPEC.md`;
+- `project/decisions/RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md`;
+- `tests/fixtures/runtime_comparison/RUNTIME_COMPARISON_FIXTURE_SPEC.md`;
 - `CONTRACT_SPECIFICATION_MIGRATION_MAP.md`;
 - `AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.0.md`.
 
-A `TECHNOLOGY_DECISIONS.md` továbbra is csak valódi technológiai döntés változásakor kap új verziót.
+A `project/decisions/TECHNOLOGY_DECISIONS.md` továbbra is csak valódi technológiai döntés változásakor kap új verziót.
 
 ### C kör – learning, synthesis, OQ és history-recovery handoff
 

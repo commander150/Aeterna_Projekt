@@ -13,7 +13,6 @@ from pathlib import Path
 
 DATA_TOOLS_DIR = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-ENGINE_PYTHON_DIR = PROJECT_ROOT / "Aeterna game engine" / "python"
 
 
 def _repository_source_identity(path):

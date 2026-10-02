@@ -15,7 +15,7 @@ MAPPER_PATH = (
     Path(__file__).resolve().parents[3] / "tools" / "data" / "runtime_package"
     / "runtime_card_mapper.py"
 )
-ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "python"
+ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python"
 
 
 def _load_adapter_module():

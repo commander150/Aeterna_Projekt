@@ -18,7 +18,7 @@ from tools.reference_engine.python.runtime_comparison.parent_process_watchdog im
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 REPOSITORY_TEMP_ROOT = REPOSITORY_ROOT / "TEMP"
-GODOT_PROJECT_DIR = REPOSITORY_ROOT / "Aeterna game engine" / "Godot"
+GODOT_PROJECT_DIR = REPOSITORY_ROOT / "src" / "client"
 VISUAL_PROOF_LOG = REPOSITORY_TEMP_ROOT / "godot_visual_sidecar_proof_latest.log"
 DEFAULT_DIAGNOSTICS_DIR = (
     REPOSITORY_TEMP_ROOT / "c3b2b_parent_watchdog_and_f8_cleanup"

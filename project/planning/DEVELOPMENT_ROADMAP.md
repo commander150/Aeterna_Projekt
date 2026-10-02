@@ -1411,12 +1411,12 @@ First Complete Product Release
 A roadmap tervezése során figyelembe vett főbb projektanyagok:
 
 - `project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
-- `Aeterna game engine/docs/PROTOTYPE_STATUS.md` v1.6;
-- `Aeterna game engine/docs/RUNTIME_PACKAGE_STATUS.md` v1.6;
-- `Aeterna game engine/docs/ABILITY_MODULE_SYSTEM.md` v1.5;
-- `Aeterna game engine/docs/PRODUCT_RUNTIME_AND_INSTALLATION_REQUIREMENTS.md` v1.3;
-- `Aeterna game engine/docs/AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.1.md`;
-- `Aeterna game engine/docs/checkpoints/*` aktív réteg;
+- `project/status/PROTOTYPE_STATUS.md` v1.6;
+- `data/status/RUNTIME_PACKAGE_STATUS.md` v1.6;
+- `src/engine/docs/ABILITY_MODULE_SYSTEM.md` v1.5;
+- `project/requirements/PRODUCT_RUNTIME_AND_INSTALLATION_REQUIREMENTS.md` v1.3;
+- `project/status/AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.1.md`;
+- `project/status/checkpoints/*` aktív réteg;
 - manifest-driven REGISTRY/CARDDATABASE export és C# ingestion korábbi terv;
 - current canonical package-set / validation / cutover munkafolyamat;
 - a roadmap-tervezési beszélgetés során elfogadott emberi product/roadmap döntések.

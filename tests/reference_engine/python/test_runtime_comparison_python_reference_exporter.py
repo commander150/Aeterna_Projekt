@@ -21,9 +21,9 @@ from tools.reference_engine.python.runtime_comparison.canonical_json import (
 from tools.reference_engine.python.runtime_comparison import python_reference_exporter as exporter
 
 
-PYTHON_DIR = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "python"
+PYTHON_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python"
 ENGINE_DIR = PYTHON_DIR.parent
-PROJECT_ROOT = ENGINE_DIR.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 PROJECT_TEMP = PROJECT_ROOT / "TEMP"
 FIXTURE_DIR = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "runtime_comparison" / "minimal_draw_end_turn_v2"
 FIXTURE_PATH = FIXTURE_DIR / "fixture.json"

@@ -16,7 +16,7 @@ from tools.reference_engine.python.runtime_comparison.canonical_json import cano
 from tools.reference_engine.python.runtime_comparison import python_reference_fixture as fixture_runner
 
 
-ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "python"
+ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python"
 FIXTURE_DIR = (
     Path(__file__).resolve().parents[3]
     / "tests"

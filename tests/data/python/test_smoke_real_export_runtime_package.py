@@ -22,7 +22,7 @@ BUILDER_PATH = (
     Path(__file__).resolve().parents[3] / "tools" / "data" / "runtime_package"
     / "build_sample_runtime_package.py"
 )
-ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "python"
+ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python"
 
 
 def _load_module(module_name, path):

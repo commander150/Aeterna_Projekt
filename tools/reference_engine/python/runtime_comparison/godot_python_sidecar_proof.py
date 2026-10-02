@@ -40,8 +40,7 @@ EXPECTED_RESULT_SHA256 = "97af60f42b78211bb35f235b5df81ddda48e72d74e8318b627893c
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 PYTHON_PROJECT_ROOT = REPOSITORY_ROOT
-ENGINE_ROOT = REPOSITORY_ROOT / "Aeterna game engine"
-GODOT_PROJECT_ROOT = ENGINE_ROOT / "Godot"
+GODOT_PROJECT_ROOT = REPOSITORY_ROOT / "src" / "client"
 TEMP_ROOT = REPOSITORY_ROOT / "TEMP"
 GODOT_PROOF_SCRIPT = "res://scripts/debug/python_sidecar_integration_smoke_test.gd"
 

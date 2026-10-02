@@ -55,20 +55,20 @@ A rules authority DOCX, a runtime package derived programadat. Egyik sem helyett
 Elsődleges current projektirányító réteg:
 
 - `project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
-- `Aeterna dokumentációk/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`;
-- `project/status/checkpoints/ENGINE_CHECKPOINT.md` v2.0.
+- `project/status/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`;
+- `project/status/checkpoints/ENGINE_CHECKPOINT.md`.
 
-Aktuális engine-státusz és döntések:
+Aktuális engine-státusz, architektúra és döntések:
 
-- `ARCHITECTURE.md`;
-- `TECHNOLOGY_DECISIONS.md`;
-- `DECISION_MAP.md`;
-- `PROTOTYPE_STATUS.md`;
-- `RUNTIME_PACKAGE_STATUS.md`;
-- `CONTRACT_STATUS.md`;
-- `CONTRACT_SPECIFICATION.md`;
-- `OPEN_QUESTIONS.md`;
-- `OPEN_QUESTIONS_DECISIONS.md`.
+- `project/architecture/ARCHITECTURE.md`;
+- `project/decisions/TECHNOLOGY_DECISIONS.md`;
+- `project/decisions/DECISION_MAP.md`;
+- `project/status/PROTOTYPE_STATUS.md`;
+- `data/status/RUNTIME_PACKAGE_STATUS.md`;
+- `src/engine/docs/CONTRACT_STATUS.md`;
+- `src/engine/docs/CONTRACT_SPECIFICATION.md`;
+- `project/planning/OPEN_QUESTIONS.md`;
+- `project/decisions/OPEN_QUESTIONS_DECISIONS.md`.
 
 Current OQ aggregate:
 
@@ -76,19 +76,29 @@ Current OQ aggregate:
 
 ## 4. Repository fő területei
 
+- `project/` – governance, planning, requirements, decisions, architecture és státusz.
+- `data/` – canonical data, specifikációk, workflowk, review és runtime-package státusz.
+- `src/` – production C# engine és Godot kliens.
+- `tests/` – tesztek, proofok és fixture-ök.
+- `tools/` – developer-, data-, reference- és AI-tooling.
 - `rules/` – hivatalos szabályforrások.
 - `design/` – kártyatervezési, koncepció-, névadási és kutatási tudásanyagok.
-- `Aeterna dokumentációk/` – adat-, projekt- és munkafolyamat-források.
-- `Aeterna game engine/` – C# engine, Python tooling/reference, Godot kliens, docs és fixture-ök.
-- `learning/` – clean-room source registry, izolált project analyses és cross-project synthesis.
-- `Aeterna game engine/docs/blueprints/` – AETERNA architecture proposal réteg.
-- `Archive/` – történeti anyagok.
+- `learning/` – deferred clean-room source registry, analyses és synthesis.
+- `Archive/` – immutable történeti megőrzési réteg.
 
-Az archívum és a learning réteg nem aktív authority.
+Lezárt legacy gyökerek:
 
-W3B.6 canonical path move, W3B.7 legacy retirement/archive és W3B.8 data
-documentation/registry reconciliation: `COMPLETE`. A következő structural migration
-wave: `platform production source relocation / W4`; a PILOT-5 ettől még nem ready.
+
+A két korábbi legacy gyökér fizikailag megszűnt. Tartalmuk durable ownerei:
+
+- `Aeterna.Engine.sln` – repository-szintű C# solution;
+- `project/architecture/blueprints/` – deferred, nem autoritatív future architecture input;
+- `project/governance/templates/` – újrahasznosítható governance-sablonok;
+- `Archive/{technical_history,contract_history,learning_history,prototype_history}/` – történeti evidence.
+
+W3B, W4, W5, W6B1 és a W7 reduced document-owner reconciliation lezárja a
+PILOT-5 előtti minimális strukturális migrációt. A következő governance lépés a
+PILOT-5 stable-name dry-run; runtime activation, W6B2B, W6B3 és VS1 továbbra is deferred.
 
 ---
 

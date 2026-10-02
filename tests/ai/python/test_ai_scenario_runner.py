@@ -6,8 +6,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "python"
-PROJECT_DIR = ENGINE_PYTHON_DIR.parents[1]
+ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python"
+PROJECT_DIR = Path(__file__).resolve().parents[3]
 GODOT_RUNTIME_PACKAGE_DIR = PROJECT_DIR / "src" / "client" / "runtime_package"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 AI_VS_AI_DIR = Path(__file__).resolve().parents[3] / "tools" / "ai" / "ai_vs_ai"

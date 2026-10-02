@@ -25,9 +25,9 @@ from tools.reference_engine.python.runtime_comparison.canonical_json import (
 )
 
 
-PYTHON_DIR = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "python"
+PYTHON_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python"
 ENGINE_DIR = PYTHON_DIR.parent
-PROJECT_ROOT = ENGINE_DIR.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 PROJECT_TEMP = PROJECT_ROOT / "TEMP"
 TRACKED_ORACLE = (
     Path(__file__).resolve().parents[3]

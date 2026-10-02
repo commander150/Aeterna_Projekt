@@ -7,8 +7,8 @@ from copy import deepcopy
 from pathlib import Path
 
 
-ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "python"
-PROJECT_DIR = ENGINE_PYTHON_DIR.parents[1]
+ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python"
+PROJECT_DIR = Path(__file__).resolve().parents[3]
 GODOT_RUNTIME_PACKAGE_DIR = PROJECT_DIR / "src" / "client" / "runtime_package"
 ENGINE_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python" / "engine"
 REFERENCE_ENGINE_PYTHON_DIR = ENGINE_DIR.parent

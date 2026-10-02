@@ -6,7 +6,7 @@ from copy import deepcopy
 from pathlib import Path
 
 
-ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "python"
+ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python"
 ENGINE_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python" / "engine"
 AI_VS_AI_DIR = Path(__file__).resolve().parents[3] / "tools" / "ai" / "ai_vs_ai"
 FIXTURE_DIR = (

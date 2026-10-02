@@ -36,7 +36,7 @@ from tools.reference_engine.python.runtime_comparison.sidecar_protocol import (
 )
 
 
-ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "Aeterna game engine" / "python"
+ENGINE_PYTHON_DIR = Path(__file__).resolve().parents[3] / "tools" / "reference_engine" / "python"
 FIXTURE_ROOT = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "runtime_comparison"
 FIXTURE_RELATIVE_PATH = "minimal_draw_end_turn_v2/fixture.json"
 FIXTURE_PATH = FIXTURE_ROOT / "minimal_draw_end_turn_v2" / "fixture.json"

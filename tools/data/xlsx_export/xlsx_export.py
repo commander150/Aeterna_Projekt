@@ -18,9 +18,8 @@ from openpyxl import load_workbook
 
 PROGRAM_DIR = Path(__file__).resolve().parent
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-ENGINE_PYTHON_DIR = REPOSITORY_ROOT / "Aeterna game engine" / "python"
-DEFAULT_SOURCE_DIR = ENGINE_PYTHON_DIR / "input" / "xlsx"
-DEFAULT_OUTPUT_DIR = ENGINE_PYTHON_DIR / "exports" / "jsonl"
+DEFAULT_SOURCE_DIR = REPOSITORY_ROOT / "data" / "canonical"
+DEFAULT_OUTPUT_DIR = REPOSITORY_ROOT / "TEMP" / "xlsx_export"
 SOURCE_DIR = DEFAULT_SOURCE_DIR
 LOOKUPS_FIELDS = (
     "Lookup_Group",
