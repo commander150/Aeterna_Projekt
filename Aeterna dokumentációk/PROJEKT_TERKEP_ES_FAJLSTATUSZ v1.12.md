@@ -79,8 +79,17 @@ data/canonical/CARDDATABASE.xlsx + data/canonical/REGISTRY.xlsx
 
 A canonical-derived package C# loader/binding kompatibilis, de
 `production_ready = false`, `publish_allowed = false`, és Godot production activation
-nem történt. Az `Aeterna game engine/Godot/runtime_package/` ettől különálló,
+nem történt. A `src/client/runtime_package/` ettől különálló,
 változatlan sample/compatibility package.
+
+A canonical materializer továbbra is kizárólag `TEMP/` alatt dolgozik. A
+`tools/data/runtime_publisher/` a governált, fail-closed promotion boundary,
+amely csak a fix `src/client/runtime_package/` integration ownert cserélheti
+atomikusan. Nem módosít canonical authorityt, readiness értéket vagy package
+byte-okat, és nem végez Git műveletet. A jelenlegi canonical package
+`production_ready = false` és `publish_allowed = false`, így W6B2A-ban nem
+történt canonical activation. A consumer-kompatibilitás rendezése W6B2B, a
+`game/` standalone release tree W6B3 hatásköre.
 
 ### 2.5 Aktuális adataudit
 

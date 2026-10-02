@@ -167,11 +167,22 @@ A C# engine runtime package-et fogyaszt, de nem olvas közvetlenül XLSX-et.
 
 Két külön package-állapotot kell megkülönböztetni:
 
-- az `Aeterna game engine/Godot/runtime_package/` változatlan
+- a `src/client/runtime_package/` változatlan
   `aeterna.sample_runtime_package` / `0.1.0` compatibility evidence;
 - a canonical producer és materializer által TEMP alatt készített canonical-derived
   package, amely C# loader/binding kompatibilis, de `production_ready = false`,
   `publish_allowed = false`, és még nincs Godot production activationben.
+
+A canonical runtime útvonalon a `tools/data/runtime_materializer/` kizárólag a
+repository `TEMP/` területére épít és validál. A
+`tools/data/runtime_publisher/` külön, fail-closed promotion boundary: csak
+ellenőrzött canonical materializationt fogad, és az egyetlen célja a
+`src/client/runtime_package/` exact, atomikus cseréje. Nem módosít canonical
+authorityt, readiness értéket, manifestet vagy provenance-t, és nem végez Git
+műveletet. W6B2A-ban a valódi canonical csomag promotionje blokkolt marad
+(`production_ready = false`, `publish_allowed = false`), ezért canonical
+activation nem történt. A consumer-kompatibilitás rendezése W6B2B, a `game/`
+standalone release tree pedig W6B3 hatásköre.
 
 ---
 

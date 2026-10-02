@@ -143,7 +143,7 @@ nem tölthet ki REGISTRY-hiányt és nem jogosít semantic resolution állítás
 
 Publikált runtime kimenet:
 
-- `Aeterna game engine/Godot/runtime_package/lookups.json`.
+- `src/client/runtime_package/lookups.json`.
 
 A legacy lookup-réteg nem írhatja felül automatikusan a REGISTRY current canonical
 értékeit.
@@ -195,7 +195,8 @@ Eltérés esetén a hivatalos szabályforrás és az elfogadott emberi adat-/con
 Current repository-owned tooling:
 
 - `tools/data/canonical_producer/` – canonical candidate build és validation;
-- `tools/data/runtime_materializer/` – deterministic runtime materialization.
+- `tools/data/runtime_materializer/` – deterministic, TEMP-only runtime materialization;
+- `tools/data/runtime_publisher/` – fail-closed, exact-target canonical promotion boundary.
 
 A korábbi publisher, `main.py`, standalone exporter launcher és wrapper entrypointok
 retired állapotúak az `Archive/data_layer/retired_entrypoints/d7a40269/` alatt. Aktív
@@ -212,13 +213,24 @@ Current publish-elv:
 
 Aktív Godot fogyasztási mappa:
 
-- `Aeterna game engine/Godot/runtime_package/`
+- `src/client/runtime_package/`
 
 Godot útvonal:
 
 - `res://runtime_package`
 
 A production C# engine validált package/canonical adatot fogyaszt, és nem olvas közvetlenül szerkesztési XLSX-et.
+
+### 3.1 W6B2A publisher állapot
+
+A tracked integration owner továbbra is a sample package-et tartalmazza. A
+runtime publisher csak a `src/client/runtime_package/` exact targetet ismeri,
+nem szerkeszti a canonical authorityt, a manifestet, a provenance-t vagy a
+readiness policyt, és nem végez Git műveletet. A jelenlegi canonical package
+`production_ready = false` és `publish_allowed = false`, ezért a promotion
+`PROMOTION_PRODUCTION_NOT_READY` kóddal, target mutation nélkül blokkolt.
+W6B2A nem végzett canonical activationt. A consumer-kompatibilitás W6B2B, a
+`game/` standalone release tree W6B3 feladata.
 
 ---
 

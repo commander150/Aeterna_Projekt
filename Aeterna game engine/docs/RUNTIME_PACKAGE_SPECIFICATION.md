@@ -412,8 +412,24 @@ Takarításkor canonical vagy kézzel szerkesztett forrás nem törölhető.
 
 Aktív consumption path:
 
-- `Aeterna game engine/Godot/runtime_package/`;
+- `src/client/runtime_package/`;
 - Godot útvonal: `res://runtime_package`.
+
+### 13.1 Governed promotion boundary
+
+A canonical materializer outputja továbbra is kizárólag repository `TEMP/`
+alatt jöhet létre. A `tools/data/runtime_publisher/` ezt a változatlan,
+validált csomagot csak akkor cserélheti be atomikusan az exact
+`src/client/runtime_package/` targetre, ha a `materialization_valid`,
+`production_ready` és `publish_allowed` kapuk igazak. A publisher nem állíthat
+elő readiness igazságot, nem módosíthat package byte-okat vagy
+`production_export` metadata-t, és nem publikálhat a `game/` alá.
+
+A jelenlegi canonical materialization `production_ready = false` és
+`publish_allowed = false`, ezért W6B2A-ban preflight és apply módban is
+fail-closed marad; canonical activation nem történt. A sample package marad az
+aktív tracked integration copy. A sikeres consumer cutover előtt W6B2B-ben még
+consumer-kompatibilitási egyeztetés szükséges. A standalone release tree W6B3.
 
 A Godot:
 
