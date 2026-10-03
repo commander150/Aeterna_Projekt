@@ -213,7 +213,7 @@ A HD-08 szerkezeti határ:
 
 - technical rarity identity/value → `REGISTRY`;
 - card printing rarity assignment → `CARDDATABASE/CARD_PRINTINGS`;
-- rarity design rationale → `design/card_design/AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK 1.1v.md`, 16. fejezet; a content reconciliation továbbra is nyitott.
+- rarity design rationale → `design/card_design/AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK.md`, 16. fejezet; a content reconciliation továbbra is nyitott.
 
 ## 8. Naming boundary
 

@@ -5199,7 +5199,7 @@ Egy elem attól, hogy érdekes vagy korábban szerepelt a projektben, még nem v
 
 # 14. Structured mezők és kártyatáblázat-szabvány használata
 
-A kártyatervezés és kártyaújratervezés során a structured / canonical mezők technikai kitöltési szabványát a kartya_tabla_szabvany_frissett.md dokumentum rögzíti.
+A kártyatervezés és kártyaújratervezés során a structured / canonical mezők normatív modelljét a `data/specifications/CARD_DATA_MODEL.md`, az executable technikai sémákat és controlled value-kat a `data/canonical/REGISTRY.xlsx`, a canonical kártyaadatforrást pedig a `data/canonical/CARDDATABASE.xlsx` rögzíti.
 
 A Kártyatervezési katalógus nem helyettesíti ezt a dokumentumot. A katalógus feladata az, hogy szabályi és tervezési oldalról meghatározza, milyen elemek használhatók; a kártyatáblázat-szabvány feladata pedig az, hogy megmondja, ezeket hogyan kell a cards.xlsx strukturált mezőiben rögzíteni.
 

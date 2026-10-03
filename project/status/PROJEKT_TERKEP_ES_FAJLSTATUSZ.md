@@ -115,8 +115,8 @@ Státusz: `ACTIVE_DATA_AUDIT`
 ## 3. Aktív projektirányítás
 
 - root `README.md`;
-- `project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`;
-- jelen `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md`;
+- `project/planning/PROJECT_PLAN.md`;
+- jelen `PROJEKT_TERKEP_ES_FAJLSTATUSZ.md`;
 - `project/status/checkpoints/ENGINE_CHECKPOINT.md`.
 
 A korábbi projekttervek és projekt-térképek történeti/archív elődök.

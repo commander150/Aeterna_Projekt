@@ -30,7 +30,7 @@
       "depends_on": [],
       "supersedes": [],
       "scope": "ACTIVE",
-      "path": "project/status/AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT_v1.1.md"
+      "path": "project/status/AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT.md"
     },
     {
       "artifact_id": "AET-DOC-ARCHITECTURE",
@@ -63,7 +63,7 @@
       ],
       "supersedes": [],
       "scope": "ACTIVE",
-      "path": "data/workflows/AETERNA – KÁRTYAÁLLOMÁNY AUDITÁLÁSI MUNKAREND ÉS HIBAKATEGÓRIÁK 1.2v.md"
+      "path": "data/workflows/CARD_DATA_AUDIT_WORKFLOW.md"
     },
     {
       "artifact_id": "AET-DOC-CARD-DATA-MODEL",
@@ -114,7 +114,7 @@
       "depends_on": [],
       "supersedes": [],
       "scope": "ACTIVE",
-      "path": "design/card_design/AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK 1.1v.md"
+      "path": "design/card_design/AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK.md"
     },
     {
       "artifact_id": "AET-DOC-CONTRACT-SPECIFICATION",
@@ -238,7 +238,7 @@
       "depends_on": [],
       "supersedes": [],
       "scope": "ACTIVE",
-      "path": "design/concepts/AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK 1.1v.md"
+      "path": "design/concepts/AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK.md"
     },
     {
       "artifact_id": "AET-DOC-OPEN-QUESTIONS",
@@ -298,7 +298,7 @@
       "depends_on": [],
       "supersedes": [],
       "scope": "ACTIVE",
-      "path": "project/status/PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.12.md"
+      "path": "project/status/PROJEKT_TERKEP_ES_FAJLSTATUSZ.md"
     },
     {
       "artifact_id": "AET-DOC-PROJECT-PLAN",
@@ -313,7 +313,7 @@
       "depends_on": [],
       "supersedes": [],
       "scope": "ACTIVE",
-      "path": "project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md"
+      "path": "project/planning/PROJECT_PLAN.md"
     },
     {
       "artifact_id": "AET-DOC-PROTOTYPE-STATUS",

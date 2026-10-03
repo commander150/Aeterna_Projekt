@@ -41,7 +41,7 @@ Kapcsolódó aktív dokumentumok:
 - `OPEN_QUESTIONS.md`
 - `OPEN_QUESTIONS_DECISIONS.md`
 - `project/status/checkpoints/ENGINE_CHECKPOINT.md`
-- `project/planning/AKTUALIS_PROJEKTTERV_ES_PRIORITASOK_v6.9.md`
+- `project/planning/PROJECT_PLAN.md`
 
 ---
 

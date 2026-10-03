@@ -29,7 +29,7 @@ A dokumentum a következő aktív forrásokra és segéddokumentumokra támaszko
 - AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS
 - AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK
 - AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK
-- Aeterna kártyatáblázat – oszlopszabvány
+- AETERNA kártyaadatmodell (`data/specifications/CARD_DATA_MODEL.md`)
 - `data/canonical/CARDDATABASE.xlsx`
 - `data/canonical/REGISTRY.xlsx`
 - `project/requirements/testing/TEST_STRATEGY_AND_PROFILES.md`
@@ -231,7 +231,7 @@ A kártyaállomány auditja során az alábbi forráshierarchiát kell követni:
 1. AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS
 2. AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS
 3. AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK
-4. Aeterna kártyatáblázat – oszlopszabvány
+4. AETERNA kártyaadatmodell (`data/specifications/CARD_DATA_MODEL.md`)
 5. AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK
 6. `data/canonical/CARDDATABASE.xlsx` és `data/canonical/REGISTRY.xlsx`
 7. engine/runtime auditanyagok, `project/requirements/testing/TEST_STRATEGY_AND_PROFILES.md`, valamint a jelen dokumentum 18. fejezetének warning-triage policyja
@@ -242,7 +242,7 @@ A kiegészítői elemek ellenőrzése a kiegészítő-főforrás alapján tört�
 
 A kártyatervezési katalógus a használható elemek, státuszok, tiltott / archív elemek, kulcsszavak, Birodalmak, Klánok, Fajok, Kasztok, Vérvonalak és ritkasági / kiadási elvek gyakorlati segédlete.
 
-A kártyatáblázat-oszlopszabvány határozza meg, hogyan kell kitölteni a structured / canonical mezőket.
+A structured / canonical mezők normatív modelljét a `data/specifications/CARD_DATA_MODEL.md` rögzíti; az executable schema- és controlled value-authority a `data/canonical/REGISTRY.xlsx`, a canonical kártyaadatforrás pedig a `data/canonical/CARDDATABASE.xlsx`.
 
 Az Ötletláda nem ad aktív használati engedélyt, csak a még nem végleges ötletek megőrzésére és későbbi döntés-előkészítésére szolgál.
 
@@ -597,7 +597,7 @@ hiányzó Hatáscímkék érték;
 olyan hatás, amely csak közelítő structured értékkel írható le;
 olyan trigger, amely nem azonos pontosan egyik meglévő triggerrel sem;
 olyan mechanikai minta, amely több kártyán is előfordulhat;
-olyan engine-előkészítő jelölés, amely később oszlopszabvány- vagy validációs lista bővítését igényelheti.
+olyan engine-előkészítő jelölés, amely később a `data/canonical/REGISTRY.xlsx` registry-, contract- vagy validációs szabályainak bővítését igényelheti.
 
 Javasolt jelölések:
 
@@ -764,7 +764,7 @@ Azt jelenti, hogy nem a jelenlegi alapjátékos kártyaújratervezési körben k
 
 ## 13. Structured / canonical mezők auditja
 
-A structured / canonical mezők auditjánál a kártyatáblázat-oszlopszabvány az elsődleges technikai referencia.
+A structured / canonical mezők auditjánál a `data/specifications/CARD_DATA_MODEL.md` a normatív modellmagyarázat, a `data/canonical/REGISTRY.xlsx` pedig az elsődleges executable schema- és controlled value-authority.
 
 A vizsgálat fő kérdései:
 
@@ -801,15 +801,15 @@ A structured-bővítési igényt külön kell naplózni, ha:
 az adott hiány több lapon is előfordul;
 a hatás engine-oldali feldolgozása külön logikát igényelhet;
 a jelenlegi mezőkészlet rendszeresen pontatlan structured leírást eredményezne;
-vagy az új érték később oszlopszabványba emelhető.
+vagy az új érték később a `data/canonical/REGISTRY.xlsx` megfelelő registry- vagy contract-rétegébe emelhető.
 
-A structured-bővítési igény nem írja felül a kártyatáblázat-oszlopszabványt. Csak azt jelzi, hogy a szabvány későbbi bővítése indokolt lehet.
+A structured-bővítési igény nem írja felül a `data/canonical/REGISTRY.xlsx` executable schema- és controlled value-authorityját. Csak azt jelzi, hogy a registry vagy a kapcsolódó contract későbbi bővítése indokolt lehet.
 
-Ha egy korábban structured-bővítési igényként jelölt érték időközben bekerült a kártyatáblázat-oszlopszabványba, akkor az érintett kártyák structured mezőit már az új szabványos értékkel kell javítani. Ilyenkor nem kell tovább közelítő trigger- vagy hatáscímke-értéket használni.
+Ha egy korábban structured-bővítési igényként jelölt érték időközben aktív canonical rekordként bekerült a `data/canonical/REGISTRY.xlsx` megfelelő registry- vagy contract-rétegébe, akkor az érintett kártyák structured mezőit már az új canonical értékkel kell javítani. Ilyenkor nem kell tovább közelítő trigger- vagy hatáscímke-értéket használni.
 
 Példa:
 
-Ha egy lap az ellenfél Igéje vagy Rituáléja által végzett célpontválasztásra reagál, és az új `on_enemy_spell_or_ritual_target` érték már szerepel a kártyatáblázat-oszlopszabványban, akkor a `Trigger_Felismerve` mezőben ezt az értéket kell használni, nem pedig a pontatlanabb `on_enemy_spell_target` vagy `on_enemy_spell_or_ritual_played` értéket.
+Ha egy lap az ellenfél Igéje vagy Rituáléja által végzett célpontválasztásra reagál, és az új `on_enemy_spell_or_ritual_target` érték már aktív canonical rekordként szerepel a `data/canonical/REGISTRY.xlsx` megfelelő registry- vagy contract-rétegében, akkor a `Trigger_Felismerve` mezőben ezt az értéket kell használni, nem pedig a pontatlanabb `on_enemy_spell_target` vagy `on_enemy_spell_or_ritual_played` értéket.
 
 ---
 
@@ -1112,7 +1112,7 @@ Javasolt új structured érték:
 Érintett mező:
 Érintett lapok / lapcsoport:
 Engine-gyanú:
-Szabványfrissítés szükséges:
+REGISTRY-/contract-bővítés szükséges:
 Megjegyzés:
 
 Ha a structured-bővítési igény több lapot érint, akkor nem szükséges minden egyes laphoz külön hosszú magyarázatot írni. Ilyenkor elegendő lehet egy közös auditbejegyzés, amely felsorolja az érintett lapokat és a javasolt új structured értékeket.
@@ -1121,16 +1121,16 @@ A döntési naplóban rögzíteni kell, hogy a probléma:
 
 kártyaszöveg-javítást igényelt-e;
 structured mezőjavítással megoldható-e;
-vagy későbbi oszlopszabvány-bővítési jelöltként marad-e nyilván.
+vagy későbbi REGISTRY-/contract-bővítési jelöltként marad-e nyilván.
 
 Ha az audit később táblázatba kerül, ezek a mezők külön oszlopként is használhatók.
 
-Ha a javasolt új structured érték később bekerül a kártyatáblázat-oszlopszabványba, akkor az auditbejegyzésben vagy a kapcsolódó döntési naplóban jelezhető, hogy a structured-bővítési igény átvezetve / lezárva státuszt kapott.
+Ha a javasolt új structured érték később aktív canonical rekordként bekerül a `data/canonical/REGISTRY.xlsx` megfelelő registry- vagy contract-rétegébe, akkor az auditbejegyzésben vagy a kapcsolódó döntési naplóban jelezhető, hogy a structured-bővítési igény átvezetve / lezárva státuszt kapott.
 
 Ilyenkor érdemes rögzíteni:
 
 Átvezetett structured érték:
-Szabványfrissítés verziója:
+REGISTRY schema-/érték-/contract-verzió és source/change ID:
 Érintett kártyák:
 Átvezetés státusza:
 Megjegyzés:
@@ -1138,7 +1138,7 @@ Megjegyzés:
 Példa:
 
 Átvezetett structured érték: `on_enemy_spell_or_ritual_target`
-Szabványfrissítés verziója: `kartya_tabla_szabvany 1.2v`
+REGISTRY schema-/érték-/contract-verzió és source/change ID: `a kapcsolódó aktív canonical rekord alapján rögzítendő`
 Érintett kártyák: VENTUS / Égbolt Úrai célzásra reagáló Jel és reakciós lapok
 Átvezetés státusza: átvezetve
 Megjegyzés: A korábbi közelítő triggerértékek helyett a pontosított triggerérték használható.
