@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-PROJECT-PLAN
 kind: document
 type: project-plan
-version: "6.10"
+version: "6.11"
 lifecycle: active
 integration: current
 authority: project-direction
@@ -11,14 +11,14 @@ depends_on: []
 supersedes: []
 ---
 
-# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.10
+# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.11
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 6.10
+**Dokumentumverzió:** 6.11
 **Dátum:** 2026-10-03
 **Státusz:** aktív projektirányító és prioritási dokumentum
-**Előző aktív verzió:** 6.9 (Git history)
+**Előző aktív verzió:** 6.10 (Git history)
 **Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **Előző technikai checkpoint-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
@@ -468,20 +468,23 @@ A learning projekt nem szabályforrás és nem közvetlen kódforrás.
 
 ### 9.1 Current dokumentum-governance fázis
 
-A dokumentum- és artifact-governance migráció PILOT-6-ig complete; a 28 korábbi
-managed artifact stabil artifact ID-val, stabil current fájlnévvel és natív
-metadata-authorityvel rendelkezik. A PILOT-7A editor/updater design audit
-lezárult.
+A PILOT-6 stable filename migration `COMPLETE`; mind a 29 managed artifact
+stabil artifact ID-val, stabil current fájlnévvel és natív metadata-authorityvel
+rendelkezik. A PILOT-7A editor/updater design audit `COMPLETE`.
 
-A current fázis PILOT-7B: a
-`project/governance/workflows/DOCUMENT_UPDATE_WORKFLOW.md` operatív contractjának
-bevezetése. A contract jelen frissítéssel létrejön, de a hozzá tartozó
-`tools/aeterna_document_workflow` implementáció még nem létezik; az csak külön
-PILOT-7C/7D scope-ban készülhet.
+A PILOT-7B document update workflow contract `COMPLETE_AND_REMOTE_VERIFIED`; a
+PILOT-7C read-only workflow foundation `COMPLETE_AND_REMOTE_VERIFIED`; a PILOT-7D
+safe Markdown update MVP és a 7D.1 transaction hardening
+`COMPLETE_AND_REMOTE_VERIFIED`.
 
-A VS1 továbbra is a következő nagy product-facing cél, de runtime-, gameplay- és
-VS1-implementáció a current dokumentum-governance fázis review-ja és lezárása
-alatt deferred.
+A `tools/aeterna_document_workflow` transactional document workflow implementáció
+`IMPLEMENTED`. A current acceptance lépés az első valódi managed dokumentum
+kontrollált frissítése ezen a workflow-n keresztül. A
+`project/governance/workflows/DOCUMENT_UPDATE_WORKFLOW.md` integration státusza
+változatlanul `pending_integration`.
+
+A VS1 továbbra is a következő nagy product-facing cél, de a current acceptance és
+a külön governance integration-activation elfogadásáig nem indul implementáció.
 
 ---
 
@@ -502,30 +505,27 @@ alatt deferred.
 **Project analyses:** `30`
 **Synthesis/blueprint program:** `COMMITTED`
 **Open Questions:** `52 answered / 15 partly_answered / 7 deferred / 0 open`
+**Managed artifacts:** `29`
 **PILOT-6 stable filename migration:** `COMPLETE`
 **PILOT-7A editor/updater design audit:** `COMPLETE`
-**PILOT-7B document update workflow contract:** `ESTABLISHED_PENDING_REVIEW`
-**Editor/updater implementation:** `NOT YET IMPLEMENTED`
-**VS1 / M6:** `NEXT MAJOR PRODUCT-FACING GOAL`
+**PILOT-7B document update workflow contract:** `COMPLETE_AND_REMOTE_VERIFIED`
+**PILOT-7C read-only workflow foundation:** `COMPLETE_AND_REMOTE_VERIFIED`
+**PILOT-7D safe Markdown update MVP + 7D.1 transaction hardening:** `COMPLETE_AND_REMOTE_VERIFIED`
+**Editor/updater implementation:** `IMPLEMENTED_PENDING_REAL_UPDATE_ACCEPTANCE`
+**Document update workflow integration:** `pending_integration`
+**VS1 / M6:** `NEXT MAJOR PRODUCT-FACING GOAL AFTER GOVERNANCE ACCEPTANCE`
 **0.0.1:** `ACTIVE_LONG_TERM_TARGET`
 
 ## 11. Következő szakmai munkasorrend
 
-1. PILOT-7B contract review, commit/push és remote verification;
-2. PILOT-7C read-only resolver, preflight, planning és impact implementation;
-3. külön jóváhagyott PILOT-7D safe Markdown update MVP;
-4. ezután VS1 readiness audit a két canonical VS1 paklira;
-5. kártyánként/mechanikánként classification:
-   `executable / data issue / engine gap / rules decision / UI-AI dependency / non-blocking future`;
-6. emberi prioritásdöntés;
-7. csak a tényleges VS1 blockerre finite contract;
-8. Codex local implementation + build/test/smoke;
-9. külső audit;
-10. PASS után felhasználói commit/push;
-11. simple fair AI / match orchestration;
-12. minimal playable Godot;
-13. VS1 end-to-end acceptance;
-14. ezután szükséges köztes mérföldkövek a 0.0.1 felé.
+1. az első valódi managed dokumentum frissítése a governed workflow-val;
+2. a generált plan/apply/review evidence emberi review-ja;
+3. a valódi frissítés emberi commit/push művelete és remote verificationje;
+4. csak sikeres remote verification után az
+   `AET-DOC-DOCUMENT-UPDATE-WORKFLOW` külön governed integration-activation
+   frissítése;
+5. az integration activation elfogadása után a következő jóváhagyott projektfázis
+   folytatása.
 
 Reaction / Priority v1: `COMPLETE_AND_ACCEPTED`.
 
