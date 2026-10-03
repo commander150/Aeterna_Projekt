@@ -63,7 +63,9 @@ class ContentSnapshot:
     bom: bool
     newline: str
     front_matter_end: int
+    front_matter_bytes: bytes
     body_bytes: bytes
+    data: bytes
     metadata: ArtifactMetadata
     metadata_fingerprint: str
 
@@ -73,6 +75,14 @@ class MetadataDelta:
     field: str
     old: object
     new: object
+
+
+@dataclass(frozen=True)
+class ReferenceChange:
+    old_line_number: int
+    new_line_number: int
+    old_line: str
+    new_line: str
 
 
 @dataclass(frozen=True)
@@ -89,6 +99,8 @@ class UpdateManifest:
     candidate_sha256: str
     metadata_delta: tuple[MetadataDelta, ...]
     proposed_version: str | None
+    reference_changes: tuple[ReferenceChange, ...]
+    resolved_candidate_path: str | None = None
 
 
 @dataclass(frozen=True)
@@ -101,3 +113,9 @@ class PreflightContext:
     candidate: ContentSnapshot
     candidate_record: ArtifactRecord
     preconditions: tuple[dict[str, object], ...]
+
+
+@dataclass(frozen=True)
+class PreparedUpdate:
+    plan: dict[str, object]
+    target_bytes: tuple[tuple[str, bytes], ...]

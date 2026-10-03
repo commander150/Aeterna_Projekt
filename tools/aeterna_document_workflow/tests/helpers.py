@@ -19,7 +19,7 @@ from tools.aeterna_artifacts.scanner import scan_repository
 from tools.aeterna_document_workflow.content import inspect_markdown
 
 
-TEST_ROOT = Path("TEMP/pilot7c_read_only_document_workflow/test_workspaces").resolve()
+TEST_ROOT = Path("TEMP/pilot7d_safe_markdown_update/test_workspaces").resolve()
 
 
 def markdown(
@@ -135,8 +135,9 @@ class RepositoryFixture:
         candidate: Path,
         *,
         change_class: str = "body-only",
-        version_intent: str = "minor",
+        version_intent: str = "git-only",
         metadata_delta: list[dict[str, object]] | None = None,
+        reference_changes: list[dict[str, object]] | None = None,
         **overrides: object,
     ) -> Path:
         baseline = inspect_markdown(self.target)
@@ -154,6 +155,7 @@ class RepositoryFixture:
             "candidate_path": candidate.name,
             "candidate_sha256": candidate_snapshot.sha256,
             "metadata_delta": metadata_delta or [],
+            "reference_changes": reference_changes or [],
         }
         payload.update(overrides)
         path = candidate.parent / "manifest.json"

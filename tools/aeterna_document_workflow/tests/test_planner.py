@@ -50,6 +50,8 @@ class PlannerTests(unittest.TestCase):
         plan = self._plan(
             data,
             change_class="metadata-only",
+            version_intent="minor",
+            proposed_version="1.1",
             metadata_delta=[{"field": "version", "old": "1.0", "new": "1.1"}],
         )
         self.assertFalse(plan["change"]["body_changed"])
@@ -63,13 +65,25 @@ class PlannerTests(unittest.TestCase):
         plan = self._plan(
             data,
             change_class="metadata+body",
+            version_intent="minor",
+            proposed_version="1.1",
             metadata_delta=[{"field": "version", "old": "1.0", "new": "1.1"}],
         )
         self.assertEqual("metadata+body", plan["change"]["class"])
 
     def test_reference_only_enumerates_body_changes(self) -> None:
         data = markdown("AET-DOC-TARGET", "Target", body="See [new](new.md).")
-        plan = self._plan(data, change_class="reference-only", version_intent="git-only")
+        plan = self._plan(
+            data,
+            change_class="reference-only",
+            version_intent="git-only",
+            reference_changes=[{
+                "old_line_number": 4,
+                "new_line_number": 4,
+                "old_line": "Baseline body.",
+                "new_line": "See [new](new.md).",
+            }],
+        )
         self.assertTrue(plan["change"]["body_diff"])
         self.assertEqual("git-only", plan["version"]["recommended_intent"])
 
@@ -78,7 +92,7 @@ class PlannerTests(unittest.TestCase):
         plan = self._plan(
             data,
             change_class="semantic-governance-change",
-            version_intent="major",
+            version_intent="git-only",
         )
         self.assertEqual("HIGH", plan["change"]["risk"])
         self.assertEqual("major", plan["version"]["recommended_intent"])
@@ -163,8 +177,12 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual("CANDIDATE_NEWLINE_DRIFT", error.diagnostics[0].code)
 
     def test_metadata_delta_must_be_exact(self) -> None:
+        data = markdown("AET-DOC-TARGET", "Target").replace(
+            b"integration: current",
+            b"integration: pending_integration",
+        )
         error = self._error(
-            markdown("AET-DOC-TARGET", "Target", version="1.1"),
+            data,
             change_class="metadata-only",
         )
         self.assertEqual("METADATA_DELTA_MISMATCH", error.diagnostics[0].code)

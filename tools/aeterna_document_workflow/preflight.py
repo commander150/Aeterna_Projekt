@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 
 from tools.aeterna_artifacts.model import Scope, Severity
 
 from .adapters import candidate_record
-from .content import inspect_markdown
+from .content import inspect_markdown, inspect_markdown_bytes
 from .git_state import capture_git_state
-from .model import MetadataDelta, PreflightContext, UpdateManifest, fail
+from .model import (
+    MetadataDelta,
+    PreflightContext,
+    ReferenceChange,
+    UpdateManifest,
+    fail,
+)
 from .resolver import resolve_artifact
 
 
@@ -61,6 +68,32 @@ def load_manifest(path: str | Path) -> UpdateManifest:
     proposed = payload.get("proposed_version")
     if proposed is not None and not isinstance(proposed, str):
         fail("PROPOSED_VERSION_INVALID", "proposed_version must be a string or null.")
+    raw_references = payload.get("reference_changes", [])
+    if not isinstance(raw_references, list):
+        fail("REFERENCE_CHANGE_INVALID", "reference_changes must be a list.")
+    references: list[ReferenceChange] = []
+    for index, item in enumerate(raw_references):
+        if not isinstance(item, dict):
+            fail("REFERENCE_CHANGE_INVALID", f"Invalid reference_changes entry at index {index}.")
+        try:
+            reference = ReferenceChange(
+                old_line_number=item["old_line_number"],
+                new_line_number=item["new_line_number"],
+                old_line=item["old_line"],
+                new_line=item["new_line"],
+            )
+        except KeyError as exc:
+            fail("REFERENCE_CHANGE_INVALID", f"Missing reference change field: {exc.args[0]}")
+        if (
+            not isinstance(reference.old_line_number, int)
+            or isinstance(reference.old_line_number, bool)
+            or not isinstance(reference.new_line_number, int)
+            or isinstance(reference.new_line_number, bool)
+            or not isinstance(reference.old_line, str)
+            or not isinstance(reference.new_line, str)
+        ):
+            fail("REFERENCE_CHANGE_INVALID", f"Invalid reference_changes entry at index {index}.")
+        references.append(reference)
     return UpdateManifest(
         artifact_id=_required_string(payload, "artifact_id"),
         expected_branch=_required_string(payload, "expected_branch"),
@@ -74,6 +107,7 @@ def load_manifest(path: str | Path) -> UpdateManifest:
         candidate_sha256=_required_string(payload, "candidate_sha256"),
         metadata_delta=tuple(deltas),
         proposed_version=proposed,
+        reference_changes=tuple(references),
     )
 
 
@@ -90,9 +124,18 @@ def run_preflight(
     repository_root: str | Path,
     manifest_path: str | Path,
 ) -> PreflightContext:
-    requested_root = Path(repository_root).resolve()
     manifest_file = Path(manifest_path).resolve()
     manifest = load_manifest(manifest_file)
+    return run_preflight_manifest(repository_root, manifest, manifest_file)
+
+
+def run_preflight_manifest(
+    repository_root: str | Path,
+    manifest: UpdateManifest,
+    manifest_path: str | Path,
+) -> PreflightContext:
+    requested_root = Path(repository_root).resolve()
+    manifest_file = Path(manifest_path).resolve()
     git = capture_git_state(requested_root)
     gates: list[dict[str, object]] = []
 
@@ -139,13 +182,21 @@ def run_preflight(
         if expected != observed:
             fail(code, f"Precondition {name} mismatch.", exit_code=3)
 
-    candidate_path = Path(manifest.candidate_path)
-    if not candidate_path.is_absolute():
-        candidate_path = (manifest_file.parent / candidate_path).resolve()
-    candidate = inspect_markdown(candidate_path)
-    gates.append(_gate("candidate_sha256", manifest.candidate_sha256, candidate.sha256))
-    if manifest.candidate_sha256 != candidate.sha256:
+    if manifest.resolved_candidate_path is not None:
+        candidate_path = Path(manifest.resolved_candidate_path).resolve()
+    else:
+        candidate_path = Path(manifest.candidate_path)
+        if not candidate_path.is_absolute():
+            candidate_path = (manifest_file.parent / candidate_path).resolve()
+    try:
+        candidate_data = candidate_path.read_bytes()
+    except OSError as exc:
+        fail("CONTENT_READ_ERROR", f"{candidate_path}: {exc}", exit_code=2)
+    candidate_hash = hashlib.sha256(candidate_data).hexdigest()
+    gates.append(_gate("candidate_sha256", manifest.candidate_sha256, candidate_hash))
+    if manifest.candidate_sha256 != candidate_hash:
         fail("CANDIDATE_HASH_MISMATCH", "Candidate SHA-256 does not match manifest.", exit_code=3)
+    candidate = inspect_markdown_bytes(candidate_data, candidate_path)
     for name, expected, observed, code in (
         ("candidate_encoding", baseline.encoding, candidate.encoding, "CANDIDATE_ENCODING_DRIFT"),
         ("candidate_bom", baseline.bom, candidate.bom, "CANDIDATE_BOM_DRIFT"),

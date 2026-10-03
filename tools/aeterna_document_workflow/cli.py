@@ -1,4 +1,4 @@
-"""Command line interface for read-only AETERNA document workflow planning."""
+"""Command line interface for governed AETERNA document updates."""
 
 from __future__ import annotations
 
@@ -10,10 +10,12 @@ from .impact import build_impact
 from .model import WorkflowError
 from .planner import build_update_plan
 from .resolver import record_payload, resolve_artifact
+from .review import verify_review_file
+from .transaction import apply_plan
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Read-only AETERNA document workflow.")
+    parser = argparse.ArgumentParser(description="Governed AETERNA document workflow.")
     commands = parser.add_subparsers(dest="command", required=True)
 
     resolve = commands.add_parser("resolve", help="Resolve an artifact from a fresh scan.")
@@ -30,6 +32,14 @@ def _parser() -> argparse.ArgumentParser:
     plan = commands.add_parser("plan-update", help="Build a deterministic no-write update plan.")
     plan.add_argument("--manifest", required=True)
     plan.add_argument("--repo", required=True)
+
+    apply = commands.add_parser("apply", help="Apply one materialized update plan transactionally.")
+    apply.add_argument("plan")
+    apply.add_argument("--repo", required=True)
+    apply.add_argument("--review-dir", required=True)
+
+    verify = commands.add_parser("verify-review", help="Verify historical review evidence.")
+    verify.add_argument("review")
     return parser
 
 
@@ -62,6 +72,17 @@ def _run(arguments: argparse.Namespace) -> int:
         return 0
     if arguments.command == "plan-update":
         _print_json(build_update_plan(arguments.repo, arguments.manifest))
+        return 0
+    if arguments.command == "apply":
+        _print_json(apply_plan(arguments.plan, arguments.repo, arguments.review_dir))
+        return 0
+    if arguments.command == "verify-review":
+        review = verify_review_file(arguments.review)
+        _print_json({
+            "status": "PASS",
+            "schema_version": review["schema_version"],
+            "review_semantic_sha256": review["review_semantic_sha256"],
+        })
         return 0
     return 2
 

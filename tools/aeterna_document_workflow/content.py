@@ -75,7 +75,9 @@ def inspect_markdown_bytes(data: bytes, path: str | Path = "<memory>") -> Conten
         bom=bom,
         newline=newline,
         front_matter_end=len(codecs.BOM_UTF8) * int(bom) + len(prefix),
+        front_matter_bytes=(codecs.BOM_UTF8 if bom else b"") + prefix,
         body_bytes=body,
+        data=data,
         metadata=parsed.metadata,
         metadata_fingerprint=metadata_fingerprint(fields),
     )

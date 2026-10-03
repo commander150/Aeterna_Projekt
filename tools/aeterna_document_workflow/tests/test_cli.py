@@ -6,6 +6,7 @@ import sys
 import unittest
 
 from .helpers import RepositoryFixture, markdown
+from tools.aeterna_document_workflow.planner import build_update_plan
 
 
 class CliTests(unittest.TestCase):
@@ -50,7 +51,7 @@ class CliTests(unittest.TestCase):
         self.assertEqual(before, self.fixture.tracked_bytes())
         rejected = self._run("apply")
         self.assertNotEqual(0, rejected.returncode)
-        self.assertIn("invalid choice", rejected.stderr)
+        self.assertIn("required", rejected.stderr)
 
     def test_structured_cli_failure_exit_code(self) -> None:
         result = self._run(
@@ -59,6 +60,24 @@ class CliTests(unittest.TestCase):
         self.assertEqual(1, result.returncode)
         payload = json.loads(result.stderr)
         self.assertEqual("ARTIFACT_UNKNOWN", payload["diagnostics"][0]["code"])
+
+    def test_apply_and_verify_review_end_to_end(self) -> None:
+        candidate = self.fixture.candidate(markdown("AET-DOC-TARGET", "Target", body="CLI apply."))
+        manifest = self.fixture.manifest(candidate)
+        plan = build_update_plan(self.fixture.root, manifest)
+        plan_path = candidate.parent / "plan.json"
+        plan_path.write_text(json.dumps(plan), encoding="utf-8")
+        review_dir = candidate.parent / "cli-review"
+        applied = self._run(
+            "apply", str(plan_path), "--repo", str(self.fixture.root),
+            "--review-dir", str(review_dir),
+        )
+        self.assertEqual(0, applied.returncode, applied.stderr)
+        payload = json.loads(applied.stdout)
+        self.assertEqual("PASS", payload["status"])
+        verified = self._run("verify-review", payload["review_json"])
+        self.assertEqual(0, verified.returncode, verified.stderr)
+        self.assertEqual("PASS", json.loads(verified.stdout)["status"])
 
 
 if __name__ == "__main__":
