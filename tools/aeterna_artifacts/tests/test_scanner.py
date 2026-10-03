@@ -6,7 +6,11 @@ import tempfile
 import unittest
 
 from tools.aeterna_artifacts.model import ArtifactRecord, Scope
-from tools.aeterna_artifacts.scanner import scan_repository, validate_record_set
+from tools.aeterna_artifacts.scanner import (
+    analyze_dependency_graph,
+    scan_repository,
+    validate_record_set,
+)
 
 
 def managed_markdown(
@@ -163,6 +167,53 @@ class ScannerTests(unittest.TestCase):
 
         self.assertIn("KIND_INVALID", {item.code for item in result.diagnostics})
         self.assertEqual((), result.artifacts)
+
+    def test_missing_dependency_target_is_an_error(self) -> None:
+        diagnostics = validate_record_set((
+            record(depends_on=("AET-DOC-MISSING",)),
+        ))
+
+        self.assertIn("DOC_DEPENDENCY_MISSING", {item.code for item in diagnostics})
+
+    def test_dependency_cycle_is_an_error(self) -> None:
+        first = record(artifact_id="AET-DOC-FIRST", depends_on=("AET-DOC-SECOND",))
+        second = record(
+            artifact_id="AET-DOC-SECOND",
+            path="Docs/Second.md",
+            depends_on=("AET-DOC-FIRST",),
+        )
+
+        diagnostics = validate_record_set((first, second))
+
+        self.assertIn("DOC_DEPENDENCY_CYCLE", {item.code for item in diagnostics})
+
+    def test_dependency_graph_reports_self_dependency(self) -> None:
+        graph = analyze_dependency_graph((
+            record(depends_on=("AET-DOC-TEST",)),
+        ))
+
+        self.assertEqual(("AET-DOC-TEST",), graph.self_dependencies)
+
+    def test_dependency_graph_reverse_and_transitive_dependents_are_deterministic(self) -> None:
+        source = record(artifact_id="AET-DOC-SOURCE")
+        direct = record(
+            artifact_id="AET-DOC-DIRECT",
+            path="Docs/Direct.md",
+            depends_on=("AET-DOC-SOURCE",),
+        )
+        transitive = record(
+            artifact_id="AET-DOC-TRANSITIVE",
+            path="Docs/Transitive.md",
+            depends_on=("AET-DOC-DIRECT",),
+        )
+
+        graph = analyze_dependency_graph((transitive, source, direct))
+
+        self.assertEqual(("AET-DOC-DIRECT",), graph.reverse_for("AET-DOC-SOURCE"))
+        self.assertEqual(
+            ("AET-DOC-DIRECT", "AET-DOC-TRANSITIVE"),
+            graph.transitive_dependents("AET-DOC-SOURCE"),
+        )
 
 
 if __name__ == "__main__":

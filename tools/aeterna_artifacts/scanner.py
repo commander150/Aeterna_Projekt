@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
@@ -17,6 +18,101 @@ _ARTIFACT_KEY = re.compile(r"(?m)^[ \t]*artifact_id[ \t]*:")
 _H1 = re.compile(r"^#[ \t]+(.+?)[ \t]*$")
 _EXCLUDED_ROOTS = frozenset({".git", ".venv", "temp", "learning", "archive"})
 _GENERATED_DIRECTORY = ("project", "generated")
+
+
+@dataclass(frozen=True)
+class DependencyGraph:
+    """Deterministic dependency relationships derived from artifact records."""
+
+    forward: tuple[tuple[str, tuple[str, ...]], ...]
+    reverse: tuple[tuple[str, tuple[str, ...]], ...]
+    missing_targets: tuple[tuple[str, str], ...]
+    self_dependencies: tuple[str, ...]
+    cycles: tuple[tuple[str, ...], ...]
+
+    def forward_for(self, artifact_id: str) -> tuple[str, ...]:
+        return dict(self.forward).get(artifact_id, ())
+
+    def reverse_for(self, artifact_id: str) -> tuple[str, ...]:
+        return dict(self.reverse).get(artifact_id, ())
+
+    def transitive_dependents(self, artifact_id: str) -> tuple[str, ...]:
+        seen: set[str] = set()
+        pending = list(self.reverse_for(artifact_id))
+        while pending:
+            dependent = pending.pop(0)
+            if dependent in seen:
+                continue
+            seen.add(dependent)
+            pending.extend(
+                item for item in self.reverse_for(dependent) if item not in seen
+            )
+        return tuple(sorted(seen))
+
+
+def _canonical_cycle(nodes: list[str]) -> tuple[str, ...]:
+    core = nodes[:-1]
+    rotations = [tuple(core[index:] + core[:index]) for index in range(len(core))]
+    canonical = min(rotations)
+    return canonical + (canonical[0],)
+
+
+def analyze_dependency_graph(records: Iterable[ArtifactRecord]) -> DependencyGraph:
+    """Build a deterministic graph and report missing, self and cyclic edges."""
+    materialized = tuple(sorted(records, key=lambda item: (item.artifact_id, item.path)))
+    known_ids = {record.artifact_id for record in materialized}
+    forward_map: dict[str, set[str]] = {artifact_id: set() for artifact_id in known_ids}
+    missing: set[tuple[str, str]] = set()
+    self_dependencies: set[str] = set()
+    for record in materialized:
+        for dependency in record.depends_on:
+            forward_map[record.artifact_id].add(dependency)
+            if dependency == record.artifact_id:
+                self_dependencies.add(record.artifact_id)
+            if dependency not in known_ids:
+                missing.add((record.artifact_id, dependency))
+
+    reverse_map: dict[str, set[str]] = {artifact_id: set() for artifact_id in known_ids}
+    for source, dependencies in forward_map.items():
+        for dependency in dependencies:
+            if dependency in reverse_map:
+                reverse_map[dependency].add(source)
+
+    state: dict[str, int] = {artifact_id: 0 for artifact_id in known_ids}
+    stack: list[str] = []
+    cycles: set[tuple[str, ...]] = set()
+
+    def visit(artifact_id: str) -> None:
+        state[artifact_id] = 1
+        stack.append(artifact_id)
+        for dependency in sorted(forward_map[artifact_id]):
+            if dependency not in state or dependency == artifact_id:
+                continue
+            if state[dependency] == 0:
+                visit(dependency)
+            elif state[dependency] == 1:
+                start = stack.index(dependency)
+                cycles.add(_canonical_cycle(stack[start:] + [dependency]))
+        stack.pop()
+        state[artifact_id] = 2
+
+    for artifact_id in sorted(known_ids):
+        if state[artifact_id] == 0:
+            visit(artifact_id)
+
+    return DependencyGraph(
+        forward=tuple(
+            (artifact_id, tuple(sorted(forward_map[artifact_id])))
+            for artifact_id in sorted(forward_map)
+        ),
+        reverse=tuple(
+            (artifact_id, tuple(sorted(reverse_map[artifact_id])))
+            for artifact_id in sorted(reverse_map)
+        ),
+        missing_targets=tuple(sorted(missing)),
+        self_dependencies=tuple(sorted(self_dependencies)),
+        cycles=tuple(sorted(cycles)),
+    )
 
 
 def _front_matter_end(lines: list[str]) -> int | None:
@@ -114,6 +210,29 @@ def validate_record_set(records: Iterable[ArtifactRecord]) -> tuple[Diagnostic, 
                 f"Case-insensitive path collision: {', '.join(unique_paths)}.",
                 "path",
             ))
+
+    graph = analyze_dependency_graph(materialized)
+    for source, target in graph.missing_targets:
+        diagnostics.append(Diagnostic(
+            "DOC_DEPENDENCY_MISSING",
+            Severity.ERROR,
+            f"Missing dependency target {target} referenced by {source}.",
+            "depends_on",
+        ))
+    for artifact_id in graph.self_dependencies:
+        diagnostics.append(Diagnostic(
+            "DOC_DEPENDENCY_SELF",
+            Severity.ERROR,
+            f"Artifact {artifact_id} depends on itself.",
+            "depends_on",
+        ))
+    for cycle in graph.cycles:
+        diagnostics.append(Diagnostic(
+            "DOC_DEPENDENCY_CYCLE",
+            Severity.ERROR,
+            f"Dependency cycle: {' -> '.join(cycle)}.",
+            "depends_on",
+        ))
 
     return tuple(diagnostics)
 
