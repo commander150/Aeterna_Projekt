@@ -2,9 +2,9 @@
 artifact_id: AET-DOC-DOCUMENT-UPDATE-WORKFLOW
 kind: document
 type: workflow
-version: "0.1"
+version: "0.2"
 lifecycle: active
-integration: pending_integration
+integration: current
 authority: operational-workflow
 generated: false
 depends_on:
@@ -17,7 +17,7 @@ supersedes: []
 
 ## 1. Cél, hatáskör és authority
 
-Ez a dokumentum az AETERNA jövőbeli, lokális dokumentumszerkesztő és -frissítő
+Ez a dokumentum az AETERNA lokális dokumentumszerkesztő és -frissítő
 workflow-jának operatív contractja. A workflow feladata, hogy stabil artifact ID
 alapján feloldja a célartifactot, ellenőrizze a kiinduló állapotot, egy előre
 rögzített tervhez kösse a módosítást, tranzakciósan alkalmazza a jóváhagyott
@@ -29,9 +29,12 @@ lokális eredmény review-, commit-, push- és remote handoffját. A jelen workf
 ezeket nem írja felül, hanem a dokumentumfrissítés részletes helyi műveleti
 rendjét adja meg.
 
-Az `integration: pending_integration` azt jelenti, hogy a contract már current
-governance-forrás, de az itt meghatározott mutation engine még nincs
-implementálva. Ez a dokumentum nem implementációs bizonyíték.
+Az `integration: current` azt jelenti, hogy a workflow implementált és az aktív
+operatív dokumentumfrissítési út része. A Markdown MVP implementációja a
+`tools/aeterna_document_workflow` alatt létezik, és a kontrollált valódi
+repository-acceptance teszten megfelelt. A jelen dokumentum marad az operatív
+contract; az implementációs bizonyítékot a repository kódja, tesztjei,
+review-evidence anyagai és Git-története adják.
 
 ## 2. MVP-határ
 
@@ -502,7 +505,7 @@ Az `0/1/2` jelentése kompatibilis a jelenlegi artifact-tooling konvenciójával
 A speciális workflow-hibák külön `3–5` kategóriát kapnak; nagyobb mátrixot az
 MVP nem vezet be.
 
-## 24. Jövőbeli CLI-felület
+## 24. MVP CLI-felület
 
 MVP surface:
 
@@ -553,9 +556,13 @@ szöveg az operatív forrás.
 
 ## 27. Implementációs fázishatár
 
-PILOT-7B csak contract. A következő fázis, PILOT-7C, read-only resolver,
-preflight, planning és impact implementációt készíthet a
-`tools/aeterna_document_workflow` vékony workflow-rétegben. Mutation code,
-transactional apply és Markdown update csak egy későbbi, külön jóváhagyott
-fázisban készülhet. A contract `integration` értéke csak tényleges implementáció
-és elfogadott evidence után válhat `current` állapotúvá.
+A PILOT-7B contract, a PILOT-7C read-only foundation, a PILOT-7D safe
+Markdown update MVP, a PILOT-7D.1 transaction hardening és a PILOT-7E
+controlled real repository acceptance `COMPLETE_AND_REMOTE_VERIFIED`.
+
+A `tools/aeterna_document_workflow` implementált és elfogadott a current,
+existing-managed-Markdown update MVP számára; az `integration` értéke `current`.
+
+A current MVP-n kívül marad: `create`; retirement vagy Archive-intake;
+move/rename; authority change; batch editing; XLSX; DOCX; source bundle; package
+manifest.

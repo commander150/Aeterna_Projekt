@@ -17,7 +17,7 @@
 | AET-DOC-DECISION-MAP | AETERNA Game Engine – Decision Map | index | 3.1 | active | current | project-direction | `project/decisions/DECISION_MAP.md` |
 | AET-DOC-DEVELOPMENT-ROADMAP | AETERNA – FEJLESZTÉSI ROADMAP ÉS MÉRFÖLDKŐ-RENDSZER | roadmap | 1.0 | active | pending_integration | project-direction | `project/planning/DEVELOPMENT_ROADMAP.md` |
 | AET-DOC-DOCUMENT-GOVERNANCE | AETERNA dokumentum- és artifact-governance | governance | 0.2 | active | current | document-governance | `project/governance/DOCUMENT_GOVERNANCE.md` |
-| AET-DOC-DOCUMENT-UPDATE-WORKFLOW | AETERNA dokumentumfrissítési workflow | workflow | 0.1 | active | pending_integration | operational-workflow | `project/governance/workflows/DOCUMENT_UPDATE_WORKFLOW.md` |
+| AET-DOC-DOCUMENT-UPDATE-WORKFLOW | AETERNA dokumentumfrissítési workflow | workflow | 0.2 | active | current | operational-workflow | `project/governance/workflows/DOCUMENT_UPDATE_WORKFLOW.md` |
 | AET-DOC-ENGINE-CHECKPOINT | AETERNA Game Engine – Engine Checkpoint | checkpoint | 2.0 | active | current | technical-status | `project/status/checkpoints/ENGINE_CHECKPOINT.md` |
 | AET-DOC-GITHUB-WORKFLOW | AETERNA GitHub workflow | workflow | 1.1 | active | current | operational-workflow | `project/governance/workflows/GITHUB_WORKFLOW.md` |
 | AET-DOC-IDEA-BACKLOG-OPEN-DESIGNS | AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK | reference | 1.1 | active | current | reference | `design/concepts/AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK.md` |

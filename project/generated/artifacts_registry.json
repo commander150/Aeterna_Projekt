@@ -196,9 +196,9 @@
       "title": "AETERNA dokumentumfrissítési workflow",
       "kind": "document",
       "type": "workflow",
-      "version": "0.1",
+      "version": "0.2",
       "lifecycle": "active",
-      "integration": "pending_integration",
+      "integration": "current",
       "authority": "operational-workflow",
       "generated": false,
       "depends_on": [
