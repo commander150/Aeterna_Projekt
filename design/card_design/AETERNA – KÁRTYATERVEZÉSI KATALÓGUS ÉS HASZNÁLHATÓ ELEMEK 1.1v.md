@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-CARD-DESIGN-CATALOG
+kind: document
+type: design-guide
+version: "1.1"
+lifecycle: active
+integration: current
+authority: design-guidance
+generated: false
+depends_on: []
+supersedes: []
+---
+
 AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK
 
 # Főindex

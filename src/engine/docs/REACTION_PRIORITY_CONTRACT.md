@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-REACTION-PRIORITY-CONTRACT
+kind: document
+type: contract
+version: "1.3"
+lifecycle: active
+integration: current
+authority: technical-contract
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA – REACTION / PRIORITY FOUNDATION CONTRACT
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

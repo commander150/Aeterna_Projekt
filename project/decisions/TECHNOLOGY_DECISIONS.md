@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-TECHNOLOGY-DECISIONS
+kind: document
+type: decision-log
+version: "2.5"
+lifecycle: active
+integration: current
+authority: technical-architecture
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA Game Engine – Technology Decisions
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

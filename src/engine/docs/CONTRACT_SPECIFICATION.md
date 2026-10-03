@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-CONTRACT-SPECIFICATION
+kind: document
+type: specification
+version: "2.0"
+lifecycle: active
+integration: current
+authority: technical-contract
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA Game Engine – Contract Specification
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

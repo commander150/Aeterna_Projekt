@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-IDEA-BACKLOG-OPEN-DESIGNS
+kind: document
+type: reference
+version: "1.1"
+lifecycle: active
+integration: current
+authority: reference
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

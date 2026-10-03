@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-ARCHITECTURE
+kind: document
+type: architecture
+version: "2.8"
+lifecycle: active
+integration: current
+authority: technical-architecture
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA Game Engine – Architecture
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

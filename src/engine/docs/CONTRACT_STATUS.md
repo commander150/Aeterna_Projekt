@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-CONTRACT-STATUS
+kind: document
+type: status
+version: "1.6"
+lifecycle: active
+integration: current
+authority: technical-status
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA Game Engine – Contract Status
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

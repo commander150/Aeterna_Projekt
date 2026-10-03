@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-ABILITY-MODULE-SYSTEM
+kind: document
+type: architecture
+version: "1.5"
+lifecycle: active
+integration: current
+authority: technical-architecture
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA Game Engine – Ability Module System
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

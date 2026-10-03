@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-AETERNA-0-0-1-TARGET
+kind: document
+type: roadmap
+version: "1.1"
+lifecycle: active
+integration: current
+authority: project-direction
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA – 0.0.1 MÉRFÖLDKŐ ÉS CÉLÁLLAPOT
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

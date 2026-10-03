@@ -1,3 +1,18 @@
+---
+artifact_id: AET-DOC-CARD-DATA-AUDIT-WORKFLOW
+kind: document
+type: workflow
+version: "1.2"
+lifecycle: active
+integration: current
+authority: operational-workflow
+generated: false
+depends_on:
+  - AET-DOC-CARD-DATA-WORKFLOW
+  - AET-DOC-CARD-DATA-MODEL
+supersedes: []
+---
+
 # AETERNA – KÁRTYAÁLLOMÁNY AUDITÁLÁSI MUNKAREND ÉS HIBAKATEGÓRIÁK
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-RUNTIME-PACKAGE-SPECIFICATION
+kind: document
+type: specification
+version: "2.4"
+lifecycle: active
+integration: current
+authority: technical-contract
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA Game Engine – Runtime Package Specification
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

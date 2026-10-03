@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-PROTOTYPE-STATUS
+kind: document
+type: status
+version: "1.6"
+lifecycle: active
+integration: current
+authority: technical-status
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA Game Engine – Prototype Status
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

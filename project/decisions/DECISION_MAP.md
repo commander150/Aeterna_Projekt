@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-DECISION-MAP
+kind: document
+type: index
+version: "3.1"
+lifecycle: active
+integration: current
+authority: project-direction
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA Game Engine – Decision Map
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-PRODUCT-RUNTIME-INSTALLATION-REQUIREMENTS
+kind: document
+type: specification
+version: "1.3"
+lifecycle: active
+integration: current
+authority: technical-contract
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA Game Engine – Termékruntime- és telepítési követelmények
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

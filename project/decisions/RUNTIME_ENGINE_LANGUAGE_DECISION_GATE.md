@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-RUNTIME-ENGINE-LANGUAGE-DECISION
+kind: document
+type: decision-log
+version: "1.4"
+lifecycle: active
+integration: current
+authority: technical-architecture
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA Game Engine – Runtime Engine Language Decision Gate
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-OPEN-QUESTIONS
+kind: document
+type: open-questions
+version: "2.3"
+lifecycle: active
+integration: current
+authority: project-direction
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA Game Engine – Open Questions
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

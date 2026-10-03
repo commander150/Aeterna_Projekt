@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-PROJECT-MAP-FILE-STATUS
+kind: document
+type: status
+version: "1.12"
+lifecycle: active
+integration: current
+authority: project-direction
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA – Projekt Térkép és Fájlstátusz v1.12
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ

@@ -1,3 +1,16 @@
+---
+artifact_id: AET-DOC-RUNTIME-PACKAGE-STATUS
+kind: document
+type: status
+version: "1.7"
+lifecycle: active
+integration: current
+authority: technical-status
+generated: false
+depends_on: []
+supersedes: []
+---
+
 # AETERNA Game Engine – Runtime Package Status
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
