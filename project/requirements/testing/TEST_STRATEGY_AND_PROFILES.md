@@ -2,13 +2,14 @@
 artifact_id: AET-DOC-TEST-STRATEGY-PROFILES
 kind: document
 type: specification
-version: "1.0"
+version: "1.1"
 lifecycle: active
 integration: current
 authority: operational-workflow
 generated: false
 depends_on:
   - AET-DOC-ENGINE-CHECKPOINT
+  - AET-DOC-DOCUMENT-UPDATE-WORKFLOW
 supersedes: []
 ---
 
@@ -192,3 +193,27 @@ Runtime-változtatás után minimum:
 6. diff-, scope- és source-integrity review.
 
 Dokumentációs vagy tooling-only változásnál a gameplay suite elhagyható, ha engine/runtime/data implementáció nem változott; a dokumentum-, metadata-, generálási és path-kapukat akkor is teljesíteni kell.
+
+## 11. Document update workflow tesztprofil
+
+A jövőbeli dokumentumfrissítő implementáció tesztcontractját az
+`AET-DOC-DOCUMENT-UPDATE-WORKFLOW` határozza meg. A profil négy rétege:
+
+1. **unit:** resolver, fingerprint, change classification, védett metadata,
+   dependency-gráf, byte-konvenció és determinisztikus modellek;
+2. **isolated repository fixture integration:** plan/apply, generated refresh,
+   transaction és rollback explicit írható fixture-rootban;
+3. **smoke:** resolve, no-write plan, fixture apply és final Git guard;
+4. **existing artifact regression:** a teljes `tools/aeterna_artifacts` suite és
+   repository scan változatlanul kötelező.
+
+Kötelező safety gate-ek:
+
+- a tesztek nem módosíthatják a valódi repositoryt;
+- a fixture-root explicit írható és nem függ implicit user-TEMP eléréstől;
+- dry-run után minden repository-byte és Git státusz változatlan;
+- stale HEAD, path, file hash vagy metadata fingerprint apply előtt elutasítandó;
+- írás utáni hiba verified rollbackot eredményez;
+- normál update Archive source-ot és targetet elutasít;
+- encoding, BOM és newline-konvenció változatlan;
+- a workflow nem futtat `git add`, `git commit` vagy `git push` műveletet.

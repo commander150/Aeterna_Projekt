@@ -181,7 +181,7 @@
       "title": "AETERNA dokumentum- és artifact-governance",
       "kind": "document",
       "type": "governance",
-      "version": "0.1",
+      "version": "0.2",
       "lifecycle": "active",
       "integration": "current",
       "authority": "document-governance",
@@ -190,6 +190,24 @@
       "supersedes": [],
       "scope": "ACTIVE",
       "path": "project/governance/DOCUMENT_GOVERNANCE.md"
+    },
+    {
+      "artifact_id": "AET-DOC-DOCUMENT-UPDATE-WORKFLOW",
+      "title": "AETERNA dokumentumfrissítési workflow",
+      "kind": "document",
+      "type": "workflow",
+      "version": "0.1",
+      "lifecycle": "active",
+      "integration": "pending_integration",
+      "authority": "operational-workflow",
+      "generated": false,
+      "depends_on": [
+        "AET-DOC-DOCUMENT-GOVERNANCE",
+        "AET-DOC-GITHUB-WORKFLOW"
+      ],
+      "supersedes": [],
+      "scope": "ACTIVE",
+      "path": "project/governance/workflows/DOCUMENT_UPDATE_WORKFLOW.md"
     },
     {
       "artifact_id": "AET-DOC-ENGINE-CHECKPOINT",
@@ -211,7 +229,7 @@
       "title": "AETERNA GitHub workflow",
       "kind": "document",
       "type": "workflow",
-      "version": "1.0",
+      "version": "1.1",
       "lifecycle": "active",
       "integration": "current",
       "authority": "operational-workflow",
@@ -302,10 +320,10 @@
     },
     {
       "artifact_id": "AET-DOC-PROJECT-PLAN",
-      "title": "AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.9",
+      "title": "AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.10",
       "kind": "document",
       "type": "project-plan",
-      "version": "6.9",
+      "version": "6.10",
       "lifecycle": "active",
       "integration": "current",
       "authority": "project-direction",
@@ -428,13 +446,14 @@
       "title": "AETERNA tesztstratégia és tesztprofilok",
       "kind": "document",
       "type": "specification",
-      "version": "1.0",
+      "version": "1.1",
       "lifecycle": "active",
       "integration": "current",
       "authority": "operational-workflow",
       "generated": false,
       "depends_on": [
-        "AET-DOC-ENGINE-CHECKPOINT"
+        "AET-DOC-ENGINE-CHECKPOINT",
+        "AET-DOC-DOCUMENT-UPDATE-WORKFLOW"
       ],
       "supersedes": [],
       "scope": "ACTIVE",

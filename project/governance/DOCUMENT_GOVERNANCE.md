@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-DOCUMENT-GOVERNANCE
 kind: document
 type: governance
-version: "0.1"
+version: "0.2"
 lifecycle: active
 integration: current
 authority: document-governance
@@ -262,3 +262,23 @@ Egy logikai artifact vagy source nem feltétlenül egyetlen fizikai fájl. Kül�
 ## 15. Enforcement principle
 
 A governance checker kezdetben fokozatos enforcementet használ. Nem idézhet elő repository-wide false-positive vihart csak azért, mert a régi repository még nem migrált teljesen. A migráció explicit batch-ekben történik.
+
+## 16. Governed document update workflow
+
+A managed artifact normál frissítése stabil artifact ID alapján történik, és
+megőrzi a current pathot. Move, rename, retirement, create és authority-váltás
+nem normál update, hanem külön governance operation class.
+
+A dokumentumfrissítés plan-first: a módosítás előtt fel kell oldani az artifactot
+a natív metadatából, rögzíteni kell a baseline-t és a tervezett scope-ot, majd az
+explicit apply után review-bizonyítékot kell készíteni. A részletes operatív
+contract: `project/governance/workflows/DOCUMENT_UPDATE_WORKFLOW.md`.
+
+A workflow:
+
+- nem teszi authorityvé a generált registryt vagy indexet;
+- nem írja felül az Archive immutable szabályát;
+- nem változtat authorityt normál metadata-update részeként;
+- nem stage-el, commitol vagy pushol;
+- formatadapteren keresztül kezeli az artifact fizikai formátumát, hogy a
+  Markdown MVP ne zárja ki a későbbi XLSX-, source-bundle- vagy package-kezelést.

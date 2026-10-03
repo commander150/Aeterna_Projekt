@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-GITHUB-WORKFLOW
 kind: document
 type: workflow
-version: "1.0"
+version: "1.1"
 lifecycle: active
 integration: current
 authority: operational-workflow
@@ -134,3 +134,15 @@ Push után ellenőrizni kell:
 - hogy a lokális és távoli végállapot között nincs megmagyarázatlan eltérés.
 
 A feladat akkor zárható le, amikor a jóváhagyott commit a remote repositoryban ellenőrizhető, vagy a handoff dokumentáltan megállt egy jelentett blokkolónál.
+
+## 11. Dokumentumfrissítési workflow integráció
+
+Managed dokumentum módosítása a
+`project/governance/workflows/DOCUMENT_UPDATE_WORKFLOW.md` szerinti lokális,
+plan-first folyamatban is előállhat. Az ott készülő operation plan és review
+bundle kiegészíti, de nem helyettesíti a jelen workflow szerinti Git diffet,
+source-integrity gate-et és emberi review-t.
+
+A dokumentumfrissítési workflow nem stage-el, commitol vagy pushol. A changed
+pathok áttekintése, a commitba kerülő tartalom kijelölése, a commit és a push
+továbbra is az itt meghatározott emberi GitHub Desktop handoff része.

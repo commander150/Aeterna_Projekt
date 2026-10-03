@@ -16,15 +16,16 @@
 | AET-DOC-CONTRACT-STATUS | AETERNA Game Engine – Contract Status | status | 1.6 | active | current | technical-status | `src/engine/docs/CONTRACT_STATUS.md` |
 | AET-DOC-DECISION-MAP | AETERNA Game Engine – Decision Map | index | 3.1 | active | current | project-direction | `project/decisions/DECISION_MAP.md` |
 | AET-DOC-DEVELOPMENT-ROADMAP | AETERNA – FEJLESZTÉSI ROADMAP ÉS MÉRFÖLDKŐ-RENDSZER | roadmap | 1.0 | active | pending_integration | project-direction | `project/planning/DEVELOPMENT_ROADMAP.md` |
-| AET-DOC-DOCUMENT-GOVERNANCE | AETERNA dokumentum- és artifact-governance | governance | 0.1 | active | current | document-governance | `project/governance/DOCUMENT_GOVERNANCE.md` |
+| AET-DOC-DOCUMENT-GOVERNANCE | AETERNA dokumentum- és artifact-governance | governance | 0.2 | active | current | document-governance | `project/governance/DOCUMENT_GOVERNANCE.md` |
+| AET-DOC-DOCUMENT-UPDATE-WORKFLOW | AETERNA dokumentumfrissítési workflow | workflow | 0.1 | active | pending_integration | operational-workflow | `project/governance/workflows/DOCUMENT_UPDATE_WORKFLOW.md` |
 | AET-DOC-ENGINE-CHECKPOINT | AETERNA Game Engine – Engine Checkpoint | checkpoint | 2.0 | active | current | technical-status | `project/status/checkpoints/ENGINE_CHECKPOINT.md` |
-| AET-DOC-GITHUB-WORKFLOW | AETERNA GitHub workflow | workflow | 1.0 | active | current | operational-workflow | `project/governance/workflows/GITHUB_WORKFLOW.md` |
+| AET-DOC-GITHUB-WORKFLOW | AETERNA GitHub workflow | workflow | 1.1 | active | current | operational-workflow | `project/governance/workflows/GITHUB_WORKFLOW.md` |
 | AET-DOC-IDEA-BACKLOG-OPEN-DESIGNS | AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK | reference | 1.1 | active | current | reference | `design/concepts/AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK.md` |
 | AET-DOC-OPEN-QUESTIONS | AETERNA Game Engine – Open Questions | open-questions | 2.3 | active | current | project-direction | `project/planning/OPEN_QUESTIONS.md` |
 | AET-DOC-OPEN-QUESTIONS-DECISIONS | AETERNA Game Engine – Open Questions Decisions | decision-log | 2.4 | active | current | project-direction | `project/decisions/OPEN_QUESTIONS_DECISIONS.md` |
 | AET-DOC-PRODUCT-RUNTIME-INSTALLATION-REQUIREMENTS | AETERNA Game Engine – Termékruntime- és telepítési követelmények | specification | 1.3 | active | current | technical-contract | `project/requirements/PRODUCT_RUNTIME_AND_INSTALLATION_REQUIREMENTS.md` |
 | AET-DOC-PROJECT-MAP-FILE-STATUS | AETERNA – Projekt Térkép és Fájlstátusz v1.12 | status | 1.12 | active | current | project-direction | `project/status/PROJEKT_TERKEP_ES_FAJLSTATUSZ.md` |
-| AET-DOC-PROJECT-PLAN | AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.9 | project-plan | 6.9 | active | current | project-direction | `project/planning/PROJECT_PLAN.md` |
+| AET-DOC-PROJECT-PLAN | AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.10 | project-plan | 6.10 | active | current | project-direction | `project/planning/PROJECT_PLAN.md` |
 | AET-DOC-PROTOTYPE-STATUS | AETERNA Game Engine – Prototype Status | status | 1.6 | active | current | technical-status | `project/status/PROTOTYPE_STATUS.md` |
 | AET-DOC-REACTION-PRIORITY-CONTRACT | AETERNA – REACTION / PRIORITY FOUNDATION CONTRACT | contract | 1.3 | active | current | technical-contract | `src/engine/docs/REACTION_PRIORITY_CONTRACT.md` |
 | AET-DOC-RUNTIME-ENGINE-LANGUAGE-DECISION | AETERNA Game Engine – Runtime Engine Language Decision Gate | decision-log | 1.4 | active | current | technical-architecture | `project/decisions/RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md` |
@@ -32,4 +33,4 @@
 | AET-DOC-RUNTIME-PACKAGE-STATUS | AETERNA Game Engine – Runtime Package Status | status | 1.7 | active | current | technical-status | `data/status/RUNTIME_PACKAGE_STATUS.md` |
 | AET-DOC-SEED-REPRODUCIBILITY | AETERNA seed- és reprodukálhatósági konvenció | specification | 1.0 | active | current | operational-workflow | `project/requirements/testing/SEED_AND_REPRODUCIBILITY_CONVENTION.md` |
 | AET-DOC-TECHNOLOGY-DECISIONS | AETERNA Game Engine – Technology Decisions | decision-log | 2.5 | active | current | technical-architecture | `project/decisions/TECHNOLOGY_DECISIONS.md` |
-| AET-DOC-TEST-STRATEGY-PROFILES | AETERNA tesztstratégia és tesztprofilok | specification | 1.0 | active | current | operational-workflow | `project/requirements/testing/TEST_STRATEGY_AND_PROFILES.md` |
+| AET-DOC-TEST-STRATEGY-PROFILES | AETERNA tesztstratégia és tesztprofilok | specification | 1.1 | active | current | operational-workflow | `project/requirements/testing/TEST_STRATEGY_AND_PROFILES.md` |
