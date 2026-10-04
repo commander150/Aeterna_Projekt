@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-PROJECT-PLAN
 kind: document
 type: project-plan
-version: "6.11"
+version: "6.12"
 lifecycle: active
 integration: current
 authority: project-direction
@@ -11,14 +11,14 @@ depends_on: []
 supersedes: []
 ---
 
-# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.11
+# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.12
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 6.11
-**Dátum:** 2026-10-03
+**Dokumentumverzió:** 6.12
+**Dátum:** 2026-10-04
 **Státusz:** aktív projektirányító és prioritási dokumentum
-**Előző aktív verzió:** 6.10 (Git history)
+**Előző aktív verzió:** 6.11 (Git history)
 **Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **Előző technikai checkpoint-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
@@ -62,7 +62,7 @@ Aktív irányító réteg:
 
 1. jelen projektterv;
 2. `project/status/checkpoints/ENGINE_CHECKPOINT.md`;
-3. `PROJEKT_TERKEP_ES_FAJLSTATUSZ` aktuális verziója;
+3. `project/status/PROJECT_MAP_FILE_STATUS.md`;
 4. közvetlenül érintett aktív engine-státusz- és contractdokumentumok.
 
 ---
@@ -303,7 +303,7 @@ VS1 előtt csak az a capability válik kötelező blockerré, amely a két VS1 p
 szabályos, elejétől `MatchResult`-ig tartó játékához ténylegesen szükséges, vagy
 olyan általános engine-invariáns, amely nélkül a VS1 nem tekinthető korrektnek.
 
-Következő tényleges szakmai lépés:
+Következő engine/product lépés a runtime-fejlesztés folytatásakor:
 
 ```text
 VS1 content/mechanic readiness audit
@@ -312,6 +312,8 @@ VS1 content/mechanic readiness audit
 → simple fair AI + minimal playable Godot
 → VS1 end-to-end acceptance
 ```
+
+A current repository-level priority a dokumentumkezelési workstream marad a tervezett closeout- és editor-foundation lépések befejezéséig.
 
 ## 6. Aktuális döntési kapuk és Open Questions
 
@@ -377,7 +379,7 @@ Frissítve és összehangolva:
 - root `README.md`;
 - `Aeterna dokumentációk/README.md`;
 - jelen projektterv v6.5;
-- `PROJEKT_TERKEP_ES_FAJLSTATUSZ v1.8.md`;
+- `project/status/PROJECT_MAP_FILE_STATUS.md`;
 - `Aeterna game engine/README.md`;
 - `Aeterna game engine/docs/README.md`;
 - `project/status/checkpoints/ENGINE_CHECKPOINT.md`;
@@ -468,23 +470,49 @@ A learning projekt nem szabályforrás és nem közvetlen kódforrás.
 
 ### 9.1 Current dokumentum-governance fázis
 
-A PILOT-6 stable filename migration `COMPLETE`; mind a 29 managed artifact
-stabil artifact ID-val, stabil current fájlnévvel és natív metadata-authorityvel
-rendelkezik. A PILOT-7A editor/updater design audit `COMPLETE`.
+A PILOT-6 stable filename migration `COMPLETE`; mind a 29 managed artifact stabil
+artifact ID-val, stabil current fájlnévvel és natív metadata-authorityvel rendelkezik.
+A PILOT-7A editor/updater design audit `COMPLETE`.
 
-A PILOT-7B document update workflow contract `COMPLETE_AND_REMOTE_VERIFIED`; a
-PILOT-7C read-only workflow foundation `COMPLETE_AND_REMOTE_VERIFIED`; a PILOT-7D
-safe Markdown update MVP és a 7D.1 transaction hardening
-`COMPLETE_AND_REMOTE_VERIFIED`.
+Az elfogadott foundation-lépések:
 
-A `tools/aeterna_document_workflow` transactional document workflow implementáció
-`IMPLEMENTED`. A current acceptance lépés az első valódi managed dokumentum
-kontrollált frissítése ezen a workflow-n keresztül. A
-`project/governance/workflows/DOCUMENT_UPDATE_WORKFLOW.md` integration státusza
-változatlanul `pending_integration`.
+- PILOT-7B document update workflow contract: `COMPLETE_AND_REMOTE_VERIFIED`;
+- PILOT-7C read-only workflow foundation: `COMPLETE_AND_REMOTE_VERIFIED`;
+- PILOT-7D safe Markdown update MVP: `COMPLETE_AND_REMOTE_VERIFIED`;
+- PILOT-7D.1 transaction hardening: `COMPLETE_AND_REMOTE_VERIFIED`;
+- PILOT-7E first real governed managed-document update: `COMPLETE_AND_REMOTE_VERIFIED`;
+- PILOT-7F workflow integration/self-hosting activation: `COMPLETE_AND_REMOTE_VERIFIED`;
+- PILOT-7G current filename normalization: `COMPLETE_AND_REMOTE_VERIFIED`;
+- PILOT-7G.1 remaining current source filename normalization: `COMPLETE_AND_REMOTE_VERIFIED`.
 
-A VS1 továbbra is a következő nagy product-facing cél, de a current acceptance és
-a külön governance integration-activation elfogadásáig nem indul implementáció.
+Az `AET-DOC-DOCUMENT-UPDATE-WORKFLOW` verziója `0.2`, integration státusza
+`current`. A `tools/aeterna_document_workflow` állapota `IMPLEMENTED_AND_ACCEPTED`;
+a current existing-managed-Markdown update workflow `CURRENT`, és az elfogadott
+`resolve → impact → plan-update → apply → verify-review` folyamatot biztosítja.
+
+`DOCUMENT_GOVERNANCE_FOUNDATION = COMPLETE_AND_CURRENT`
+
+Ez a foundation lezárását jelenti, nem minden jövőbeli dokumentumkezelési képesség
+elkészültét. A current workflow még nem biztosít általános támogatást a következőkre:
+`create`, `retire/archive intake`, `move/rename`, authority change, batch editing,
+XLSX editing, DOCX editing, source-bundle editing és package-manifest editing.
+A PILOT-7G/7G.1 bounded structural migration volt, ezért nem bizonyít generic
+move/rename támogatást.
+
+A current managed/document technical filename normalization `COMPLETE`. Az elfogadott
+migrációkkal lefedett current réteg stabil English/ASCII fájlneveket használ; az
+Archive/history történeti fájlnevei szándékosan megmaradhatnak.
+
+A ChatGPT Library refresh szándékosan a stable filenames, a current document update
+workflow és a filename normalization elkészülte utánra maradt. Ezek az előfeltételek
+most teljesülnek, ezért `CHATGPT_LIBRARY_REFRESH = NEXT`. Ez a frissítés csak a következő
+projektlépés rögzítése; a Library ebben a műveletben nem változik.
+
+Az `AETERNA Document Editor` lesz a governed document workflow fölötti dedikált
+authoring/editing réteg. Koncepcionális felelőssége a human/AI-assisted content
+authoring, a structured target selection, a candidate generation és a diff/review;
+validáláshoz és alkalmazáshoz a meglévő governed workflow-t használja. Az editor
+implementációs keretrendszeréről a későbbi specifikáció dönt.
 
 ---
 
@@ -510,22 +538,38 @@ a külön governance integration-activation elfogadásáig nem indul implementá
 **PILOT-7A editor/updater design audit:** `COMPLETE`
 **PILOT-7B document update workflow contract:** `COMPLETE_AND_REMOTE_VERIFIED`
 **PILOT-7C read-only workflow foundation:** `COMPLETE_AND_REMOTE_VERIFIED`
-**PILOT-7D safe Markdown update MVP + 7D.1 transaction hardening:** `COMPLETE_AND_REMOTE_VERIFIED`
-**Editor/updater implementation:** `IMPLEMENTED_PENDING_REAL_UPDATE_ACCEPTANCE`
-**Document update workflow integration:** `pending_integration`
-**VS1 / M6:** `NEXT MAJOR PRODUCT-FACING GOAL AFTER GOVERNANCE ACCEPTANCE`
+**PILOT-7D safe Markdown update MVP:** `COMPLETE_AND_REMOTE_VERIFIED`
+**PILOT-7D.1 transaction hardening:** `COMPLETE_AND_REMOTE_VERIFIED`
+**PILOT-7E first real governed managed-document update:** `COMPLETE_AND_REMOTE_VERIFIED`
+**PILOT-7F workflow integration/self-hosting activation:** `COMPLETE_AND_REMOTE_VERIFIED`
+**PILOT-7G current filename normalization:** `COMPLETE_AND_REMOTE_VERIFIED`
+**PILOT-7G.1 remaining current source filename normalization:** `COMPLETE_AND_REMOTE_VERIFIED`
+**Document update workflow:** `0.2 / current`
+**Document governance foundation:** `COMPLETE_AND_CURRENT`
+**Current filename normalization:** `COMPLETE`
+**ChatGPT Library refresh:** `NEXT`
+**Minimal governed create:** `PLANNED`
+**AETERNA Document Editor v0.1 specification:** `PLANNED`
+**AETERNA Document Editor implementation:** `PLANNED`
+**VS1 / M6:** `NEXT MAJOR PRODUCT-FACING GOAL AFTER DOCUMENT-MANAGEMENT PRIORITY`
 **0.0.1:** `ACTIVE_LONG_TERM_TARGET`
 
 ## 11. Következő szakmai munkasorrend
 
-1. az első valódi managed dokumentum frissítése a governed workflow-val;
-2. a generált plan/apply/review evidence emberi review-ja;
-3. a valódi frissítés emberi commit/push művelete és remote verificationje;
-4. csak sikeres remote verification után az
-   `AET-DOC-DOCUMENT-UPDATE-WORKFLOW` külön governed integration-activation
-   frissítése;
-5. az integration activation elfogadása után a következő jóváhagyott projektfázis
-   folytatása.
+1. ChatGPT Library audit and refresh a current canonical governed repository
+   dokumentumok alapján;
+2. minimal governed `CREATE` capability új managed Markdown artifactokhoz;
+3. AETERNA Document Editor v0.1 specification;
+4. AETERNA Document Editor implementation foundation.
+
+Elfogadott státusz:
+
+- `Library refresh = NEXT`;
+- `minimal governed create = PLANNED`;
+- `AETERNA Document Editor v0.1 specification = PLANNED`;
+- `AETERNA Document Editor implementation = PLANNED`.
+
+E lépések után a runtime / VS1 munka a projektprioritás szerint folytatható.
 
 Reaction / Priority v1: `COMPLETE_AND_ACCEPTED`.
 
