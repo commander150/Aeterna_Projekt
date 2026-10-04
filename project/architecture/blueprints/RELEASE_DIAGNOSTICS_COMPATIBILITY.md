@@ -5,7 +5,7 @@
 - **Verzió:** 0.1
 - **Dátum:** 2026-08-15
 - **Státusz:** architecture blueprint / release-maturity plan
-- **Javasolt repository-útvonal:** `project/architecture/blueprints/RELEASE_DIAGNOSTICS_COMPATIBILITY_v0.1.md`
+- **Javasolt repository-útvonal:** `project/architecture/blueprints/RELEASE_DIAGNOSTICS_COMPATIBILITY.md`
 - **Repository-bázis:** `b7c5a51a921d11779e50a127171b49166dd80b96`
 - **Nem release automation implementation spec.**
 

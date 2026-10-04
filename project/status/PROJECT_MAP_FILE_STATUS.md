@@ -106,7 +106,7 @@ történt canonical activation. A consumer-kompatibilitás rendezése W6B2B, a
 
 ### 2.5 Aktuális adataudit
 
-- `data/reviews/AETERNA – KÁRTYAADATBÁZIS AKTUÁLIS ADATAUDIT 1.0.md`.
+- `data/reviews/CARD_DATABASE_CURRENT_DATA_AUDIT.md`.
 
 Státusz: `ACTIVE_DATA_AUDIT`
 
@@ -116,7 +116,7 @@ Státusz: `ACTIVE_DATA_AUDIT`
 
 - root `README.md`;
 - `project/planning/PROJECT_PLAN.md`;
-- jelen `PROJEKT_TERKEP_ES_FAJLSTATUSZ.md`;
+- jelen `PROJECT_MAP_FILE_STATUS.md`;
 - `project/status/checkpoints/ENGINE_CHECKPOINT.md`.
 
 A korábbi projekttervek és projekt-térképek történeti/archív elődök.

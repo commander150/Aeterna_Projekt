@@ -30,7 +30,7 @@
       "depends_on": [],
       "supersedes": [],
       "scope": "ACTIVE",
-      "path": "project/status/AETERNA_0.0.1_MERFOLDKO_ES_CELALLAPOT.md"
+      "path": "project/status/AETERNA_0.0.1_TARGET.md"
     },
     {
       "artifact_id": "AET-DOC-ARCHITECTURE",
@@ -114,7 +114,7 @@
       "depends_on": [],
       "supersedes": [],
       "scope": "ACTIVE",
-      "path": "design/card_design/AETERNA – KÁRTYATERVEZÉSI KATALÓGUS ÉS HASZNÁLHATÓ ELEMEK.md"
+      "path": "design/card_design/CARD_DESIGN_CATALOG.md"
     },
     {
       "artifact_id": "AET-DOC-CONTRACT-SPECIFICATION",
@@ -256,7 +256,7 @@
       "depends_on": [],
       "supersedes": [],
       "scope": "ACTIVE",
-      "path": "design/concepts/AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK.md"
+      "path": "design/concepts/IDEA_BACKLOG_OPEN_DESIGNS.md"
     },
     {
       "artifact_id": "AET-DOC-OPEN-QUESTIONS",
@@ -316,7 +316,7 @@
       "depends_on": [],
       "supersedes": [],
       "scope": "ACTIVE",
-      "path": "project/status/PROJEKT_TERKEP_ES_FAJLSTATUSZ.md"
+      "path": "project/status/PROJECT_MAP_FILE_STATUS.md"
     },
     {
       "artifact_id": "AET-DOC-PROJECT-PLAN",

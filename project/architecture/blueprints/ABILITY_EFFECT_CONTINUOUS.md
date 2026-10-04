@@ -5,7 +5,7 @@
 - **Verzió:** 0.1
 - **Dátum:** 2026-08-15
 - **Státusz:** architecture blueprint / current foundation expansion plan
-- **Javasolt repository-útvonal:** `project/architecture/blueprints/ABILITY_EFFECT_CONTINUOUS_v0.1.md`
+- **Javasolt repository-útvonal:** `project/architecture/blueprints/ABILITY_EFFECT_CONTINUOUS.md`
 - **Repository-bázis:** `b7c5a51a921d11779e50a127171b49166dd80b96`
 - **Rules authority:** official AETERNA sources
 - **Nem full card coverage spec.**

@@ -5,7 +5,7 @@
 - **Verzió:** 0.1
 - **Dátum:** 2026-08-15
 - **Státusz:** architecture blueprint / nem implementation spec
-- **Javasolt repository-útvonal:** `project/architecture/blueprints/AI_HEADLESS_ENVIRONMENT_v0.1.md`
+- **Javasolt repository-útvonal:** `project/architecture/blueprints/AI_HEADLESS_ENVIRONMENT.md`
 - **Rules authority:** AETERNA official sources
 - **Production authority:** current C# EngineSession / MatchState
 - **Learning input:** AI/simulation synthesis

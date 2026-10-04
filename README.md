@@ -55,7 +55,7 @@ A rules authority DOCX, a runtime package derived programadat. Egyik sem helyett
 Elsődleges current projektirányító réteg:
 
 - `project/planning/PROJECT_PLAN.md`;
-- `project/status/PROJEKT_TERKEP_ES_FAJLSTATUSZ.md`;
+- `project/status/PROJECT_MAP_FILE_STATUS.md`;
 - `project/status/checkpoints/ENGINE_CHECKPOINT.md`.
 
 Aktuális engine-státusz, architektúra és döntések:

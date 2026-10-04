@@ -5,7 +5,7 @@
 - **Dokumentumverzió:** 0.2
 - **Dátum:** 2026-08-15
 - **Státusz:** konkrét contract-ajánlásokkal pontosított implementation-előkészítő blueprint
-- **Javasolt repository-útvonal:** `project/architecture/blueprints/REACTION_PRIORITY_FOUNDATION_v0.2.md`
+- **Javasolt repository-útvonal:** `project/architecture/blueprints/REACTION_PRIORITY_FOUNDATION.md`
 - **Repository-bázis:** `b7c5a51a921d11779e50a127171b49166dd80b96`
 - **Production engine alap:** Explicit Phase Foundation `2608345b61526097fc0b118f05461f92cfed0a95`
 - **Rules authority:** `AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.4.3v`

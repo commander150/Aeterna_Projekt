@@ -4,7 +4,7 @@
 - **Verzió:** 0.8
 - **Dátum:** 2026-08-15
 - **Státusz:** PRE-OQ ARCHITECTURE COVERAGE COMPLETE
-- **Javasolt repository-útvonal:** `project/architecture/blueprints/BLUEPRINT_PROGRAM_INDEX_v0.8.md`
+- **Javasolt repository-útvonal:** `project/architecture/blueprints/BLUEPRINT_PROGRAM_INDEX.md`
 
 # 1. Hullámok
 

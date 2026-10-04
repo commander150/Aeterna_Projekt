@@ -5,7 +5,7 @@
 - **Verzió:** 0.1
 - **Dátum:** 2026-08-15
 - **Státusz:** architecture blueprint / current data architecture formalization
-- **Javasolt repository-útvonal:** `project/architecture/blueprints/DATA_CONTENT_RUNTIME_PACKAGE_v0.1.md`
+- **Javasolt repository-útvonal:** `project/architecture/blueprints/DATA_CONTENT_RUNTIME_PACKAGE.md`
 - **Repository-bázis:** `b7c5a51a921d11779e50a127171b49166dd80b96`
 - **Rules authority:** official AETERNA sources
 - **Nem új data-authority dokumentum.**

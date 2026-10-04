@@ -6,7 +6,7 @@
 **Dátum:** 2026-07-21  
 **Státusz:** aktív adatkonzisztencia- és átvezetési audit  
 **Auditált munkaforrás:** `AETERNA – KÁRTYAADATBÁZIS MUNKAFORRÁS 1.9v.xlsx`  
-**Tervezett repository-útvonal:** `data/reviews/AETERNA – KÁRTYAADATBÁZIS AKTUÁLIS ADATAUDIT 1.0.md`  
+**Tervezett repository-útvonal:** `data/reviews/CARD_DATABASE_CURRENT_DATA_AUDIT.md`  
 **Hivatalos szabályforrás:** nem  
 **Adatmódosítás történt:** nem  
 **Kapcsolódó külön lookup-forrás:** `LOOKUPS.xlsx` – külön végső ellenőrzési kapu szükséges

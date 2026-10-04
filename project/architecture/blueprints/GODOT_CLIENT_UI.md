@@ -5,7 +5,7 @@
 - **Verzió:** 0.1
 - **Dátum:** 2026-08-15
 - **Státusz:** client architecture blueprint
-- **Javasolt repository-útvonal:** `project/architecture/blueprints/GODOT_CLIENT_UI_v0.1.md`
+- **Javasolt repository-útvonal:** `project/architecture/blueprints/GODOT_CLIENT_UI.md`
 - **Repository-bázis:** `b7c5a51a921d11779e50a127171b49166dd80b96`
 - **Rules authority:** Aeterna.Engine
 - **Nem vizuális art-direction dokumentum.**

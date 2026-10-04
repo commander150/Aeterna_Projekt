@@ -5,7 +5,7 @@
 - **Verzió:** 0.1
 - **Dátum:** 2026-08-15
 - **Státusz:** architecture blueprint / backend-semleges
-- **Javasolt repository-útvonal:** `project/architecture/blueprints/MULTIPLAYER_SESSION_RECONNECT_v0.1.md`
+- **Javasolt repository-útvonal:** `project/architecture/blueprints/MULTIPLAYER_SESSION_RECONNECT.md`
 - **Production rules authority:** Aeterna.Engine
 - **Nem választ konkrét backend technológiát.**
 

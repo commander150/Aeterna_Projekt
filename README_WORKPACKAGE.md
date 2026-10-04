@@ -7,7 +7,7 @@ A csomag a teljes eddigi blueprint/learning synthesis aktív munkaváltozatát t
 
 ## Új v1.0-ban
 - `godot_client_and_ui.md`
-- `project/architecture/blueprints/GODOT_CLIENT_UI_v0.1.md`
+- `project/architecture/blueprints/GODOT_CLIENT_UI.md`
 - Pattern Catalog v1.0
 - Capability Matrix v1.0
 - Program Index v0.8
@@ -15,17 +15,17 @@ A csomag a teljes eddigi blueprint/learning synthesis aktív munkaváltozatát t
 ## Aktív rolling dokumentumok
 - `PROJECT_CAPABILITY_MATRIX_v1.0.md`
 - `PATTERN_CATALOG_v1.0.md`
-- `project/architecture/blueprints/BLUEPRINT_PROGRAM_INDEX_v0.8.md`
+- `project/architecture/blueprints/BLUEPRINT_PROGRAM_INDEX.md`
 
 ## Aktív blueprint-ek
-- `project/architecture/blueprints/REACTION_PRIORITY_FOUNDATION_v0.2.md`
-- `project/architecture/blueprints/ACTION_VALIDATION_EVENT_PIPELINE_v0.1.md`
-- `project/architecture/blueprints/ABILITY_EFFECT_CONTINUOUS_v0.1.md`
-- `project/architecture/blueprints/AI_HEADLESS_ENVIRONMENT_v0.1.md`
-- `project/architecture/blueprints/MULTIPLAYER_SESSION_RECONNECT_v0.1.md`
-- `project/architecture/blueprints/DATA_CONTENT_RUNTIME_PACKAGE_v0.1.md`
-- `project/architecture/blueprints/RELEASE_DIAGNOSTICS_COMPATIBILITY_v0.1.md`
-- `project/architecture/blueprints/GODOT_CLIENT_UI_v0.1.md`
+- `project/architecture/blueprints/REACTION_PRIORITY_FOUNDATION.md`
+- `project/architecture/blueprints/ACTION_VALIDATION_EVENT_PIPELINE.md`
+- `project/architecture/blueprints/ABILITY_EFFECT_CONTINUOUS.md`
+- `project/architecture/blueprints/AI_HEADLESS_ENVIRONMENT.md`
+- `project/architecture/blueprints/MULTIPLAYER_SESSION_RECONNECT.md`
+- `project/architecture/blueprints/DATA_CONTENT_RUNTIME_PACKAGE.md`
+- `project/architecture/blueprints/RELEASE_DIAGNOSTICS_COMPATIBILITY.md`
+- `project/architecture/blueprints/GODOT_CLIENT_UI.md`
 
 ## Következő munkakör
 1. Learning Catalog / Source Registry maintenance
