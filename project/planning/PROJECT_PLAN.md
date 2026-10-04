@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-PROJECT-PLAN
 kind: document
 type: project-plan
-version: "6.12"
+version: "6.13"
 lifecycle: active
 integration: current
 authority: project-direction
@@ -11,14 +11,14 @@ depends_on: []
 supersedes: []
 ---
 
-# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.12
+# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.13
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 6.12
+**Dokumentumverzió:** 6.13
 **Dátum:** 2026-10-04
 **Státusz:** aktív projektirányító és prioritási dokumentum
-**Előző aktív verzió:** 6.11 (Git history)
+**Előző aktív verzió:** 6.12 (Git history)
 **Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **Előző technikai checkpoint-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
@@ -503,10 +503,23 @@ A current managed/document technical filename normalization `COMPLETE`. Az elfog
 migrációkkal lefedett current réteg stabil English/ASCII fájlneveket használ; az
 Archive/history történeti fájlnevei szándékosan megmaradhatnak.
 
-A ChatGPT Library refresh szándékosan a stable filenames, a current document update
-workflow és a filename normalization elkészülte utánra maradt. Ezek az előfeltételek
-most teljesülnek, ezért `CHATGPT_LIBRARY_REFRESH = NEXT`. Ez a frissítés csak a következő
-projektlépés rögzítése; a Library ebben a műveletben nem változik.
+A ChatGPT Library manuális auditja és refresh-e elkészült. A Library egy
+`completed structural/context snapshot`: cross-chat retrieval-, struktúra- és
+kontextustámpont, amely új beszélgetésben segíti a projektmodell rekonstruálását és a
+korábbi beszélgetések, történeti snapshotok visszakeresését.
+
+`CHATGPT_LIBRARY_REFRESH = COMPLETE`
+
+A ChatGPT Library nem a repository automatikusan szinkronizált current másolata.
+`continuous repository synchronization = NOT REQUIRED`; a `canonical latest source =
+GitHub main`, ezért eltérés esetén GitHub `main` az irányadó. A pontos aktuális
+dokumentumverziót, HEAD-et, státuszt és implementációt GitHubról kell ellenőrizni.
+
+`LIBRARY_ROLE = STRUCTURE_AND_CONTEXT_SNAPSHOT`
+`CANONICAL_CURRENT_SOURCE = GITHUB_MAIN`
+`CONTINUOUS_LIBRARY_SYNC_REQUIRED = NO`
+
+A következő projektlépés: `MINIMAL_GOVERNED_CREATE = NEXT`.
 
 Az `AETERNA Document Editor` lesz a governed document workflow fölötti dedikált
 authoring/editing réteg. Koncepcionális felelőssége a human/AI-assisted content
@@ -547,8 +560,8 @@ implementációs keretrendszeréről a későbbi specifikáció dönt.
 **Document update workflow:** `0.2 / current`
 **Document governance foundation:** `COMPLETE_AND_CURRENT`
 **Current filename normalization:** `COMPLETE`
-**ChatGPT Library refresh:** `NEXT`
-**Minimal governed create:** `PLANNED`
+**ChatGPT Library refresh:** `COMPLETE`
+**Minimal governed create:** `NEXT`
 **AETERNA Document Editor v0.1 specification:** `PLANNED`
 **AETERNA Document Editor implementation:** `PLANNED`
 **VS1 / M6:** `NEXT MAJOR PRODUCT-FACING GOAL AFTER DOCUMENT-MANAGEMENT PRIORITY`
@@ -556,20 +569,17 @@ implementációs keretrendszeréről a későbbi specifikáció dönt.
 
 ## 11. Következő szakmai munkasorrend
 
-1. ChatGPT Library audit and refresh a current canonical governed repository
-   dokumentumok alapján;
-2. minimal governed `CREATE` capability új managed Markdown artifactokhoz;
-3. AETERNA Document Editor v0.1 specification;
-4. AETERNA Document Editor implementation foundation.
+1. minimal governed `CREATE` capability új managed Markdown artifactokhoz;
+2. AETERNA Document Editor v0.1 specification;
+3. AETERNA Document Editor implementation foundation;
+4. runtime / VS1 munka később, a projektprioritás szerint.
 
 Elfogadott státusz:
 
-- `Library refresh = NEXT`;
-- `minimal governed create = PLANNED`;
+- `ChatGPT Library refresh = COMPLETE`;
+- `minimal governed create = NEXT`;
 - `AETERNA Document Editor v0.1 specification = PLANNED`;
 - `AETERNA Document Editor implementation = PLANNED`.
-
-E lépések után a runtime / VS1 munka a projektprioritás szerint folytatható.
 
 Reaction / Priority v1: `COMPLETE_AND_ACCEPTED`.
 

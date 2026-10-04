@@ -320,10 +320,10 @@
     },
     {
       "artifact_id": "AET-DOC-PROJECT-PLAN",
-      "title": "AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.12",
+      "title": "AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.13",
       "kind": "document",
       "type": "project-plan",
-      "version": "6.12",
+      "version": "6.13",
       "lifecycle": "active",
       "integration": "current",
       "authority": "project-direction",
