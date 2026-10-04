@@ -57,8 +57,8 @@ A runtime package nem írhatja felül a hivatalos játékszabályokat.
 
 Adat- és szabályi elsőbbség:
 
-1. `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
-2. `rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`;
+1. `rules/sources/OFFICIAL_BASE_GAME_RULES_SOURCE.docx`;
+2. `rules/sources/OFFICIAL_EXPANSION_RULES_SOURCE.docx`;
 3. elfogadott, verziózott emberi döntések;
 4. canonical emberi szerkesztési és card-data authority: `CARDDATABASE.xlsx`;
 5. canonical technical schema-, value- és alias-authority: `REGISTRY.xlsx`;

@@ -22,7 +22,7 @@ supersedes: []
 **Reaction v1 lezáró commit:** `f4e035bb1b8a1b94840a180df7f9c24aa3cf302c` – `engine: implement Reaction Priority v1 foundation`
 **Current repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 **Current production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
-**Rules authority:** `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`
+**Rules authority:** `rules/sources/OFFICIAL_BASE_GAME_RULES_SOURCE.docx`
 **Current decision authority:** `OPEN_QUESTIONS_DECISIONS.md` v2.4
 **Technical evidence/proposal input:** `project/architecture/blueprints/REACTION_PRIORITY_FOUNDATION.md`
 **Implementation:** `COMPLETE_AND_ACCEPTED`

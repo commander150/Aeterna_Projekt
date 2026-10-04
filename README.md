@@ -31,8 +31,8 @@ Bizonyított proofok:
 
 Current szabályforrás:
 
-- `rules/sources/AETERNA – HIVATALOS ALAPJÁTÉK FŐFORRÁS 1.5v.docx`;
-- `rules/sources/AETERNA – HIVATALOS KIEGÉSZÍTŐ FŐFORRÁS 1.4.1v.docx`.
+- `rules/sources/OFFICIAL_BASE_GAME_RULES_SOURCE.docx`;
+- `rules/sources/OFFICIAL_EXPANSION_RULES_SOURCE.docx`.
 
 Current data authority és adatút:
 
