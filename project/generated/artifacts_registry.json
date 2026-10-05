@@ -193,10 +193,10 @@
     },
     {
       "artifact_id": "AET-DOC-DOCUMENT-UPDATE-WORKFLOW",
-      "title": "AETERNA dokumentumfrissítési workflow",
+      "title": "AETERNA governed dokumentumműveleti workflow",
       "kind": "document",
       "type": "workflow",
-      "version": "0.2",
+      "version": "1.0",
       "lifecycle": "active",
       "integration": "current",
       "authority": "operational-workflow",

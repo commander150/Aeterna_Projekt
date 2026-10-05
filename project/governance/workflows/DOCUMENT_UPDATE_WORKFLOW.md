@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-DOCUMENT-UPDATE-WORKFLOW
 kind: document
 type: workflow
-version: "0.2"
+version: "1.0"
 lifecycle: active
 integration: current
 authority: operational-workflow
@@ -13,21 +13,21 @@ depends_on:
 supersedes: []
 ---
 
-# AETERNA dokumentumfrissítési workflow
+# AETERNA governed dokumentumműveleti workflow
 
 ## 1. Cél, hatáskör és authority
 
-Ez a dokumentum az AETERNA lokális dokumentumszerkesztő és -frissítő
-workflow-jának operatív contractja. A workflow feladata, hogy stabil artifact ID
-alapján feloldja a célartifactot, ellenőrizze a kiinduló állapotot, egy előre
-rögzített tervhez kösse a módosítást, tranzakciósan alkalmazza a jóváhagyott
+Ez a dokumentum az AETERNA governed lokális dokumentumműveleteinek operatív
+contractja. A workflow feladata, hogy a választott művelet explicit identitás-
+és baseline contractja szerint ellenőrizze a kiinduló állapotot, egy előre
+rögzített tervhez kösse a műveletet, tranzakciósan alkalmazza a jóváhagyott
 jelöltet, majd ellenőrizhető review-bizonyítékot készítsen.
 
 A dokumentum-governance határozza meg az artifact-identitás, authority,
 lifecycle, Archive és megőrzés szabályait. A GitHub workflow határozza meg a
 lokális eredmény review-, commit-, push- és remote handoffját. A jelen workflow
-ezeket nem írja felül, hanem a dokumentumfrissítés részletes helyi műveleti
-rendjét adja meg.
+ezeket nem írja felül, hanem a jelen dokumentumban operation-scope szerint
+rögzített governed dokumentumműveletek részletes helyi rendjét adja meg.
 
 Az `integration: current` azt jelenti, hogy a workflow implementált és az aktív
 operatív dokumentumfrissítési út része. A Markdown MVP implementációja a
@@ -35,6 +35,61 @@ operatív dokumentumfrissítési út része. A Markdown MVP implementációja a
 repository-acceptance teszten megfelelt. A jelen dokumentum marad az operatív
 contract; az implementációs bizonyítékot a repository kódja, tesztjei,
 review-evidence anyagai és Git-története adják.
+
+## Capability-státusz
+
+```text
+UPDATE_CONTRACT_STATUS = CURRENT
+UPDATE_IMPLEMENTATION_STATUS = IMPLEMENTED_AND_ACCEPTED
+UPDATE_PLAN_SCHEMA = aeterna-document-update-plan/0.1
+UPDATE_REVIEW_SCHEMA = aeterna-document-update-review/0.1
+
+CREATE_CONTRACT_STATUS = APPROVED_FOR_IMPLEMENTATION
+CREATE_IMPLEMENTATION_STATUS = NOT_YET_IMPLEMENTED
+CREATE_ACCEPTANCE_STATUS = NOT_YET_COMPLETE
+CREATE_MANIFEST_SCHEMA = aeterna-document-create-manifest/0.1
+CREATE_PLAN_SCHEMA = aeterna-document-create-plan/0.1
+CREATE_REVIEW_SCHEMA = aeterna-document-create-review/0.1
+
+UPDATE_0_1_BACKWARD_COMPATIBLE = YES
+```
+
+Az `integration: current` az implementált és elfogadott UPDATE műveletre
+vonatkozik. A CREATE normatív contractja implementációra jóváhagyott, de a
+CREATE implementáció még nem létezik, acceptance-e nem teljes, ezért a CREATE
+még nem használható repository-műveletként.
+
+## Normatív operation-scope boundary
+
+A 2–27. szakasz az elfogadott UPDATE 0.1 contractot tartja fenn és kizárólag az
+UPDATE műveletet szabályozza. A 28–47. szakasz az additív CREATE 0.1 contractot
+határozza meg.
+
+Ha egy szabály nincs kifejezetten shared/common szabályként megjelölve:
+
+- az existing artifact resolution, current path, baseline target SHA-256,
+  UPDATE change class és `git-only`/`minor`/`major` version intent kizárólag az
+  UPDATE művelet preconditionje;
+- a declared new identity, declared target path, target absence, explicit
+  initial version és baseline-plus-one overlay kizárólag a CREATE művelet
+  preconditionje.
+
+A CREATE nem örökli az UPDATE-only preconditionöket pusztán azért, mert az
+UPDATE contract korábban szerepel ugyanebben a dokumentumban. Az UPDATE nem
+örökli a CREATE-only preconditionöket. Ha a két operation contract közös safety
+principle-t fejez ki, mindkét művelet a saját, explicit operation-specific
+preconditionje szerint teljesíti azt. A szakaszok sorrendje önmagában nem hoz
+létre implicit precedenciát.
+
+```text
+UPDATE_ONLY_PRECONDITIONS_SCOPED = YES
+CREATE_ONLY_PRECONDITIONS_SCOPED = YES
+BASELINE_TARGET_SHA_REQUIRED_FOR_CREATE = NO
+TARGET_ABSENCE_REQUIRED_FOR_UPDATE = NO
+UPDATE_VERSION_INTENT_APPLIES_TO_CREATE_INITIAL_VERSION = NO
+CREATE_INITIAL_VERSION_RULE_APPLIES_TO_UPDATE = NO
+RESOLVE_EXISTING_ARTIFACT_REQUIRED_FOR_CREATE = NO
+```
 
 ## 2. MVP-határ
 
@@ -51,7 +106,7 @@ meglévő
 
 Az MVP-n kívül marad:
 
-- új artifact létrehozása;
+- az UPDATE műveleten belüli új artifact létrehozása; a külön CREATE contract implementációra jóváhagyott, de még nincs implementálva vagy elfogadva;
 - retirement vagy Archive-intake;
 - move és rename;
 - authority-váltás;
@@ -521,8 +576,20 @@ Read-only: `resolve`, `impact`, `plan-update`, `verify-review`.
 
 Mutating: kizárólag `apply`.
 
-Későbbi, nem aktív parancsjelöltek: `plan-create`, `plan-retire`, `plan-move`,
-`authority-change`.
+A CREATE implementáció és acceptance után jóváhagyott additív target surface:
+
+```text
+resolve
+impact
+plan-update
+plan-create
+apply
+verify-review
+```
+
+A `plan-create` jelenleg még nem implementált. Nincs `resolve-create` vagy
+`impact-create`. A `plan-retire`, `plan-move` és `authority-change` továbbra sem
+jóváhagyott művelet.
 
 ## 25. Adapter boundary
 
@@ -563,6 +630,447 @@ controlled real repository acceptance `COMPLETE_AND_REMOTE_VERIFIED`.
 A `tools/aeterna_document_workflow` implementált és elfogadott a current,
 existing-managed-Markdown update MVP számára; az `integration` értéke `current`.
 
-A current MVP-n kívül marad: `create`; retirement vagy Archive-intake;
-move/rename; authority change; batch editing; XLSX; DOCX; source bundle; package
-manifest.
+A current, implementált MVP-n kívül marad a CREATE implementáció és acceptance; a CREATE contractja az alábbi additív fejezetekben jóváhagyott. Továbbra is kívül marad: retirement vagy Archive-intake; move/rename; authority change; batch editing; XLSX; DOCX; source bundle; package manifest.
+
+## 28. CREATE MVP normatív scope
+
+Egy CREATE művelet pontosan egy:
+
+```text
+új
++ active
++ managed
++ Markdown
++ document artifact
++ ACTIVE repository layer
+```
+
+artifactot hozhat létre. A CREATE nem általános filesystem-create, nem batch
+művelet, nem hoz létre directory tree-t, és nem választ automatikusan alternatív
+fájlnevet.
+
+```text
+CREATE_TARGET_SCOPE = ONE_NEW_ACTIVE_MANAGED_MARKDOWN_DOCUMENT
+CREATE_PARENT_DIRECTORY_POLICY = MUST_ALREADY_EXIST
+CREATE_TARGET_ABSENCE_POLICY = MUST_BE_ABSENT_EXACT_CASE_UNICODE_AND_FILESYSTEM
+```
+
+CREATE v0.1-ben a `lifecycle` kizárólag `active`, az `integration` pedig
+`current` vagy `pending_integration` lehet. A választott érték minden esetben
+explicit candidate metadata; a tool nem állít be defaultot.
+
+## 29. CREATE target path contract
+
+A target path normalizált, repository-relative POSIX path, `.md` kiterjesztéssel.
+Az abszolút path, drive-qualified path, backslash, üres, `.` vagy `..` komponens,
+ADS-kettőspont, NUL, Windows reserved basename és záró pont vagy szóköz tiltott.
+
+Engedélyezett dokumentációs gyökerek:
+
+```text
+project/**
+data/**
+design/**
+src/engine/docs/**
+```
+
+Kifejezetten tiltott target scope többek között:
+
+```text
+.git/**
+.venv/**
+TEMP/**
+Archive/**
+learning/**
+project/generated/**
+tools/**
+egyéb source/tool gyökerek
+```
+
+A target parent directorynek a plan és az apply preflight idején már létező,
+valós directorynak kell lennie. A parent és minden létező path-komponens a
+canonical repositoryn belül marad, és nem lehet symlink, junction vagy reparse
+point.
+
+A target leaf `lstat`/`lexists` szemantikával teljesen hiányzik. Sem fájl,
+directory, symlink, junction, broken link, tracked, untracked vagy ignored entry
+nem írható felül. A teljes filesystem inventory exact, NFC-normalizált,
+casefoldolt és NFC+casefoldolt összevetést végez. Bármely exact, case-insensitive,
+Unicode-normalization vagy file/directory collision blokkoló. Collision esetén
+nincs automatikus rename vagy alternatív fájlnév.
+
+## 30. CREATE artifact ID contract
+
+Az artifact ID független a fizikai pathtól. A manifest és a candidate
+`artifact_id` értéke byte-pontosan egyezik, megfelel a current artifact ID
+lexikai szabálynak, és a baseline-plus-one overlayben egyedi.
+
+Blokkoló:
+
+- invalid vagy hiányzó artifact ID;
+- exact duplicate ID;
+- case-equivalent ID collision, ahol alkalmazható;
+- hiányos native metadata;
+- `generated: true` human candidate;
+- nem támogatott artifact kind vagy type;
+- target/path collision.
+
+## 31. CREATE candidate és metadata contract
+
+A candidate teljes Markdown fájl, kizárólag a repository ignorált `TEMP/`
+könyvtára alatt. Külső candidate CREATE v0.1-ben nem fogadható el. A candidate
+TEMP pathja input/evidence; soha nem válik canonical artifact pathtá.
+
+A plan külön rögzíti:
+
+```text
+candidate bytes
++ candidate TEMP path
++ declared repository target path
+```
+
+Az overlay artifact rekordja a candidate metadata és H1 tartalmából, valamint a
+manifestben deklarált target pathból épül fel.
+
+```text
+CREATE_METADATA_POLICY = EXPLICIT_COMPLETE_CANDIDATE_METADATA_NO_DEFAULTS
+```
+
+A candidate front matter pontos, teljes kulcskészlete:
+
+```text
+artifact_id
+kind
+type
+version
+lifecycle
+integration
+authority
+generated
+depends_on
+supersedes
+```
+
+CREATE v0.1 további szabályai:
+
+- `kind: document`;
+- `generated: false`;
+- `lifecycle: active`;
+- `integration: current` vagy `pending_integration`;
+- explicit `depends_on` lista, akár üresen, duplikáció nélkül;
+- `supersedes: []`;
+- pontosan egy nem üres H1;
+- nincs ismeretlen metadata-kulcs.
+
+A tool nem talál ki, nem defaultol és nem normalizál governance metadatát.
+
+## 32. CREATE kezdeti version contract
+
+CREATE esetén nincs korábbi semantic document version.
+
+```text
+CREATE_INITIAL_VERSION_POLICY = EXPLICIT_CANDIDATE_VERSION_NO_INITIAL_INTENT_NO_DEFAULT
+CREATE_INITIAL_VERSION_DEFAULT = NONE
+```
+
+A candidate `version` kötelező és explicit; a create manifest `initial_version`
+értéke pontosan megegyezik vele. Nincs automatikus `0.1`, nincs
+`version_intent = initial`, és a CREATE nem használja az UPDATE
+`git-only/minor/major` intent szemantikáját a kezdeti version kiválasztására.
+
+## 33. CREATE authority contract
+
+A candidate `authority` kötelező és explicit. A create manifest/plan
+`declared_authority` értéke pontosan megegyezik vele. Az authority nem
+inferálható és nem normalizálható.
+
+```text
+CREATE_AUTHORITY_POLICY = EXPLICIT_DECLARED_AUTHORITY_EXACT_MATCH_HIGH_RISK_LABEL
+```
+
+A `canonical-rules`, `project-direction`, `document-governance` és
+`technical-contract` authority új artifacton HIGH review-risk jelölést kap. Ez
+nem authority-change művelet és nem enged authority-váltást meglévő artifacton.
+
+## 34. CREATE dependency és overlay modell
+
+A plan-create overlaye:
+
+```text
+baseline managed artifact set
++ egy candidate artifact a declared target pathon
+```
+
+Generic count contract:
+
+```text
+EXPECTED_ARTIFACT_COUNT_AFTER = BASELINE_ARTIFACT_COUNT + 1
+```
+
+A teljes overlayt írás előtt validálni kell duplicate ID, missing dependency,
+self dependency, dependency cycle, path collision és scope violation ellen. A
+plan-create ugyanabban az outputban közli a candidate forward dependencyit,
+direct reverse dependencyit és transitive impactját. Nincs külön
+`impact-create` parancs.
+
+## 35. Generated view contract
+
+Derived outputok:
+
+```text
+project/generated/artifacts_registry.json
+project/generated/DOCUMENT_INDEX.md
+```
+
+A plan-create a baseline-plus-one overlayből determinisztikusan, memóriában
+rendereli őket. Kézi szerkesztésük tiltott. A normal first CREATE rendszerint a
+new documentet és a két byte-ban változó generated view-t írja, de a contract a
+determinált tényleges byte-eltérést rögzíti, és nem hardcode-olja a három írást.
+
+```text
+GENERATED_VIEW_STRATEGY = DETERMINISTIC_IN_MEMORY_BASELINE_PLUS_ONE_OVERLAY
+```
+
+## 36. CREATE manifest contract
+
+Schema:
+
+```text
+aeterna-document-create-manifest/0.1
+```
+
+Kötelező deklarált mezők:
+
+- `schema_version`;
+- `artifact_id`;
+- `target_path`;
+- `candidate_path`;
+- `expected_branch`;
+- `expected_head`;
+- `candidate_sha256`;
+- `candidate_metadata_fingerprint`;
+- complete `candidate_metadata`;
+- `candidate_byte_convention` = UTF-8, BOM false, LF;
+- `declared_authority`;
+- `initial_version`.
+
+Derived, nem felhasználó által felülírható invariáns:
+
+```text
+target_must_be_absent = true
+parent_directory_must_already_exist = true
+expected_artifact_count_after = baseline_artifact_count + 1
+```
+
+CREATE esetén nincs baseline target SHA vagy baseline target metadata
+fingerprint; ezek helyett exact target absence, exact branch/HEAD, clean Git
+baseline, baseline artifact-set identity és immutable candidate identity a
+precondition.
+
+## 37. CREATE plan contract
+
+Normatív schema:
+
+```text
+aeterna-document-create-plan/0.1
+```
+
+A determinisztikus plan legalább bizonyítja:
+
+- `operation = create`;
+- canonical repository identity;
+- expected branch és HEAD;
+- clean baseline worktree és empty staging;
+- baseline artifact scan identity/count;
+- artifact ID;
+- declared target path és target absence;
+- candidate path, SHA-256, teljes metadata és fingerprint;
+- candidate byte convention;
+- declared authority és explicit initial version;
+- dependency/impact eredmény;
+- generated in-memory preview és hashek;
+- expected changed pathok;
+- semantic plan identity.
+
+Random operation ID és timestamp nem része a semantic plan identitynek.
+
+## 38. CREATE review contract
+
+Normatív schema:
+
+```text
+aeterna-document-create-review/0.1
+```
+
+A review CREATE-specifikusan rögzíti:
+
+- baseline branch, HEAD, worktree és staging;
+- target absence a write előtt;
+- artifact identity és target path;
+- candidate és final SHA-256;
+- teljes metadata, initial version és declared authority;
+- dependency graph és impact;
+- generated output hashek;
+- transaction writes;
+- rollback state;
+- post-create artifact count;
+- expected új untracked target;
+- generated tracked módosítások;
+- scope validation, tests és `git diff --check`;
+- final `PASS`, `FAIL` vagy `BLOCKED` státusz.
+
+A review schema nem helyettesíti és nem módosítja az UPDATE review 0.1 sémát.
+
+## 39. Apply architektúra és dispatch
+
+Az egyetlen mutating entry point megmarad:
+
+```text
+apply PLAN.json
+```
+
+Future schema dispatch:
+
+```text
+aeterna-document-update-plan/0.1 -> existing UPDATE behavior unchanged
+aeterna-document-create-plan/0.1 -> CREATE behavior after PILOT-8D acceptance
+```
+
+Ismeretlen schema vagy operation blokkoló. A CREATE contract jóváhagyása nem
+kapcsolja be a CREATE apply ágat.
+
+## 40. CREATE immediate pre-write recomputation
+
+Közvetlenül az első írás előtt újra bizonyítandó:
+
+- branch és HEAD változatlan;
+- staging üres;
+- baseline worktree továbbra is elfogadható;
+- candidate bytes, SHA és metadata változatlan;
+- baseline artifact set változatlan;
+- target továbbra is teljesen hiányzik;
+- nincs új exact, case, Unicode vagy filesystem collision;
+- parent továbbra is létező real directory;
+- nincs traversal, symlink vagy reparse escape;
+- teljes overlay és dependency graph valid;
+- generated preview byte-pontosan egyezik az immutable plannel.
+
+Nincs fuzzy recovery, automatikus rebase, alternate filename vagy újabb emberi
+változást felülíró írás.
+
+## 41. CREATE post-write és Git semantics
+
+Plan és apply előtt minden non-ignored untracked fájl blokkoló; a stagingnek
+üresnek kell lennie. Ez a baseline guard változatlanul szigorú.
+
+Sikeres CREATE után kizárólag a declared target lehet expected untracked fájl.
+A byte-ban változó generated view-k tracked unstaged módosítások. Bármely más
+tracked vagy untracked eltérés blokkoló.
+
+```text
+POST_CREATE_UNTRACKED_HANDLING = EXACT_DECLARED_TARGET_ALLOWLIST
+```
+
+Az allowlist kizárólag post-create ellenőrzésre szolgál, és nem lazíthatja a
+plan/apply előtti clean-worktree követelményt. Mivel a `git diff --check` nem
+látja az untracked targetet, annak encoding, newline, tartalom- és trailing-
+whitespace ellenőrzése közvetlenül is kötelező.
+
+## 42. CREATE transaction és rollback
+
+A current transaction model kis generalizálással újrahasználandó. Az új target
+nem rendelkezik original backuppal. Minden már létező generated/touched fájl
+byte-backupot kap.
+
+Write utáni hiba esetén:
+
+- kizárólag a tranzakció által létrehozott target távolítható el;
+- minden pre-existing touched fájl original bytejai visszaállítandók;
+- original hashek ellenőrizendők;
+- a targetnek ismét hiányoznia kell;
+- a failed transaction evidence megőrzendő.
+
+Soha nem törölhető olyan path, amely a tranzakció előtt létezett. CREATE nem
+tekinthető implementáltnak a new-path rollback acceptance tesztek teljes PASS-a
+előtt.
+
+## 43. Kötelező failure injection acceptance
+
+A PILOT-8D legalább az alábbi hibapontokat teszteli:
+
+- failure after new document write;
+- failure after registry write;
+- failure after index write;
+- post-validation failure;
+- rollback verification failure.
+
+Minden teszt bizonyítja a target újbóli hiányát, az eredeti generated byteokat,
+az üres staginget és a baseline Git-állapot helyreállítását.
+
+## 44. CLI contract
+
+Current accepted surface:
+
+```text
+resolve
+impact
+plan-update
+apply
+verify-review
+```
+
+Approved target surface implementáció után:
+
+```text
+resolve
+impact
+plan-update
+plan-create
+apply
+verify-review
+```
+
+A `plan-create` tartalmazza a CREATE identity, validation és impact outputot.
+Nincs `resolve-create` és nincs `impact-create`. Csak az `apply` mutálhat.
+
+## 45. Első valós CREATE acceptance
+
+Az elfogadott első valós target:
+
+```text
+AETERNA Document Editor v0.1 specification
+```
+
+Nem jön létre PILOT-8B, PILOT-8C vagy PILOT-8D alatt. A pontos body és metadata
+PILOT-8E emberi review input. Az authority értéket PILOT-8E-ben explicit emberi
+döntéssel kell megerősíteni.
+
+## 46. Implementációs fázisok
+
+```text
+PILOT-8A = CREATE design audit / COMPLETE
+PILOT-8B = CREATE governance contract / CURRENT PHASE
+PILOT-8C = read-only plan-create implementation + tests / PLANNED
+PILOT-8D = transactional CREATE apply + rollback/review + tests / PLANNED
+PILOT-8E = first real governed CREATE acceptance / PLANNED
+```
+
+PILOT-8B csak a contract adoption commit és remote verification után COMPLETE.
+
+## 47. Továbbra is out of scope
+
+Nem támogatott:
+
+- retirement és Archive intake;
+- move és rename;
+- authority change meglévő artifacton;
+- batch create és batch update;
+- XLSX vagy DOCX edit/create;
+- source bundle mutation;
+- package manifest mutation;
+- directory migration.
+
+```text
+GENERIC_MOVE_SUPPORT = NO
+GENERIC_RETIRE_SUPPORT = NO
+```
