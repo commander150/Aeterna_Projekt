@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-PROJECT-PLAN
 kind: document
 type: project-plan
-version: "6.13"
+version: "6.14"
 lifecycle: active
 integration: current
 authority: project-direction
@@ -11,14 +11,14 @@ depends_on: []
 supersedes: []
 ---
 
-# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.13
+# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.14
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 6.13
-**Dátum:** 2026-10-04
+**Dokumentumverzió:** 6.14
+**Dátum:** 2026-10-05
 **Státusz:** aktív projektirányító és prioritási dokumentum
-**Előző aktív verzió:** 6.12 (Git history)
+**Előző aktív verzió:** 6.13 (Git history)
 **Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **Előző technikai checkpoint-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
@@ -483,19 +483,29 @@ Az elfogadott foundation-lépések:
 - PILOT-7E first real governed managed-document update: `COMPLETE_AND_REMOTE_VERIFIED`;
 - PILOT-7F workflow integration/self-hosting activation: `COMPLETE_AND_REMOTE_VERIFIED`;
 - PILOT-7G current filename normalization: `COMPLETE_AND_REMOTE_VERIFIED`;
-- PILOT-7G.1 remaining current source filename normalization: `COMPLETE_AND_REMOTE_VERIFIED`.
+- PILOT-7G.1 remaining current source filename normalization: `COMPLETE_AND_REMOTE_VERIFIED`;
+- PILOT-8A CREATE design audit: `COMPLETE`;
+- PILOT-8B CREATE governance contract: `COMPLETE_AND_REMOTE_VERIFIED`, remote commit
+  `edf86260e40370538f7f32835972d661f2894a85`.
 
-Az `AET-DOC-DOCUMENT-UPDATE-WORKFLOW` verziója `0.2`, integration státusza
-`current`. A `tools/aeterna_document_workflow` állapota `IMPLEMENTED_AND_ACCEPTED`;
-a current existing-managed-Markdown update workflow `CURRENT`, és az elfogadott
-`resolve → impact → plan-update → apply → verify-review` folyamatot biztosítja.
+Az `AET-DOC-DOCUMENT-UPDATE-WORKFLOW` verziója `1.0`, integration státusza
+`current`. Az UPDATE contract `CURRENT`, az UPDATE implementáció
+`IMPLEMENTED_AND_ACCEPTED`; az elfogadott current CLI surface:
+`resolve → impact → plan-update → apply → verify-review`.
+
+A CREATE contract `APPROVED_FOR_IMPLEMENTATION`, de a CREATE implementáció
+`NOT_YET_IMPLEMENTED`, acceptance státusza `NOT_YET_COMPLETE`, és `plan-create`
+még nincs a current CLI-ban. A jóváhagyott jövőbeli sémák:
+`aeterna-document-create-plan/0.1` és
+`aeterna-document-create-review/0.1`.
 
 `DOCUMENT_GOVERNANCE_FOUNDATION = COMPLETE_AND_CURRENT`
 
 Ez a foundation lezárását jelenti, nem minden jövőbeli dokumentumkezelési képesség
-elkészültét. A current workflow még nem biztosít általános támogatást a következőkre:
-`create`, `retire/archive intake`, `move/rename`, authority change, batch editing,
-XLSX editing, DOCX editing, source-bundle editing és package-manifest editing.
+elkészültét. A CREATE contract jóváhagyott, de a current implementáció még nem biztosít
+CREATE végrehajtást, továbbá nem támogatja a következőket: `retire/archive intake`,
+`move/rename`, authority change, batch editing, XLSX editing, DOCX editing,
+source-bundle editing és package-manifest editing.
 A PILOT-7G/7G.1 bounded structural migration volt, ezért nem bizonyít generic
 move/rename támogatást.
 
@@ -519,7 +529,16 @@ dokumentumverziót, HEAD-et, státuszt és implementációt GitHubról kell elle
 `CANONICAL_CURRENT_SOURCE = GITHUB_MAIN`
 `CONTINUOUS_LIBRARY_SYNC_REQUIRED = NO`
 
-A következő projektlépés: `MINIMAL_GOVERNED_CREATE = NEXT`.
+A következő projektlépés: `PILOT-8C_PLAN_CREATE = NEXT`.
+
+Az elfogadott sorrend:
+
+1. PILOT-8C: read-only `plan-create` implementáció és tesztek;
+2. PILOT-8D: tranzakciós CREATE apply, rollback/review és tesztek;
+3. PILOT-8E: az első valós governed CREATE acceptance.
+
+Az első valós CREATE acceptance célja továbbra is az `AETERNA Document Editor v0.1
+specification`; ez a dokumentum még nem létezik.
 
 Az `AETERNA Document Editor` lesz a governed document workflow fölötti dedikált
 authoring/editing réteg. Koncepcionális felelőssége a human/AI-assisted content
@@ -557,11 +576,21 @@ implementációs keretrendszeréről a későbbi specifikáció dönt.
 **PILOT-7F workflow integration/self-hosting activation:** `COMPLETE_AND_REMOTE_VERIFIED`
 **PILOT-7G current filename normalization:** `COMPLETE_AND_REMOTE_VERIFIED`
 **PILOT-7G.1 remaining current source filename normalization:** `COMPLETE_AND_REMOTE_VERIFIED`
-**Document update workflow:** `0.2 / current`
+**Document update workflow:** `1.0 / current`
+**UPDATE contract:** `CURRENT`
+**UPDATE implementation:** `IMPLEMENTED_AND_ACCEPTED`
+**CREATE contract:** `APPROVED_FOR_IMPLEMENTATION`
+**CREATE implementation:** `NOT_YET_IMPLEMENTED`
+**CREATE acceptance:** `NOT_YET_COMPLETE`
+**PILOT-8A CREATE design audit:** `COMPLETE`
+**PILOT-8B CREATE governance contract:** `COMPLETE_AND_REMOTE_VERIFIED`
+**PILOT-8B remote commit:** `edf86260e40370538f7f32835972d661f2894a85`
 **Document governance foundation:** `COMPLETE_AND_CURRENT`
 **Current filename normalization:** `COMPLETE`
 **ChatGPT Library refresh:** `COMPLETE`
-**Minimal governed create:** `NEXT`
+**PILOT-8C plan-create:** `NEXT`
+**PILOT-8D transactional CREATE apply:** `PLANNED`
+**PILOT-8E first real governed CREATE acceptance:** `PLANNED`
 **AETERNA Document Editor v0.1 specification:** `PLANNED`
 **AETERNA Document Editor implementation:** `PLANNED`
 **VS1 / M6:** `NEXT MAJOR PRODUCT-FACING GOAL AFTER DOCUMENT-MANAGEMENT PRIORITY`
@@ -569,15 +598,21 @@ implementációs keretrendszeréről a későbbi specifikáció dönt.
 
 ## 11. Következő szakmai munkasorrend
 
-1. minimal governed `CREATE` capability új managed Markdown artifactokhoz;
-2. AETERNA Document Editor v0.1 specification;
-3. AETERNA Document Editor implementation foundation;
-4. runtime / VS1 munka később, a projektprioritás szerint.
+1. PILOT-8C: read-only `plan-create` implementáció és tesztek;
+2. PILOT-8D: tranzakciós CREATE apply, rollback/review és tesztek;
+3. PILOT-8E: az első valós governed CREATE acceptance, célja az `AETERNA Document
+   Editor v0.1 specification`;
+4. AETERNA Document Editor implementation foundation;
+5. runtime / VS1 munka később, a projektprioritás szerint.
 
 Elfogadott státusz:
 
 - `ChatGPT Library refresh = COMPLETE`;
-- `minimal governed create = NEXT`;
+- `PILOT-8A = COMPLETE`;
+- `PILOT-8B = COMPLETE_AND_REMOTE_VERIFIED`;
+- `PILOT-8C_PLAN_CREATE = NEXT`;
+- `PILOT-8D = PLANNED`;
+- `PILOT-8E = PLANNED`;
 - `AETERNA Document Editor v0.1 specification = PLANNED`;
 - `AETERNA Document Editor implementation = PLANNED`.
 
