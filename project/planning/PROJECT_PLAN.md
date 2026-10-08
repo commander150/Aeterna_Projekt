@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-PROJECT-PLAN
 kind: document
 type: project-plan
-version: "6.14"
+version: "6.15"
 lifecycle: active
 integration: current
 authority: project-direction
@@ -11,14 +11,14 @@ depends_on: []
 supersedes: []
 ---
 
-# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.14
+# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.15
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 6.14
-**Dátum:** 2026-10-05
+**Dokumentumverzió:** 6.15
+**Dátum:** 2026-10-08
 **Státusz:** aktív projektirányító és prioritási dokumentum
-**Előző aktív verzió:** 6.13 (Git history)
+**Előző aktív verzió:** 6.14 (Git history)
 **Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **Előző technikai checkpoint-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
@@ -486,18 +486,18 @@ Az elfogadott foundation-lépések:
 - PILOT-7G.1 remaining current source filename normalization: `COMPLETE_AND_REMOTE_VERIFIED`;
 - PILOT-8A CREATE design audit: `COMPLETE`;
 - PILOT-8B CREATE governance contract: `COMPLETE_AND_REMOTE_VERIFIED`, remote commit
-  `edf86260e40370538f7f32835972d661f2894a85`.
+  `edf86260e40370538f7f32835972d661f2894a85`;
+- PILOT-8C read-only `plan-create`: `COMPLETE_AND_REMOTE_VERIFIED`, remote commit
+  `591facbc06668d33bc669a37a699250a97535da6`.
 
 Az `AET-DOC-DOCUMENT-UPDATE-WORKFLOW` verziója `1.0`, integration státusza
-`current`. Az UPDATE contract `CURRENT`, az UPDATE implementáció
-`IMPLEMENTED_AND_ACCEPTED`; az elfogadott current CLI surface:
-`resolve → impact → plan-update → apply → verify-review`.
+`current`. Az UPDATE workflow `IMPLEMENTED_AND_ACCEPTED`. Az elfogadott current
+CLI surface: `resolve → impact → plan-update → plan-create → apply → verify-review`.
 
-A CREATE contract `APPROVED_FOR_IMPLEMENTATION`, de a CREATE implementáció
-`NOT_YET_IMPLEMENTED`, acceptance státusza `NOT_YET_COMPLETE`, és `plan-create`
-még nincs a current CLI-ban. A jóváhagyott jövőbeli sémák:
-`aeterna-document-create-plan/0.1` és
-`aeterna-document-create-review/0.1`.
+A `plan-create` `IMPLEMENTED_READ_ONLY`, sémája
+`aeterna-document-create-plan/0.1`. A CREATE apply `NOT_YET_IMPLEMENTED`, a CREATE
+review `NOT_YET_IMPLEMENTED`. Az `apply` továbbra is csak az elfogadott UPDATE
+planokat támogatja; CREATE plant tracked írás előtt elutasít.
 
 `DOCUMENT_GOVERNANCE_FOUNDATION = COMPLETE_AND_CURRENT`
 
@@ -529,22 +529,152 @@ dokumentumverziót, HEAD-et, státuszt és implementációt GitHubról kell elle
 `CANONICAL_CURRENT_SOURCE = GITHUB_MAIN`
 `CONTINUOUS_LIBRARY_SYNC_REQUIRED = NO`
 
-A következő projektlépés: `PILOT-8C_PLAN_CREATE = NEXT`.
+`DOCUMENT_SYSTEM_SCOPE_FREEZE = ACCEPTED`
 
-Az elfogadott sorrend:
-
-1. PILOT-8C: read-only `plan-create` implementáció és tesztek;
-2. PILOT-8D: tranzakciós CREATE apply, rollback/review és tesztek;
-3. PILOT-8E: az első valós governed CREATE acceptance.
-
-Az első valós CREATE acceptance célja továbbra is az `AETERNA Document Editor v0.1
-specification`; ez a dokumentum még nem létezik.
+A következő projektlépés: `PILOT-8D = MINIMAL_TRANSACTIONAL_EXPLICIT_CREATE`.
+Ezt PILOT-8E első valós governed CREATE acceptance követi, amelynek célja az
+`AETERNA Document Editor v0.1 specification`; ez a dokumentum még nem létezik.
 
 Az `AETERNA Document Editor` lesz a governed document workflow fölötti dedikált
 authoring/editing réteg. Koncepcionális felelőssége a human/AI-assisted content
 authoring, a structured target selection, a candidate generation és a diff/review;
 validáláshoz és alkalmazáshoz a meglévő governed workflow-t használja. Az editor
 implementációs keretrendszeréről a későbbi specifikáció dönt.
+
+
+### 9.2 Document System Scope Freeze – 2026-10-08
+
+Az elfogadott AETERNA Document System:
+
+```text
+HUMAN-DIRECTED
+LOCAL-FIRST
+GOVERNED
+REVIEW-FIRST
+```
+
+Célja az AETERNA dokumentumok létrehozásának, szerkesztésének, validálásának,
+review-jának és megőrzésének egyszerűsítése anélkül, hogy visszatérne a
+verziózott fájlmásolatokhoz vagy kontrollálatlan dokumentumszaporulathoz.
+
+Az ember dönti el, milyen dokumentum és mikor szükséges, milyen tartalom válik
+canonical állapottá, mely artifact identity/path/authority fogadható el, mikor
+alkalmazható egy változás, és mikor történhet Git staging, commit vagy push. Az
+automatizálás és az AI segítheti az előkészítést és validálást, de nem döntési
+authority.
+
+Az első Document System / Editor MVP kötelező alapjai:
+
+- stabil artifact identity és current fájlnevek;
+- natív metadata, belső dokumentumverzió és Git history;
+- meglévő managed Markdown dokumentum biztonságos governed UPDATE művelete;
+- új managed Markdown dokumentum explicit, ember által indított CREATE művelete;
+- pre-write, dependency- és impact-validáció;
+- generált registry/index konzisztencia;
+- canonical elfogadás előtti diff, plan és review;
+- ember által kontrollált apply, staging, commit és push határ;
+- AETERNA Document Editor MVP.
+
+Az Editor MVP fogalmi felhasználói folyamata:
+
+```text
+document list/open
+→ Markdown editing
+→ preview
+→ metadata assistance
+→ validation
+→ diff/review
+→ explicit save/apply
+
+explicit New Document
+→ candidate
+→ validation
+→ review
+→ explicit apply
+```
+
+Ez scope-döntés, nem részletes Editor UI-specifikáció, és nem választ
+frameworköt vagy GUI-technológiát.
+
+```text
+AUTONOMOUS_DOCUMENT_GENERATION = OUT_OF_SCOPE
+```
+
+Az AI draftolhat, átírhat, összefoglalhat, metadata- és dependency-javaslatot
+adhat, consistency problémát jelezhet és candidate tartalmat készíthet. Nem
+döntheti el autonóm módon, hogy új canonical dokumentum szükséges; nem hozhat
+létre canonical dokumentumot explicit emberi kezdeményezés nélkül; nem
+választhat végleges artifact ID-t, canonical pathot vagy authorityt emberi
+elfogadás nélkül; nem írhat át automatikusan dependent human-maintained
+dokumentumokat; és nem stage-elhet, commitolhat vagy pusholhat. Az AI-output
+explicit emberi workflow-elfogadásig candidate/proposal.
+
+Magas értékű, de az első Editor MVP-t nem blokkoló post-MVP képesség:
+
+- dokumentumkeresés és navigáció;
+- dependency/impact vizualizáció;
+- Git history/diff megjelenítés;
+- dokumentumsablonok;
+- AI-assisted authoring és consistency review;
+- DOCX → governed Markdown import.
+
+Ezek a core editor után, vagy csak közvetlen implementációs szükség esetén
+korábban adhatók hozzá; nem PILOT-8D követelmények.
+
+Explicit deferred képesség: generic batch editing, generic move/rename, general
+retirement/archive UI, XLSX editing az Editorban, source-bundle és
+package-manifest editing, repository-wide automatic reference rewriting és
+automatic dependent-document rewriting. Ezek nem végleg elutasítottak; valós
+use case esetén válhatnak munkává.
+
+Új fejlesztési elv:
+
+```text
+No new document-management capability is added merely because it would be
+technically useful.
+
+A capability enters the active MVP only when it directly supports creation,
+editing, validation, preservation, review, or safe human-controlled
+application of AETERNA documents.
+```
+
+Az első használható Document Editor után a további képességeket lehetőleg valós
+használat igazolja.
+
+`PILOT_8D_SCOPE = MINIMAL_TRANSACTIONAL_EXPLICIT_CREATE`
+
+PILOT-8D kizárólag egy már emberileg szándékolt, materializált és valid CREATE
+plant revalidálhat; tranzakciósan pontosan egy új managed Markdown dokumentumot
+hozhat létre; szükség esetén frissítheti a registry/index nézeteket; post-write
+validációt és CREATE review evidence-et készíthet; hiba esetén pedig teljesen
+rollbackol.
+
+PILOT-8D nem tartalmaz automatikus dokumentumgenerálást vagy szükségletdöntést,
+Editor UI-t, AI authoring rendszert, sablont, keresést, DOCX/XLSX munkát,
+move/rename-et, retirement/archive-ot, batch műveletet, authority-change
+műveletet, Git staginget, commitot vagy pusht. Explicit emberi CREATE akció
+infrastruktúrája marad.
+
+PILOT-8E `FIRST_REAL_GOVERNED_CREATE_ACCEPTANCE`; célja az `AETERNA Document
+Editor v0.1 specification`. Artifact ID-ját, canonical pathját, metadatáját,
+authorityjét, dependencyit, initial versionjét és body/contentjét az első valós
+CREATE apply előtt embernek kell review-znia. A rendszer ezt a specifikációt nem
+találhatja ki autonóm módon.
+
+Elfogadott roadmap:
+
+```text
+PILOT-8C = COMPLETE_AND_REMOTE_VERIFIED
+→ DOCUMENT_SYSTEM_SCOPE_FREEZE = ACCEPTED
+→ PILOT-8D = MINIMAL_TRANSACTIONAL_EXPLICIT_CREATE
+→ PILOT-8E = FIRST_REAL_GOVERNED_CREATE_ACCEPTANCE
+  (AETERNA Document Editor v0.1 specification)
+→ AETERNA DOCUMENT EDITOR MVP specification + implementation
+→ REAL USAGE
+→ only justified follow-up document capabilities
+```
+
+Runtime / VS1 a current dokumentumkezelési prioritás után marad.
 
 ---
 
@@ -577,19 +707,23 @@ implementációs keretrendszeréről a későbbi specifikáció dönt.
 **PILOT-7G current filename normalization:** `COMPLETE_AND_REMOTE_VERIFIED`
 **PILOT-7G.1 remaining current source filename normalization:** `COMPLETE_AND_REMOTE_VERIFIED`
 **Document update workflow:** `1.0 / current`
-**UPDATE contract:** `CURRENT`
-**UPDATE implementation:** `IMPLEMENTED_AND_ACCEPTED`
+**UPDATE workflow:** `IMPLEMENTED_AND_ACCEPTED`
 **CREATE contract:** `APPROVED_FOR_IMPLEMENTATION`
-**CREATE implementation:** `NOT_YET_IMPLEMENTED`
-**CREATE acceptance:** `NOT_YET_COMPLETE`
+**CREATE plan schema:** `aeterna-document-create-plan/0.1`
+**PLAN-CREATE:** `IMPLEMENTED_READ_ONLY`
+**CREATE apply:** `NOT_YET_IMPLEMENTED`
+**CREATE review:** `NOT_YET_IMPLEMENTED`
 **PILOT-8A CREATE design audit:** `COMPLETE`
 **PILOT-8B CREATE governance contract:** `COMPLETE_AND_REMOTE_VERIFIED`
 **PILOT-8B remote commit:** `edf86260e40370538f7f32835972d661f2894a85`
+**PILOT-8C read-only plan-create:** `COMPLETE_AND_REMOTE_VERIFIED`
+**PILOT-8C remote commit:** `591facbc06668d33bc669a37a699250a97535da6`
+**Document System Scope Freeze:** `ACCEPTED`
+**Autonomous document generation:** `OUT_OF_SCOPE`
 **Document governance foundation:** `COMPLETE_AND_CURRENT`
 **Current filename normalization:** `COMPLETE`
 **ChatGPT Library refresh:** `COMPLETE`
-**PILOT-8C plan-create:** `NEXT`
-**PILOT-8D transactional CREATE apply:** `PLANNED`
+**PILOT-8D minimal transactional explicit CREATE:** `NEXT`
 **PILOT-8E first real governed CREATE acceptance:** `PLANNED`
 **AETERNA Document Editor v0.1 specification:** `PLANNED`
 **AETERNA Document Editor implementation:** `PLANNED`
@@ -598,21 +732,23 @@ implementációs keretrendszeréről a későbbi specifikáció dönt.
 
 ## 11. Következő szakmai munkasorrend
 
-1. PILOT-8C: read-only `plan-create` implementáció és tesztek;
-2. PILOT-8D: tranzakciós CREATE apply, rollback/review és tesztek;
-3. PILOT-8E: az első valós governed CREATE acceptance, célja az `AETERNA Document
-   Editor v0.1 specification`;
-4. AETERNA Document Editor implementation foundation;
-5. runtime / VS1 munka később, a projektprioritás szerint.
+1. PILOT-8D: minimal transactional explicit CREATE;
+2. PILOT-8E: az első valós governed CREATE acceptance, célja az emberileg
+   review-zott `AETERNA Document Editor v0.1 specification`;
+3. AETERNA Document Editor MVP specification + implementation;
+4. valós használat;
+5. csak valós használattal igazolt további dokumentumképességek;
+6. runtime / VS1 munka később, a projektprioritás szerint.
 
 Elfogadott státusz:
 
 - `ChatGPT Library refresh = COMPLETE`;
 - `PILOT-8A = COMPLETE`;
 - `PILOT-8B = COMPLETE_AND_REMOTE_VERIFIED`;
-- `PILOT-8C_PLAN_CREATE = NEXT`;
-- `PILOT-8D = PLANNED`;
-- `PILOT-8E = PLANNED`;
+- `PILOT-8C = COMPLETE_AND_REMOTE_VERIFIED`;
+- `DOCUMENT_SYSTEM_SCOPE_FREEZE = ACCEPTED`;
+- `PILOT-8D = MINIMAL_TRANSACTIONAL_EXPLICIT_CREATE / NEXT`;
+- `PILOT-8E = FIRST_REAL_GOVERNED_CREATE_ACCEPTANCE / PLANNED`;
 - `AETERNA Document Editor v0.1 specification = PLANNED`;
 - `AETERNA Document Editor implementation = PLANNED`.
 
