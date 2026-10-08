@@ -14,6 +14,7 @@ from tools.aeterna_document_workflow.create_planner import (
     validate_create_plan_integrity,
 )
 from tools.aeterna_document_workflow.model import WorkflowError
+from tools.aeterna_document_workflow.review import verify_review_file
 from tools.aeterna_document_workflow.transaction import apply_plan
 
 from .helpers import RepositoryFixture, markdown
@@ -253,17 +254,17 @@ class CreatePlannerTests(unittest.TestCase):
             validate_create_plan_integrity(tampered)
         self.assertEqual("CREATE_PLAN_INTEGRITY_MISMATCH", caught.exception.diagnostics[0].code)
 
-    def test_apply_rejects_create_plan_before_tracked_writes(self) -> None:
+    def test_apply_dispatches_valid_create_plan_transactionally(self) -> None:
         candidate, manifest = self._valid()
         plan = build_create_plan(self.fixture.root, manifest)
         plan_path = candidate.parent / "create-plan.json"
         plan_path.write_text(json.dumps(plan), encoding="utf-8", newline="\n")
-        before = self.fixture.tracked_bytes()
-        with self.assertRaises(WorkflowError) as caught:
-            apply_plan(plan_path, self.fixture.root, candidate.parent / "review")
-        self.assertEqual("PLAN_SCHEMA_INVALID", caught.exception.diagnostics[0].code)
-        self.assertEqual(before, self.fixture.tracked_bytes())
-        self.assertFalse((candidate.parent / "review").exists())
+        result = apply_plan(plan_path, self.fixture.root, candidate.parent / "review")
+        self.assertEqual("PASS", result["status"])
+        self.assertEqual(candidate.read_bytes(), (self.fixture.root / "project/planning/NEW.md").read_bytes())
+        review = verify_review_file(result["review_json"])
+        self.assertEqual("aeterna-document-create-review/0.1", review["schema_version"])
+        self.assertEqual("create", review["operation"])
 
 
 if __name__ == "__main__":

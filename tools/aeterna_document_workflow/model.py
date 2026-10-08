@@ -147,3 +147,9 @@ class PreflightContext:
 class PreparedUpdate:
     plan: dict[str, object]
     target_bytes: tuple[tuple[str, bytes], ...]
+
+
+@dataclass(frozen=True)
+class PreparedCreate:
+    plan: dict[str, object]
+    target_bytes: tuple[tuple[str, bytes], ...]

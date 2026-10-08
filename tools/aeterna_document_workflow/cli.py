@@ -38,7 +38,7 @@ def _parser() -> argparse.ArgumentParser:
     create.add_argument("--manifest", required=True)
     create.add_argument("--repo", required=True)
 
-    apply = commands.add_parser("apply", help="Apply one materialized update plan transactionally.")
+    apply = commands.add_parser("apply", help="Apply one materialized governed plan transactionally.")
     apply.add_argument("plan")
     apply.add_argument("--repo", required=True)
     apply.add_argument("--review-dir", required=True)

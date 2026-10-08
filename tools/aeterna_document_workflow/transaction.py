@@ -142,6 +142,8 @@ def execute_transaction(
     post_validate: object,
     finalize: object,
     injection: FailureInjection | None = None,
+    *,
+    create_parents: bool = True,
 ) -> TransactionResult:
     injection = injection or FailureInjection()
     states = ["PREPARING"]
@@ -155,7 +157,7 @@ def execute_transaction(
         prepared.mkdir(parents=True, exist_ok=False)
         for index, (relative, data) in enumerate(ordered):
             target = root / relative
-            existed = target.exists()
+            existed = os.path.lexists(target)
             original = target.read_bytes() if existed else b""
             baseline[relative] = (existed, _sha256(original) if existed else None)
             if existed:
@@ -185,7 +187,13 @@ def execute_transaction(
     try:
         for index, (relative, _) in enumerate(ordered):
             target = root / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
+            if create_parents:
+                target.parent.mkdir(parents=True, exist_ok=True)
+            elif not target.parent.is_dir():
+                raise RuntimeError(f"Governed target parent is not an existing directory: {relative}")
+            existed, _ = baseline[relative]
+            if not existed and os.path.lexists(target):
+                raise RuntimeError(f"Previously absent governed target appeared before write: {relative}")
             os.replace(prepared / f"{index}.bin", target)
             writes += 1
             if injection.fail_after_write == writes:
@@ -211,12 +219,12 @@ def execute_transaction(
             try:
                 if existed:
                     os.replace(backups / f"{index}.bin", target)
-                elif target.exists():
+                elif os.path.lexists(target):
                     target.unlink()
             except Exception as restore_exc:
                 rollback_error = restore_exc
         hashes_restored = all(
-            ((root / relative).exists() == existed)
+            (os.path.lexists(root / relative) == existed)
             and (not existed or _sha256((root / relative).read_bytes()) == digest)
             for relative, (existed, digest) in baseline.items()
         )
@@ -279,6 +287,10 @@ def apply_plan(
     root = Path(repository_root).resolve()
     plan = load_plan(plan_path)
     review_dir = validate_ignored_temp_path(root, Path(review_directory), "REVIEW_DIRECTORY_BLOCKED")
+    if plan.get("schema_version") == "aeterna-document-create-plan/0.1":
+        from .create_transaction import apply_create_plan
+
+        return apply_create_plan(plan, root, review_dir, injection=injection)
     operation_id = uuid.uuid4().hex
     proposed_transaction_root = root / "TEMP/aeterna_document_workflow/transactions" / operation_id
 

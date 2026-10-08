@@ -15,9 +15,9 @@ from tools.aeterna_artifacts.generation import (
 from tools.aeterna_artifacts.model import Severity
 from tools.aeterna_artifacts.scanner import validate_record_set
 
-from .create_preflight import run_create_preflight
+from .create_preflight import run_create_preflight, run_create_preflight_manifest
 from .impact import build_impact
-from .model import WorkflowError, fail
+from .model import CreateManifest, CreatePreflightContext, PreparedCreate, WorkflowError, fail
 from .review import plan_semantic_digest
 
 
@@ -28,6 +28,22 @@ _HIGH_RISK_AUTHORITIES = frozenset({
     "project-direction",
     "document-governance",
     "technical-contract",
+})
+_CREATE_PLAN_KEYS = frozenset({
+    "schema_version",
+    "operation",
+    "artifact_id",
+    "repository",
+    "baseline",
+    "target",
+    "candidate",
+    "authority",
+    "version",
+    "impact",
+    "generated",
+    "preconditions",
+    "expected_changes",
+    "plan_semantic_sha256",
 })
 
 
@@ -61,8 +77,7 @@ def _generated_preview(root: Path, records: tuple[object, ...]) -> tuple[dict[st
     return {"mode": "IN_MEMORY_READ_ONLY", "outputs": outputs}, rendered_bytes
 
 
-def build_create_plan(repository_root: str | Path, manifest_path: str | Path) -> dict[str, object]:
-    context = run_create_preflight(repository_root, manifest_path)
+def _prepare_create_context(context: CreatePreflightContext) -> PreparedCreate:
     overlay = tuple(sorted(
         (*context.scan.artifacts, context.candidate_record),
         key=lambda item: (item.artifact_id, item.path),
@@ -143,7 +158,72 @@ def build_create_plan(repository_root: str | Path, manifest_path: str | Path) ->
         "expected_changes": expected_changes,
     }
     plan["plan_semantic_sha256"] = plan_semantic_digest(plan)
-    return validate_create_plan_integrity(plan)
+    validated = validate_create_plan_integrity(plan)
+    target_bytes: list[tuple[str, bytes]] = [
+        (context.target_path, context.candidate.data),
+    ]
+    target_bytes.extend(
+        (str(item["path"]), rendered_bytes[str(item["path"])])
+        for item in expected_changes[1:]
+    )
+    return PreparedCreate(validated, tuple(target_bytes))
+
+
+def build_create_plan(repository_root: str | Path, manifest_path: str | Path) -> dict[str, object]:
+    return _prepare_create_context(run_create_preflight(repository_root, manifest_path)).plan
+
+
+def prepare_create(
+    repository_root: str | Path,
+    manifest: CreateManifest,
+    manifest_path: str | Path,
+) -> PreparedCreate:
+    return _prepare_create_context(
+        run_create_preflight_manifest(repository_root, manifest, manifest_path)
+    )
+
+
+def manifest_from_create_plan(plan: dict[str, object]) -> tuple[CreateManifest, Path]:
+    candidate = plan["candidate"]
+    baseline = plan["baseline"]
+    target = plan["target"]
+    authority = plan["authority"]
+    version = plan["version"]
+    resolved = Path(str(candidate["resolved_path"]))
+    original = Path(str(candidate["original_path"]))
+    if not original.parts:
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE candidate original_path is empty.")
+    anchor = resolved
+    for _ in original.parts:
+        anchor = anchor.parent
+    manifest_path = anchor / "recomputed-create-manifest.json"
+    return CreateManifest(
+        artifact_id=str(plan["artifact_id"]),
+        target_path=str(target["declared_path"]),
+        candidate_path=str(candidate["original_path"]),
+        expected_branch=str(baseline["branch"]),
+        expected_head=str(baseline["head"]),
+        candidate_sha256=str(candidate["sha256"]),
+        candidate_metadata_fingerprint=str(candidate["metadata_fingerprint"]),
+        candidate_metadata=dict(candidate["metadata"]),
+        candidate_byte_convention=dict(candidate["byte_convention"]),
+        declared_authority=str(authority["declared_authority"]),
+        initial_version=str(version["initial_version"]),
+    ), manifest_path
+
+
+def recompute_prepared_create(
+    repository_root: str | Path,
+    plan: dict[str, object],
+) -> PreparedCreate:
+    validate_create_plan_integrity(plan)
+    root = Path(repository_root).resolve()
+    repository = plan["repository"]
+    planned_root = Path(str(repository["root"])).resolve()
+    if planned_root != root:
+        fail("REPOSITORY_ROOT_MISMATCH", "CREATE plan repository root does not match apply root.", exit_code=3)
+    manifest, manifest_path = manifest_from_create_plan(plan)
+    return prepare_create(root, manifest, manifest_path)
 
 
 def validate_create_plan_integrity(plan: object) -> dict[str, object]:
@@ -156,6 +236,8 @@ def validate_create_plan_integrity(plan: object) -> dict[str, object]:
         fail("CREATE_PLAN_INTEGRITY_MISMATCH", "CREATE plan semantic digest is missing or malformed.", exit_code=3)
     if digest != plan_semantic_digest(plan):
         fail("CREATE_PLAN_INTEGRITY_MISMATCH", "CREATE plan semantic digest does not match content.", exit_code=3)
+    if set(plan) != _CREATE_PLAN_KEYS:
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE plan must contain the exact CREATE 0.1 field set.")
     forbidden_root = {
         "change",
         "metadata_delta",
@@ -173,4 +255,71 @@ def validate_create_plan_integrity(plan: object) -> dict[str, object]:
         fail("CREATE_PLAN_UPDATE_FIELD_PRESENT", "CREATE baseline contains target-specific UPDATE fields.")
     if not isinstance(version, dict) or set(version) != {"initial_version"}:
         fail("CREATE_PLAN_VERSION_INVALID", "CREATE plan must contain only explicit initial_version semantics.")
+    repository = plan.get("repository")
+    target = plan.get("target")
+    candidate = plan.get("candidate")
+    authority = plan.get("authority")
+    generated = plan.get("generated")
+    expected_changes = plan.get("expected_changes")
+    if not isinstance(repository, dict) or set(repository) != {
+        "root",
+        "fingerprint",
+        "baseline_artifact_count",
+        "baseline_artifact_set_identity",
+        "expected_artifact_count_after",
+    }:
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE repository section is invalid.")
+    if not isinstance(baseline, dict) or set(baseline) != {
+        "branch", "head", "worktree_clean", "staging_empty"
+    }:
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE baseline section is invalid.")
+    if not isinstance(target, dict) or set(target) != {
+        "declared_path", "scope", "parent_directory_exists", "parent_directory_real", "absent", "collision_result"
+    }:
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE target section is invalid.")
+    if not isinstance(candidate, dict) or set(candidate) != {
+        "original_path", "resolved_path", "sha256", "metadata", "metadata_fingerprint",
+        "title", "canonical_path", "byte_convention",
+    }:
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE candidate section is invalid.")
+    if not isinstance(authority, dict) or set(authority) != {"declared_authority", "risk"}:
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE authority section is invalid.")
+    if not isinstance(generated, dict) or set(generated) != {"mode", "outputs"}:
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE generated section is invalid.")
+    if not isinstance(candidate["metadata"], dict) or candidate.get("byte_convention") != {
+        "encoding": "UTF-8", "bom": False, "newline": "LF"
+    }:
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE candidate metadata or byte convention is invalid.")
+    hash_fields = (
+        candidate.get("sha256"),
+        candidate.get("metadata_fingerprint"),
+        repository.get("baseline_artifact_set_identity"),
+    )
+    if any(not isinstance(value, str) or not _SHA256.fullmatch(value) for value in hash_fields):
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE plan contains a malformed hash.")
+    baseline_count = repository.get("baseline_artifact_count")
+    final_count = repository.get("expected_artifact_count_after")
+    if not isinstance(baseline_count, int) or final_count != baseline_count + 1:
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE artifact counts are inconsistent.")
+    if target.get("absent") is not True or target.get("parent_directory_exists") is not True \
+            or target.get("parent_directory_real") is not True or target.get("collision_result") != "PASS":
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE target invariants must be satisfied in the plan.")
+    outputs = generated.get("outputs")
+    if not isinstance(outputs, list) or any(not isinstance(item, dict) for item in outputs):
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE generated outputs are invalid.")
+    if not isinstance(expected_changes, list) or not expected_changes:
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE expected_changes must be non-empty.")
+    expected_paths = [str(target["declared_path"])] + [
+        str(item.get("path")) for item in outputs if item.get("status") == "WOULD_CHANGE"
+    ]
+    expected_operations = ["DOCUMENT_CREATE"] + ["GENERATED_UPDATE"] * (len(expected_paths) - 1)
+    if any(not isinstance(item, dict) or set(item) != {"operation", "path"} for item in expected_changes):
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE expected change entries are invalid.")
+    if [item["path"] for item in expected_changes] != expected_paths \
+            or [item["operation"] for item in expected_changes] != expected_operations:
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE expected_changes do not match target and generated preview.")
+    if candidate.get("canonical_path") != target.get("declared_path"):
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE candidate canonical path differs from target.")
+    if not isinstance(plan.get("preconditions"), list) or not isinstance(plan.get("impact"), dict):
+        fail("CREATE_PLAN_STRUCTURE_INVALID", "CREATE preconditions or impact section is invalid.")
     return plan

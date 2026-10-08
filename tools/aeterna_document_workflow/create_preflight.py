@@ -153,6 +153,15 @@ def run_create_preflight(
 ) -> CreatePreflightContext:
     manifest_file = Path(manifest_path).resolve()
     manifest = load_create_manifest(manifest_file)
+    return run_create_preflight_manifest(repository_root, manifest, manifest_file)
+
+
+def run_create_preflight_manifest(
+    repository_root: str | Path,
+    manifest: CreateManifest,
+    manifest_path: str | Path,
+) -> CreatePreflightContext:
+    manifest_file = Path(manifest_path).resolve()
     root = Path(repository_root).resolve()
     git = capture_git_state(root)
     gates: list[dict[str, object]] = []
@@ -238,6 +247,8 @@ def run_create_preflight(
         fail("CREATE_ARTIFACT_ID_COLLISION", "CREATE artifact ID already exists or is case-equivalent.")
 
     title = _candidate_title(candidate.body_bytes)
+    if any(line.endswith((b" ", b"\t")) for line in candidate_data.splitlines()):
+        fail("CREATE_CANDIDATE_TRAILING_WHITESPACE", "CREATE candidate contains trailing whitespace.")
     record = ArtifactRecord(
         artifact_id=str(fields["artifact_id"]),
         kind=str(fields["kind"]),
