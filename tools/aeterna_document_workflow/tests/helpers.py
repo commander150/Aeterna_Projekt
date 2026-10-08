@@ -162,6 +162,42 @@ class RepositoryFixture:
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
         return path
 
+    def create_manifest(
+        self,
+        candidate: Path,
+        *,
+        target_path: str = "project/planning/NEW.md",
+        **overrides: object,
+    ) -> Path:
+        candidate_snapshot = inspect_markdown(candidate)
+        fields = dict(candidate_snapshot.metadata.fields)
+        payload: dict[str, object] = {
+            "schema_version": "aeterna-document-create-manifest/0.1",
+            "artifact_id": fields["artifact_id"],
+            "target_path": target_path,
+            "candidate_path": candidate.name,
+            "expected_branch": "main",
+            "expected_head": self.head,
+            "candidate_sha256": candidate_snapshot.sha256,
+            "candidate_metadata_fingerprint": candidate_snapshot.metadata_fingerprint,
+            "candidate_metadata": fields,
+            "candidate_byte_convention": {
+                "encoding": "UTF-8",
+                "bom": False,
+                "newline": "LF",
+            },
+            "declared_authority": fields["authority"],
+            "initial_version": fields["version"],
+        }
+        payload.update(overrides)
+        path = candidate.parent / "create-manifest.json"
+        path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        return path
+
     def tracked_bytes(self) -> dict[str, bytes]:
         names = self.git("ls-files").splitlines()
         return {name: (self.root / name).read_bytes() for name in names}

@@ -8,6 +8,7 @@ import sys
 
 from .impact import build_impact
 from .model import WorkflowError
+from .create_planner import build_create_plan
 from .planner import build_update_plan
 from .resolver import record_payload, resolve_artifact
 from .review import verify_review_file
@@ -32,6 +33,10 @@ def _parser() -> argparse.ArgumentParser:
     plan = commands.add_parser("plan-update", help="Build a deterministic no-write update plan.")
     plan.add_argument("--manifest", required=True)
     plan.add_argument("--repo", required=True)
+
+    create = commands.add_parser("plan-create", help="Build a deterministic read-only CREATE plan.")
+    create.add_argument("--manifest", required=True)
+    create.add_argument("--repo", required=True)
 
     apply = commands.add_parser("apply", help="Apply one materialized update plan transactionally.")
     apply.add_argument("plan")
@@ -72,6 +77,9 @@ def _run(arguments: argparse.Namespace) -> int:
         return 0
     if arguments.command == "plan-update":
         _print_json(build_update_plan(arguments.repo, arguments.manifest))
+        return 0
+    if arguments.command == "plan-create":
+        _print_json(build_create_plan(arguments.repo, arguments.manifest))
         return 0
     if arguments.command == "apply":
         _print_json(apply_plan(arguments.plan, arguments.repo, arguments.review_dir))

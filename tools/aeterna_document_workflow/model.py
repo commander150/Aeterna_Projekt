@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import NoReturn
+from typing import Mapping, NoReturn
 
 from tools.aeterna_artifacts.model import (
     ArtifactMetadata,
@@ -101,6 +101,34 @@ class UpdateManifest:
     proposed_version: str | None
     reference_changes: tuple[ReferenceChange, ...]
     resolved_candidate_path: str | None = None
+
+
+@dataclass(frozen=True)
+class CreateManifest:
+    artifact_id: str
+    target_path: str
+    candidate_path: str
+    expected_branch: str
+    expected_head: str
+    candidate_sha256: str
+    candidate_metadata_fingerprint: str
+    candidate_metadata: Mapping[str, object]
+    candidate_byte_convention: Mapping[str, object]
+    declared_authority: str
+    initial_version: str
+
+
+@dataclass(frozen=True)
+class CreatePreflightContext:
+    manifest_path: Path
+    manifest: CreateManifest
+    git: GitState
+    scan: ScanResult
+    baseline_artifact_set_identity: str
+    candidate: ContentSnapshot
+    candidate_record: ArtifactRecord
+    target_path: str
+    preconditions: tuple[dict[str, object], ...]
 
 
 @dataclass(frozen=True)
