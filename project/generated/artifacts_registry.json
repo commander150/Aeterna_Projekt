@@ -177,6 +177,25 @@
       "path": "project/planning/DEVELOPMENT_ROADMAP.md"
     },
     {
+      "artifact_id": "AET-DOC-DOCUMENT-EDITOR-SPECIFICATION",
+      "title": "AETERNA Document Editor – MVP Specification",
+      "kind": "document",
+      "type": "specification",
+      "version": "0.1",
+      "lifecycle": "active",
+      "integration": "current",
+      "authority": "technical-contract",
+      "generated": false,
+      "depends_on": [
+        "AET-DOC-DOCUMENT-GOVERNANCE",
+        "AET-DOC-DOCUMENT-UPDATE-WORKFLOW",
+        "AET-DOC-PROJECT-PLAN"
+      ],
+      "supersedes": [],
+      "scope": "ACTIVE",
+      "path": "project/requirements/DOCUMENT_EDITOR_SPECIFICATION.md"
+    },
+    {
       "artifact_id": "AET-DOC-DOCUMENT-GOVERNANCE",
       "title": "AETERNA dokumentum- és artifact-governance",
       "kind": "document",
