@@ -25,7 +25,7 @@
 | AET-DOC-OPEN-QUESTIONS-DECISIONS | AETERNA Game Engine – Open Questions Decisions | decision-log | 2.4 | active | current | project-direction | `project/decisions/OPEN_QUESTIONS_DECISIONS.md` |
 | AET-DOC-PRODUCT-RUNTIME-INSTALLATION-REQUIREMENTS | AETERNA Game Engine – Termékruntime- és telepítési követelmények | specification | 1.3 | active | current | technical-contract | `project/requirements/PRODUCT_RUNTIME_AND_INSTALLATION_REQUIREMENTS.md` |
 | AET-DOC-PROJECT-MAP-FILE-STATUS | AETERNA – Projekt Térkép és Fájlstátusz v1.12 | status | 1.12 | active | current | project-direction | `project/status/PROJECT_MAP_FILE_STATUS.md` |
-| AET-DOC-PROJECT-PLAN | AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.15 | project-plan | 6.15 | active | current | project-direction | `project/planning/PROJECT_PLAN.md` |
+| AET-DOC-PROJECT-PLAN | AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.16 | project-plan | 6.16 | active | current | project-direction | `project/planning/PROJECT_PLAN.md` |
 | AET-DOC-PROTOTYPE-STATUS | AETERNA Game Engine – Prototype Status | status | 1.6 | active | current | technical-status | `project/status/PROTOTYPE_STATUS.md` |
 | AET-DOC-REACTION-PRIORITY-CONTRACT | AETERNA – REACTION / PRIORITY FOUNDATION CONTRACT | contract | 1.3 | active | current | technical-contract | `src/engine/docs/REACTION_PRIORITY_CONTRACT.md` |
 | AET-DOC-RUNTIME-ENGINE-LANGUAGE-DECISION | AETERNA Game Engine – Runtime Engine Language Decision Gate | decision-log | 1.4 | active | current | technical-architecture | `project/decisions/RUNTIME_ENGINE_LANGUAGE_DECISION_GATE.md` |
