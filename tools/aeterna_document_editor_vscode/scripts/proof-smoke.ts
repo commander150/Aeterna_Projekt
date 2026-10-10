@@ -1,5 +1,8 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
+import { createOrOpenCandidateSession } from "../src/candidate";
 import { loadManagedDocuments } from "../src/registry";
 import { resolveRepositoryRoot } from "../src/repository";
 import { resolveArtifact, WorkflowIntegrationError } from "../src/workflow";
@@ -59,6 +62,43 @@ async function main(): Promise<void> {
   console.log(`WORKFLOW_RESOLVE_PATH = ${resolved.result.path}`);
   if (resolved.stderr.trim()) {
     console.log(`WORKFLOW_STDERR = ${resolved.stderr.trim()}`);
+  }
+
+  const candidateStorageRoot = await mkdtemp(
+    path.join(os.tmpdir(), "aeterna-e1-proof-"),
+  );
+  try {
+    const canonicalBefore = await readFile(projectPlan.absolutePath);
+    const request = {
+      repositoryRoot,
+      storageRoot: candidateStorageRoot,
+      artifact: {
+        artifactId: projectPlan.artifact_id,
+        canonicalPath: projectPlan.path,
+        version: projectPlan.version,
+        kind: projectPlan.kind,
+        generated: projectPlan.generated,
+        scope: projectPlan.scope,
+      },
+    };
+    const created = await createOrOpenCandidateSession(request);
+    const reopened = await createOrOpenCandidateSession(request);
+    if (created.disposition !== "CREATED" || reopened.disposition !== "REUSED") {
+      throw new Error("Candidate create/reopen disposition mismatch.");
+    }
+    if (!(await readFile(created.candidatePath)).equals(canonicalBefore)) {
+      throw new Error("Candidate bytes differ from the canonical baseline.");
+    }
+    if (!(await readFile(projectPlan.absolutePath)).equals(canonicalBefore)) {
+      throw new Error("Canonical bytes changed during candidate proof.");
+    }
+    console.log("CANDIDATE_BYTE_FAITHFUL = PASS");
+    console.log("CANDIDATE_REOPEN_PRESERVES_SESSION = PASS");
+    console.log("CANONICAL_UNCHANGED = YES");
+    console.log(`CANDIDATE_BASELINE_SHA256 = ${created.manifest.baseline.canonicalSha256}`);
+    console.log("GOVERNED_APPLY_EXECUTED = NO");
+  } finally {
+    await rm(candidateStorageRoot, { recursive: true, force: true });
   }
   console.log("PROOF_SMOKE = PASS");
 }

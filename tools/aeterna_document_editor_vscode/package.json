@@ -1,7 +1,7 @@
 {
   "name": "aeterna-document-editor",
   "displayName": "AETERNA Document Editor",
-  "description": "Read-only foundation proof for AETERNA governed documents.",
+  "description": "Governed AETERNA document navigation and safe candidate editing foundation.",
   "version": "0.0.1",
   "private": true,
   "engines": {
@@ -11,7 +11,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:aeternaDocuments"
+    "onView:aeternaDocuments",
+    "onCommand:aeterna.editCandidate",
+    "onCommand:aeterna.compareCandidate"
   ],
   "main": "./out/src/extension.js",
   "scripts": {
@@ -34,10 +36,32 @@
         "title": "AETERNA: Resolve Document"
       },
       {
+        "command": "aeterna.editCandidate",
+        "title": "AETERNA: Edit Candidate (Does Not Apply)"
+      },
+      {
+        "command": "aeterna.compareCandidate",
+        "title": "AETERNA: Compare Candidate with Canonical"
+      },
+      {
         "command": "aeterna.showDiagnostics",
         "title": "AETERNA: Show Diagnostics"
       }
     ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "aeterna.editCandidate",
+          "when": "view == aeternaDocuments && viewItem == aeternaManagedDocument",
+          "group": "inline@1"
+        },
+        {
+          "command": "aeterna.compareCandidate",
+          "when": "view == aeternaDocuments && viewItem == aeternaManagedDocument",
+          "group": "navigation@2"
+        }
+      ]
+    },
     "views": {
       "explorer": [
         {
