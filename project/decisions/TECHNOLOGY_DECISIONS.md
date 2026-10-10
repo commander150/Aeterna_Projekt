@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-TECHNOLOGY-DECISIONS
 kind: document
 type: decision-log
-version: "2.5"
+version: "2.6"
 lifecycle: active
 integration: current
 authority: technical-architecture
@@ -15,10 +15,10 @@ supersedes: []
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.5
-**Dátum:** 2026-09-05
+**Dokumentumverzió:** 2.6
+**Dátum:** 2026-10-10
 **Státusz:** aktív technológiai döntési nyilvántartás  
-**Aktuális repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
+**Aktuális repository-bázis:** `c8e7e1854c3e054c8c0f59ba35196ae6d0ffdecd` – `feat: add read-only vscode document extension proof`
 
 Ez a dokumentum az AETERNA elfogadott technológiai döntéseit, azok indokait, korlátait és újranyitási feltételeit rögzíti.
 
@@ -32,6 +32,9 @@ Kapcsolódó aktív dokumentumok:
 - `OPEN_QUESTIONS.md`
 - `OPEN_QUESTIONS_DECISIONS.md`
 - `project/status/checkpoints/ENGINE_CHECKPOINT.md`
+- `project/governance/DOCUMENT_GOVERNANCE.md`
+- `project/governance/workflows/DOCUMENT_UPDATE_WORKFLOW.md`
+- `project/requirements/DOCUMENT_EDITOR_SPECIFICATION.md`
 - `project/planning/PROJECT_PLAN.md`
 
 ---
@@ -516,6 +519,24 @@ Current döntések:
 - archiválás vagy törlés csak utód- és cross-reference audit után történhet;
 - current dokumentációs szinkron targeted patch + diff/consistency review módszerrel történik.
 
+A current dokumentum-governance authority tisztázása:
+
+- a dokumentum-governance, a canonical fájlnév- és verziókezelés current authorityja
+  az `AET-DOC-DOCUMENT-GOVERNANCE`;
+- a governed dokumentumműveletek current authorityja az
+  `AET-DOC-DOCUMENT-UPDATE-WORKFLOW`;
+- a TD-014 korábbi, verziózott current fájlnevek verziónkénti rename-jére
+  vonatkozó mondata nem current policy;
+- a current policy stabil canonical fájlnevet használ, a verziót a dokumentum
+  metadata- és tartalomrétege rögzíti, a történeti verziókat a Git history őrzi;
+- a canonical materializációt a governed UPDATE/CREATE workflow kontrollálja.
+
+A TD-014 nem második dokumentum-governance authority; a fenti current authority
+dokumentumok az irányadók. Az eredeti tartós célok – a párhuzamos current
+dokumentumok elkerülése, az információvesztés megelőzése, a Git history
+verziómegőrzése, az Archive történeti szerepe és az ellenőrzött
+archiválás/törlés – változatlanul érvényesek.
+
 A nagy repository-dokumentációs cleanup már lezárult.
 
 A további dokumentumaudit célzott:
@@ -528,7 +549,132 @@ A további dokumentumaudit célzott:
 
 Nem indul automatikusan új teljes repository-cleanup minden mérföldkőnél.
 
-## 15. Aktuális végrehajtási sorrend
+## 15. TD-015 – AETERNA Document Editor host és governance-integráció
+
+**Státusz:** ELFOGADVA ÉS PROOF-FAL IGAZOLVA
+**Döntési dátum:** 2026-10-10
+
+Bizonyító commit:
+
+`c8e7e1854c3e054c8c0f59ba35196ae6d0ffdecd` – `feat: add read-only vscode document extension proof`
+
+Elfogadott döntés:
+
+```text
+DOCUMENT_EDITOR_IMPLEMENTATION_APPROACH = EXISTING_EDITOR_PLUS_AETERNA_TOOLING
+DOCUMENT_EDITOR_HOST = VISUAL_STUDIO_CODE
+DOCUMENT_EDITOR_CUSTOM_COMPONENT = THIN_VSCODE_EXTENSION_FIRST
+DOCUMENT_EDITOR_GOVERNANCE_BACKEND = EXISTING_AETERNA_DOCUMENT_WORKFLOW
+```
+
+A Visual Studio Code hostdöntése elfogadott. A thin extension AETERNA-specifikus
+integrációs réteg, nem második governance engine. A meglévő AETERNA document
+workflow marad canonical a validációhoz, planninghez, review-hoz és apply-hoz.
+A generált artifact registry az Editor read-only navigációs/adatforrása, nem
+válhat writable authorityvá.
+
+A proof jelenlegi read-only foundationje bizonyítja:
+
+- repository detection;
+- managed document listing;
+- artifact ID, title, canonical path és version inspection;
+- managed Markdown dokumentum megnyitását a normál VS Code text editorban;
+- Refresh;
+- governed workflow `resolve`;
+- diagnostics.
+
+Proof evidence:
+
+- TypeScript compile: `PASS`;
+- extension unit tests: `9/9 PASS`;
+- real repository proof smoke: `PASS`;
+- artifact regression: `66/66 PASS`;
+- document workflow regression: `86/86 PASS`;
+- human VS Code activation/interaction acceptance: `PASS`;
+- canonical write path a proofban: `NONE`;
+- Git mutation: `NONE`;
+- AI integration: `NONE`;
+- custom editor: `NONE`;
+- webview: `NONE`.
+
+### Editing UX boundary
+
+```text
+EDITOR_UI_ARCHITECTURE = NOT_YET_DECIDED
+EDITOR_UX_REQUIREMENTS_DISCOVERY = REQUIRED_BEFORE_EDITING_SURFACE_LOCK
+NATIVE_MARKDOWN_EDITOR_ROLE = INITIAL_PROOF_BASELINE_NOT_FINAL_CONSTRAINT
+CUSTOM_EDITOR = ALLOWED_IF_REQUIREMENTS_JUSTIFY
+WEBVIEW = ALLOWED_IF_REQUIREMENTS_JUSTIFY
+CUSTOM_METADATA_OR_REVIEW_UI = ALLOWED_IF_REQUIREMENTS_JUSTIFY
+FULLY_CUSTOM_STANDALONE_APPLICATION = DEFERRED_UNLESS_PROVEN_NECESSARY
+```
+
+A TD-015 nem zárja le a végleges editing surface-t. Meglévő VS Code
+képesség vagy kompatibilis plugin/component használható, ha megfelel a
+követelményeknek és megőrzi az AETERNA governance-t. Bespoke implementáció nem
+előny csak azért, mert bespoke; custom komponens csak valós AETERNA-követelmény
+alapján indokolt.
+
+### Authoring- és AI-határ
+
+```text
+DOCUMENT_EDITOR_MVP_AI = NOT_REQUIRED
+DOCUMENT_EDITOR_AUTHORING = MANUAL_FIRST
+AUTHORING_AI_INDEPENDENCE = REQUIRED
+DOCUMENT_EDITOR_CONTENT_AI_STRATEGY = PROVIDER_AGNOSTIC
+CODEX_IS_DEFAULT_CONTENT_AUTHOR = NO
+CODEX_PRIMARY_ROLE = PROGRAMMING_AND_TECHNICAL_VALIDATION
+DOCUMENT_EDITOR_MUST_NOT_REQUIRE_CODEX_FOR_AUTHORING = YES
+AUTONOMOUS_DOCUMENT_GENERATION = OUT_OF_SCOPE
+```
+
+AI provider nincs kiválasztva, és a döntés nem vezet be AI-integrációt.
+
+### Future write-path boundary
+
+```text
+human edit/new intent
+→ candidate
+→ validation
+→ deterministic plan/diff/review
+→ explicit human approval
+→ governed apply
+→ Git review
+→ human-controlled commit/push
+```
+
+A jövőbeli Editor write pathnak meg kell őriznie ezt az elfogadott governed
+workflow-t. A canonical fájl közönséges közvetlen mentése nem kezelhető governed
+write pathként. A TD-015 ezt a write pathot nem implementálja.
+
+### Development-host boundary
+
+Az Extension Development Host a proof fejlesztési/tesztmechanizmusa volt, nem a
+végleges felhasználói indítási vagy disztribúciós modell. A normál használat nem
+követelheti meg developer PowerShell parancsok megjegyzését. A pontos
+installation/distribution/launch megoldás az Editor UX és implementációs munkára
+halasztott; a TD-015 nem választ packaging mechanizmust.
+
+### Újranyitás
+
+A VS Code host/integrációs döntés csak valós implementáció vagy használat során
+bizonyított material blocker esetén nyitható újra, például ha:
+
+- a szükséges editing UX nem implementálható biztonságosan VS Code-ban;
+- a governed candidate/review/apply flow megkerülése lenne szükséges;
+- a local-first működés nem tartható fenn;
+- a karbantarthatóság érdemben rosszabbá válik egy alternatívánál;
+- a distribution vagy normal-use korlátok a megoldást gyakorlatban
+  használhatatlanná teszik;
+- valós használat bizonyítja, hogy az elfogadott host nem teljesíti a Document
+  Editor specificationt.
+
+A döntés nem nyitható újra pusztán azért, mert fully custom standalone
+alkalmazás is készíthető.
+
+---
+
+## 16. Aktuális végrehajtási sorrend
 
 ### Lezárt proof és foundation rétegek
 
@@ -589,7 +735,7 @@ Nem programozási aktív sáv továbbra is lehet:
 A főforrás-dokumentumok későbbi szerkezeti újratervezése külön dokumentációs/design feladat,
 nem technológiai döntés és nem módosítja ezt a végrehajtási sorrendet.
 
-## 16. Rövid döntési összefoglaló
+## 17. Rövid döntési összefoglaló
 
 - A contract-first modell kötelező.
 - Egyetlen authoritative state lehet.
@@ -601,6 +747,10 @@ nem technológiai döntés és nem módosítja ezt a végrehajtási sorrendet.
 - A Godot–C# kapcsolat közvetlen same-process.
 - A Python–C# headless JSON/JSONL alapkapcsolat implementált.
 - Embedded Python és service API csak későbbi bizonyíték/mérés alapján vizsgálható.
+- A Document Editor elfogadott hostja a Visual Studio Code; az AETERNA-specifikus
+  réteg thin extension, a canonical backend a meglévő governed document workflow.
+- A TD-015 proof-fal igazolt, a végleges editing UI architektúra továbbra sincs
+  lezárva.
 - C.5B, Explicit Phase, Reaction/Priority és Combat/Pecsét C0–C6 lezárt foundation.
 - Current production base:
   `0862e1002dbef81ee203852714d377592272a0e9`.
@@ -610,4 +760,4 @@ nem technológiai döntés és nem módosítja ezt a végrehajtási sorrendet.
   `VS1_READINESS_REQUIRED`.
 - Következő major product-facing cél:
   `VS1 / M6 – első ténylegesen játszható vertical slice`.
-- Nem született új technology decision ebben a maintenance syncben; a meglévő TD-k current státusza frissült.
+- A TD-015 formalizálja a proof-fal igazolt Document Editor host- és governance-integrációs döntést.

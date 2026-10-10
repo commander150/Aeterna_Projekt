@@ -33,5 +33,5 @@
 | AET-DOC-RUNTIME-PACKAGE-SPECIFICATION | AETERNA Game Engine – Runtime Package Specification | specification | 2.4 | active | current | technical-contract | `data/specifications/RUNTIME_PACKAGE_SPECIFICATION.md` |
 | AET-DOC-RUNTIME-PACKAGE-STATUS | AETERNA Game Engine – Runtime Package Status | status | 1.7 | active | current | technical-status | `data/status/RUNTIME_PACKAGE_STATUS.md` |
 | AET-DOC-SEED-REPRODUCIBILITY | AETERNA seed- és reprodukálhatósági konvenció | specification | 1.0 | active | current | operational-workflow | `project/requirements/testing/SEED_AND_REPRODUCIBILITY_CONVENTION.md` |
-| AET-DOC-TECHNOLOGY-DECISIONS | AETERNA Game Engine – Technology Decisions | decision-log | 2.5 | active | current | technical-architecture | `project/decisions/TECHNOLOGY_DECISIONS.md` |
+| AET-DOC-TECHNOLOGY-DECISIONS | AETERNA Game Engine – Technology Decisions | decision-log | 2.6 | active | current | technical-architecture | `project/decisions/TECHNOLOGY_DECISIONS.md` |
 | AET-DOC-TEST-STRATEGY-PROFILES | AETERNA tesztstratégia és tesztprofilok | specification | 1.1 | active | current | operational-workflow | `project/requirements/testing/TEST_STRATEGY_AND_PROFILES.md` |
