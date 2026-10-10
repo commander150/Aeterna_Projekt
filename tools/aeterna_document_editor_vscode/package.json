@@ -1,0 +1,55 @@
+{
+  "name": "aeterna-document-editor",
+  "displayName": "AETERNA Document Editor",
+  "description": "Read-only foundation proof for AETERNA governed documents.",
+  "version": "0.0.1",
+  "private": true,
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:aeternaDocuments"
+  ],
+  "main": "./out/src/extension.js",
+  "scripts": {
+    "compile": "tsc -p .",
+    "test": "npm run compile && node --test out/test/*.test.js",
+    "proof-smoke": "npm run compile && node out/scripts/proof-smoke.js"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "aeterna.refreshDocuments",
+        "title": "AETERNA: Refresh Documents"
+      },
+      {
+        "command": "aeterna.openDocument",
+        "title": "AETERNA: Open Document"
+      },
+      {
+        "command": "aeterna.resolveDocument",
+        "title": "AETERNA: Resolve Document"
+      },
+      {
+        "command": "aeterna.showDiagnostics",
+        "title": "AETERNA: Show Diagnostics"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "aeternaDocuments",
+          "name": "AETERNA Documents"
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "@types/vscode": "1.140.0",
+    "typescript": "7.0.2"
+  }
+}
