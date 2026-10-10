@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-PROJECT-PLAN
 kind: document
 type: project-plan
-version: "6.17"
+version: "6.18"
 lifecycle: active
 integration: current
 authority: project-direction
@@ -11,14 +11,14 @@ depends_on: []
 supersedes: []
 ---
 
-# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.17
+# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.18
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 6.17
-**Dátum:** 2026-10-09
+**Dokumentumverzió:** 6.18
+**Dátum:** 2026-10-10
 **Státusz:** aktív projektirányító és prioritási dokumentum
-**Előző aktív verzió:** 6.16 (Git history)
+**Előző aktív verzió:** 6.17 (Git history)
 **Szinkronizációs repository-bázis:** `0862e1002dbef81ee203852714d377592272a0e9` – `engine: add aeternal outcome and terminal match result`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **Előző technikai checkpoint-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
@@ -562,9 +562,10 @@ dokumentumverziót, HEAD-et, státuszt és implementációt GitHubról kell elle
 
 `DOCUMENT_SYSTEM_SCOPE_FREEZE = ACCEPTED`
 
-A következő projektlépés a `DOCUMENT_EDITOR_BUILD_VS_ADOPT_EVALUATION = NEXT`.
-Az értékelés az elfogadott `AET-DOC-DOCUMENT-EDITOR-SPECIFICATION` követelményei
-alapján, bármely implementációs megközelítés kiválasztása előtt történik.
+A build-vs-adopt értékelés `COMPLETE_AND_ACCEPTED`; az elfogadott
+megközelítés `EXISTING_EDITOR_PLUS_AETERNA_TOOLING`, a host `VISUAL_STUDIO_CODE`.
+A következő projektlépés a
+`READ_ONLY_VSCODE_EXTENSION_FOUNDATION_PROOF`.
 
 Az `AETERNA Document Editor` a governed document workflow fölötti dedikált
 authoring/editing réteg funkcionális célja. Koncepcionális felelőssége a
@@ -712,106 +713,127 @@ PILOT-8C = COMPLETE_AND_REMOTE_VERIFIED
 Runtime / VS1 a current dokumentumkezelési prioritás után marad.
 
 
-### 9.3 PILOT-8E closeout és következő Editor-döntési lépés
+### 9.3 Document Editor megközelítés-döntés és következő proof
 
 ```text
 PILOT-8E = COMPLETE_AND_REMOTE_VERIFIED
 PILOT_8E_MEANING = FIRST_REAL_GOVERNED_CREATE_ACCEPTANCE
 PILOT_8E_REMOTE_COMMIT = 4647d263e2ae23019723e8db8a0cebd92a065457
 FIRST_REAL_GOVERNED_CREATE = COMPLETE_AND_REMOTE_VERIFIED
-```
-
-A first real governed CREATE acceptance létrehozta az alábbi current artifactot:
-
-```text
-ARTIFACT_ID = AET-DOC-DOCUMENT-EDITOR-SPECIFICATION
-CANONICAL_PATH = project/requirements/DOCUMENT_EDITOR_SPECIFICATION.md
-VERSION = 0.1
-AUTHORITY = technical-contract
-```
-
-Az acceptance bizonyította az explicit emberi content review-t és CREATE
-approvalt, a determinisztikus CREATE planninget, a tranzakciós governed CREATE
-apply-t, az exact candidate → canonical materializációt, a determinisztikus
-registry/index frissítést, a post-write validációt, a CREATE review evidence-et
-és a sikeres `verify-review` ellenőrzést. A rollback képesség rendelkezésre állt,
-de nem volt rá szükség. A Git staging, commit és push emberi kontroll alatt
-maradt.
-
-```text
-DOCUMENT_EDITOR_BUILD_VS_ADOPT_EVALUATION = NEXT
-DOCUMENT_EDITOR_IMPLEMENTATION_STRATEGY = BUILD_VS_ADOPT_NOT_YET_DECIDED
+DOCUMENT_EDITOR_MVP_SPECIFICATION = 0.1 / CURRENT
+DOCUMENT_SYSTEM_SCOPE_FREEZE = ACCEPTED
+MANAGED_ARTIFACTS = 30
+UPDATE_WORKFLOW = IMPLEMENTED_AND_ACCEPTED
+CREATE_WORKFLOW = IMPLEMENTED_AND_ACCEPTED
+AUTONOMOUS_DOCUMENT_GENERATION = OUT_OF_SCOPE
 FULLY_CUSTOM_APPLICATION_IS_DEFAULT = NO
+```
+
+A human-approved build-vs-adopt döntés current státusza:
+
+```text
+DOCUMENT_EDITOR_BUILD_VS_ADOPT_EVALUATION = COMPLETE_AND_ACCEPTED
+DOCUMENT_EDITOR_IMPLEMENTATION_APPROACH_DECISION = ACCEPTED
+DOCUMENT_EDITOR_IMPLEMENTATION_APPROACH = EXISTING_EDITOR_PLUS_AETERNA_TOOLING
+DOCUMENT_EDITOR_HOST = VISUAL_STUDIO_CODE
+DOCUMENT_EDITOR_CUSTOM_COMPONENT = THIN_VSCODE_EXTENSION_FIRST
+DOCUMENT_EDITOR_GOVERNANCE_BACKEND = EXISTING_AETERNA_DOCUMENT_WORKFLOW
+DOCUMENT_EDITOR_MVP_AI = NOT_REQUIRED
+DOCUMENT_EDITOR_AUTHORING = MANUAL_FIRST
+AUTHORING_AI_INDEPENDENCE = REQUIRED
+FULLY_CUSTOM_STANDALONE_APPLICATION = DEFERRED_UNLESS_PROVEN_NECESSARY
 DOCUMENT_EDITOR_CONTENT_AI_STRATEGY = PROVIDER_AGNOSTIC
 CODEX_IS_DEFAULT_CONTENT_AUTHOR = NO
 CODEX_PRIMARY_ROLE = PROGRAMMING_AND_TECHNICAL_VALIDATION
 DOCUMENT_EDITOR_MUST_NOT_REQUIRE_CODEX_FOR_AUTHORING = YES
-AUTHORING_AI_INDEPENDENCE = REQUIRED
+AUTONOMOUS_DOCUMENT_GENERATION = OUT_OF_SCOPE
 ```
 
-A következő értékelés az elfogadott Editor MVP Specification követelményeivel
-veti össze az alábbi implementációs kategóriákat:
+Az elfogadott megközelítés meglévő helyi editort használ egy teljes editor
+nulláról történő felépítése helyett. A Visual Studio Code alkalmas host a helyi
+repository- és Markdown-munkához. A canonical validációs, tervezési és apply
+backend továbbra is a meglévő AETERNA governed document workflow, ezért a custom
+réteg az AETERNA-specifikus viselkedésre összpontosíthat. A normál dokumentumírás
+nem igényel Codexet; az AI-assisted authoring opcionális és provider-agnostic.
+Fully custom standalone alkalmazás csak akkor indokolt, ha valós követelmények
+később szükségesnek bizonyítják.
 
-- `EXISTING_APPLICATION`;
-- `EXISTING_APPLICATION_PLUS_PLUGIN_OR_CONFIGURATION`;
-- `EXISTING_EDITOR_PLUS_AETERNA_TOOLING`;
-- `HYBRID_SOLUTION`;
-- `FULLY_CUSTOM_APPLICATION`.
+Az elfogadott döntés a hostot és az integrációs stratégiát rögzíti, de a
+végleges editing surface architektúráját nem zárja le:
 
-Ebben a státusz-syncben nincs kiválasztott kategória, termék, framework,
-implementációs technológia vagy architektúra. A fully custom alkalmazás nem
-alapértelmezés.
+```text
+EDITOR_UI_ARCHITECTURE = NOT_YET_DECIDED
+EDITOR_UX_REQUIREMENTS_DISCOVERY = REQUIRED_BEFORE_EDITING_SURFACE_LOCK
+NATIVE_MARKDOWN_EDITOR_ROLE = INITIAL_PROOF_BASELINE_NOT_FINAL_CONSTRAINT
+CUSTOM_EDITOR = ALLOWED_IF_REQUIREMENTS_JUSTIFY
+WEBVIEW = ALLOWED_IF_REQUIREMENTS_JUSTIFY
+CUSTOM_METADATA_OR_REVIEW_UI = ALLOWED_IF_REQUIREMENTS_JUSTIFY
+```
 
-Az elfogadott értékelési szempontok:
+A Visual Studio Code az elfogadott host alkalmazás. Az első proof a legkisebb
+biztonságos kiindulásként használhatja a natív VS Code Markdown editort. Ez nem
+jelenti azt, hogy a végleges AETERNA Document Editor kizárólag ezt használhatja.
+A végleges editing UX architektúra rögzítése előtt dedikált, ember által
+vezetett requirements discovery határozza meg a tényleges dokumentumszerkesztési
+igényeket. Ezek indokolhatnak custom editort, webview-t, metadata panelt,
+structured New Document UI-t, specializált preview-t, validation displayt,
+review/diff UI-t vagy más AETERNA-specifikus editing komponenst. Egyik sem
+kötelező és egyik sincs kizárva; használatukat valós editing követelménynek kell
+indokolnia.
 
-- MVP requirement coverage;
-- local-first operation;
-- governed workflow integration;
-- maintainability;
-- required custom development effort.
+```text
+DOCUMENT_EDITOR_NEXT_STEP = READ_ONLY_VSCODE_EXTENSION_FOUNDATION_PROOF
+```
 
-The AETERNA Document Editor must remain fully usable for manual document
-authoring without Codex.
+Az első proof szándékosan read-only. Célja annak bizonyítása, hogy egy kis VS Code
+extension a végleges editing UI architektúra rögzítése nélkül integrálható a
+current AETERNA repositoryval és document workflow-val.
 
-Optional AI-assisted authoring must not require Codex as its default or
-exclusive content-generation backend.
+Az initial proof scope:
 
-The content-authoring AI layer should remain provider-agnostic where practical.
+1. minimális AETERNA VS Code extension foundation létrehozása;
+2. sikeres aktiválás Visual Studio Code-ban;
+3. az AETERNA repository workspace biztonságos azonosítása és megnyitása;
+4. AETERNA Documents view vagy egyenértékű egyszerű VS Code-native view;
+5. managed document információ olvasása a meglévő determinisztikus AETERNA
+   document data/workflow surface-ről;
+6. managed Markdown dokumentumok listázása legalább artifact ID, title,
+   canonical path és version mezőkkel;
+7. kiválasztott managed dokumentum megnyitása a normál VS Code editorban;
+8. legalább egy read-only integrációs út bizonyítása a meglévő AETERNA
+   document workflow-val, például resolve vagy metadata inspection;
+9. egyértelmű technikai diagnosztika, ha a repository vagy a workflow nem
+   található.
 
-Possible future authoring sources may include:
+Az első proof nem módosíthat canonical dokumentumot, nem hozhat létre dokumentumot,
+nem futtathat governed apply-t, nem adhat write/update/create UI-t, nem stage-elhet,
+nem commitolhat, nem pusholhat, nem integrálhat AI-t, nem implementálhat custom
+editort vagy webview-alapú editinget, nem zárhatja le a végleges editing UX-et és
+nem duplikálhatja a meglévő governance workflow-t. A proof kizárólag
+architecture/integration evidence.
 
-- ChatGPT or another conversational AI;
-- an API-connected model/provider;
-- a local model;
-- another compatible AI integration;
-- no AI at all.
+A post-proof döntési kapu:
 
-No provider is selected in this task.
+```text
+READ_ONLY_EXTENSION_PROOF
+→ HUMAN_TECHNICAL_REVIEW
+→ EDITOR_UX_REQUIREMENTS_DISCOVERY
+→ EDITING_SURFACE_ARCHITECTURE_DECISION
+→ WRITE_PATH_UI_IMPLEMENTATION
+```
 
-Codex should be reserved primarily for:
+A későbbi editing-surface döntés a natív VS Code editor, VS Code commands/views,
+custom editor, webview, custom metadata/review panel vagy más indokolt VS Code
+extension-képesség kombinációját választhatja. Jelenleg nincs kiválasztott
+végleges kombináció.
 
-- programming;
-- code modification;
-- technical repository operations;
-- build/test/smoke execution;
-- workflow/tooling implementation and technical validation;
-- local technical analysis when required.
+```text
+TECHNOLOGY_DECISION_FORMALIZATION = AFTER_READ_ONLY_PROOF
+```
 
-Normal document drafting, rewriting and content editing should not consume
-Codex capacity by default.
-
-This is consistent with the existing Project Plan rule that documentation
-editing is not a default Codex task.
-
-The evaluation must consider whether an implementation approach:
-
-- works without AI;
-- works without Codex for normal authoring;
-- can support an optional replaceable/separate AI authoring layer;
-- avoids coupling the Document Editor itself to Codex.
-
-Gyakorlati implementációs korlát csak akkor értékelhető, ha közvetlenül az
-elfogadott Editor-specifikációból következik.
+A Project Plan most az elfogadott implementációs irányt rögzíti. Tartós
+technical-architecture decision bejegyzés a read-only proof után indokolt, ha a
+host/integrációs megközelítés blokkoló probléma nélkül működik.
 
 
 ---
@@ -871,8 +893,13 @@ elfogadott Editor-specifikációból következik.
 **Document governance foundation:** `COMPLETE_AND_CURRENT`
 **Current filename normalization:** `COMPLETE`
 **ChatGPT Library refresh:** `COMPLETE`
-**Document Editor build-vs-adopt evaluation:** `NEXT`
-**Document Editor implementation strategy:** `BUILD_VS_ADOPT_NOT_YET_DECIDED`
+**Document Editor build-vs-adopt evaluation:** `COMPLETE_AND_ACCEPTED`
+**Document Editor implementation approach decision:** `ACCEPTED`
+**Document Editor implementation approach:** `EXISTING_EDITOR_PLUS_AETERNA_TOOLING`
+**Document Editor host:** `VISUAL_STUDIO_CODE`
+**Document Editor custom component:** `THIN_VSCODE_EXTENSION_FIRST`
+**Editor UI architecture:** `NOT_YET_DECIDED`
+**Document Editor next step:** `READ_ONLY_VSCODE_EXTENSION_FOUNDATION_PROOF`
 **Fully custom application is default:** `NO`
 **AETERNA Document Editor implementation:** `PLANNED`
 **VS1 / M6:** `NEXT MAJOR PRODUCT-FACING GOAL AFTER DOCUMENT-MANAGEMENT PRIORITY`
@@ -880,24 +907,27 @@ elfogadott Editor-specifikációból következik.
 
 ## 11. Következő szakmai munkasorrend
 
-1. AETERNA Document Editor build-vs-adopt evaluation;
-2. Document Editor implementation approach decision;
-3. AETERNA Document Editor MVP implementation;
-4. valós használat;
-5. csak valós használattal igazolt további dokumentumképességek;
-6. runtime / VS1 munka később, a projektprioritás szerint.
+1. read-only VS Code extension foundation proof;
+2. human technical review;
+3. Editor UX requirements discovery;
+4. editing surface architecture decision;
+5. AETERNA Document Editor MVP implementation;
+6. valós használat;
+7. csak valós használattal igazolt további dokumentumképességek;
+8. runtime / VS1 munka később, a projektprioritás szerint.
 
 Elfogadott roadmap:
 
 ```text
-PILOT-8C = COMPLETE_AND_REMOTE_VERIFIED
-→ DOCUMENT_SYSTEM_SCOPE_FREEZE = ACCEPTED
-→ PILOT-8D = COMPLETE_AND_REMOTE_VERIFIED
-→ PILOT-8E = COMPLETE_AND_REMOTE_VERIFIED
-→ DOCUMENT_EDITOR_BUILD_VS_ADOPT_EVALUATION = NEXT
-→ DOCUMENT_EDITOR_IMPLEMENTATION_APPROACH_DECISION
-→ AETERNA Document Editor MVP implementation
-→ REAL USAGE
+PILOT-8E = COMPLETE_AND_REMOTE_VERIFIED
+→ DOCUMENT_EDITOR_BUILD_VS_ADOPT_EVALUATION = COMPLETE_AND_ACCEPTED
+→ DOCUMENT_EDITOR_IMPLEMENTATION_APPROACH_DECISION = ACCEPTED
+→ READ_ONLY_VSCODE_EXTENSION_FOUNDATION_PROOF = NEXT
+→ HUMAN_TECHNICAL_REVIEW
+→ EDITOR_UX_REQUIREMENTS_DISCOVERY
+→ EDITING_SURFACE_ARCHITECTURE_DECISION
+→ AETERNA_DOCUMENT_EDITOR_MVP_IMPLEMENTATION
+→ REAL_USAGE
 → only justified follow-up document capabilities
 ```
 
@@ -914,8 +944,13 @@ Elfogadott státusz:
 - `PILOT-8E = COMPLETE_AND_REMOTE_VERIFIED`;
 - `FIRST_REAL_GOVERNED_CREATE = COMPLETE_AND_REMOTE_VERIFIED`;
 - `DOCUMENT_EDITOR_MVP_SPECIFICATION = 0.1 / CURRENT`;
-- `DOCUMENT_EDITOR_BUILD_VS_ADOPT_EVALUATION = NEXT`;
-- `DOCUMENT_EDITOR_IMPLEMENTATION_STRATEGY = BUILD_VS_ADOPT_NOT_YET_DECIDED`;
+- `DOCUMENT_EDITOR_BUILD_VS_ADOPT_EVALUATION = COMPLETE_AND_ACCEPTED`;
+- `DOCUMENT_EDITOR_IMPLEMENTATION_APPROACH_DECISION = ACCEPTED`;
+- `DOCUMENT_EDITOR_IMPLEMENTATION_APPROACH = EXISTING_EDITOR_PLUS_AETERNA_TOOLING`;
+- `DOCUMENT_EDITOR_HOST = VISUAL_STUDIO_CODE`;
+- `DOCUMENT_EDITOR_CUSTOM_COMPONENT = THIN_VSCODE_EXTENSION_FIRST`;
+- `EDITOR_UI_ARCHITECTURE = NOT_YET_DECIDED`;
+- `DOCUMENT_EDITOR_NEXT_STEP = READ_ONLY_VSCODE_EXTENSION_FOUNDATION_PROOF`;
 - `FULLY_CUSTOM_APPLICATION_IS_DEFAULT = NO`;
 - `AETERNA Document Editor implementation = PLANNED`.
 
