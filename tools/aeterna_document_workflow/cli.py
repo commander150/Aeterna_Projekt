@@ -9,6 +9,8 @@ import sys
 from .impact import build_impact
 from .model import WorkflowError
 from .create_planner import build_create_plan
+from .content import inspect_markdown
+from .git_state import capture_git_state
 from .planner import build_update_plan
 from .resolver import record_payload, resolve_artifact
 from .review import verify_review_file
@@ -29,6 +31,13 @@ def _parser() -> argparse.ArgumentParser:
     impact.add_argument("--repo", required=True)
     impact.add_argument("--transitive", action="store_true")
     impact.add_argument("--json", action="store_true")
+
+    baseline = commands.add_parser(
+        "inspect-update-baseline",
+        help="Inspect UPDATE baseline identity and metadata without writing.",
+    )
+    baseline.add_argument("artifact_id")
+    baseline.add_argument("--repo", required=True)
 
     plan = commands.add_parser("plan-update", help="Build a deterministic no-write update plan.")
     plan.add_argument("--manifest", required=True)
@@ -74,6 +83,29 @@ def _run(arguments: argparse.Namespace) -> int:
             print(f"TARGET\t{payload['artifact_id']}")
             for item in payload["direct_reverse_dependencies"]:
                 print(f"DEPENDENT\t{item['artifact_id']}\t{item['impact']}")
+        return 0
+    if arguments.command == "inspect-update-baseline":
+        resolved = resolve_artifact(arguments.repo, arguments.artifact_id)
+        git = capture_git_state(resolved.root)
+        snapshot = inspect_markdown(git.root / resolved.record.path)
+        _print_json({
+            "schema_version": "aeterna-document-update-baseline/0.1",
+            "artifact_id": resolved.record.artifact_id,
+            "path": resolved.record.path,
+            "repository_root": str(git.root),
+            "branch": git.branch,
+            "head": git.head,
+            "worktree_clean": not git.worktree_entries,
+            "staging_empty": not git.staged_paths,
+            "sha256": snapshot.sha256,
+            "metadata_fingerprint": snapshot.metadata_fingerprint,
+            "metadata": dict(snapshot.metadata.fields),
+            "byte_convention": {
+                "encoding": snapshot.encoding,
+                "bom": snapshot.bom,
+                "newline": snapshot.newline,
+            },
+        })
         return 0
     if arguments.command == "plan-update":
         _print_json(build_update_plan(arguments.repo, arguments.manifest))

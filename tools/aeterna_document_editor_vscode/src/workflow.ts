@@ -44,6 +44,10 @@ interface ProcessResult {
   readonly stderr: string;
 }
 
+export interface WorkflowCommandExecution extends ProcessResult {
+  readonly interpreter: PythonInterpreter;
+}
+
 class ProcessLaunchError extends Error {
   public constructor(
     message: string,
@@ -217,6 +221,33 @@ async function workflowIsAvailable(repositoryRoot: string): Promise<boolean> {
     return (await stat(cliPath)).isFile();
   } catch {
     return false;
+  }
+}
+
+export async function runWorkflowCommand(
+  repositoryRoot: string,
+  arguments_: readonly string[],
+): Promise<WorkflowCommandExecution> {
+  if (!(await workflowIsAvailable(repositoryRoot))) {
+    throw new WorkflowIntegrationError(
+      "WORKFLOW_UNAVAILABLE",
+      "The AETERNA document workflow CLI is unavailable in the repository.",
+    );
+  }
+  const interpreter = await discoverPythonInterpreter(repositoryRoot);
+  try {
+    const execution = await executeFile(
+      interpreter.command,
+      [...interpreter.prefixArguments, "-m", WORKFLOW_MODULE, ...arguments_],
+      repositoryRoot,
+    );
+    return { ...execution, interpreter };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new WorkflowIntegrationError(
+      "WORKFLOW_ERROR",
+      `Unable to execute workflow with ${interpreter.displayName}: ${detail}`,
+    );
   }
 }
 

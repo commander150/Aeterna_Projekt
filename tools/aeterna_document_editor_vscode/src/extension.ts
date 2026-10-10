@@ -15,6 +15,15 @@ import {
   loadCandidateSession,
   pathsEqual,
 } from "./candidate";
+import {
+  UpdatePreviewError,
+  currentUpdateIdentity,
+  isUpdatePlanStale,
+  prepareUpdatePreview,
+  requireSavedCandidate,
+  renderUpdatePreview,
+  type UpdatePlanIdentity,
+} from "./update_plan";
 
 class DocumentTreeItem extends vscode.TreeItem {
   public constructor(public readonly document: ManagedDocument) {
@@ -170,8 +179,17 @@ function reportCandidateError(
   error: unknown,
 ): void {
   const detail = error instanceof Error ? error.message : String(error);
-  const code = error instanceof CandidateSessionError ? ` [${error.code}]` : "";
+  const code = error instanceof CandidateSessionError || error instanceof UpdatePreviewError
+    ? ` [${error.code}]` : "";
   output.appendLine(`${action} failed${code}: ${detail}`);
+  if (error instanceof UpdatePreviewError) {
+    for (const diagnostic of error.diagnostics) {
+      output.appendLine(
+        `Workflow diagnostic: ${diagnostic.code} (${diagnostic.severity}) ${diagnostic.message}`,
+      );
+    }
+    output.show(true);
+  }
   void vscode.window.showErrorMessage(`AETERNA Documents: ${detail}`);
 }
 
@@ -182,9 +200,54 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     context.globalStorageUri,
     "e1-candidates",
   ).fsPath;
+  const preparedPlans = new Map<string, {
+    readonly request: CandidateSessionRequest;
+    readonly candidatePath: string;
+    readonly canonicalPath: string;
+    readonly artifactId: string;
+    readonly identity: UpdatePlanIdentity;
+  }>();
+  const invalidateChangedDocument = (documentPath: string): void => {
+    for (const [key, saved] of preparedPlans) {
+      if (pathsEqual(saved.candidatePath, documentPath) || pathsEqual(saved.canonicalPath, documentPath)) {
+        preparedPlans.delete(key);
+        output.appendLine(`UPDATE plan STALE after document edit: ${saved.artifactId}. Prepare a new plan.`);
+      }
+    }
+  };
   context.subscriptions.push(
     output,
     provider,
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      if (event.contentChanges.length > 0) {
+        invalidateChangedDocument(event.document.uri.fsPath);
+      }
+    }),
+    vscode.workspace.onDidSaveTextDocument((document) => {
+      invalidateChangedDocument(document.uri.fsPath);
+    }),
+    vscode.window.onDidChangeWindowState((state) => {
+      if (!state.focused) {
+        return;
+      }
+      for (const [key, saved] of preparedPlans) {
+        void (async () => {
+          try {
+            const session = await loadCandidateSession(saved.request);
+            const current = await currentUpdateIdentity(saved.request.repositoryRoot, session);
+            if (preparedPlans.get(key) === saved && isUpdatePlanStale(saved.identity, current)) {
+              preparedPlans.delete(key);
+              output.appendLine(`UPDATE plan STALE after candidate/baseline change: ${saved.artifactId}.`);
+            }
+          } catch {
+            if (preparedPlans.get(key) === saved) {
+              preparedPlans.delete(key);
+              output.appendLine(`UPDATE plan STALE because its candidate/baseline could not be verified: ${saved.artifactId}.`);
+            }
+          }
+        })();
+      }
+    }),
     vscode.window.registerTreeDataProvider("aeternaDocuments", provider),
     vscode.commands.registerCommand("aeterna.refreshDocuments", async () => {
       await provider.refresh();
@@ -266,7 +329,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             `Candidate baseline SHA-256: ${session.manifest.baseline.canonicalSha256}`,
           );
           void vscode.window.showInformationMessage(
-            "AETERNA candidate opened outside the repository. Saving updates only the candidate; governed Apply is a separate explicit action and is not available in E1. Use Open With manually to select ManulDown when desired.",
+            "AETERNA candidate opened outside the repository. Saving updates only the candidate; governed Apply is a separate explicit action and is not available in E2A. Use Open With manually to select ManulDown when desired.",
           );
         } catch (error) {
           reportCandidateError(output, "Edit Candidate", error);
@@ -330,13 +393,88 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         }
       },
     ),
+    vscode.commands.registerCommand(
+      "aeterna.prepareUpdatePlan",
+      async (item: DocumentTreeItem | undefined) => {
+        const document = await chooseDocument(provider, item);
+        if (!document) {
+          return;
+        }
+        try {
+          const request = await prepareCandidateRequest(provider, document, candidateStorageRoot);
+          const session = await loadCandidateSession(request);
+          const state = candidateDocumentState(
+            session.candidatePath,
+            vscode.workspace.textDocuments.map((open) => ({
+              fsPath: open.uri.fsPath, isDirty: open.isDirty,
+            })),
+          );
+          requireSavedCandidate(state);
+          const confirmation = await vscode.window.showWarningMessage(
+            "Confirm all candidate edits are saved, including ManulDown. Prepare a read-only UPDATE plan with change_class=body-only and version_intent=git-only? No canonical changes or Apply will occur.",
+            { modal: true },
+            "Prepare body-only / git-only plan",
+          );
+          if (confirmation !== "Prepare body-only / git-only plan") {
+            return;
+          }
+          requireSavedCandidate(candidateDocumentState(
+            session.candidatePath,
+            vscode.workspace.textDocuments.map((open) => ({
+              fsPath: open.uri.fsPath, isDirty: open.isDirty,
+            })),
+          ));
+          const previous = preparedPlans.get(session.candidatePath);
+          if (previous) {
+            const current = await currentUpdateIdentity(request.repositoryRoot, session);
+            if (isUpdatePlanStale(previous.identity, current)) {
+              preparedPlans.delete(session.candidatePath);
+              output.appendLine(`Previous UPDATE plan STALE: ${document.artifact_id}.`);
+            }
+          }
+          const preview = await prepareUpdatePreview(
+            request.repositoryRoot,
+            session,
+            { changeClass: "body-only", versionIntent: "git-only" },
+          );
+          const current = await currentUpdateIdentity(request.repositoryRoot, session);
+          requireSavedCandidate(candidateDocumentState(
+            session.candidatePath,
+            vscode.workspace.textDocuments.map((open) => ({
+              fsPath: open.uri.fsPath, isDirty: open.isDirty,
+            })),
+          ));
+          if (isUpdatePlanStale(preview.identity, current)) {
+            throw new UpdatePreviewError("PLAN_STALE", "Candidate, baseline or HEAD changed after planning; prepare a new plan.");
+          }
+          preparedPlans.set(session.candidatePath, {
+            request,
+            candidatePath: session.candidatePath,
+            canonicalPath: session.canonicalPath,
+            artifactId: document.artifact_id,
+            identity: preview.identity,
+          });
+          output.appendLine(renderUpdatePreview(preview));
+          output.show(true);
+          const action = await vscode.window.showInformationMessage(
+            `Read-only UPDATE plan ready for ${document.artifact_id}. See AETERNA Documents output for impact, paths and version recommendation.`,
+            "Compare Candidate",
+          );
+          if (action === "Compare Candidate") {
+            await vscode.commands.executeCommand("aeterna.compareCandidate", item);
+          }
+        } catch (error) {
+          reportCandidateError(output, "Prepare UPDATE plan", error);
+        }
+      },
+    ),
     vscode.commands.registerCommand("aeterna.showDiagnostics", () => {
       output.show(true);
     }),
   );
 
   output.appendLine(
-    "AETERNA document extension activated (E1 candidate editing foundation).",
+    "AETERNA document extension activated (E2A read-only UPDATE plan preview).",
   );
   output.appendLine(`Candidate storage root: ${candidateStorageRoot}`);
   await provider.refresh();
