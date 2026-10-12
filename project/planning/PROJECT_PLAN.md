@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-PROJECT-PLAN
 kind: document
 type: project-plan
-version: "6.19"
+version: "6.20"
 lifecycle: active
 integration: current
 authority: project-direction
@@ -11,15 +11,15 @@ depends_on: []
 supersedes: []
 ---
 
-# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.19
+# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.20
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 6.19
-**Dátum:** 2026-10-10
+**Dokumentumverzió:** 6.20
+**Dátum:** 2026-10-11
 **Státusz:** aktív projektirányító és prioritási dokumentum
-**Előző aktív verzió:** 6.18 (Git history)
-**Szinkronizációs repository-bázis:** `08c6710a92562edb0db536369d8b5f9e88066690` – `docs: formalize vscode document editor technology decision`
+**Előző aktív verzió:** 6.19 (Git history)
+**Szinkronizációs repository-bázis:** `92d299df1f4184912cc3034b2922144006d4cd09` – `feat: add read-only document update plan preview`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **Előző technikai checkpoint-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 
@@ -566,7 +566,18 @@ A build-vs-adopt értékelés `COMPLETE_AND_ACCEPTED`; az elfogadott
 megközelítés `EXISTING_EDITOR_PLUS_AETERNA_TOOLING`, a host `VISUAL_STUDIO_CODE`.
 A `c8e7e1854c3e054c8c0f59ba35196ae6d0ffdecd` commitban elfogadott read-only VS Code extension proof és a
 `08c6710a92562edb0db536369d8b5f9e88066690` commitban formalizált TD-015 `COMPLETE_AND_REMOTE_VERIFIED`.
-A következő projektlépés az `EDITOR_UX_REQUIREMENTS_DISCOVERY`.
+Az E1 candidate editing foundation `COMPLETE_AND_REMOTE_VERIFIED`
+(`e3dd6ed9f72c1de962583d3260db6bdee2257611`); az E2A read-only UPDATE
+plan preview `COMPLETE_AND_REMOTE_VERIFIED`
+(`92d299df1f4184912cc3034b2922144006d4cd09`). A VS Code-ban működik a
+repositoryn kívüli candidate-szerkesztés, a natív candidate–canonical diff és a
+governed Python workflow-ra épülő read-only UPDATE-tervelőnézet. A ManulDown
+opcionális, kézzel kiválasztott vizuális Markdown-szerkesztőként lett kipróbálva;
+programozott integráció nincs. E2B explicit Apply integráció:
+`NOT_YET_IMPLEMENTED`.
+
+A következő projektlépés az `EDITOR_UX_REQUIREMENTS_DISCOVERY`; a végleges
+editing surface és a normál használat telepítési/indítási módja nyitott.
 
 Az `AETERNA Document Editor` a governed document workflow fölötti dedikált
 authoring/editing réteg funkcionális célja. Koncepcionális felelőssége a
@@ -733,6 +744,11 @@ MANUAL_VSCODE_ACCEPTANCE = PASS
 TECHNOLOGY_DECISION_FORMALIZATION = COMPLETE_AND_REMOTE_VERIFIED
 TECHNOLOGY_DECISION_TD015 = COMPLETE_AND_REMOTE_VERIFIED
 TECHNOLOGY_DECISION_TD015_COMMIT = 08c6710a92562edb0db536369d8b5f9e88066690
+E1_CANDIDATE_EDITING_FOUNDATION = COMPLETE_AND_REMOTE_VERIFIED
+E1_REMOTE_COMMIT = e3dd6ed9f72c1de962583d3260db6bdee2257611
+E2A_READ_ONLY_UPDATE_PLAN_PREVIEW = COMPLETE_AND_REMOTE_VERIFIED
+E2A_REMOTE_COMMIT = 92d299df1f4184912cc3034b2922144006d4cd09
+E2B_EXPLICIT_APPLY = NOT_YET_IMPLEMENTED
 TECHNOLOGY_DECISIONS_VERSION = 2.6
 AUTONOMOUS_DOCUMENT_GENERATION = OUT_OF_SCOPE
 FULLY_CUSTOM_APPLICATION_IS_DEFAULT = NO
@@ -805,6 +821,16 @@ a diagnosztikát. A proof nem tartalmazott canonical write pathot, Git mutationt
 AI-integrációt, custom editort vagy webview-t. A tartós technikai részletek
 authorityja az `AET-DOC-TECHNOLOGY-DECISIONS` TD-015 bejegyzése.
 
+Az E1 megőrzi a canonical dokumentumot, és külső candidate sessionben teszi
+szerkeszthetővé a byte-hű másolatot. Az E2A mentett candidate-ből készít
+read-only UPDATE-tervet, látható `body-only` / `git-only` választással és a
+production workflow diagnosztikáival. Az E2A automatizált evidence: extension
+`29/29`, document workflow `87/87`, artifact `66/66` PASS, valamint
+proof-smoke és compile PASS. Az E1/E2A VS Code és ManulDown grafikus acceptance
+emberi beszámoló, nem automatizált teszt; az E2A post-commit próba a valódi
+`plan-update`, impact, stale-plan, mentetlen candidate és tiltott verzióváltás
+eseteit PASS-ként jelentette. Az E2A nem tartalmaz Apply-t.
+
 Az Extension Development Host és a hosszú PowerShell launch parancs kizárólag
 proof- és tesztmechanizmusként volt elfogadható. A végleges normal-use működés nem
 követelheti meg developer parancsok megjegyzését. Az install/package/launch
@@ -817,6 +843,8 @@ Az aktív Document Editor munkasorrend:
 ```text
 READ_ONLY_VSCODE_EXTENSION_FOUNDATION_PROOF = COMPLETE_AND_REMOTE_VERIFIED
 → TECHNOLOGY_DECISION_TD015 = COMPLETE_AND_REMOTE_VERIFIED
+→ E1_CANDIDATE_EDITING_FOUNDATION = COMPLETE_AND_REMOTE_VERIFIED
+→ E2A_READ_ONLY_UPDATE_PLAN_PREVIEW = COMPLETE_AND_REMOTE_VERIFIED
 → EDITOR_UX_REQUIREMENTS_DISCOVERY = NEXT
 → EDITING_SURFACE_ARCHITECTURE_DECISION
 → AETERNA_DOCUMENT_EDITOR_MVP_IMPLEMENTATION
@@ -837,7 +865,7 @@ később, a projektprioritás szerint következhet.
 
 ## 10. Rövid aktuális állapot
 
-**Szinkronizációs repository-bázis:** `08c6710a92562edb0db536369d8b5f9e88066690`
+**Szinkronizációs repository-bázis:** `92d299df1f4184912cc3034b2922144006d4cd09`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9`
 **Production authority:** C#/.NET
 **Visual client:** Godot/GDScript
@@ -902,12 +930,18 @@ később, a projektprioritás szerint következhet.
 **Technology decision formalization:** `COMPLETE_AND_REMOTE_VERIFIED`
 **Technology decision TD-015:** `COMPLETE_AND_REMOTE_VERIFIED`
 **Technology decision TD-015 commit:** `08c6710a92562edb0db536369d8b5f9e88066690`
+**E1 candidate editing foundation:** `COMPLETE_AND_REMOTE_VERIFIED`
+**E1 commit:** `e3dd6ed9f72c1de962583d3260db6bdee2257611`
+**E2A read-only UPDATE plan preview:** `COMPLETE_AND_REMOTE_VERIFIED`
+**E2A commit:** `92d299df1f4184912cc3034b2922144006d4cd09`
+**E2B explicit Apply integration:** `NOT_YET_IMPLEMENTED`
+**ManulDown:** `OPTIONAL_MANUALLY_SELECTED_VISUAL_MARKDOWN_EDITOR`
 **Technology Decisions version:** `2.6`
 **Editor UI architecture:** `NOT_YET_DECIDED`
 **Document Editor next step:** `EDITOR_UX_REQUIREMENTS_DISCOVERY`
 **Normal-use developer commands required:** `NO`
 **Fully custom application is default:** `NO`
-**AETERNA Document Editor implementation:** `PLANNED`
+**AETERNA Document Editor full MVP completion:** `PLANNED` (E1/E2A részfunkciók elkészültek)
 **VS1 / M6:** `NEXT MAJOR PRODUCT-FACING GOAL AFTER DOCUMENT-MANAGEMENT PRIORITY`
 **0.0.1:** `ACTIVE_LONG_TERM_TARGET`
 
@@ -928,6 +962,8 @@ PILOT-8E = COMPLETE_AND_REMOTE_VERIFIED
 → DOCUMENT_EDITOR_IMPLEMENTATION_APPROACH_DECISION = ACCEPTED
 → READ_ONLY_VSCODE_EXTENSION_FOUNDATION_PROOF = COMPLETE_AND_REMOTE_VERIFIED
 → TECHNOLOGY_DECISION_TD015 = COMPLETE_AND_REMOTE_VERIFIED
+→ E1_CANDIDATE_EDITING_FOUNDATION = COMPLETE_AND_REMOTE_VERIFIED
+→ E2A_READ_ONLY_UPDATE_PLAN_PREVIEW = COMPLETE_AND_REMOTE_VERIFIED
 → EDITOR_UX_REQUIREMENTS_DISCOVERY = NEXT
 → EDITING_SURFACE_ARCHITECTURE_DECISION
 → AETERNA_DOCUMENT_EDITOR_MVP_IMPLEMENTATION
@@ -959,11 +995,16 @@ Elfogadott státusz:
 - `MANUAL_VSCODE_ACCEPTANCE = PASS`;
 - `TECHNOLOGY_DECISION_TD015 = COMPLETE_AND_REMOTE_VERIFIED`;
 - `TECHNOLOGY_DECISION_TD015_COMMIT = 08c6710a92562edb0db536369d8b5f9e88066690`;
+- `E1_CANDIDATE_EDITING_FOUNDATION = COMPLETE_AND_REMOTE_VERIFIED`,
+  commit `e3dd6ed9f72c1de962583d3260db6bdee2257611`;
+- `E2A_READ_ONLY_UPDATE_PLAN_PREVIEW = COMPLETE_AND_REMOTE_VERIFIED`,
+  commit `92d299df1f4184912cc3034b2922144006d4cd09`;
+- `E2B_EXPLICIT_APPLY = NOT_YET_IMPLEMENTED`;
 - `TECHNOLOGY_DECISIONS_VERSION = 2.6`;
 - `EDITOR_UI_ARCHITECTURE = NOT_YET_DECIDED`;
 - `DOCUMENT_EDITOR_NEXT_STEP = EDITOR_UX_REQUIREMENTS_DISCOVERY`;
 - `FULLY_CUSTOM_APPLICATION_IS_DEFAULT = NO`;
-- `AETERNA Document Editor implementation = PLANNED`.
+- `AETERNA Document Editor full MVP completion = PLANNED` (E1/E2A részfunkciók elkészültek).
 
 Reaction / Priority v1: `COMPLETE_AND_ACCEPTED`.
 
