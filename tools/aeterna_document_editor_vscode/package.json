@@ -1,7 +1,7 @@
 {
   "name": "aeterna-document-editor",
   "displayName": "AETERNA Document Editor",
-  "description": "Governed AETERNA document navigation, candidate editing and read-only UPDATE plan preview.",
+  "description": "AETERNA Document Manager with governed candidate editing and read-only UPDATE plan preview.",
   "version": "0.0.1",
   "private": true,
   "engines": {
@@ -12,6 +12,7 @@
   ],
   "activationEvents": [
     "onView:aeternaDocuments",
+    "onCommand:aeterna.openManager",
     "onCommand:aeterna.editCandidate",
     "onCommand:aeterna.compareCandidate",
     "onCommand:aeterna.prepareUpdatePlan"
@@ -24,6 +25,10 @@
   },
   "contributes": {
     "commands": [
+      {
+        "command": "aeterna.openManager",
+        "title": "AETERNA: Open Document Manager"
+      },
       {
         "command": "aeterna.refreshDocuments",
         "title": "AETERNA: Refresh Documents"
@@ -54,6 +59,13 @@
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "aeterna.openManager",
+          "when": "view == aeternaDocuments",
+          "group": "navigation@1"
+        }
+      ],
       "view/item/context": [
         {
           "command": "aeterna.editCandidate",

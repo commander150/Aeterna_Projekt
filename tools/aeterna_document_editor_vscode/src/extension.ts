@@ -11,10 +11,15 @@ import {
   type CandidateSessionRequest,
   candidateDiffDescriptor,
   candidateDocumentState,
-  createOrOpenCandidateSession,
   loadCandidateSession,
   pathsEqual,
 } from "./candidate";
+import {
+  createOrOpenRoutedCandidate,
+  loadRoutedCandidate,
+} from "./candidate_routing";
+import { DocumentManager } from "./manager";
+import type { ManagerAction } from "./manager_content";
 import {
   UpdatePreviewError,
   currentUpdateIdentity,
@@ -57,6 +62,7 @@ class AeternaDocumentsProvider
   >();
   private documents: readonly ManagedDocument[] = [];
   private repositoryRoot: string | undefined;
+  private status = "Loading managed documents…";
 
   public readonly onDidChangeTreeData = this.changeEmitter.event;
 
@@ -78,6 +84,10 @@ class AeternaDocumentsProvider
     return this.repositoryRoot;
   }
 
+  public get currentStatus(): string {
+    return this.status;
+  }
+
   public async refresh(): Promise<void> {
     this.documents = [];
     this.repositoryRoot = undefined;
@@ -90,6 +100,7 @@ class AeternaDocumentsProvider
       const loaded = await loadManagedDocuments(root);
       this.repositoryRoot = root;
       this.documents = loaded.documents;
+      this.status = `${loaded.documents.length} managed documents loaded${loaded.diagnostics.length ? `; ${loaded.diagnostics.length} path diagnostic(s) in AETERNA Documents output` : ""}.`;
       this.output.appendLine(
         `Registry load result: PASS (${loaded.documents.length} managed Markdown documents).`,
       );
@@ -98,6 +109,7 @@ class AeternaDocumentsProvider
       }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
+      this.status = `Document list unavailable: ${detail}`;
       this.output.appendLine(`Refresh failed: ${detail}`);
       void vscode.window.showErrorMessage(`AETERNA Documents: ${detail}`);
     } finally {
@@ -144,11 +156,12 @@ async function prepareCandidateRequest(
   const resolved = await resolveArtifact(repositoryRoot, document.artifact_id);
   if (
     resolved.result.artifact_id !== document.artifact_id ||
-    resolved.result.path !== document.path
+    resolved.result.path !== document.path ||
+    resolved.result.version !== document.version
   ) {
     throw new CandidateSessionError(
       "CANONICAL_UNAVAILABLE",
-      "Workflow resolve result does not match the selected registry artifact.",
+      "Workflow resolve identity, path or version does not match the selected registry artifact; refresh the document list.",
     );
   }
   return {
@@ -200,6 +213,36 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     context.globalStorageUri,
     "e1-candidates",
   ).fsPath;
+  const manager = new DocumentManager(
+    vscode,
+    () => provider.currentDocuments,
+    () => provider.currentStatus,
+    async (action: ManagerAction, document: ManagedDocument | undefined) => {
+      if (action === "refresh") {
+        await provider.refresh();
+        return {
+          ok: Boolean(provider.currentRepositoryRoot),
+          message: provider.currentStatus,
+        };
+      }
+      if (!document) {
+        return { ok: false, message: "Selected document is unavailable. Refresh the list." };
+      }
+      const command = {
+        edit: "aeterna.editCandidate",
+        compare: "aeterna.compareCandidate",
+        plan: "aeterna.prepareUpdatePlan",
+      }[action];
+      const succeeded = await vscode.commands.executeCommand<boolean>(
+        command,
+        new DocumentTreeItem(document),
+        action === "edit",
+      );
+      return succeeded
+        ? { ok: true, message: `${document.artifact_id}: ${action} completed. Candidate save does not Apply.` }
+        : { ok: false, message: `${document.artifact_id}: ${action} cancelled or blocked. See the VS Code notification and AETERNA Documents output.` };
+    },
+  );
   const preparedPlans = new Map<string, {
     readonly request: CandidateSessionRequest;
     readonly candidatePath: string;
@@ -218,6 +261,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     output,
     provider,
+    manager,
+    provider.onDidChangeTreeData(() => manager.refresh()),
     vscode.workspace.onDidChangeTextDocument((event) => {
       if (event.contentChanges.length > 0) {
         invalidateChangedDocument(event.document.uri.fsPath);
@@ -249,6 +294,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
     }),
     vscode.window.registerTreeDataProvider("aeternaDocuments", provider),
+    vscode.commands.registerCommand("aeterna.openManager", () => manager.show()),
     vscode.commands.registerCommand("aeterna.refreshDocuments", async () => {
       await provider.refresh();
     }),
@@ -301,10 +347,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     vscode.commands.registerCommand(
       "aeterna.editCandidate",
-      async (item: DocumentTreeItem | undefined) => {
+      async (item: DocumentTreeItem | undefined, openPreview = false): Promise<boolean> => {
         const document = await chooseDocument(provider, item);
         if (!document) {
-          return;
+          return false;
         }
         try {
           const request = await prepareCandidateRequest(
@@ -312,36 +358,60 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             document,
             candidateStorageRoot,
           );
-          const session = await createOrOpenCandidateSession(request);
+          const routed = await createOrOpenRoutedCandidate(request, async () => {
+            const decision = await vscode.window.showWarningMessage(
+              "An earlier-baseline candidate exists and will be preserved. Create a separate candidate for the current canonical baseline? This does not Apply or overwrite the old candidate.",
+              { modal: true },
+              "Create Current-Baseline Candidate",
+            );
+            return decision === "Create Current-Baseline Candidate";
+          });
+          if (!routed) {
+            output.appendLine(`Current-baseline candidate creation cancelled: ${document.artifact_id}.`);
+            return false;
+          }
+          const session = routed.session;
           const alreadyOpen = openCandidateDocument(session.candidatePath);
+          const editorOptions: vscode.TextDocumentShowOptions = openPreview
+            ? { preview: false, viewColumn: vscode.ViewColumn.Beside }
+            : { preview: false };
           if (alreadyOpen) {
-            await vscode.window.showTextDocument(alreadyOpen, { preview: false });
+            await vscode.window.showTextDocument(alreadyOpen, editorOptions);
           } else {
             await vscode.window.showTextDocument(
               vscode.Uri.file(session.candidatePath),
-              { preview: false },
+              editorOptions,
             );
+          }
+          if (openPreview) {
+            await vscode.commands.executeCommand("markdown.showPreviewToSide");
+            output.appendLine(`Native Markdown preview opened beside candidate: ${session.candidatePath}.`);
           }
           output.appendLine(
             `Candidate ${session.disposition.toLocaleLowerCase("en-US")}: ${session.manifest.artifactId} -> ${session.candidatePath}`,
           );
+          if (routed.newerBaseline) {
+            output.appendLine("Earlier-baseline candidate was preserved in its original E1 session.");
+          }
           output.appendLine(
             `Candidate baseline SHA-256: ${session.manifest.baseline.canonicalSha256}`,
           );
           void vscode.window.showInformationMessage(
-            "AETERNA candidate opened outside the repository. Saving updates only the candidate; governed Apply is a separate explicit action and is not available in E2A. Use Open With manually to select ManulDown when desired.",
+            "AETERNA candidate opened outside the repository. Saving updates only the candidate; governed Apply is a separate action and is not available in Document Manager. Use Open With manually to select ManulDown when desired.",
           );
+          return true;
         } catch (error) {
           reportCandidateError(output, "Edit Candidate", error);
+          return false;
         }
       },
     ),
     vscode.commands.registerCommand(
       "aeterna.compareCandidate",
-      async (item: DocumentTreeItem | undefined) => {
+      async (item: DocumentTreeItem | undefined): Promise<boolean> => {
         const document = await chooseDocument(provider, item);
         if (!document) {
-          return;
+          return false;
         }
         try {
           const request = await prepareCandidateRequest(
@@ -349,7 +419,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             document,
             candidateStorageRoot,
           );
-          const session = await loadCandidateSession(request);
+          const { session } = await loadRoutedCandidate(request);
           const openDocument = openCandidateDocument(session.candidatePath);
           const documentState = candidateDocumentState(
             session.candidatePath,
@@ -371,7 +441,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
               output.appendLine(
                 `Candidate comparison cancelled with unsaved changes preserved: ${session.candidatePath}`,
               );
-              return;
+              return false;
             }
             if (!(await openDocument.save())) {
               throw new Error("VS Code did not save the candidate; comparison cancelled.");
@@ -388,21 +458,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           output.appendLine(
             `Native diff opened: ${session.manifest.artifactId} (canonical -> candidate).`,
           );
+          return true;
         } catch (error) {
           reportCandidateError(output, "Compare Candidate", error);
+          return false;
         }
       },
     ),
     vscode.commands.registerCommand(
       "aeterna.prepareUpdatePlan",
-      async (item: DocumentTreeItem | undefined) => {
+      async (item: DocumentTreeItem | undefined): Promise<boolean> => {
         const document = await chooseDocument(provider, item);
         if (!document) {
-          return;
+          return false;
         }
         try {
-          const request = await prepareCandidateRequest(provider, document, candidateStorageRoot);
-          const session = await loadCandidateSession(request);
+          const originalRequest = await prepareCandidateRequest(provider, document, candidateStorageRoot);
+          const { request, session } = await loadRoutedCandidate(originalRequest);
           const state = candidateDocumentState(
             session.candidatePath,
             vscode.workspace.textDocuments.map((open) => ({
@@ -416,7 +488,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             "Prepare body-only / git-only plan",
           );
           if (confirmation !== "Prepare body-only / git-only plan") {
-            return;
+            return false;
           }
           requireSavedCandidate(candidateDocumentState(
             session.candidatePath,
@@ -463,8 +535,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           if (action === "Compare Candidate") {
             await vscode.commands.executeCommand("aeterna.compareCandidate", item);
           }
+          return true;
         } catch (error) {
           reportCandidateError(output, "Prepare UPDATE plan", error);
+          return false;
         }
       },
     ),
@@ -474,7 +548,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   output.appendLine(
-    "AETERNA document extension activated (E2A read-only UPDATE plan preview).",
+    "AETERNA document extension activated (Document Manager, E1 candidate editing, E2A read-only UPDATE plan preview).",
   );
   output.appendLine(`Candidate storage root: ${candidateStorageRoot}`);
   await provider.refresh();

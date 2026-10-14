@@ -1,0 +1,102 @@
+import { randomBytes } from "node:crypto";
+import type * as vscode from "vscode";
+
+import type { ManagedDocument } from "./registry";
+import { filterManagedDocuments, parseManagerMessage, renderManagerHtml, type ManagerAction, type ManagerActionResult } from "./manager_content";
+
+export class DocumentManager implements vscode.Disposable {
+  private panel: vscode.WebviewPanel | undefined;
+  private query = "";
+  private busy = false;
+
+  public constructor(
+    private readonly host: typeof vscode,
+    private readonly documents: () => readonly ManagedDocument[],
+    private readonly status: () => string,
+    private readonly act: (action: ManagerAction, document?: ManagedDocument) => Promise<ManagerActionResult>,
+  ) {}
+
+  public show(): void {
+    if (this.panel) {
+      this.panel.reveal();
+      this.publishDocuments();
+      return;
+    }
+    const panel = this.host.window.createWebviewPanel(
+      "aeternaDocumentManager",
+      "AETERNA Document Manager",
+      this.host.ViewColumn.One,
+      { enableScripts: true, localResourceRoots: [] },
+    );
+    this.panel = panel;
+    panel.webview.html = renderManagerHtml(randomBytes(16).toString("base64"));
+    panel.onDidDispose(() => { this.panel = undefined; });
+    panel.webview.onDidReceiveMessage((raw: unknown) => { void this.receive(raw); });
+  }
+
+  public refresh(): void {
+    this.publishDocuments();
+  }
+
+  private publishDocuments(): void {
+    if (!this.panel) return;
+    const visible = filterManagedDocuments(this.documents(), this.query);
+    void this.panel.webview.postMessage({
+      type: "documents",
+      documents: visible.map((document) => ({
+        artifactId: document.artifact_id,
+        title: document.title,
+        path: document.path,
+        version: document.version,
+      })),
+      status: this.status(),
+    });
+  }
+
+  private publishStatus(message: string): void {
+    void this.panel?.webview.postMessage({ type: "status", status: message });
+  }
+
+  private async receive(raw: unknown): Promise<void> {
+    const message = parseManagerMessage(raw);
+    if (!message) {
+      this.publishStatus("Unsupported Document Manager request was ignored.");
+      return;
+    }
+    if (message.type === "ready") {
+      this.publishDocuments();
+      return;
+    }
+    if (message.type === "search") {
+      this.query = message.query;
+      this.publishDocuments();
+      return;
+    }
+    if (this.busy) {
+      this.publishStatus("Another Document Manager action is still running.");
+      return;
+    }
+    const document = message.artifactId
+      ? this.documents().find((item) => item.artifact_id === message.artifactId)
+      : undefined;
+    if (message.action !== "refresh" && !document) {
+      this.publishStatus("Selected document is no longer available. Refresh the list.");
+      return;
+    }
+    this.busy = true;
+    this.publishStatus("Working…");
+    try {
+      const result = await this.act(message.action, document);
+      this.publishStatus(result.message);
+      if (message.action === "refresh") this.publishDocuments();
+    } catch (error) {
+      this.publishStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  public dispose(): void {
+    this.panel?.dispose();
+  }
+}
