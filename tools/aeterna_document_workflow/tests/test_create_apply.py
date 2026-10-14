@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from tools.aeterna_artifacts.scanner import scan_repository
 from tools.aeterna_document_workflow import path_policy
+from tools.aeterna_document_workflow.git_state import capture_git_state
 from tools.aeterna_document_workflow.create_planner import build_create_plan
 from tools.aeterna_document_workflow.model import WorkflowError
 from tools.aeterna_document_workflow.planner import build_update_plan
@@ -97,6 +98,26 @@ class CreateApplyTests(unittest.TestCase):
         self.assertEqual({"executed_during_apply": []}, review["tests"])
         self.assertFalse(review["rollback"]["performed"])
         self.assertIn("AETERNA DOCUMENT CREATE REVIEW", Path(result["review_text"]).read_text(encoding="utf-8"))
+
+    def test_create_generated_views_remain_git_changed_with_crlf_checkout(self) -> None:
+        self.fixture.git("config", "core.autocrlf", "true")
+        for relative in (
+            "project/generated/artifacts_registry.json",
+            "project/generated/DOCUMENT_INDEX.md",
+        ):
+            path = self.fixture.root / relative
+            path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+        self.assertTrue(capture_git_state(self.fixture.root).clean)
+
+        _, plan, plan_path, review_dir, _ = self._materialize()
+        result = apply_plan(plan_path, self.fixture.root, review_dir)
+
+        self.assertEqual("PASS", result["status"])
+        self.assertEqual(
+            sorted(item["path"] for item in plan["expected_changes"]),
+            sorted(result["changed_paths"]),
+        )
+        self.assertEqual("PASS", verify_review_file(result["review_json"])["final_status"])
 
     def test_cli_apply_and_verify_review_support_create_schema(self) -> None:
         _, _, plan_path, review_dir, target = self._materialize()

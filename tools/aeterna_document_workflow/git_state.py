@@ -8,13 +8,14 @@ import subprocess
 from .model import GitState, fail
 
 
-def _git(root: Path, *arguments: str, binary: bool = False) -> bytes | str:
+def _git(root: Path, *arguments: str, binary: bool = False, input_bytes: bytes | None = None) -> bytes | str:
     try:
         result = subprocess.run(
             ["git", *arguments],
             cwd=root,
             check=False,
             capture_output=True,
+            input=input_bytes,
         )
     except OSError as exc:
         fail("GIT_EXECUTION_ERROR", str(exc), exit_code=2)
@@ -65,6 +66,14 @@ def git_changed_paths(repository_root: str | Path) -> tuple[str, ...]:
     root = Path(repository_root).resolve()
     raw = bytes(_git(root, "diff", "--name-only", "-z", binary=True))
     return tuple(sorted(part.decode("utf-8") for part in raw.split(b"\0") if part))
+
+
+def git_content_matches_head(repository_root: str | Path, relative_path: str, data: bytes) -> bool:
+    """Compare proposed bytes with HEAD after Git's path-specific clean filters."""
+    root = Path(repository_root).resolve()
+    proposed = _git(root, "hash-object", f"--path={relative_path}", "--stdin", input_bytes=data)
+    committed = _git(root, "rev-parse", "--verify", f"HEAD:{relative_path}")
+    return proposed == committed
 
 
 def git_path_is_ignored(repository_root: str | Path, relative_path: str) -> bool:

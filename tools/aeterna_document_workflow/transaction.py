@@ -17,6 +17,7 @@ from tools.aeterna_artifacts.scanner import scan_repository
 from .git_state import (
     capture_git_state,
     git_changed_paths,
+    git_content_matches_head,
     git_diff_check,
     git_path_is_ignored,
     git_path_is_tracked,
@@ -249,6 +250,8 @@ def _review_payload(
     transaction: TransactionResult,
     changed_paths: tuple[str, ...],
     deviations: list[str],
+    expected_git_paths: tuple[str, ...] | None = None,
+    normalized_unchanged_generated: tuple[str, ...] = (),
 ) -> dict[str, object]:
     target = plan["resolved_artifact"]["path"]
     root = Path(plan["repository"]["root"])
@@ -269,7 +272,14 @@ def _review_payload(
         "tests": {"executed_during_apply": []},
         "transaction": {"root": transaction.root, "state": transaction.states[-1], "states": list(transaction.states), "write_started": transaction.write_started, "writes_completed": transaction.writes_completed},
         "rollback": {"performed": transaction.rollback_performed, "verified": transaction.rollback_verified, "original_hashes_restored": transaction.original_hashes_restored},
-        "scope": {"expected_changed_paths": [item["path"] for item in plan["expected_changes"]], "actual_changed_paths": list(changed_paths)},
+        "scope": {
+            "expected_changed_paths": [item["path"] for item in plan["expected_changes"]],
+            "actual_changed_paths": list(changed_paths),
+            "planned_write_paths": [item["path"] for item in plan["expected_changes"]],
+            "expected_git_changed_paths": list(expected_git_paths) if expected_git_paths is not None else None,
+            "actual_git_changed_paths": list(changed_paths),
+            "git_normalized_unchanged_generated_paths": list(normalized_unchanged_generated),
+        },
         "git": {"staging_empty": not capture_git_state(root).staged_paths, "diff_check": git_diff_check(root)},
         "deviations": deviations,
         "final_status": status,
@@ -293,6 +303,8 @@ def apply_plan(
         return apply_create_plan(plan, root, review_dir, injection=injection)
     operation_id = uuid.uuid4().hex
     proposed_transaction_root = root / "TEMP/aeterna_document_workflow/transactions" / operation_id
+    expected_git_paths: tuple[str, ...] | None = None
+    normalized_unchanged_generated: tuple[str, ...] = ()
 
     def blocked_review(exc: WorkflowError, transaction_root: str = "") -> None:
         blocked = TransactionResult(
@@ -312,6 +324,8 @@ def apply_plan(
             blocked,
             git_changed_paths(root),
             [str(exc)],
+            expected_git_paths,
+            normalized_unchanged_generated,
         )
         write_review_files(review_dir, review)
 
@@ -333,6 +347,13 @@ def apply_plan(
             if folded in {"archive", "learning"} or (relative != current_path and relative not in generated_whitelist):
                 fail("TRANSACTION_PATH_BLOCKED", f"Governed target is outside the allowed set: {relative}")
             _relative_inside(root, root / relative, "TRANSACTION_PATH_BLOCKED")
+        normalized_unchanged_generated = tuple(sorted(
+            relative for relative, data in prepared.target_bytes
+            if relative in generated_whitelist and git_content_matches_head(root, relative, data)
+        ))
+        expected_git_paths = tuple(sorted(
+            relative for relative in expected if relative not in normalized_unchanged_generated
+        ))
         transaction_parent = validate_ignored_temp_path(
             root,
             root / "TEMP/aeterna_document_workflow/transactions",
@@ -364,13 +385,30 @@ def apply_plan(
         rendered = build_generated_content(scan.artifacts)
         if (root / REGISTRY_PATH).read_bytes() != rendered.registry.encode("utf-8") or (root / DOCUMENT_INDEX_PATH).read_bytes() != rendered.document_index.encode("utf-8"):
             raise RuntimeError("Post-write generated output mismatch.")
-        if git_changed_paths(root) != tuple(sorted(expected)) or capture_git_state(root).staged_paths or not git_diff_check(root):
+        git_paths = git_changed_paths(root)
+        state = capture_git_state(root)
+        normalized_still_unchanged = all(
+            git_content_matches_head(root, relative, data)
+            for relative, data in prepared.target_bytes
+            if relative in normalized_unchanged_generated
+        )
+        if (
+            current_path not in git_paths
+            or git_paths != expected_git_paths
+            or state.worktree_entries != expected_git_paths
+            or state.staged_paths
+            or not normalized_still_unchanged
+            or not git_diff_check(root)
+        ):
             raise RuntimeError("Post-write Git scope validation failed.")
 
     review_paths: tuple[Path, Path] | None = None
     def finalize(result: TransactionResult) -> None:
         nonlocal review_paths
-        review = _review_payload(plan, operation_id, "PASS", result, git_changed_paths(root), [])
+        review = _review_payload(
+            plan, operation_id, "PASS", result, git_changed_paths(root), [],
+            expected_git_paths, normalized_unchanged_generated,
+        )
         review_paths = write_review_files(review_dir, review)
 
     try:
@@ -395,6 +433,8 @@ def apply_plan(
             exc.result,
             git_changed_paths(root),
             [str(exc.cause)],
+            expected_git_paths,
+            normalized_unchanged_generated,
         )
         write_review_files(review_dir, review)
         diagnostic = Diagnostic(
@@ -404,7 +444,10 @@ def apply_plan(
         )
         raise WorkflowError((diagnostic,), 2) from exc
     except TransactionExecutionError as exc:
-        review = _review_payload(plan, operation_id, "FAIL", exc.result, git_changed_paths(root), [str(exc.cause)])
+        review = _review_payload(
+            plan, operation_id, "FAIL", exc.result, git_changed_paths(root),
+            [str(exc.cause)], expected_git_paths, normalized_unchanged_generated,
+        )
         write_review_files(review_dir, review)
         diagnostic = Diagnostic(
             "ROLLBACK_VERIFICATION_FAILED" if exc.exit_code == 5 else "TRANSACTION_FAILED_ROLLED_BACK",

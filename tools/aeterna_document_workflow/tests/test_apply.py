@@ -8,6 +8,7 @@ from unittest.mock import patch
 from tools.aeterna_artifacts.scanner import scan_repository
 from tools.aeterna_document_workflow import transaction
 from tools.aeterna_document_workflow.content import inspect_markdown
+from tools.aeterna_document_workflow.git_state import capture_git_state
 from tools.aeterna_document_workflow.model import PreparedUpdate, WorkflowError, fail
 from tools.aeterna_document_workflow.planner import build_update_plan
 from tools.aeterna_document_workflow.review import (
@@ -81,7 +82,136 @@ class ApplyTests(unittest.TestCase):
             result["changed_paths"],
         )
         self.assertEqual((), scan_repository(self.fixture.root).diagnostics)
-        self.assertEqual("PASS", verify_review_file(result["review_json"])["final_status"])
+        review = verify_review_file(result["review_json"])
+        self.assertEqual("PASS", review["final_status"])
+        self.assertEqual(result["changed_paths"], review["scope"]["actual_git_changed_paths"])
+        self.assertEqual(result["changed_paths"], review["scope"]["expected_git_changed_paths"])
+        self.assertEqual([], review["scope"]["git_normalized_unchanged_generated_paths"])
+
+    def test_generated_byte_writes_can_be_git_unchanged_after_normalization(self) -> None:
+        generated_paths = (
+            "project/generated/artifacts_registry.json",
+            "project/generated/DOCUMENT_INDEX.md",
+        )
+        for index, mode in enumerate(("true", "input", "attributes")):
+            with self.subTest(mode=mode):
+                if index:
+                    self.fixture.close()
+                    self.fixture = RepositoryFixture()
+                if mode == "attributes":
+                    self.fixture.git("config", "core.autocrlf", "false")
+                    (self.fixture.root / ".gitattributes").write_text(
+                        "project/generated/* text\n", encoding="utf-8", newline="\n"
+                    )
+                    self.fixture.git("add", ".gitattributes")
+                    self.fixture.git("commit", "-m", "normalize generated files")
+                else:
+                    self.fixture.git("config", "core.autocrlf", mode)
+                for relative in generated_paths:
+                    path = self.fixture.root / relative
+                    original = path.read_bytes()
+                    self.assertNotIn(b"\r\n", original)
+                    path.write_bytes(original.replace(b"\n", b"\r\n"))
+                self.assertTrue(capture_git_state(self.fixture.root).clean)
+
+                candidate_data = markdown("AET-DOC-TARGET", "Target", body="Changed body.")
+                plan, plan_path, review_dir = self._materialize(candidate_data)
+                planned = [item["path"] for item in plan["expected_changes"]]
+                self.assertEqual(3, len(planned))
+                result = apply_plan(plan_path, self.fixture.root, review_dir)
+
+                canonical = "project/planning/TARGET.md"
+                self.assertEqual([canonical], result["changed_paths"])
+                self.assertEqual(
+                    [canonical],
+                    [line.split()[-1] for line in self.fixture.git("status", "--short").splitlines()],
+                )
+                self.assertEqual(candidate_data, self.fixture.target.read_bytes())
+                review = verify_review_file(result["review_json"])
+                self.assertEqual("PASS", review["final_status"])
+                self.assertEqual(3, review["transaction"]["writes_completed"])
+                self.assertEqual(planned, review["scope"]["planned_write_paths"])
+                self.assertEqual([canonical], review["scope"]["expected_git_changed_paths"])
+                self.assertEqual([canonical], review["scope"]["actual_git_changed_paths"])
+                self.assertEqual(
+                    sorted(generated_paths),
+                    review["scope"]["git_normalized_unchanged_generated_paths"],
+                )
+                self.assertEqual("", self.fixture.git("diff", "--cached", "--name-only"))
+
+    def test_unexpected_git_change_after_write_is_blocked(self) -> None:
+        for index, mode in enumerate(("tracked", "untracked")):
+            with self.subTest(mode=mode):
+                if index:
+                    self.fixture.close()
+                    self.fixture = RepositoryFixture()
+                before = self.fixture.tracked_bytes()
+                _, plan_path, review_dir = self._materialize(
+                    markdown("AET-DOC-TARGET", "Target", body="Changed body.")
+                )
+                unrelated = self.fixture.root / (
+                    "project/governance/DEPENDENT.md" if mode == "tracked" else "UNEXPECTED.txt"
+                )
+                original_execute = transaction.execute_transaction
+
+                def inject_unexpected_change(*args: object, **kwargs: object) -> object:
+                    call = list(args)
+                    post_validate = call[5]
+
+                    def changed_post_validate() -> None:
+                        if mode == "tracked":
+                            unrelated.write_bytes(unrelated.read_bytes() + b"Unexpected body.\n")
+                        else:
+                            unrelated.write_bytes(b"Unexpected untracked file.\n")
+                        post_validate()
+
+                    call[5] = changed_post_validate
+                    return original_execute(*call, **kwargs)
+
+                with patch.object(transaction, "execute_transaction", side_effect=inject_unexpected_change):
+                    with self.assertRaises(WorkflowError) as caught:
+                        apply_plan(plan_path, self.fixture.root, review_dir)
+                self.assertEqual("ROLLBACK_VERIFICATION_FAILED", caught.exception.diagnostics[0].code)
+                review = verify_review_file(review_dir / "review.json")
+                self.assertEqual("FAIL", review["final_status"])
+                self.assertIn("Post-write Git scope validation failed", review["deviations"][0])
+                self.assertFalse(review["rollback"]["verified"])
+                self.assertEqual(before["project/planning/TARGET.md"], self.fixture.target.read_bytes())
+                self.assertTrue(unrelated.exists())
+
+    def test_corrupt_generated_bytes_after_write_trigger_verified_rollback(self) -> None:
+        before = self.fixture.tracked_bytes()
+        _, plan_path, review_dir = self._materialize(
+            markdown("AET-DOC-TARGET", "Target", version="1.1"),
+            change_class="metadata-only",
+            version_intent="minor",
+            proposed_version="1.1",
+            metadata_delta=[{"field": "version", "old": "1.0", "new": "1.1"}],
+        )
+        generated = self.fixture.root / "project/generated/artifacts_registry.json"
+        original_execute = transaction.execute_transaction
+
+        def inject_corruption(*args: object, **kwargs: object) -> object:
+            call = list(args)
+            post_validate = call[5]
+
+            def corrupt_post_validate() -> None:
+                generated.write_bytes(generated.read_bytes() + b"corrupt")
+                post_validate()
+
+            call[5] = corrupt_post_validate
+            return original_execute(*call, **kwargs)
+
+        with patch.object(transaction, "execute_transaction", side_effect=inject_corruption):
+            with self.assertRaises(WorkflowError) as caught:
+                apply_plan(plan_path, self.fixture.root, review_dir)
+        self.assertEqual(4, caught.exception.exit_code)
+        self.assertEqual(before, self.fixture.tracked_bytes())
+        self.assertEqual("", self.fixture.git("status", "--short"))
+        review = verify_review_file(review_dir / "review.json")
+        self.assertEqual("FAIL", review["final_status"])
+        self.assertTrue(review["rollback"]["verified"])
+        self.assertIn("Post-write byte mismatch", review["deviations"][0])
 
     def test_success_retains_raw_backups_and_committed_journal(self) -> None:
         before = self.fixture.tracked_bytes()

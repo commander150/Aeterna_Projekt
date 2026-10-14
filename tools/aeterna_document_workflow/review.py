@@ -232,5 +232,13 @@ def write_review_files(review_dir: Path, payload: dict[str, object]) -> tuple[Pa
         "changed_paths:",
         *[f"- {path}" for path in changed_paths],
     ]
+    if payload.get("schema_version") == REVIEW_SCHEMA:
+        scope = payload["scope"]
+        lines.extend([
+            "planned_write_paths:",
+            *[f"- {path}" for path in scope.get("planned_write_paths", scope["expected_changed_paths"])],
+            "git_normalized_unchanged_generated_paths:",
+            *[f"- {path}" for path in scope.get("git_normalized_unchanged_generated_paths", [])],
+        ])
     text_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     return json_path, text_path
