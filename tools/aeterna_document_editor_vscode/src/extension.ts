@@ -11,6 +11,7 @@ import {
   type CandidateSessionRequest,
   candidateDiffDescriptor,
   candidateDocumentState,
+  candidateHasUnsavedChanges,
   loadCandidateSession,
   pathsEqual,
 } from "./candidate";
@@ -19,7 +20,14 @@ import {
   loadRoutedCandidate,
 } from "./candidate_routing";
 import { DocumentManager } from "./manager";
-import type { ManagerAction } from "./manager_content";
+import type { ManagerAction, ManagerPlanState } from "./manager_content";
+import {
+  ExplicitApplyCoordinator,
+  ExplicitApplyError,
+  materializePreparedUpdate,
+  type ApplySummary,
+  type MaterializedUpdatePlan,
+} from "./apply_update";
 import {
   UpdatePreviewError,
   currentUpdateIdentity,
@@ -186,13 +194,30 @@ function openCandidateDocument(
   );
 }
 
+function isCandidateUnsaved(candidatePath: string): boolean {
+  return candidateHasUnsavedChanges(
+    candidatePath,
+    vscode.workspace.textDocuments.map((document) => ({
+      fsPath: document.uri.fsPath,
+      isDirty: document.isDirty,
+    })),
+    vscode.window.tabGroups.all.flatMap((group) => group.tabs.map((tab) => {
+      const input = tab.input;
+      const fsPaths = input instanceof vscode.TabInputText || input instanceof vscode.TabInputCustom
+        ? [input.uri.fsPath]
+        : input instanceof vscode.TabInputTextDiff ? [input.original.fsPath, input.modified.fsPath] : [];
+      return { fsPaths, isDirty: tab.isDirty };
+    })),
+  );
+}
+
 function reportCandidateError(
   output: vscode.OutputChannel,
   action: string,
   error: unknown,
 ): void {
   const detail = error instanceof Error ? error.message : String(error);
-  const code = error instanceof CandidateSessionError || error instanceof UpdatePreviewError
+  const code = error instanceof CandidateSessionError || error instanceof UpdatePreviewError || error instanceof ExplicitApplyError
     ? ` [${error.code}]` : "";
   output.appendLine(`${action} failed${code}: ${detail}`);
   if (error instanceof UpdatePreviewError) {
@@ -206,6 +231,34 @@ function reportCandidateError(
   void vscode.window.showErrorMessage(`AETERNA Documents: ${detail}`);
 }
 
+function applyConfirmationDetail(summary: ApplySummary): string {
+  return [
+    `Document: ${summary.artifactId} — ${summary.title}`,
+    `Current version: ${summary.version}; mode: body-only / git-only; version will NOT increase.`,
+    `HEAD: ${summary.head}`,
+    `Canonical baseline SHA-256: ${summary.baselineSha256}`,
+    `Candidate SHA-256: ${summary.candidateSha256}`,
+    `Reviewed plan SHA-256: ${summary.planSemanticSha256}`,
+    `Planned writes: ${summary.plannedWrites.join(", ")}`,
+    "Actual Git changes may omit generated outputs that normalize to HEAD; the production review records both sets.",
+    `Dependency impact: ${summary.dependencyImpact}`,
+    `Planner version recommendation: ${summary.recommendedIntent}; mismatch: ${summary.mismatch ? "YES" : "NO"}.`,
+    "Apply CAN modify canonical and generated repository files. Candidate save alone does not Apply.",
+    "Review the plan in AETERNA Documents output and the native candidate diff first.",
+  ].join("\n");
+}
+
+function offerProductionReview(reviewPath: string | undefined, message: string, error: boolean): void {
+  const notification = error
+    ? vscode.window.showErrorMessage(message, ...(reviewPath ? ["Open Production Review"] : []))
+    : vscode.window.showInformationMessage(message, ...(reviewPath ? ["Open Production Review"] : []));
+  void notification.then(async (choice) => {
+    if (choice === "Open Production Review" && reviewPath) {
+      await vscode.window.showTextDocument(vscode.Uri.file(reviewPath), { preview: false });
+    }
+  });
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel("AETERNA Documents");
   const provider = new AeternaDocumentsProvider(output);
@@ -213,6 +266,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     context.globalStorageUri,
     "e1-candidates",
   ).fsPath;
+  const planStates = new Map<string, ManagerPlanState>();
+  const candidatePaths = new Map<string, string>();
+  const applyCoordinator = new ExplicitApplyCoordinator();
+  const setPlanState = (artifactId: string, state: ManagerPlanState): void => {
+    planStates.set(artifactId, state);
+    manager.refresh();
+  };
   const manager = new DocumentManager(
     vscode,
     () => provider.currentDocuments,
@@ -232,6 +292,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         edit: "aeterna.editCandidate",
         compare: "aeterna.compareCandidate",
         plan: "aeterna.prepareUpdatePlan",
+        apply: "aeterna.applyPreparedUpdate",
       }[action];
       const succeeded = await vscode.commands.executeCommand<boolean>(
         command,
@@ -239,9 +300,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         action === "edit",
       );
       return succeeded
-        ? { ok: true, message: `${document.artifact_id}: ${action} completed. Candidate save does not Apply.` }
+        ? { ok: true, message: `${document.artifact_id}: ${action} completed. Check AETERNA Documents output for details.` }
         : { ok: false, message: `${document.artifact_id}: ${action} cancelled or blocked. See the VS Code notification and AETERNA Documents output.` };
     },
+    (artifactId) => planStates.get(artifactId) ?? "PLAN_MISSING",
   );
   const preparedPlans = new Map<string, {
     readonly request: CandidateSessionRequest;
@@ -249,11 +311,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     readonly canonicalPath: string;
     readonly artifactId: string;
     readonly identity: UpdatePlanIdentity;
+    readonly materialized: MaterializedUpdatePlan;
   }>();
   const invalidateChangedDocument = (documentPath: string): void => {
     for (const [key, saved] of preparedPlans) {
       if (pathsEqual(saved.candidatePath, documentPath) || pathsEqual(saved.canonicalPath, documentPath)) {
         preparedPlans.delete(key);
+        setPlanState(saved.artifactId, "PLAN_STALE");
         output.appendLine(`UPDATE plan STALE after document edit: ${saved.artifactId}. Prepare a new plan.`);
       }
     }
@@ -270,6 +334,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.workspace.onDidSaveTextDocument((document) => {
       invalidateChangedDocument(document.uri.fsPath);
+      for (const [artifactId, candidatePath] of candidatePaths) {
+        if (pathsEqual(candidatePath, document.uri.fsPath) && (planStates.get(artifactId) ?? "PLAN_MISSING") === "PLAN_MISSING") {
+          setPlanState(artifactId, "CANDIDATE_SAVED");
+        }
+      }
     }),
     vscode.window.onDidChangeWindowState((state) => {
       if (!state.focused) {
@@ -282,11 +351,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             const current = await currentUpdateIdentity(saved.request.repositoryRoot, session);
             if (preparedPlans.get(key) === saved && isUpdatePlanStale(saved.identity, current)) {
               preparedPlans.delete(key);
+              setPlanState(saved.artifactId, "PLAN_STALE");
               output.appendLine(`UPDATE plan STALE after candidate/baseline change: ${saved.artifactId}.`);
             }
           } catch {
             if (preparedPlans.get(key) === saved) {
               preparedPlans.delete(key);
+              setPlanState(saved.artifactId, "PLAN_STALE");
               output.appendLine(`UPDATE plan STALE because its candidate/baseline could not be verified: ${saved.artifactId}.`);
             }
           }
@@ -371,6 +442,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             return false;
           }
           const session = routed.session;
+          candidatePaths.set(document.artifact_id, session.candidatePath);
+          if (!preparedPlans.has(document.artifact_id)) {
+            setPlanState(document.artifact_id, "CANDIDATE_SAVED");
+          }
           const alreadyOpen = openCandidateDocument(session.candidatePath);
           const editorOptions: vscode.TextDocumentShowOptions = openPreview
             ? { preview: false, viewColumn: vscode.ViewColumn.Beside }
@@ -397,7 +472,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             `Candidate baseline SHA-256: ${session.manifest.baseline.canonicalSha256}`,
           );
           void vscode.window.showInformationMessage(
-            "AETERNA candidate opened outside the repository. Saving updates only the candidate; governed Apply is a separate action and is not available in Document Manager. Use Open With manually to select ManulDown when desired.",
+            "AETERNA candidate opened outside the repository. Saving updates only the candidate; Apply requires a separate reviewed plan and explicit confirmation. Use Open With manually to select ManulDown when desired.",
           );
           return true;
         } catch (error) {
@@ -496,11 +571,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
               fsPath: open.uri.fsPath, isDirty: open.isDirty,
             })),
           ));
-          const previous = preparedPlans.get(session.candidatePath);
+          const previous = preparedPlans.get(document.artifact_id);
           if (previous) {
             const current = await currentUpdateIdentity(request.repositoryRoot, session);
             if (isUpdatePlanStale(previous.identity, current)) {
-              preparedPlans.delete(session.candidatePath);
+              preparedPlans.delete(document.artifact_id);
+              setPlanState(document.artifact_id, "PLAN_STALE");
               output.appendLine(`Previous UPDATE plan STALE: ${document.artifact_id}.`);
             }
           }
@@ -519,14 +595,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           if (isUpdatePlanStale(preview.identity, current)) {
             throw new UpdatePreviewError("PLAN_STALE", "Candidate, baseline or HEAD changed after planning; prepare a new plan.");
           }
-          preparedPlans.set(session.candidatePath, {
+          const materialized = await materializePreparedUpdate(
+            preview,
+            request.repositoryRoot,
+            vscode.Uri.joinPath(context.globalStorageUri, "e2b-plans").fsPath,
+          );
+          preparedPlans.set(document.artifact_id, {
             request,
             candidatePath: session.candidatePath,
             canonicalPath: session.canonicalPath,
             artifactId: document.artifact_id,
             identity: preview.identity,
+            materialized,
           });
+          candidatePaths.set(document.artifact_id, session.candidatePath);
+          const recommendationMismatch = (preview.plan.version as { mismatch?: unknown } | undefined)?.mismatch === true;
+          setPlanState(document.artifact_id, recommendationMismatch ? "PLAN_READY_MISMATCH" : "PLAN_READY");
           output.appendLine(renderUpdatePreview(preview));
+          output.appendLine(`Immutable production plan stored: ${materialized.planPath} (SHA-256 ${materialized.planSha256}).`);
           output.show(true);
           const action = await vscode.window.showInformationMessage(
             `Read-only UPDATE plan ready for ${document.artifact_id}. See AETERNA Documents output for impact, paths and version recommendation.`,
@@ -542,13 +628,85 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         }
       },
     ),
+    vscode.commands.registerCommand(
+      "aeterna.applyPreparedUpdate",
+      async (item: DocumentTreeItem | undefined): Promise<boolean> => {
+        const document = await chooseDocument(provider, item);
+        if (!document) return false;
+        const saved = preparedPlans.get(document.artifact_id);
+        if (!saved || !["PLAN_READY", "PLAN_READY_MISMATCH"].includes(planStates.get(document.artifact_id) ?? "PLAN_MISSING")) {
+          void vscode.window.showWarningMessage("No current prepared UPDATE plan exists for this document. Save the candidate and prepare a new plan.");
+          return false;
+        }
+        try {
+          const result = await applyCoordinator.apply(
+            saved.materialized,
+            saved.request,
+            document.title,
+            document.version,
+            {
+              candidateIsDirty: () => isCandidateUnsaved(saved.candidatePath),
+              confirm: async (summary) => {
+                const choice = await vscode.window.showWarningMessage(
+                  `Apply prepared UPDATE to ${summary.artifactId}?`,
+                  { modal: true, detail: applyConfirmationDetail(summary) },
+                  "Review Diff", "Apply Prepared UPDATE",
+                );
+                if (choice === "Review Diff") {
+                  await vscode.commands.executeCommand("aeterna.compareCandidate", item);
+                }
+                return choice === "Apply Prepared UPDATE";
+              },
+              confirmMismatch: async (summary) => {
+                const choice = await vscode.window.showWarningMessage(
+                  `Version recommendation mismatch for ${summary.artifactId}: planner recommends ${summary.recommendedIntent}, but this plan is git-only and keeps version ${summary.version}. Apply anyway?`,
+                  { modal: true, detail: "This is a separate, explicit approval. Canonical files may change without a version increase. Cancel to leave the repository unchanged." },
+                  "Apply Despite Version Mismatch",
+                );
+                return choice === "Apply Despite Version Mismatch";
+              },
+              onBeforeRun: () => {
+                setPlanState(document.artifact_id, "APPLY_RUNNING");
+                output.appendLine(`Production governed Apply started for ${document.artifact_id}.`);
+              },
+            },
+          );
+          output.appendLine(`Governed Apply ${result.status}: ${result.message}`);
+          if (result.reviewPath) output.appendLine(`Production review: ${result.reviewPath}`);
+          if (result.status === "CANCELLED") {
+            setPlanState(document.artifact_id, preparedPlans.get(document.artifact_id) === saved
+              ? ((saved.materialized.preview.plan.version as { mismatch?: unknown } | undefined)?.mismatch === true ? "PLAN_READY_MISMATCH" : "PLAN_READY")
+              : "PLAN_STALE");
+            return false;
+          }
+          preparedPlans.delete(document.artifact_id);
+          if (result.status === "PASS") {
+            await provider.refresh();
+            setPlanState(document.artifact_id, "APPLY_PASS");
+            offerProductionReview(result.reviewPath, `AETERNA ${document.artifact_id}: Apply PASS, review verified. Inspect GitHub Desktop changes before manual commit/push.`, false);
+            return true;
+          }
+          setPlanState(document.artifact_id, result.status === "BLOCKED" ? "APPLY_BLOCKED" : "APPLY_FAIL");
+          output.show(true);
+          offerProductionReview(result.reviewPath, `AETERNA ${document.artifact_id}: ${result.message} Review: ${result.reviewPath ?? "not available"}`, true);
+          return false;
+        } catch (error) {
+          if (!(error instanceof ExplicitApplyError && error.code === "APPLY_ALREADY_ATTEMPTED")) {
+            preparedPlans.delete(document.artifact_id);
+            setPlanState(document.artifact_id, "APPLY_BLOCKED");
+          }
+          reportCandidateError(output, "Apply Prepared UPDATE", error);
+          return false;
+        }
+      },
+    ),
     vscode.commands.registerCommand("aeterna.showDiagnostics", () => {
       output.show(true);
     }),
   );
 
   output.appendLine(
-    "AETERNA document extension activated (Document Manager, E1 candidate editing, E2A read-only UPDATE plan preview).",
+    "AETERNA document extension activated (Document Manager, E1 candidate editing, E2A plan preview, E2B explicit governed Apply).",
   );
   output.appendLine(`Candidate storage root: ${candidateStorageRoot}`);
   await provider.refresh();

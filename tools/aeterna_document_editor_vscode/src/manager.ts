@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import type * as vscode from "vscode";
 
 import type { ManagedDocument } from "./registry";
-import { filterManagedDocuments, parseManagerMessage, renderManagerHtml, type ManagerAction, type ManagerActionResult } from "./manager_content";
+import { filterManagedDocuments, managerPlanStateLabel, parseManagerMessage, renderManagerHtml, type ManagerAction, type ManagerActionResult, type ManagerPlanState } from "./manager_content";
 
 export class DocumentManager implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
@@ -14,6 +14,7 @@ export class DocumentManager implements vscode.Disposable {
     private readonly documents: () => readonly ManagedDocument[],
     private readonly status: () => string,
     private readonly act: (action: ManagerAction, document?: ManagedDocument) => Promise<ManagerActionResult>,
+    private readonly planState: (artifactId: string) => ManagerPlanState = () => "PLAN_MISSING",
   ) {}
 
   public show(): void {
@@ -48,6 +49,8 @@ export class DocumentManager implements vscode.Disposable {
         title: document.title,
         path: document.path,
         version: document.version,
+        planState: this.planState(document.artifact_id),
+        planStateLabel: managerPlanStateLabel(this.planState(document.artifact_id)),
       })),
       status: this.status(),
     });
@@ -83,12 +86,16 @@ export class DocumentManager implements vscode.Disposable {
       this.publishStatus("Selected document is no longer available. Refresh the list.");
       return;
     }
+    if (message.action === "apply" && document && !["PLAN_READY", "PLAN_READY_MISMATCH"].includes(this.planState(document.artifact_id))) {
+      this.publishStatus("Apply blocked: selected document has no current prepared plan.");
+      return;
+    }
     this.busy = true;
     this.publishStatus("Working…");
     try {
       const result = await this.act(message.action, document);
       this.publishStatus(result.message);
-      if (message.action === "refresh") this.publishDocuments();
+      this.publishDocuments();
     } catch (error) {
       this.publishStatus(error instanceof Error ? error.message : String(error));
     } finally {

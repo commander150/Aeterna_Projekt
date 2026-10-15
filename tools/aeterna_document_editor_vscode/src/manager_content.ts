@@ -1,6 +1,24 @@
 import type { ManagedDocument } from "./registry";
 
-export type ManagerAction = "edit" | "compare" | "plan" | "refresh";
+export type ManagerAction = "edit" | "compare" | "plan" | "apply" | "refresh";
+
+export type ManagerPlanState =
+  | "PLAN_MISSING" | "CANDIDATE_SAVED" | "PLAN_READY" | "PLAN_READY_MISMATCH" | "PLAN_STALE"
+  | "APPLY_RUNNING" | "APPLY_PASS" | "APPLY_FAIL" | "APPLY_BLOCKED";
+
+export function managerPlanStateLabel(state: ManagerPlanState): string {
+  return ({
+    PLAN_MISSING: "Plan missing. Save a candidate, then prepare an UPDATE plan.",
+    CANDIDATE_SAVED: "Candidate saved. Prepare a read-only UPDATE plan.",
+    PLAN_READY: "Plan ready. Review the diff and plan before explicit Apply.",
+    PLAN_READY_MISMATCH: "Plan ready — VERSION RECOMMENDATION MISMATCH. Planner recommends a different intent; Apply requires a second explicit confirmation. Version will not increase.",
+    PLAN_STALE: "Plan stale. Prepare a new plan before Apply.",
+    APPLY_RUNNING: "Governed Apply in progress. Do not close or repeat it.",
+    APPLY_PASS: "Apply passed. Review Git changes in GitHub Desktop; commit and push are manual.",
+    APPLY_FAIL: "Apply failed. Inspect production review and rollback evidence.",
+    APPLY_BLOCKED: "Apply blocked. Inspect the reason and prepare a new plan.",
+  } satisfies Record<ManagerPlanState, string>)[state];
+}
 
 export type ManagerMessage =
   | { readonly type: "ready" }
@@ -30,7 +48,7 @@ export function parseManagerMessage(value: unknown): ManagerMessage | undefined 
   if (value.type !== "action" || typeof value.action !== "string") {
     return undefined;
   }
-  const actions: readonly string[] = ["edit", "compare", "plan", "refresh"];
+  const actions: readonly string[] = ["edit", "compare", "plan", "apply", "refresh"];
   if (!actions.includes(value.action)) {
     return undefined;
   }
@@ -93,7 +111,7 @@ export function renderManagerHtml(nonce: string): string {
 </head>
 <body>
   <h1>AETERNA Document Manager</h1>
-  <p>Choose a managed document. Saving a candidate does not change its canonical document; Apply is not available here.</p>
+  <p>Choose a managed document. Saving a candidate does not change its canonical document. Apply requires a reviewed plan and separate confirmation; version stays unchanged.</p>
   <label for="search">Search by name, title, path or artifact ID</label>
   <input id="search" type="search" autocomplete="off" placeholder="Search managed documents">
   <div class="layout">
@@ -105,10 +123,12 @@ export function renderManagerHtml(nonce: string): string {
       <h2>Selected document</h2>
       <p id="empty">Select a document from the list.</p>
       <dl id="fields" hidden></dl>
+      <p id="plan-state" role="status">Plan missing.</p>
       <div class="actions">
         <button class="action" type="button" data-action="edit" disabled>Edit Candidate + Preview</button>
         <button class="action" type="button" data-action="compare" disabled>Compare Candidate</button>
         <button class="action" type="button" data-action="plan" disabled>Read-only UPDATE Plan</button>
+        <button class="action" type="button" data-action="apply" disabled>Apply Prepared UPDATE</button>
         <button class="action" type="button" data-action="refresh">Refresh List</button>
       </div>
     </section>
@@ -122,6 +142,7 @@ export function renderManagerHtml(nonce: string): string {
       const count = document.getElementById("count");
       const empty = document.getElementById("empty");
       const fields = document.getElementById("fields");
+      const planState = document.getElementById("plan-state");
       const status = document.getElementById("status");
       const buttons = [...document.querySelectorAll("button[data-action]")];
       let documents = [];
@@ -133,8 +154,10 @@ export function renderManagerHtml(nonce: string): string {
         empty.hidden = Boolean(selected);
         fields.hidden = !selected;
         for (const button of buttons) {
-          if (button.dataset.action !== "refresh") button.disabled = !selected;
+          if (button.dataset.action === "apply") button.disabled = !selected || !["PLAN_READY", "PLAN_READY_MISMATCH"].includes(selected.planState);
+          else if (button.dataset.action !== "refresh") button.disabled = !selected;
         }
+        planState.textContent = selected ? selected.planStateLabel : "Plan missing.";
         if (!selected) return;
         for (const [label, value] of [
           ["Artifact ID", selected.artifactId], ["Title", selected.title],

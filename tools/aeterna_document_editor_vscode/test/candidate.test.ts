@@ -18,6 +18,7 @@ import {
   type CandidateSessionRequest,
   candidateDiffDescriptor,
   candidateDocumentState,
+  candidateHasUnsavedChanges,
   createOrOpenCandidateSession,
   loadCandidateSession,
 } from "../src/candidate";
@@ -131,6 +132,17 @@ test("open dirty candidate state is detected for unsaved-change protection", () 
     ]),
     "OPEN_DIRTY",
   );
+});
+
+test("dirty native, custom or diff tab for the candidate blocks Apply", () => {
+  const candidatePath = path.resolve("candidate.md");
+  const canonicalPath = path.resolve("canonical.md");
+  assert.equal(candidateHasUnsavedChanges(candidatePath, [], []), false);
+  assert.equal(candidateHasUnsavedChanges(candidatePath, [{ fsPath: candidatePath, isDirty: true }], []), true);
+  assert.equal(candidateHasUnsavedChanges(candidatePath, [], [{ fsPaths: [candidatePath], isDirty: true }]), true);
+  assert.equal(candidateHasUnsavedChanges(candidatePath, [], [{ fsPaths: [canonicalPath, candidatePath], isDirty: true }]), true);
+  assert.equal(candidateHasUnsavedChanges(candidatePath, [], [{ fsPaths: [canonicalPath], isDirty: true }]), false);
+  assert.equal(candidateHasUnsavedChanges(candidatePath, [], [{ fsPaths: [candidatePath], isDirty: false }]), false);
 });
 
 test("invalid artifact ID is rejected before candidate creation", async () => {

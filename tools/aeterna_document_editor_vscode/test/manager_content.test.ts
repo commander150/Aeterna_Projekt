@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   filterManagedDocuments,
+  managerPlanStateLabel,
   parseManagerMessage,
   renderManagerHtml,
 } from "../src/manager_content";
@@ -48,9 +49,13 @@ test("manager accepts only known actions and well-formed artifact IDs", () => {
     parseManagerMessage({ type: "action", action: "edit", artifactId: "AET-DOC-PROJECT-PLAN" }),
     { type: "action", action: "edit", artifactId: "AET-DOC-PROJECT-PLAN" },
   );
+  assert.deepEqual(
+    parseManagerMessage({ type: "action", action: "apply", artifactId: "AET-DOC-PROJECT-PLAN" }),
+    { type: "action", action: "apply", artifactId: "AET-DOC-PROJECT-PLAN" },
+  );
   for (const invalid of [
     null,
-    { type: "action", action: "apply", artifactId: "AET-DOC-PROJECT-PLAN" },
+    { type: "action", action: "create", artifactId: "AET-DOC-PROJECT-PLAN" },
     { type: "action", action: "edit", artifactId: "../outside.md" },
     { type: "action", action: "edit", artifactId: "AET-DOC-PROJECT-PLAN", path: "C:\\outside" },
     { type: "action", action: "refresh", artifactId: "AET-DOC-PROJECT-PLAN" },
@@ -68,6 +73,12 @@ test("manager HTML uses CSP and text-only DOM rendering for registry values", ()
   assert.match(html, /title\.textContent = item\.title/);
   assert.match(html, /detail\.textContent = item\.artifactId/);
   assert.doesNotMatch(html, /innerHTML/);
-  assert.doesNotMatch(html, /data-action="apply"/);
+  assert.match(html, /data-action="apply" disabled/);
+  assert.match(html, /"PLAN_READY_MISMATCH"/);
   assert.doesNotMatch(html, /AET-DOC-PROJECT-PLAN/);
+});
+
+test("version recommendation mismatch is visible before Apply", () => {
+  assert.match(managerPlanStateLabel("PLAN_READY_MISMATCH"), /VERSION RECOMMENDATION MISMATCH/);
+  assert.match(managerPlanStateLabel("PLAN_READY_MISMATCH"), /second explicit confirmation/);
 });

@@ -69,6 +69,11 @@ export interface OpenDocumentState {
   readonly isDirty: boolean;
 }
 
+export interface OpenCandidateTabState {
+  readonly fsPaths: readonly string[];
+  readonly isDirty: boolean;
+}
+
 export type CandidateDocumentState = "CLOSED" | "OPEN_CLEAN" | "OPEN_DIRTY";
 
 export class CandidateSessionError extends Error {
@@ -126,6 +131,15 @@ export function candidateDocumentState(
     return "CLOSED";
   }
   return open.isDirty ? "OPEN_DIRTY" : "OPEN_CLEAN";
+}
+
+export function candidateHasUnsavedChanges(
+  candidatePath: string,
+  documents: readonly OpenDocumentState[],
+  tabs: readonly OpenCandidateTabState[],
+): boolean {
+  return candidateDocumentState(candidatePath, documents) === "OPEN_DIRTY" ||
+    tabs.some((tab) => tab.isDirty && tab.fsPaths.some((fsPath) => pathsEqual(fsPath, candidatePath)));
 }
 
 export function candidateDiffDescriptor(

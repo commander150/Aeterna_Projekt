@@ -88,3 +88,43 @@ test("manager opens one separate panel and routes only current selected document
   assert.deepEqual(actions, ["edit:AET-DOC-PROJECT-PLAN"]);
   manager.dispose();
 });
+
+test("manager permits Apply only for a selected document with a ready plan", async () => {
+  const document: ManagedDocument = {
+    artifact_id: "AET-DOC-PROJECT-PLAN", title: "Project Plan",
+    path: "project/planning/PROJECT_PLAN.md", absolutePath: "C:\\repo\\project\\planning\\PROJECT_PLAN.md",
+    kind: "document", version: "6.20", generated: false, scope: "ACTIVE",
+  };
+  let receiver: ((message: unknown) => void) | undefined;
+  const actions: string[] = [];
+  const posted: unknown[] = [];
+  const panel = {
+    webview: {
+      html: "",
+      postMessage: async (message: unknown) => { posted.push(message); return true; },
+      onDidReceiveMessage: (listener: (message: unknown) => void) => {
+        receiver = listener; return { dispose() {} };
+      },
+    },
+    onDidDispose: () => ({ dispose() {} }), dispose() {}, reveal() {},
+  };
+  const host = { ViewColumn: { One: 1 }, window: { createWebviewPanel: () => panel } } as unknown as typeof vscode;
+  let state: "PLAN_READY" | "PLAN_STALE" | "APPLY_PASS" = "PLAN_READY";
+  const manager = new DocumentManager(host, () => [document], () => "Ready", async (action) => {
+    actions.push(action);
+    if (action === "apply") state = "APPLY_PASS";
+    return { ok: true, message: "Done" };
+  }, () => state);
+  manager.show();
+  receiver?.({ type: "ready" });
+  assert.equal((posted.at(-1) as { documents: { planState: string }[] }).documents[0]?.planState, "PLAN_READY");
+  receiver?.({ type: "action", action: "apply", artifactId: document.artifact_id });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.deepEqual(actions, ["apply"]);
+  assert.equal((posted.at(-1) as { documents: { planState: string }[] }).documents[0]?.planState, "APPLY_PASS");
+  state = "PLAN_STALE";
+  receiver?.({ type: "action", action: "apply", artifactId: document.artifact_id });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.deepEqual(actions, ["apply"]);
+  manager.dispose();
+});

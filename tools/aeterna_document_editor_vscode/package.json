@@ -15,7 +15,8 @@
     "onCommand:aeterna.openManager",
     "onCommand:aeterna.editCandidate",
     "onCommand:aeterna.compareCandidate",
-    "onCommand:aeterna.prepareUpdatePlan"
+    "onCommand:aeterna.prepareUpdatePlan",
+    "onCommand:aeterna.applyPreparedUpdate"
   ],
   "main": "./out/src/extension.js",
   "scripts": {
@@ -52,6 +53,10 @@
       {
         "command": "aeterna.prepareUpdatePlan",
         "title": "AETERNA: Validate / Prepare Update Plan (Read Only)"
+      },
+      {
+        "command": "aeterna.applyPreparedUpdate",
+        "title": "AETERNA: Apply Prepared UPDATE (Explicit Approval)"
       },
       {
         "command": "aeterna.showDiagnostics",

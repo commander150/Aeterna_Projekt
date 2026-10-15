@@ -68,6 +68,8 @@ export interface UpdateManifestPayload {
 }
 
 export interface UpdatePlanIdentity {
+  readonly repositoryRoot: string;
+  readonly branch: string;
   readonly head: string;
   readonly baselineSha256: string;
   readonly metadataFingerprint: string;
@@ -76,6 +78,7 @@ export interface UpdatePlanIdentity {
 
 export interface PreparedUpdatePreview {
   readonly plan: Record<string, unknown>;
+  readonly planJson: string;
   readonly identity: UpdatePlanIdentity;
   readonly manifest: UpdateManifestPayload;
   readonly interpreter: string;
@@ -227,6 +230,8 @@ export function isUpdatePlanStale(
   current: UpdatePlanIdentity,
 ): boolean {
   return (
+    planned.repositoryRoot !== current.repositoryRoot ||
+    planned.branch !== current.branch ||
     planned.head !== current.head ||
     planned.baselineSha256 !== current.baselineSha256 ||
     planned.metadataFingerprint !== current.metadataFingerprint ||
@@ -284,6 +289,8 @@ export async function currentUpdateIdentity(
     candidateBytes(session.candidatePath),
   ]);
   return {
+    repositoryRoot: baseline.repository_root,
+    branch: baseline.branch,
     head: baseline.head,
     baselineSha256: baseline.sha256,
     metadataFingerprint: baseline.metadata_fingerprint,
@@ -321,9 +328,12 @@ export async function prepareUpdatePreview(
     }
     return {
       plan,
+      planJson: execution.stdout,
       manifest,
       interpreter,
       identity: {
+        repositoryRoot: baseline.repository_root,
+        branch: baseline.branch,
         head: baseline.head,
         baselineSha256: baseline.sha256,
         metadataFingerprint: baseline.metadata_fingerprint,
