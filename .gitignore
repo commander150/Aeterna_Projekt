@@ -22,3 +22,4 @@ learning/sources
 /tools/reference_engine/csharp/**/obj/
 /tests/reference_engine/csharp/**/bin/
 /tests/reference_engine/csharp/**/obj/
+/.vscode/
