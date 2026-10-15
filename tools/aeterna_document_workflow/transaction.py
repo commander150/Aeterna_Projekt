@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from contextlib import contextmanager
+from contextvars import ContextVar
+from datetime import datetime, timezone
+import errno
 import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import stat
+import subprocess
 import uuid
+from typing import Iterator
 
 from tools.aeterna_artifacts.generation import DOCUMENT_INDEX_PATH, REGISTRY_PATH, build_generated_content
 from tools.aeterna_artifacts.model import Diagnostic, Severity
@@ -31,6 +38,9 @@ from .review import (
     load_plan,
     write_review_files,
 )
+
+
+_ACTIVE_APPLY_ROOT: ContextVar[str | None] = ContextVar("active_aeterna_apply_root", default=None)
 
 
 @dataclass(frozen=True)
@@ -108,6 +118,234 @@ def validate_ignored_temp_path(root: Path, path: Path, code: str) -> Path:
     return resolved
 
 
+def durable_apply_state_root(root: Path) -> Path:
+    """Use this checkout's Git administration directory, never disposable TEMP."""
+    root = root.resolve()
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--absolute-git-dir"], cwd=root,
+            capture_output=True, text=True, encoding="utf-8", check=False,
+        )
+    except OSError as exc:
+        fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", f"Cannot identify repository Git administration directory: {exc}")
+    if result.returncode or not result.stdout.strip():
+        fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", "Cannot identify repository Git administration directory.")
+    git_dir = Path(result.stdout.strip()).resolve()
+    if os.stat(root).st_dev != os.stat(git_dir).st_dev:
+        fail("TRANSACTION_VOLUME_MISMATCH", "Durable Apply state and repository targets must share a volume.")
+    state_root = git_dir / "aeterna_document_workflow"
+    if state_root.exists():
+        attributes = getattr(state_root.lstat(), "st_file_attributes", 0)
+        if not state_root.is_dir() or state_root.is_symlink() or attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
+            fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", "Durable Apply state directory must be a plain directory.")
+    return state_root
+
+
+def durable_transaction_parent(root: Path) -> Path:
+    state_root = durable_apply_state_root(root)
+    transaction_parent = state_root / "transactions"
+    if transaction_parent.exists():
+        attributes = getattr(transaction_parent.lstat(), "st_file_attributes", 0)
+        if not transaction_parent.is_dir() or transaction_parent.is_symlink() or attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
+            fail("TRANSACTION_ROOT_BLOCKED", "Durable transaction directory must be a plain directory.")
+    return transaction_parent
+
+
+def _same_volume(root: Path, transaction_parent: Path) -> bool:
+    return os.stat(root).st_dev == os.stat(transaction_parent.parent).st_dev
+
+
+def _check_legacy_transaction_evidence(root: Path) -> None:
+    parent = root / "TEMP/aeterna_document_workflow/transactions"
+    if not os.path.lexists(parent):
+        return
+    validate_ignored_temp_path(root, parent, "APPLY_LOCK_INFRASTRUCTURE_ERROR")
+    if not parent.is_dir():
+        fail("APPLY_RECOVERY_REQUIRED", "Previous TEMP transaction evidence is not a directory.", exit_code=3)
+    try:
+        for child in parent.iterdir():
+            if child.is_symlink() or not child.is_dir():
+                fail("APPLY_RECOVERY_REQUIRED", "Previous TEMP transaction evidence is incomplete.", exit_code=3)
+            journal = json.loads((child / "journal.json").read_text(encoding="utf-8"))
+            if (not isinstance(journal, dict) or journal.get("operation_id") != child.name
+                    or not isinstance(journal.get("states"), list)
+                    or not journal["states"] or journal["states"][-1] not in {"COMMITTED_TO_WORKTREE", "ROLLED_BACK"}):
+                fail("APPLY_RECOVERY_REQUIRED", "Previous TEMP transaction requires recovery review.", exit_code=3)
+    except (OSError, ValueError, UnicodeError, KeyError, TypeError):
+        fail("APPLY_RECOVERY_REQUIRED", "Previous TEMP transaction evidence is missing or invalid.", exit_code=3)
+
+
+def _lock_byte(fd: int) -> None:
+    os.lseek(fd, 0, os.SEEK_SET)
+    if os.name == "nt":
+        import msvcrt
+
+        msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+    elif os.name == "posix":
+        import fcntl
+
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    else:
+        fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", "Exclusive Apply locking is unsupported on this platform.")
+
+
+def _unlock_byte(fd: int) -> None:
+    os.lseek(fd, 0, os.SEEK_SET)
+    if os.name == "nt":
+        import msvcrt
+
+        msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(fd, fcntl.LOCK_UN)
+
+
+def _lock_record(fd: int) -> dict[str, object]:
+    os.lseek(fd, 1, os.SEEK_SET)
+    data = os.read(fd, max(0, os.fstat(fd).st_size - 1))
+    record = json.loads(data.decode("utf-8"))
+    if not isinstance(record, dict) or record.get("schema") != "aeterna-apply-lock/0.1":
+        raise ValueError("Invalid Apply lock record.")
+    return record
+
+
+def _write_lock_record(fd: int, status: str, operation_id: str) -> None:
+    record = {
+        "schema": "aeterna-apply-lock/0.1",
+        "status": status,
+        "operation_id": operation_id,
+        "pid": os.getpid(),
+        "updated_utc": datetime.now(timezone.utc).isoformat(),
+    }
+    data = json.dumps(record, sort_keys=True).encode("utf-8")
+    os.lseek(fd, 1, os.SEEK_SET)
+    written = 0
+    while written < len(data):
+        count = os.write(fd, data[written:])
+        if count <= 0:
+            raise OSError("Apply lock record write did not progress.")
+        written += count
+    os.ftruncate(fd, 1 + len(data))
+    os.fsync(fd)
+
+
+@contextmanager
+def repository_apply_lock(repository_root: str | Path) -> Iterator[None]:
+    """Serialize CREATE and UPDATE across processes; retain crash evidence."""
+    root = Path(repository_root).resolve()
+    state_root = durable_apply_state_root(root)
+    lock_path = state_root / "apply.lock"
+    legacy_path = root / "TEMP/aeterna_document_workflow/apply.lock"
+    try:
+        state_root.mkdir(parents=True, exist_ok=True)
+        if durable_apply_state_root(root) != state_root:
+            fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", "Repository Git administration directory changed.")
+        flags = os.O_RDWR | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+        if os.path.lexists(lock_path):
+            info = lock_path.lstat()
+            if not stat.S_ISREG(info.st_mode) or getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
+                fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", "Durable Apply marker must be a plain file.")
+        try:
+            fd = os.open(lock_path, flags | os.O_CREAT | os.O_EXCL, 0o600)
+            created = True
+        except FileExistsError:
+            fd = os.open(lock_path, flags)
+            created = False
+    except OSError as exc:
+        fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", f"Cannot open repository Apply lock: {exc}")
+    operation_id = uuid.uuid4().hex
+    locked = False
+    legacy_fd: int | None = None
+    legacy_locked = False
+    try:
+        try:
+            _lock_byte(fd)
+            locked = True
+        except OSError as exc:
+            if exc.errno in {errno.EACCES, errno.EAGAIN} or getattr(exc, "winerror", None) == 33:
+                fail("APPLY_ALREADY_IN_PROGRESS", "Another governed Apply holds the repository lock.", exit_code=3)
+            fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", f"Cannot acquire repository Apply lock: {exc}")
+        try:
+            if not created and _lock_record(fd).get("status") != "RELEASED":
+                fail("APPLY_RECOVERY_REQUIRED", "Previous Apply may have been interrupted; inspect retained transaction evidence.", exit_code=3)
+        except (ValueError, UnicodeError):
+            fail("APPLY_RECOVERY_REQUIRED", "Apply lock record is incomplete or invalid; inspect retained transaction evidence.", exit_code=3)
+        except OSError as exc:
+            fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", f"Cannot read repository Apply lock record: {exc}")
+        transaction_parent = state_root / "transactions"
+        if created and os.path.lexists(transaction_parent):
+            info = transaction_parent.lstat()
+            if not stat.S_ISDIR(info.st_mode) or getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
+                fail("APPLY_RECOVERY_REQUIRED", "Durable transaction evidence path is invalid.", exit_code=3)
+            if any(transaction_parent.iterdir()):
+                fail("APPLY_RECOVERY_REQUIRED", "Durable Apply marker is missing while transaction evidence exists.", exit_code=3)
+        if created:
+            try:
+                _write_lock_record(fd, "RELEASED", operation_id)
+            except OSError as exc:
+                fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", f"Cannot initialize durable Apply marker: {exc}")
+        # A previous version used TEMP. Hold its lock as well during migration so
+        # an existing process cannot be bypassed; never remove or rewrite it.
+        if os.path.lexists(legacy_path):
+            validate_ignored_temp_path(root, legacy_path, "APPLY_LOCK_INFRASTRUCTURE_ERROR")
+            try:
+                legacy_fd = os.open(legacy_path, flags)
+                _lock_byte(legacy_fd)
+                legacy_locked = True
+            except OSError as exc:
+                if exc.errno in {errno.EACCES, errno.EAGAIN} or getattr(exc, "winerror", None) == 33:
+                    fail("APPLY_ALREADY_IN_PROGRESS", "Previous TEMP-based Apply holds the repository lock.", exit_code=3)
+                fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", f"Cannot inspect previous TEMP-based Apply lock: {exc}")
+            try:
+                if _lock_record(legacy_fd).get("status") != "RELEASED":
+                    fail("APPLY_RECOVERY_REQUIRED", "Previous TEMP-based Apply is not released; inspect its recovery evidence.", exit_code=3)
+            except (ValueError, UnicodeError):
+                fail("APPLY_RECOVERY_REQUIRED", "Previous TEMP-based Apply marker is invalid; inspect its recovery evidence.", exit_code=3)
+            except OSError as exc:
+                fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", f"Cannot read previous TEMP-based Apply marker: {exc}")
+        _check_legacy_transaction_evidence(root)
+        try:
+            _write_lock_record(fd, "ACTIVE", operation_id)
+        except OSError as exc:
+            fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", f"Cannot record active Apply lock: {exc}")
+        completed = False
+        token = _ACTIVE_APPLY_ROOT.set(str(root))
+        try:
+            yield
+            completed = True
+        except WorkflowError as exc:
+            completed = all(item.code != "ROLLBACK_VERIFICATION_FAILED" for item in exc.diagnostics)
+            raise
+        finally:
+            _ACTIVE_APPLY_ROOT.reset(token)
+            if completed:
+                try:
+                    _write_lock_record(fd, "RELEASED", operation_id)
+                except OSError as exc:
+                    fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", f"Cannot record released Apply lock: {exc}")
+    finally:
+        try:
+            if legacy_fd is not None:
+                try:
+                    if legacy_locked:
+                        _unlock_byte(legacy_fd)
+                finally:
+                    os.close(legacy_fd)
+            if locked:
+                try:
+                    _unlock_byte(fd)
+                except OSError as exc:
+                    fail("APPLY_LOCK_INFRASTRUCTURE_ERROR", f"Cannot release repository Apply lock: {exc}")
+        finally:
+            os.close(fd)
+
+
+def require_repository_apply_lock(root: Path) -> None:
+    if _ACTIVE_APPLY_ROOT.get() != str(root.resolve()):
+        fail("APPLY_LOCK_REQUIRED", "Governed repository writes require the shared Apply lock.")
+
+
 def validate_candidate_location(root: Path, plan: dict[str, object]) -> Path:
     candidate = Path(plan["candidate"]["resolved_path"]).resolve()
     current = (root / plan["resolved_artifact"]["path"]).resolve()
@@ -127,11 +365,17 @@ def validate_candidate_location(root: Path, plan: dict[str, object]) -> Path:
 
 
 def _journal(path: Path, operation_id: str, states: list[str]) -> None:
-    path.write_text(
-        json.dumps({"operation_id": operation_id, "states": states}, indent=2) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    data = (json.dumps({"operation_id": operation_id, "states": states}, indent=2) + "\n").encode("utf-8")
+    pending = path.with_name(path.name + ".pending")
+    _write_synced_bytes(pending, data)
+    os.replace(pending, path)
+
+
+def _write_synced_bytes(path: Path, data: bytes) -> None:
+    with path.open("wb") as stream:
+        stream.write(data)
+        stream.flush()
+        os.fsync(stream.fileno())
 
 
 def execute_transaction(
@@ -146,6 +390,7 @@ def execute_transaction(
     *,
     create_parents: bool = True,
 ) -> TransactionResult:
+    require_repository_apply_lock(root)
     injection = injection or FailureInjection()
     states = ["PREPARING"]
     backups = transaction_root / "backups"
@@ -162,8 +407,8 @@ def execute_transaction(
             original = target.read_bytes() if existed else b""
             baseline[relative] = (existed, _sha256(original) if existed else None)
             if existed:
-                (backups / f"{index}.bin").write_bytes(original)
-            (prepared / f"{index}.bin").write_bytes(data)
+                _write_synced_bytes(backups / f"{index}.bin", original)
+            _write_synced_bytes(prepared / f"{index}.bin", data)
         states.append("PREPARED")
         _journal(journal, operation_id, states)
         pre_write_validate()
@@ -213,13 +458,19 @@ def execute_transaction(
         states.append("ROLLING_BACK")
         _journal(journal, operation_id, states)
         rollback_error: Exception | None = None
+        restore_copies = transaction_root / "restore"
         for index in reversed(range(writes)):
             relative, _ = ordered[index]
             target = root / relative
             existed, _ = baseline[relative]
             try:
                 if existed:
-                    os.replace(backups / f"{index}.bin", target)
+                    restore_copies.mkdir(exist_ok=True)
+                    restore_copy = restore_copies / f"{index}.bin"
+                    shutil.copyfile(backups / f"{index}.bin", restore_copy)
+                    with restore_copy.open("rb+") as stream:
+                        os.fsync(stream.fileno())
+                    os.replace(restore_copy, target)
                 elif os.path.lexists(target):
                     target.unlink()
             except Exception as restore_exc:
@@ -294,15 +545,29 @@ def apply_plan(
     *,
     injection: FailureInjection | None = None,
 ) -> dict[str, object]:
+    with repository_apply_lock(repository_root):
+        return _apply_plan_under_lock(
+            plan_path, repository_root, review_directory, injection=injection,
+        )
+
+
+def _apply_plan_under_lock(
+    plan_path: str | Path,
+    repository_root: str | Path,
+    review_directory: str | Path,
+    *,
+    injection: FailureInjection | None = None,
+) -> dict[str, object]:
     root = Path(repository_root).resolve()
+    require_repository_apply_lock(root)
     plan = load_plan(plan_path)
     review_dir = validate_ignored_temp_path(root, Path(review_directory), "REVIEW_DIRECTORY_BLOCKED")
     if plan.get("schema_version") == "aeterna-document-create-plan/0.1":
-        from .create_transaction import apply_create_plan
+        from .create_transaction import _apply_create_plan_under_lock
 
-        return apply_create_plan(plan, root, review_dir, injection=injection)
+        return _apply_create_plan_under_lock(plan, root, review_dir, injection=injection)
     operation_id = uuid.uuid4().hex
-    proposed_transaction_root = root / "TEMP/aeterna_document_workflow/transactions" / operation_id
+    proposed_transaction_root: Path | None = None
     expected_git_paths: tuple[str, ...] | None = None
     normalized_unchanged_generated: tuple[str, ...] = ()
 
@@ -354,17 +619,13 @@ def apply_plan(
         expected_git_paths = tuple(sorted(
             relative for relative in expected if relative not in normalized_unchanged_generated
         ))
-        transaction_parent = validate_ignored_temp_path(
-            root,
-            root / "TEMP/aeterna_document_workflow/transactions",
-            "TRANSACTION_ROOT_BLOCKED",
-        )
+        transaction_parent = durable_transaction_parent(root)
         proposed_transaction_root = transaction_parent / operation_id
-        if transaction_parent.drive.casefold() != root.drive.casefold():
+        if not _same_volume(root, transaction_parent):
             fail("TRANSACTION_VOLUME_MISMATCH", "Transaction and repository targets must share a volume.")
         transaction_root = proposed_transaction_root
     except WorkflowError as exc:
-        blocked_review(exc, str(proposed_transaction_root))
+        blocked_review(exc, str(proposed_transaction_root) if proposed_transaction_root else "")
         raise
 
     def pre_write_validate() -> None:

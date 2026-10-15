@@ -27,7 +27,10 @@ from .transaction import (
     TransactionPreparationError,
     TransactionResult,
     execute_transaction,
-    validate_ignored_temp_path,
+    durable_transaction_parent,
+    _same_volume,
+    repository_apply_lock,
+    require_repository_apply_lock,
 )
 
 
@@ -163,8 +166,20 @@ def apply_create_plan(
     *,
     injection: FailureInjection | None = None,
 ) -> dict[str, object]:
+    with repository_apply_lock(root):
+        return _apply_create_plan_under_lock(plan, root, review_dir, injection=injection)
+
+
+def _apply_create_plan_under_lock(
+    plan: dict[str, object],
+    root: Path,
+    review_dir: Path,
+    *,
+    injection: FailureInjection | None = None,
+) -> dict[str, object]:
+    require_repository_apply_lock(root)
     operation_id = uuid.uuid4().hex
-    proposed_transaction_root = root / "TEMP/aeterna_document_workflow/transactions" / operation_id
+    proposed_transaction_root: Path | None = None
 
     def worktree_paths() -> tuple[str, ...]:
         return capture_git_state(root).worktree_entries
@@ -219,17 +234,13 @@ def apply_create_plan(
                 (root / relative).absolute().relative_to(root)
             except ValueError:
                 fail("CREATE_TRANSACTION_PATH_BLOCKED", f"CREATE path escaped repository: {relative}.")
-        transaction_parent = validate_ignored_temp_path(
-            root,
-            root / "TEMP/aeterna_document_workflow/transactions",
-            "TRANSACTION_ROOT_BLOCKED",
-        )
+        transaction_parent = durable_transaction_parent(root)
         proposed_transaction_root = transaction_parent / operation_id
-        if transaction_parent.drive.casefold() != root.drive.casefold():
+        if not _same_volume(root, transaction_parent):
             fail("TRANSACTION_VOLUME_MISMATCH", "Transaction and repository targets must share a volume.")
         transaction_root = proposed_transaction_root
     except WorkflowError as exc:
-        blocked_review(exc, str(proposed_transaction_root))
+        blocked_review(exc, str(proposed_transaction_root) if proposed_transaction_root else "")
         raise
 
     def pre_write_validate() -> None:

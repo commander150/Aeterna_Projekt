@@ -306,7 +306,7 @@ class ApplyTests(unittest.TestCase):
                 def observe_replace(source: object, destination: object) -> None:
                     source_path = Path(source)
                     destination_path = Path(destination)
-                    if source_path.parent.name == "backups":
+                    if source_path.parent.name == "restore":
                         rollback_destinations.append(
                             destination_path.resolve().relative_to(self.fixture.root).as_posix()
                         )
@@ -472,27 +472,16 @@ class ApplyTests(unittest.TestCase):
         plan, plan_path, review_dir = self._materialize(
             markdown("AET-DOC-TARGET", "Target", body="Changed.")
         )
-        real_validate = transaction.validate_ignored_temp_path
+        def reject_transaction_root(root: Path) -> Path:
+            fail("TRANSACTION_ROOT_BLOCKED", "Injected transaction root rejection.")
 
-        def reject_transaction_root(root: Path, path: Path, code: str) -> Path:
-            if code == "TRANSACTION_ROOT_BLOCKED":
-                fail(code, "Injected transaction root rejection.")
-            return real_validate(root, path, code)
-
-        with patch.object(transaction, "validate_ignored_temp_path", side_effect=reject_transaction_root):
+        with patch.object(transaction, "durable_transaction_parent", side_effect=reject_transaction_root):
             with self.assertRaises(WorkflowError) as root_error:
                 apply_plan(plan_path, self.fixture.root, review_dir)
         self.assertEqual("TRANSACTION_ROOT_BLOCKED", root_error.exception.diagnostics[0].code)
         self._assert_blocked_review(review_dir)
 
-        other_drive = "Y:" if self.fixture.root.drive.casefold() != "y:" else "Z:"
-
-        def mismatch_volume(root: Path, path: Path, code: str) -> Path:
-            if code == "TRANSACTION_ROOT_BLOCKED":
-                return Path(other_drive + "/TEMP/aeterna_document_workflow/transactions")
-            return real_validate(root, path, code)
-
-        with patch.object(transaction, "validate_ignored_temp_path", side_effect=mismatch_volume):
+        with patch.object(transaction, "_same_volume", return_value=False):
             with self.assertRaises(WorkflowError) as volume_error:
                 apply_plan(plan_path, self.fixture.root, review_dir)
         self.assertEqual("TRANSACTION_VOLUME_MISMATCH", volume_error.exception.diagnostics[0].code)
