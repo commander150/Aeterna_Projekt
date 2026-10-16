@@ -1,6 +1,6 @@
 import type { ManagedDocument } from "./registry";
 
-export type ManagerAction = "edit" | "compare" | "plan" | "apply" | "refresh";
+export type ManagerAction = "edit" | "compare" | "plan" | "planMinor" | "apply" | "refresh";
 
 export type ManagerPlanState =
   | "PLAN_MISSING" | "CANDIDATE_SAVED" | "PLAN_READY" | "PLAN_READY_MISMATCH" | "PLAN_STALE"
@@ -48,7 +48,7 @@ export function parseManagerMessage(value: unknown): ManagerMessage | undefined 
   if (value.type !== "action" || typeof value.action !== "string") {
     return undefined;
   }
-  const actions: readonly string[] = ["edit", "compare", "plan", "apply", "refresh"];
+  const actions: readonly string[] = ["edit", "compare", "plan", "planMinor", "apply", "refresh"];
   if (!actions.includes(value.action)) {
     return undefined;
   }
@@ -111,7 +111,7 @@ export function renderManagerHtml(nonce: string): string {
 </head>
 <body>
   <h1>AETERNA Document Manager</h1>
-  <p>Choose a managed document. Saving a candidate does not change its canonical document. Apply requires a reviewed plan and separate confirmation; version stays unchanged.</p>
+  <p>Choose a managed document. Saving a candidate does not change its canonical document. Choose a versioned minor update or an unchanged-version git-only update. Apply always requires a reviewed plan and separate confirmation.</p>
   <label for="search">Search by name, title, path or artifact ID</label>
   <input id="search" type="search" autocomplete="off" placeholder="Search managed documents">
   <div class="layout">
@@ -127,7 +127,8 @@ export function renderManagerHtml(nonce: string): string {
       <div class="actions">
         <button class="action" type="button" data-action="edit" disabled>Edit Candidate + Preview</button>
         <button class="action" type="button" data-action="compare" disabled>Compare Candidate</button>
-        <button class="action" type="button" data-action="plan" disabled>Read-only UPDATE Plan</button>
+        <button class="action" type="button" data-action="planMinor" disabled>Versioned UPDATE Plan (minor)</button>
+        <button class="action" type="button" data-action="plan" disabled>Unchanged Version Plan (git-only)</button>
         <button class="action" type="button" data-action="apply" disabled>Apply Prepared UPDATE</button>
         <button class="action" type="button" data-action="refresh">Refresh List</button>
       </div>

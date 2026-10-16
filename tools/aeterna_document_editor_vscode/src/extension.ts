@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 
 import {
   type ManagedDocument,
@@ -19,7 +21,7 @@ import {
   createOrOpenRoutedCandidate,
   loadRoutedCandidate,
 } from "./candidate_routing";
-import { DocumentManager } from "./manager";
+import { DocumentManager, notifyPlanReady } from "./manager";
 import type { ManagerAction, ManagerPlanState } from "./manager_content";
 import {
   ExplicitApplyCoordinator,
@@ -37,6 +39,13 @@ import {
   renderUpdatePreview,
   type UpdatePlanIdentity,
 } from "./update_plan";
+import {
+  CandidateVersionError,
+  candidateVersion,
+  suggestMinorVersion,
+  validateProposedVersion,
+  writeCandidateVersion,
+} from "./version_candidate";
 
 class DocumentTreeItem extends vscode.TreeItem {
   public constructor(public readonly document: ManagedDocument) {
@@ -217,7 +226,7 @@ function reportCandidateError(
   error: unknown,
 ): void {
   const detail = error instanceof Error ? error.message : String(error);
-  const code = error instanceof CandidateSessionError || error instanceof UpdatePreviewError || error instanceof ExplicitApplyError
+  const code = error instanceof CandidateSessionError || error instanceof UpdatePreviewError || error instanceof ExplicitApplyError || error instanceof CandidateVersionError
     ? ` [${error.code}]` : "";
   output.appendLine(`${action} failed${code}: ${detail}`);
   if (error instanceof UpdatePreviewError) {
@@ -234,7 +243,7 @@ function reportCandidateError(
 function applyConfirmationDetail(summary: ApplySummary): string {
   return [
     `Document: ${summary.artifactId} — ${summary.title}`,
-    `Current version: ${summary.version}; mode: body-only / git-only; version will NOT increase.`,
+    `Current version: ${summary.version}; mode: ${summary.versionIntent === "minor" ? "metadata+body / minor" : "body-only / git-only"}; proposed version: ${summary.proposedVersion}.`,
     `HEAD: ${summary.head}`,
     `Canonical baseline SHA-256: ${summary.baselineSha256}`,
     `Candidate SHA-256: ${summary.candidateSha256}`,
@@ -292,6 +301,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         edit: "aeterna.editCandidate",
         compare: "aeterna.compareCandidate",
         plan: "aeterna.prepareUpdatePlan",
+        planMinor: "aeterna.prepareMinorUpdatePlan",
         apply: "aeterna.applyPreparedUpdate",
       }[action];
       const succeeded = await vscode.commands.executeCommand<boolean>(
@@ -320,6 +330,109 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         setPlanState(saved.artifactId, "PLAN_STALE");
         output.appendLine(`UPDATE plan STALE after document edit: ${saved.artifactId}. Prepare a new plan.`);
       }
+    }
+  };
+  const preparePlanForMode = async (
+    item: DocumentTreeItem | undefined,
+    mode: "git-only" | "minor",
+  ): Promise<boolean> => {
+    const document = await chooseDocument(provider, item);
+    if (!document) return false;
+    try {
+      const originalRequest = await prepareCandidateRequest(provider, document, candidateStorageRoot);
+      const { request, session } = await loadRoutedCandidate(originalRequest);
+      if (isCandidateUnsaved(session.candidatePath)) {
+        throw new UpdatePreviewError("CANDIDATE_UNSAVED", "Save every candidate editor before preparing a plan.");
+      }
+      let proposedVersion: string | undefined;
+      if (mode === "minor") {
+        const before = await readFile(session.candidatePath);
+        const existingVersion = candidateVersion(before);
+        const baselineVersion = session.manifest.baseline.version;
+        proposedVersion = await vscode.window.showInputBox({
+          title: "Versioned UPDATE (minor)",
+          prompt: `Current canonical version: ${baselineVersion}. Approve the new candidate version. Only the candidate will be edited.`,
+          value: existingVersion !== baselineVersion ? existingVersion : suggestMinorVersion(baselineVersion) ?? "",
+          validateInput: (value) => {
+            try { validateProposedVersion(baselineVersion, value); return undefined; }
+            catch (error) { return error instanceof Error ? error.message : String(error); }
+          },
+        });
+        if (proposedVersion === undefined) return false;
+        validateProposedVersion(baselineVersion, proposedVersion);
+        const approval = await vscode.window.showWarningMessage(
+          `Approve candidate version ${baselineVersion} -> ${proposedVersion} for ${document.artifact_id}?`,
+          { modal: true, detail: "The version field changes only in the external candidate. The canonical document remains untouched; plan-update is read-only and Apply requires separate approval." },
+          "Approve Candidate Version and Plan",
+        );
+        if (approval !== "Approve Candidate Version and Plan") return false;
+        if (isCandidateUnsaved(session.candidatePath)) {
+          throw new UpdatePreviewError("CANDIDATE_UNSAVED", "Candidate has unsaved edits; version change was cancelled.");
+        }
+        const current = await readFile(session.candidatePath);
+        const currentHash = createHash("sha256").update(current).digest("hex");
+        if (currentHash !== createHash("sha256").update(before).digest("hex")) {
+          throw new CandidateVersionError("CANDIDATE_VERSION_DRIFT", "Candidate changed while version approval was open.");
+        }
+        if (existingVersion !== proposedVersion) {
+          preparedPlans.delete(document.artifact_id);
+          setPlanState(document.artifact_id, "PLAN_STALE");
+          await writeCandidateVersion(session.candidatePath, currentHash, existingVersion, proposedVersion);
+          output.appendLine(`Approved candidate-only version edit: ${existingVersion} -> ${proposedVersion}.`);
+        }
+      } else {
+        const confirmation = await vscode.window.showWarningMessage(
+          "Confirm all candidate edits are saved, including ManulDown. Prepare a read-only UPDATE plan with change_class=body-only and version_intent=git-only? No canonical changes or Apply will occur.",
+          { modal: true },
+          "Prepare body-only / git-only plan",
+        );
+        if (confirmation !== "Prepare body-only / git-only plan") return false;
+      }
+      if (isCandidateUnsaved(session.candidatePath)) {
+        throw new UpdatePreviewError("CANDIDATE_UNSAVED", "Save the candidate before planning.");
+      }
+      const previous = preparedPlans.get(document.artifact_id);
+      if (previous) {
+        const current = await currentUpdateIdentity(request.repositoryRoot, session);
+        if (isUpdatePlanStale(previous.identity, current)) {
+          preparedPlans.delete(document.artifact_id);
+          setPlanState(document.artifact_id, "PLAN_STALE");
+          output.appendLine(`Previous UPDATE plan STALE: ${document.artifact_id}.`);
+        }
+      }
+      const choice = mode === "minor"
+        ? { changeClass: "metadata+body" as const, versionIntent: "minor" as const, proposedVersion: proposedVersion! }
+        : { changeClass: "body-only" as const, versionIntent: "git-only" as const };
+      const preview = await prepareUpdatePreview(request.repositoryRoot, session, choice);
+      const current = await currentUpdateIdentity(request.repositoryRoot, session);
+      if (isCandidateUnsaved(session.candidatePath) || isUpdatePlanStale(preview.identity, current)) {
+        throw new UpdatePreviewError("PLAN_STALE", "Candidate, baseline or HEAD changed after planning; prepare a new plan.");
+      }
+      const materialized = await materializePreparedUpdate(
+        preview, request.repositoryRoot, vscode.Uri.joinPath(context.globalStorageUri, "e2b-plans").fsPath,
+      );
+      preparedPlans.set(document.artifact_id, {
+        request, candidatePath: session.candidatePath, canonicalPath: session.canonicalPath,
+        artifactId: document.artifact_id, identity: preview.identity, materialized,
+      });
+      candidatePaths.set(document.artifact_id, session.candidatePath);
+      const recommendationMismatch = (preview.plan.version as { mismatch?: unknown } | undefined)?.mismatch === true;
+      setPlanState(document.artifact_id, recommendationMismatch ? "PLAN_READY_MISMATCH" : "PLAN_READY");
+      output.appendLine(renderUpdatePreview(preview));
+      output.appendLine(`Immutable production plan stored: ${materialized.planPath} (SHA-256 ${materialized.planSha256}).`);
+      output.show(true);
+      notifyPlanReady(
+        () => vscode.window.showInformationMessage(
+          `Read-only ${mode === "minor" ? "versioned minor" : "git-only"} UPDATE plan ready for ${document.artifact_id}. See AETERNA Documents output for impact, paths and version.`,
+          "Compare Candidate",
+        ),
+        () => vscode.commands.executeCommand("aeterna.compareCandidate", item),
+        (error) => reportCandidateError(output, "Compare Candidate", error),
+      );
+      return true;
+    } catch (error) {
+      reportCandidateError(output, "Prepare UPDATE plan", error);
+      return false;
     }
   };
   context.subscriptions.push(
@@ -542,91 +655,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     vscode.commands.registerCommand(
       "aeterna.prepareUpdatePlan",
-      async (item: DocumentTreeItem | undefined): Promise<boolean> => {
-        const document = await chooseDocument(provider, item);
-        if (!document) {
-          return false;
-        }
-        try {
-          const originalRequest = await prepareCandidateRequest(provider, document, candidateStorageRoot);
-          const { request, session } = await loadRoutedCandidate(originalRequest);
-          const state = candidateDocumentState(
-            session.candidatePath,
-            vscode.workspace.textDocuments.map((open) => ({
-              fsPath: open.uri.fsPath, isDirty: open.isDirty,
-            })),
-          );
-          requireSavedCandidate(state);
-          const confirmation = await vscode.window.showWarningMessage(
-            "Confirm all candidate edits are saved, including ManulDown. Prepare a read-only UPDATE plan with change_class=body-only and version_intent=git-only? No canonical changes or Apply will occur.",
-            { modal: true },
-            "Prepare body-only / git-only plan",
-          );
-          if (confirmation !== "Prepare body-only / git-only plan") {
-            return false;
-          }
-          requireSavedCandidate(candidateDocumentState(
-            session.candidatePath,
-            vscode.workspace.textDocuments.map((open) => ({
-              fsPath: open.uri.fsPath, isDirty: open.isDirty,
-            })),
-          ));
-          const previous = preparedPlans.get(document.artifact_id);
-          if (previous) {
-            const current = await currentUpdateIdentity(request.repositoryRoot, session);
-            if (isUpdatePlanStale(previous.identity, current)) {
-              preparedPlans.delete(document.artifact_id);
-              setPlanState(document.artifact_id, "PLAN_STALE");
-              output.appendLine(`Previous UPDATE plan STALE: ${document.artifact_id}.`);
-            }
-          }
-          const preview = await prepareUpdatePreview(
-            request.repositoryRoot,
-            session,
-            { changeClass: "body-only", versionIntent: "git-only" },
-          );
-          const current = await currentUpdateIdentity(request.repositoryRoot, session);
-          requireSavedCandidate(candidateDocumentState(
-            session.candidatePath,
-            vscode.workspace.textDocuments.map((open) => ({
-              fsPath: open.uri.fsPath, isDirty: open.isDirty,
-            })),
-          ));
-          if (isUpdatePlanStale(preview.identity, current)) {
-            throw new UpdatePreviewError("PLAN_STALE", "Candidate, baseline or HEAD changed after planning; prepare a new plan.");
-          }
-          const materialized = await materializePreparedUpdate(
-            preview,
-            request.repositoryRoot,
-            vscode.Uri.joinPath(context.globalStorageUri, "e2b-plans").fsPath,
-          );
-          preparedPlans.set(document.artifact_id, {
-            request,
-            candidatePath: session.candidatePath,
-            canonicalPath: session.canonicalPath,
-            artifactId: document.artifact_id,
-            identity: preview.identity,
-            materialized,
-          });
-          candidatePaths.set(document.artifact_id, session.candidatePath);
-          const recommendationMismatch = (preview.plan.version as { mismatch?: unknown } | undefined)?.mismatch === true;
-          setPlanState(document.artifact_id, recommendationMismatch ? "PLAN_READY_MISMATCH" : "PLAN_READY");
-          output.appendLine(renderUpdatePreview(preview));
-          output.appendLine(`Immutable production plan stored: ${materialized.planPath} (SHA-256 ${materialized.planSha256}).`);
-          output.show(true);
-          const action = await vscode.window.showInformationMessage(
-            `Read-only UPDATE plan ready for ${document.artifact_id}. See AETERNA Documents output for impact, paths and version recommendation.`,
-            "Compare Candidate",
-          );
-          if (action === "Compare Candidate") {
-            await vscode.commands.executeCommand("aeterna.compareCandidate", item);
-          }
-          return true;
-        } catch (error) {
-          reportCandidateError(output, "Prepare UPDATE plan", error);
-          return false;
-        }
-      },
+      (item: DocumentTreeItem | undefined) => preparePlanForMode(item, "git-only"),
+    ),
+    vscode.commands.registerCommand(
+      "aeterna.prepareMinorUpdatePlan",
+      (item: DocumentTreeItem | undefined) => preparePlanForMode(item, "minor"),
     ),
     vscode.commands.registerCommand(
       "aeterna.applyPreparedUpdate",
@@ -659,7 +692,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
               },
               confirmMismatch: async (summary) => {
                 const choice = await vscode.window.showWarningMessage(
-                  `Version recommendation mismatch for ${summary.artifactId}: planner recommends ${summary.recommendedIntent}, but this plan is git-only and keeps version ${summary.version}. Apply anyway?`,
+          `Version recommendation mismatch for ${summary.artifactId}: planner recommends ${summary.recommendedIntent}, but this plan uses ${summary.versionIntent} and proposes ${summary.proposedVersion}. Apply anyway?`,
                   { modal: true, detail: "This is a separate, explicit approval. Canonical files may change without a version increase. Cancel to leave the repository unchanged." },
                   "Apply Despite Version Mismatch",
                 );

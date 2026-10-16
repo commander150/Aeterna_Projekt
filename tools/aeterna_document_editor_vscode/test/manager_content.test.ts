@@ -53,6 +53,10 @@ test("manager accepts only known actions and well-formed artifact IDs", () => {
     parseManagerMessage({ type: "action", action: "apply", artifactId: "AET-DOC-PROJECT-PLAN" }),
     { type: "action", action: "apply", artifactId: "AET-DOC-PROJECT-PLAN" },
   );
+  assert.deepEqual(
+    parseManagerMessage({ type: "action", action: "planMinor", artifactId: "AET-DOC-PROJECT-PLAN" }),
+    { type: "action", action: "planMinor", artifactId: "AET-DOC-PROJECT-PLAN" },
+  );
   for (const invalid of [
     null,
     { type: "action", action: "create", artifactId: "AET-DOC-PROJECT-PLAN" },
@@ -74,6 +78,8 @@ test("manager HTML uses CSP and text-only DOM rendering for registry values", ()
   assert.match(html, /detail\.textContent = item\.artifactId/);
   assert.doesNotMatch(html, /innerHTML/);
   assert.match(html, /data-action="apply" disabled/);
+  assert.match(html, /data-action="planMinor" disabled/);
+  assert.match(html, /data-action="plan" disabled/);
   assert.match(html, /"PLAN_READY_MISMATCH"/);
   assert.doesNotMatch(html, /AET-DOC-PROJECT-PLAN/);
 });

@@ -4,6 +4,17 @@ import type * as vscode from "vscode";
 import type { ManagedDocument } from "./registry";
 import { filterManagedDocuments, managerPlanStateLabel, parseManagerMessage, renderManagerHtml, type ManagerAction, type ManagerActionResult, type ManagerPlanState } from "./manager_content";
 
+export function notifyPlanReady(
+  show: () => PromiseLike<string | undefined>,
+  compare: () => PromiseLike<unknown>,
+  reportError: (error: unknown) => void,
+): void {
+  void Promise.resolve()
+    .then(show)
+    .then((action) => action === "Compare Candidate" ? compare() : undefined)
+    .catch(reportError);
+}
+
 export class DocumentManager implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
   private query = "";

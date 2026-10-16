@@ -16,6 +16,7 @@
     "onCommand:aeterna.editCandidate",
     "onCommand:aeterna.compareCandidate",
     "onCommand:aeterna.prepareUpdatePlan",
+    "onCommand:aeterna.prepareMinorUpdatePlan",
     "onCommand:aeterna.applyPreparedUpdate"
   ],
   "main": "./out/src/extension.js",
@@ -52,7 +53,11 @@
       },
       {
         "command": "aeterna.prepareUpdatePlan",
-        "title": "AETERNA: Validate / Prepare Update Plan (Read Only)"
+        "title": "AETERNA: Prepare Unchanged-Version UPDATE Plan (Read Only)"
+      },
+      {
+        "command": "aeterna.prepareMinorUpdatePlan",
+        "title": "AETERNA: Prepare Versioned UPDATE Plan (Minor, Read Only)"
       },
       {
         "command": "aeterna.applyPreparedUpdate",

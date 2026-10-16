@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -12,6 +13,7 @@ import {
 } from "../src/apply_update";
 import { prepareUpdatePreview } from "../src/update_plan";
 import type { WorkflowCommandExecution } from "../src/workflow";
+import { writeCandidateVersion } from "../src/version_candidate";
 
 const sourceRoot = path.resolve(__dirname, "../../../..");
 const python = path.join(sourceRoot, ".venv", "Scripts", "python.exe");
@@ -41,7 +43,7 @@ function run(command: string, args: string[], cwd: string): string {
   return result.stdout.trim();
 }
 
-async function fixture(): Promise<{
+async function fixture(mode: "git-only" | "minor" = "git-only"): Promise<{
   readonly root: string;
   readonly canonical: string;
   readonly session: CandidateSession;
@@ -85,7 +87,13 @@ async function fixture(): Promise<{
   };
   const session = await createOrOpenCandidateSession(request);
   await writeFile(session.candidatePath, baseline.replace("Baseline body.", "Candidate body changed."), "utf8");
-  const preview = await prepareUpdatePreview(root, session, { changeClass: "body-only", versionIntent: "git-only" });
+  if (mode === "minor") {
+    const bytes = await readFile(session.candidatePath);
+    await writeCandidateVersion(session.candidatePath, createHash("sha256").update(bytes).digest("hex"), "1.0", "1.1");
+  }
+  const preview = await prepareUpdatePreview(root, session, mode === "minor"
+    ? { changeClass: "metadata+body", versionIntent: "minor", proposedVersion: "1.1" }
+    : { changeClass: "body-only", versionIntent: "git-only" });
   const saved = await materializePreparedUpdate(preview, root, path.join(top, "vscode-storage", "e2b-plans"));
   return { root, canonical, session, request, saved };
 }
@@ -133,6 +141,41 @@ test("immutable reviewed plan executes one real production Apply only in an isol
     coordinator.apply(data.saved, data.request, "Target", "1.0", options()),
     hasCode("APPLY_ALREADY_ATTEMPTED"),
   );
+});
+
+test("versioned minor plan needs confirmation and production review in an isolated repository", async () => {
+  const data = await fixture("minor");
+  const canonicalBefore = await readFile(data.canonical);
+  let mismatchConfirmations = 0;
+  const coordinator = new ExplicitApplyCoordinator();
+  const cancelled = await coordinator.apply(data.saved, data.request, "Target", "1.0", options({
+    confirm: async (summary) => {
+      assert.equal(summary.versionIntent, "minor");
+      assert.equal(summary.version, "1.0");
+      assert.equal(summary.proposedVersion, "1.1");
+      assert.equal(summary.mismatch, false);
+      assert.deepEqual(summary.plannedWrites, [target, "project/generated/artifacts_registry.json", "project/generated/DOCUMENT_INDEX.md"]);
+      return false;
+    },
+  }));
+  assert.equal(cancelled.status, "CANCELLED");
+  assert.deepEqual(await readFile(data.canonical), canonicalBefore);
+  assert.equal(run("git", ["status", "--porcelain"], data.root), "");
+  const outcome = await coordinator.apply(data.saved, data.request, "Target", "1.0", options({
+    confirmMismatch: async () => { mismatchConfirmations += 1; return true; },
+  }));
+  assert.equal(outcome.status, "PASS");
+  assert.equal(mismatchConfirmations, 0);
+  assert.equal(outcome.rollback, "NOT_RUN");
+  assert.deepEqual(await readFile(data.canonical), await readFile(data.session.candidatePath));
+  assert.match((await readFile(data.canonical, "utf8")), /version: "1\.1"/);
+  assert.deepEqual(run("git", ["diff", "--name-only"], data.root).split(/\r?\n/).sort(), [
+    target, "project/generated/artifacts_registry.json", "project/generated/DOCUMENT_INDEX.md",
+  ].sort());
+  const review = JSON.parse(await readFile(outcome.reviewPath!, "utf8")) as Record<string, unknown>;
+  assert.equal(review.final_status, "PASS");
+  assert.equal((review.transaction as Record<string, unknown>).state, "COMMITTED_TO_WORKTREE");
+  assert.equal(run("git", ["diff", "--cached", "--name-only"], data.root), "");
 });
 
 test("Cancel and mismatch rejection never invoke production Apply", async () => {

@@ -2,10 +2,12 @@ import { createHash } from "node:crypto";
 import { lstat, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 
 import type { CandidateSession } from "./candidate";
 import type { CandidateDocumentState } from "./candidate";
 import { runWorkflowCommand, type WorkflowCommandExecution } from "./workflow";
+import { candidateVersion, validateProposedVersion } from "./version_candidate";
 
 const BASELINE_SCHEMA = "aeterna-document-update-baseline/0.1";
 const PLAN_SCHEMA = "aeterna-document-update-plan/0.1";
@@ -45,9 +47,14 @@ export interface UpdateBaseline {
   readonly byte_convention: Record<string, unknown>;
 }
 
-export interface UpdateChoice {
-  readonly changeClass: "body-only";
-  readonly versionIntent: "git-only";
+export type UpdateChoice =
+  | { readonly changeClass: "body-only"; readonly versionIntent: "git-only" }
+  | { readonly changeClass: "metadata+body"; readonly versionIntent: "minor"; readonly proposedVersion: string };
+
+export interface VersionDelta {
+  readonly field: "version";
+  readonly old: string;
+  readonly new: string;
 }
 
 export interface UpdateManifestPayload {
@@ -58,13 +65,13 @@ export interface UpdateManifestPayload {
   readonly expected_path: string;
   readonly baseline_sha256: string;
   readonly metadata_fingerprint: string;
-  readonly change_class: "body-only";
-  readonly version_intent: "git-only";
+  readonly change_class: "body-only" | "metadata+body";
+  readonly version_intent: "git-only" | "minor";
   readonly candidate_path: string;
   readonly candidate_sha256: string;
-  readonly metadata_delta: readonly [];
+  readonly metadata_delta: readonly VersionDelta[];
   readonly reference_changes: readonly [];
-  readonly proposed_version: null;
+  readonly proposed_version: string | null;
 }
 
 export interface UpdatePlanIdentity {
@@ -195,8 +202,9 @@ export function createUpdateManifest(
   candidateSha256: string,
   choice: UpdateChoice,
 ): UpdateManifestPayload {
-  if (choice.changeClass !== "body-only" || choice.versionIntent !== "git-only") {
-    throw new UpdatePreviewError("UNSUPPORTED_CHOICE", "E2A supports only an explicit body-only / git-only UPDATE choice.");
+  if ((choice.changeClass !== "body-only" || choice.versionIntent !== "git-only") &&
+      (choice.changeClass !== "metadata+body" || choice.versionIntent !== "minor")) {
+    throw new UpdatePreviewError("UNSUPPORTED_CHOICE", "Only body-only / git-only or metadata+body / minor UPDATE is supported.");
   }
   if (
     baseline.artifact_id !== session.manifest.artifactId ||
@@ -206,6 +214,9 @@ export function createUpdateManifest(
     baseline.repository_root !== session.manifest.repositoryRoot
   ) {
     throw new UpdatePreviewError("BASELINE_DRIFT", "Current Python workflow baseline does not match the E1 candidate session.");
+  }
+  if (choice.versionIntent === "minor") {
+    validateProposedVersion(String(baseline.metadata.version), choice.proposedVersion);
   }
   return {
     schema_version: MANIFEST_SCHEMA,
@@ -219,9 +230,11 @@ export function createUpdateManifest(
     version_intent: choice.versionIntent,
     candidate_path: session.candidatePath,
     candidate_sha256: candidateSha256,
-    metadata_delta: [],
+    metadata_delta: choice.versionIntent === "minor"
+      ? [{ field: "version", old: String(baseline.metadata.version), new: choice.proposedVersion }]
+      : [],
     reference_changes: [],
-    proposed_version: null,
+    proposed_version: choice.versionIntent === "minor" ? choice.proposedVersion : null,
   };
 }
 
@@ -255,17 +268,25 @@ export function parseUpdatePlanJson(
   const plan = parseJsonObject(output, "plan-update");
   const baseline = plan.baseline;
   const candidate = plan.candidate;
+  const change = plan.change;
+  const version = plan.version;
   if (
     plan.schema_version !== PLAN_SCHEMA ||
     plan.operation !== "update" ||
     plan.artifact_id !== manifest.artifact_id ||
     !isRecord(baseline) ||
     !isRecord(candidate) ||
+    !isRecord(change) ||
+    !isRecord(version) ||
     !SHA256_PATTERN.test(requireString(plan, "plan_semantic_sha256")) ||
     baseline.head !== manifest.expected_head ||
     baseline.sha256 !== manifest.baseline_sha256 ||
     baseline.metadata_fingerprint !== manifest.metadata_fingerprint ||
-    candidate.sha256 !== manifest.candidate_sha256
+    candidate.sha256 !== manifest.candidate_sha256 ||
+    change.class !== manifest.change_class ||
+    version.declared_intent !== manifest.version_intent ||
+    version.proposed_version !== manifest.proposed_version ||
+    !isDeepStrictEqual(plan.metadata_delta, manifest.metadata_delta)
   ) {
     throw new UpdatePreviewError("INVALID_JSON", "plan-update returned a mismatched plan identity.");
   }
@@ -308,6 +329,9 @@ export async function prepareUpdatePreview(
     candidateBytes(session.candidatePath),
   ]);
   const candidateSha256 = sha256(bytes);
+  if (choice.versionIntent === "minor" && candidateVersion(bytes) !== choice.proposedVersion) {
+    throw new UpdatePreviewError("CANDIDATE_VERSION_MISMATCH", "Candidate version must equal the approved proposed version before planning.");
+  }
   const manifest = createUpdateManifest(session, baseline, candidateSha256, choice);
   const operationDirectory = await mkdtemp(path.join(os.tmpdir(), "aeterna-e2a-plan-"));
   try {
@@ -364,7 +388,10 @@ export function renderUpdatePreview(preview: PreparedUpdatePreview): string {
   return [
     "AETERNA read-only UPDATE plan preview",
     `Artifact: ${preview.manifest.artifact_id}`,
-    "Explicit choice: change_class=body-only, version_intent=git-only",
+    `Explicit choice: change_class=${preview.manifest.change_class}, version_intent=${preview.manifest.version_intent}`,
+    `Version change: ${String(version.current_version ?? "unknown")} -> ${String(version.proposed_version ?? version.current_version ?? "unknown")}`,
+    `Metadata delta: ${JSON.stringify(plan.metadata_delta ?? [])}`,
+    `Body changes: ${JSON.stringify(isRecord(plan.change) ? plan.change.body_diff ?? [] : [])}`,
     `HEAD: ${preview.identity.head}`,
     `Baseline SHA-256: ${preview.identity.baselineSha256}`,
     `Candidate SHA-256: ${preview.identity.candidateSha256}`,

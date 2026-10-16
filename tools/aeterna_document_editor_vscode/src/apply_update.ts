@@ -5,6 +5,7 @@ import path from "node:path";
 
 import { isPathWithin, loadCandidateSession, pathsEqual, type CandidateSessionRequest } from "./candidate";
 import { inspectUpdateBaseline, parseUpdatePlanJson, type PreparedUpdatePreview } from "./update_plan";
+import { candidateVersion } from "./version_candidate";
 import { runWorkflowCommand, type WorkflowCommandExecution } from "./workflow";
 
 export class ExplicitApplyError extends Error {
@@ -25,6 +26,8 @@ export interface ApplySummary {
   readonly artifactId: string;
   readonly title: string;
   readonly version: string;
+  readonly versionIntent: "git-only" | "minor";
+  readonly proposedVersion: string;
   readonly head: string;
   readonly baselineSha256: string;
   readonly candidateSha256: string;
@@ -84,6 +87,8 @@ export function summarizePreparedUpdate(materialized: MaterializedUpdatePlan, ti
     artifactId: preview.manifest.artifact_id,
     title,
     version,
+    versionIntent: preview.manifest.version_intent,
+    proposedVersion: preview.manifest.proposed_version ?? version,
     head: preview.identity.head,
     baselineSha256: preview.identity.baselineSha256,
     candidateSha256: preview.identity.candidateSha256,
@@ -150,12 +155,17 @@ async function validatePreparedState(
   } catch {
     throw new ExplicitApplyError("PLAN_INVALID", "Prepared plan file is malformed; prepare a new plan.");
   }
-  if (!isDeepStrictEqual(parsed, saved.preview.plan) ||
-      object(parsed.change).class !== "body-only" ||
-      object(parsed.version).declared_intent !== "git-only" ||
-      saved.preview.manifest.metadata_delta.length !== 0 ||
+  const manifest = saved.preview.manifest;
+  const expectedMode = manifest.change_class === "body-only" && manifest.version_intent === "git-only"
+    ? manifest.metadata_delta.length === 0 && manifest.proposed_version === null
+    : manifest.change_class === "metadata+body" && manifest.version_intent === "minor"
+      && manifest.metadata_delta.length === 1
+      && manifest.metadata_delta[0]?.field === "version"
+      && manifest.metadata_delta[0]?.old === request.artifact.version
+      && manifest.metadata_delta[0]?.new === manifest.proposed_version;
+  if (!expectedMode || !isDeepStrictEqual(parsed, saved.preview.plan) ||
       !plannedPaths(parsed).includes(request.artifact.canonicalPath)) {
-    throw new ExplicitApplyError("PLAN_INVALID", "Prepared plan no longer matches the approved body-only/git-only operation.");
+    throw new ExplicitApplyError("PLAN_INVALID", "Prepared plan no longer matches the approved UPDATE operation.");
   }
   const session = await loadCandidateSession(request);
   if (!pathsEqual(session.candidatePath, String(object(parsed.candidate).resolved_path)) ||
@@ -163,9 +173,13 @@ async function validatePreparedState(
     throw new ExplicitApplyError("CANDIDATE_MISMATCH", "Candidate session differs from the prepared plan.");
   }
   const candidateInfo = await lstat(session.candidatePath);
+  const candidateBytes = await readFile(session.candidatePath);
   if (!candidateInfo.isFile() || candidateInfo.isSymbolicLink() ||
-      sha256(await readFile(session.candidatePath)) !== saved.preview.identity.candidateSha256) {
+      sha256(candidateBytes) !== saved.preview.identity.candidateSha256) {
     throw new ExplicitApplyError("PLAN_STALE", "Candidate changed after planning; prepare a new plan.");
+  }
+  if (manifest.version_intent === "minor" && candidateVersion(candidateBytes) !== manifest.proposed_version) {
+    throw new ExplicitApplyError("PLAN_STALE", "Candidate version no longer matches the approved minor plan.");
   }
   const { baseline } = await inspectUpdateBaseline(realRoot, session.manifest.artifactId);
   const identity = saved.preview.identity;

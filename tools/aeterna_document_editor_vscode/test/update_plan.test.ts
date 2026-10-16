@@ -20,6 +20,7 @@ import {
   requireSavedCandidate,
 } from "../src/update_plan";
 import { runWorkflowCommand } from "../src/workflow";
+import { writeCandidateVersion } from "../src/version_candidate";
 
 const sourceRoot = path.resolve(__dirname, "../../../..");
 const python = path.join(sourceRoot, ".venv", "Scripts", "python.exe");
@@ -149,6 +150,43 @@ test("production body-only/git-only plan is deterministic, read-only and shows r
   assert.deepEqual(await readFile(data.canonical), canonicalBefore);
   assert.deepEqual(await readFile(path.join(data.root, "project/generated/artifacts_registry.json")), generatedBefore);
   assert.equal(run("git", ["status", "--porcelain"], data.root), "");
+});
+
+test("production minor plan binds candidate version, metadata delta and body change without canonical writes", async () => {
+  const data = await fixture();
+  await bodyChanged(data.candidate);
+  const before = await readFile(data.candidate);
+  const canonicalBefore = await readFile(data.canonical);
+  await writeCandidateVersion(data.candidate, digest(before), "1.0", "1.1");
+  assert.deepEqual(await readFile(data.canonical), canonicalBefore);
+  const choice = { changeClass: "metadata+body" as const, versionIntent: "minor" as const, proposedVersion: "1.1" };
+  const preview = await prepareUpdatePreview(data.root, data.session, choice);
+  assert.equal(preview.manifest.change_class, "metadata+body");
+  assert.equal(preview.manifest.version_intent, "minor");
+  assert.equal(preview.manifest.proposed_version, "1.1");
+  assert.deepEqual(preview.manifest.metadata_delta, [{ field: "version", old: "1.0", new: "1.1" }]);
+  assert.equal((preview.plan.version as Record<string, unknown>).mismatch, false);
+  assert.deepEqual(preview.plan.metadata_delta, preview.manifest.metadata_delta);
+  assert.deepEqual((preview.plan.expected_changes as { path: string }[]).map((item) => item.path), [
+    targetRelative, "project/generated/artifacts_registry.json", "project/generated/DOCUMENT_INDEX.md",
+  ]);
+  assert.match(renderUpdatePreview(preview), /Version change: 1\.0 -> 1\.1/);
+  assert.match(renderUpdatePreview(preview), /Body changes:/);
+  const second = await prepareUpdatePreview(data.root, data.session, choice);
+  assert.equal(second.plan.plan_semantic_sha256, preview.plan.plan_semantic_sha256);
+  assert.deepEqual(await readFile(data.canonical), canonicalBefore);
+  assert.equal(run("git", ["status", "--porcelain"], data.root), "");
+});
+
+test("minor plan rejects mismatched candidate version and protected metadata", async () => {
+  const data = await fixture();
+  await bodyChanged(data.candidate);
+  const choice = { changeClass: "metadata+body" as const, versionIntent: "minor" as const, proposedVersion: "1.1" };
+  await assert.rejects(prepareUpdatePreview(data.root, data.session, choice), hasCode("CANDIDATE_VERSION_MISMATCH"));
+  await writeFile(data.candidate, baselineMarkdown.replace('version: "1.0"', 'version: "1.1"')
+    .replace("authority: project-direction", "authority: technical-contract")
+    .replace("Baseline body.", "Changed."), "utf8");
+  await assert.rejects(prepareUpdatePreview(data.root, data.session, choice), hasCode("PROTECTED_FIELD_CHANGE"));
 });
 
 test("unchanged candidate and unsupported choice are rejected", async () => {
