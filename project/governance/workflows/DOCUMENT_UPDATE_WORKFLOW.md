@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-DOCUMENT-UPDATE-WORKFLOW
 kind: document
 type: workflow
-version: "1.0"
+version: "2.0"
 lifecycle: active
 integration: current
 authority: operational-workflow
@@ -44,20 +44,26 @@ UPDATE_IMPLEMENTATION_STATUS = IMPLEMENTED_AND_ACCEPTED
 UPDATE_PLAN_SCHEMA = aeterna-document-update-plan/0.1
 UPDATE_REVIEW_SCHEMA = aeterna-document-update-review/0.1
 
-CREATE_CONTRACT_STATUS = APPROVED_FOR_IMPLEMENTATION
-CREATE_IMPLEMENTATION_STATUS = NOT_YET_IMPLEMENTED
-CREATE_ACCEPTANCE_STATUS = NOT_YET_COMPLETE
+CREATE_CONTRACT_STATUS = CURRENT
+CREATE_IMPLEMENTATION_STATUS = IMPLEMENTED_AND_ACCEPTED
+CREATE_ACCEPTANCE_STATUS = FIRST_REAL_GOVERNED_CREATE_COMPLETE_AND_REMOTE_VERIFIED
 CREATE_MANIFEST_SCHEMA = aeterna-document-create-manifest/0.1
 CREATE_PLAN_SCHEMA = aeterna-document-create-plan/0.1
 CREATE_REVIEW_SCHEMA = aeterna-document-create-review/0.1
 
+DOCUMENT_MANAGER_CREATE_CANDIDATE_AND_PLAN = IMPLEMENTED
+DOCUMENT_MANAGER_CREATE_APPLY = NOT_YET_IMPLEMENTED
+DOCUMENT_MANAGER_CREATE_APPLY_ACCEPTANCE = NOT_YET_COMPLETE
+
 UPDATE_0_1_BACKWARD_COMPATIBLE = YES
 ```
 
-Az `integration: current` az implementált és elfogadott UPDATE műveletre
-vonatkozik. A CREATE normatív contractja implementációra jóváhagyott, de a
-CREATE implementáció még nem létezik, acceptance-e nem teljes, ezért a CREATE
-még nem használható repository-műveletként.
+Az `integration: current` az implementált és elfogadott UPDATE és production
+CREATE backend-műveletre vonatkozik. A PILOT-8E első valódi governed CREATE
+acceptance-e remote verified. A Document Manager grafikus CREATE candidate-et
+és read-only `plan-create` tervet készít, de grafikus CREATE Apply nincs
+implementálva, ezért annak éles grafikus acceptance-e sem teljes. A backend
+acceptance nem helyettesíti a grafikus CREATE Apply acceptance-et.
 
 ## Normatív operation-scope boundary
 
@@ -106,14 +112,14 @@ meglévő
 
 Az MVP-n kívül marad:
 
-- az UPDATE műveleten belüli új artifact létrehozása; a külön CREATE contract implementációra jóváhagyott, de még nincs implementálva vagy elfogadva;
+- az UPDATE műveleten belüli új artifact létrehozása; a külön CREATE művelet a 28–47. szakasz szerint implementált és elfogadott;
 - retirement vagy Archive-intake;
 - move és rename;
 - authority-váltás;
 - batch editing;
 - XLSX, DOCX, source bundle és package manifest szerkesztés;
 - exact patch vagy unified diff bemenet;
-- external-editor handoff;
+- external-editor handoff a production UPDATE backend önálló műveleteként (a Document Manager VS Code candidate-szerkesztése külön GUI-réteg);
 - Git staging, commit és push.
 
 ## 3. Fogalmak
@@ -258,9 +264,14 @@ referenciákat. Nem jogosít repository-wide automatikus átírásra.
 ### 8.5 `semantic-governance-change`
 
 Felismert magas kockázatú osztály authority-, contract- vagy alapértelmezésbeli
-jelentés változására. Az MVP ezt nem hagyhatja jóvá hallgatólagosan. Ha egy
-candidate tartalma ilyen változásra utal, a plan ezt jelzi, és a szokásos update
-apply blokkol, amíg külön, explicit governance scope és review nincs.
+jelentés változására. Az MVP ezt nem hagyhatja jóvá hallgatólagosan.
+A `semantic-governance-change` besorolást az UPDATE manifest explicit módon
+deklarálja. A production terv ezt rögzíti, és a javasolt verziószándékot
+a deklarált osztály alapján számítja. A normál `apply` blokkolja a magas
+kockázatú governance UPDATE végrehajtását. A külön `apply-governance` vagy
+`apply-governance-gui` belépési pont az immutable tervhez kötött, interaktív,
+egyszer használható jóváhagyás és a production ellenőrzések után alkalmazhatja
+a változtatást; a review és a rollback védelme megmarad.
 
 ## 9. Védett metadata és explicit delták
 
@@ -393,13 +404,13 @@ Azonos inputból azonos semantic plan keletkezik.
 
 ## 16. Apply
 
-Csak az alábbi forma mutálhat repository-t:
+Repositoryt kizárólag a production Apply belépési pontok mutálhatnak:
+normál UPDATE és CREATE esetén `apply PLAN.json`, magas kockázatú
+`semantic-governance-change` UPDATE esetén külön interaktív
+`apply-governance PLAN.json` vagy `apply-governance-gui PLAN.json`.
+A normál `apply` governance-változásra továbbra is blokkol.
 
-```text
-apply PLAN.json
-```
-
-Az apply:
+Az UPDATE Apply:
 
 1. betölti és validálja az immutable plant;
 2. újra feloldja az artifactot;
@@ -417,7 +428,7 @@ Az apply:
 Normatív MVP:
 
 ```text
-same-volume ignored operation directory
+same-volume, repositoryhoz kötött tartós `.git` tranzakciós terület
 → minden intended byte előállítása
 → teljes overlay validáció
 → transaction journal
@@ -425,6 +436,10 @@ same-volume ignored operation directory
 → atomic replacement
 → post-write validáció
 ```
+
+A production review-evidence jelenleg a repository Git-ignored `TEMP/`
+könyvtárába kerül; ez a GITHUB_WORKFLOW 2.0 dokumentált átmeneti technikai
+kivétele, nem a tranzakciós/recovery-adatok tárolója.
 
 Bármely írás utáni hiba esetén a workflow:
 
@@ -562,34 +577,27 @@ MVP nem vezet be.
 
 ## 24. MVP CLI-felület
 
-MVP surface:
+Current production CLI surface:
 
 ```text
 resolve
 impact
+inspect-update-baseline
 plan-update
-apply
-verify-review
-```
-
-Read-only: `resolve`, `impact`, `plan-update`, `verify-review`.
-
-Mutating: kizárólag `apply`.
-
-A CREATE implementáció és acceptance után jóváhagyott additív target surface:
-
-```text
-resolve
-impact
-plan-update
+inspect-create-baseline
 plan-create
 apply
+apply-governance
+apply-governance-gui
 verify-review
 ```
 
-A `plan-create` jelenleg még nem implementált. Nincs `resolve-create` vagy
-`impact-create`. A `plan-retire`, `plan-move` és `authority-change` továbbra sem
-jóváhagyott művelet.
+Read-only: `resolve`, `impact`, `inspect-update-baseline`,
+`plan-update`, `inspect-create-baseline`, `plan-create`, `verify-review`.
+Mutating: `apply`, `apply-governance`, `apply-governance-gui` csak a saját
+operation- és jóváhagyási contractjuk szerint. Nincs `resolve-create` vagy
+`impact-create`. A `plan-retire`, `plan-move` és `authority-change` továbbra
+sem jóváhagyott művelet.
 
 ## 25. Adapter boundary
 
@@ -630,7 +638,12 @@ controlled real repository acceptance `COMPLETE_AND_REMOTE_VERIFIED`.
 A `tools/aeterna_document_workflow` implementált és elfogadott a current,
 existing-managed-Markdown update MVP számára; az `integration` értéke `current`.
 
-A current, implementált MVP-n kívül marad a CREATE implementáció és acceptance; a CREATE contractja az alábbi additív fejezetekben jóváhagyott. Továbbra is kívül marad: retirement vagy Archive-intake; move/rename; authority change; batch editing; XLSX; DOCX; source bundle; package manifest.
+A külön CREATE backend implementációja és első valódi governed CREATE
+acceptance-e remote verified; contractját az alábbi additív fejezetek rögzítik.
+A Document Manager CREATE candidate és read-only plan felülete implementált,
+grafikus CREATE Apply és annak éles acceptance-e még nincs. Továbbra is kívül
+marad: retirement vagy Archive-intake; move/rename; authority change; batch
+editing; XLSX; DOCX; source bundle; package manifest.
 
 ## 28. CREATE MVP normatív scope
 
@@ -717,15 +730,25 @@ Blokkoló:
 
 ## 31. CREATE candidate és metadata contract
 
-A candidate teljes Markdown fájl, kizárólag a repository ignorált `TEMP/`
-könyvtára alatt. Külső candidate CREATE v0.1-ben nem fogadható el. A candidate
-TEMP pathja input/evidence; soha nem válik canonical artifact pathtá.
+A candidate teljes Markdown fájl. A Document Manager a repository
+szülőkönyvtárából levezetett `AETERNA_LOCAL/document_editor/create` gyökér alatt
+tárolja a CREATE candidate-et és a hozzá tartozó sessionadatokat. A production
+`plan-create` ezt kizárólag explicit `--external-candidate-root` megadásával,
+az engedélyezett gyökér pontos egyezése és a path/symlink/reparse ellenőrzések
+mellett fogadja el. A manifesthez viszonyított candidate path nem léphet ki
+az engedélyezett tárolási gyökérből.
+
+A backend explicit külső gyökér nélkül továbbra is elfogad repositorybeli,
+Git-ignored és untracked `TEMP/` alatti CREATE candidate-et a meglévő
+útvonalvédelmekkel. Ez kompatibilitási út, nem a Document Manager elsődleges
+tárolása, és nem enged tetszőleges külső könyvtárat. A candidate tárolási pathja
+input/evidence; soha nem válik canonical artifact pathtá.
 
 A plan külön rögzíti:
 
 ```text
 candidate bytes
-+ candidate TEMP path
++ candidate storage path
 + declared repository target path
 ```
 
@@ -923,21 +946,19 @@ A review schema nem helyettesíti és nem módosítja az UPDATE review 0.1 sém�
 
 ## 39. Apply architektúra és dispatch
 
-Az egyetlen mutating entry point megmarad:
+A normál production `apply PLAN.json` a materializált plan schema alapján
+dispatch-el:
 
 ```text
-apply PLAN.json
+aeterna-document-update-plan/0.1 -> UPDATE behavior
+aeterna-document-create-plan/0.1 -> CREATE behavior
 ```
 
-Future schema dispatch:
-
-```text
-aeterna-document-update-plan/0.1 -> existing UPDATE behavior unchanged
-aeterna-document-create-plan/0.1 -> CREATE behavior after PILOT-8D acceptance
-```
-
-Ismeretlen schema vagy operation blokkoló. A CREATE contract jóváhagyása nem
-kapcsolja be a CREATE apply ágat.
+Ismeretlen schema vagy operation blokkoló. A `semantic-governance-change`
+UPDATE a normál `apply` belépési ponton blokkol; csak a külön interaktív
+`apply-governance` vagy `apply-governance-gui` út alkalmazhatja. A CREATE és
+UPDATE ugyanazt a repositoryszintű Apply-zárat és tartós recovery-védelmet
+használja.
 
 ## 40. CREATE immediate pre-write recomputation
 
@@ -978,9 +999,9 @@ whitespace ellenőrzése közvetlenül is kötelező.
 
 ## 42. CREATE transaction és rollback
 
-A current transaction model kis generalizálással újrahasználandó. Az új target
-nem rendelkezik original backuppal. Minden már létező generated/touched fájl
-byte-backupot kap.
+A CREATE a közös repositoryszintű Apply-zárat és a tartós `.git`
+tranzakciós/recovery-területet használja. Az új target nem rendelkezik original
+backuppal. Minden már létező generated/touched fájl byte-backupot kap.
 
 Write utáni hiba esetén:
 
@@ -990,13 +1011,13 @@ Write utáni hiba esetén:
 - a targetnek ismét hiányoznia kell;
 - a failed transaction evidence megőrzendő.
 
-Soha nem törölhető olyan path, amely a tranzakció előtt létezett. CREATE nem
-tekinthető implementáltnak a new-path rollback acceptance tesztek teljes PASS-a
-előtt.
+Soha nem törölhető olyan path, amely a tranzakció előtt létezett. A new-path
+rollback tesztek és az első valódi CREATE acceptance teljesültek; ezek a
+garanciák a production CREATE működés részei.
 
 ## 43. Kötelező failure injection acceptance
 
-A PILOT-8D legalább az alábbi hibapontokat teszteli:
+A PILOT-8D regressziós tesztjei az alábbi hibapontokat fedik le:
 
 - failure after new document write;
 - failure after registry write;
@@ -1009,53 +1030,49 @@ az üres staginget és a baseline Git-állapot helyreállítását.
 
 ## 44. CLI contract
 
-Current accepted surface:
+Current accepted production surface:
 
 ```text
 resolve
 impact
+inspect-update-baseline
 plan-update
-apply
-verify-review
-```
-
-Approved target surface implementáció után:
-
-```text
-resolve
-impact
-plan-update
+inspect-create-baseline
 plan-create
 apply
+apply-governance
+apply-governance-gui
 verify-review
 ```
 
 A `plan-create` tartalmazza a CREATE identity, validation és impact outputot.
-Nincs `resolve-create` és nincs `impact-create`. Csak az `apply` mutálhat.
+Nincs `resolve-create` és nincs `impact-create`. A read-only parancsok nem
+mutálnak; az `apply` a normál UPDATE/CREATE tervet, a két governance Apply
+belépési pont csak külön interaktív jóváhagyással a magas kockázatú UPDATE-et
+alkalmazhatja.
 
 ## 45. Első valós CREATE acceptance
 
-Az elfogadott első valós target:
+Az elfogadott első valós target az AETERNA Document Editor v0.1 specification.
 
-```text
-AETERNA Document Editor v0.1 specification
-```
-
-Nem jön létre PILOT-8B, PILOT-8C vagy PILOT-8D alatt. A pontos body és metadata
-PILOT-8E emberi review input. Az authority értéket PILOT-8E-ben explicit emberi
-döntéssel kell megerősíteni.
+A dokumentum PILOT-8E alatt, emberileg áttekintett candidate-ből, production
+governed CREATE Apply útján létrejött a
+`project/requirements/DOCUMENT_EDITOR_SPECIFICATION.md` útvonalon. Az első
+valódi CREATE acceptance remote verified; commit:
+`4647d263e2ae23019723e8db8a0cebd92a065457`.
 
 ## 46. Implementációs fázisok
 
 ```text
 PILOT-8A = CREATE design audit / COMPLETE
-PILOT-8B = CREATE governance contract / CURRENT PHASE
-PILOT-8C = read-only plan-create implementation + tests / PLANNED
-PILOT-8D = transactional CREATE apply + rollback/review + tests / PLANNED
-PILOT-8E = first real governed CREATE acceptance / PLANNED
+PILOT-8B = CREATE governance contract / COMPLETE_AND_REMOTE_VERIFIED
+PILOT-8C = read-only plan-create implementation + tests / COMPLETE_AND_REMOTE_VERIFIED
+PILOT-8D = transactional CREATE apply + rollback/review + tests / COMPLETE_AND_REMOTE_VERIFIED
+PILOT-8E = first real governed CREATE acceptance / COMPLETE_AND_REMOTE_VERIFIED
 ```
 
-PILOT-8B csak a contract adoption commit és remote verification után COMPLETE.
+A Document Manager CREATE candidate és read-only plan felülete implementált.
+A grafikus CREATE Apply még nem implementált; annak éles acceptance-e nyitott.
 
 ## 47. Továbbra is out of scope
 
