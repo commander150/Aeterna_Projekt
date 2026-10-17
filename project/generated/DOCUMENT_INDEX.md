@@ -20,7 +20,7 @@
 | AET-DOC-DOCUMENT-GOVERNANCE | AETERNA dokumentum- és artifact-governance | governance | 0.2 | active | current | document-governance | `project/governance/DOCUMENT_GOVERNANCE.md` |
 | AET-DOC-DOCUMENT-UPDATE-WORKFLOW | AETERNA governed dokumentumműveleti workflow | workflow | 1.0 | active | current | operational-workflow | `project/governance/workflows/DOCUMENT_UPDATE_WORKFLOW.md` |
 | AET-DOC-ENGINE-CHECKPOINT | AETERNA Game Engine – Engine Checkpoint | checkpoint | 2.0 | active | current | technical-status | `project/status/checkpoints/ENGINE_CHECKPOINT.md` |
-| AET-DOC-GITHUB-WORKFLOW | AETERNA GitHub workflow | workflow | 1.1 | active | current | operational-workflow | `project/governance/workflows/GITHUB_WORKFLOW.md` |
+| AET-DOC-GITHUB-WORKFLOW | AETERNA GitHub workflow | workflow | 2.0 | active | current | operational-workflow | `project/governance/workflows/GITHUB_WORKFLOW.md` |
 | AET-DOC-IDEA-BACKLOG-OPEN-DESIGNS | AETERNA – ÖTLETLÁDA ÉS NYITOTT TERVEK | reference | 1.1 | active | current | reference | `design/concepts/IDEA_BACKLOG_OPEN_DESIGNS.md` |
 | AET-DOC-OPEN-QUESTIONS | AETERNA Game Engine – Open Questions | open-questions | 2.3 | active | current | project-direction | `project/planning/OPEN_QUESTIONS.md` |
 | AET-DOC-OPEN-QUESTIONS-DECISIONS | AETERNA Game Engine – Open Questions Decisions | decision-log | 2.4 | active | current | project-direction | `project/decisions/OPEN_QUESTIONS_DECISIONS.md` |

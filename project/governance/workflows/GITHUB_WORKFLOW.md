@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-GITHUB-WORKFLOW
 kind: document
 type: workflow
-version: "1.1"
+version: "2.0"
 lifecycle: active
 integration: current
 authority: operational-workflow
@@ -75,9 +75,25 @@ A source-integrity gate PASS feltétele:
 
 Hiba esetén a review artifactnak meg kell őriznie a bizonyítékot; a hibát külön engedély nélkül nem szabad a scope kiterjesztésével javítani.
 
-## 6. TEMP evidence és review bundle
+## 6. Külső helyi adatok és review bundle
 
-Az átmeneti fixture, parancskimenet, hashlista és review bundle a Git által ignorált `TEMP/` alatt készül. Ezek review-bizonyítékok, nem current authority-k és nem kerülnek a commitba.
+Az `Aeterna_Projekt` az AETERNA egyetlen hivatalos fejlesztési repositoryja.
+A repositoryn kívül tárolandó AETERNA-specifikus helyi projektadatok helye az
+`AETERNA_LOCAL`: a tényleges repository-gyökér szülőkönyvtárában lévő
+`Aeterna_Local`. Ez a szabály nem kötődik gépspecifikus abszolút útvonalhoz.
+
+Ide tartozhatnak a külső candidate-ek, tesztállományok, review-bizonyítékok,
+mentések és ideiglenes munkafájlok. Ezek nem canonical repository-források, és
+nem kerülnek a commitba. A hozzájuk tartozó workflow-k meglévő útvonal- és
+integritásellenőrzései továbbra is érvényesek.
+
+A Git-adminisztrációs adatok, valamint a meglévő `.git` alatti Apply-zár és
+tranzakciós/recovery-adatok technikai kivételek; ezeket ez a tárolási szabály nem
+helyezi át. A production governed Apply jelenleg a review-evidence-et még a
+repository ignorált `TEMP/` könyvtárához köti. Ez dokumentált, átmeneti
+technikai kivétel a későbbi célzott workflow-átállításig.
+
+A Document Manager meglévő E1/E2 UPDATE candidate-kezelése átmenetileg a VS Code `globalStorage` területét használja. Ez a jelenlegi implementációhoz kötött technikai kivétel. A későbbi, adatvesztés nélküli migráció után az UPDATE candidate-ek tárolása is az `AETERNA_LOCAL` alatt történik.
 
 A review bundle legalább a következőket tegye ellenőrizhetővé:
 
