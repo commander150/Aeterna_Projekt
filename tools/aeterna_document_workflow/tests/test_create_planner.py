@@ -7,6 +7,8 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
+import shutil
+import os
 
 from tools.aeterna_document_workflow.content import inspect_markdown
 from tools.aeterna_document_workflow.create_planner import (
@@ -129,6 +131,75 @@ class CreatePlannerTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertEqual("create", json.loads(result.stdout)["operation"])
         self.assertEqual(before, self.fixture.tracked_bytes())
+
+    def test_explicit_external_candidate_root_is_read_only_and_default_remains_closed(self) -> None:
+        external = self.fixture.root.parent / "Aeterna_Local" / "document_editor" / "create"
+        session = external / self.fixture.root.name
+        session.mkdir(parents=True)
+        try:
+            candidate = session / "create.md"
+            candidate.write_bytes(markdown("AET-DOC-NEW", "New Document", version="0.1"))
+            manifest = self.fixture.create_manifest(candidate)
+            with self.assertRaises(WorkflowError) as caught:
+                build_create_plan(self.fixture.root, manifest)
+            self.assertEqual("CREATE_CANDIDATE_PATH_BLOCKED", caught.exception.diagnostics[0].code)
+            before = self.fixture.tracked_bytes()
+            first = build_create_plan(self.fixture.root, manifest, external)
+            second = build_create_plan(self.fixture.root, manifest, external)
+            self.assertEqual(first, second)
+            self.assertEqual("create", first["operation"])
+            self.assertEqual(before, self.fixture.tracked_bytes())
+            self.assertEqual("", self.fixture.git("status", "--short"))
+            with self.assertRaises(WorkflowError) as wrong_root:
+                build_create_plan(self.fixture.root, manifest, external / "other")
+            self.assertEqual("CREATE_CANDIDATE_PATH_BLOCKED", wrong_root.exception.diagnostics[0].code)
+            with self.assertRaises(WorkflowError) as traversal_root:
+                build_create_plan(self.fixture.root, manifest, external / ".." / "create")
+            self.assertEqual("CREATE_CANDIDATE_PATH_BLOCKED", traversal_root.exception.diagnostics[0].code)
+            other = self.fixture.root.parent / f"other_{self.fixture.root.name}"
+            other_session = other / "session"
+            other_session.mkdir(parents=True)
+            try:
+                other_candidate = other_session / "create.md"
+                other_candidate.write_bytes(candidate.read_bytes())
+                other_manifest = self.fixture.create_manifest(other_candidate)
+                with self.assertRaises(WorkflowError) as unauthorized:
+                    build_create_plan(self.fixture.root, other_manifest, other)
+                self.assertEqual("CREATE_CANDIDATE_PATH_BLOCKED", unauthorized.exception.diagnostics[0].code)
+            finally:
+                shutil.rmtree(other)
+        finally:
+            shutil.rmtree(session)
+
+    def test_create_baseline_cli_exposes_validation_schema_values(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "tools.aeterna_document_workflow.cli", "inspect-create-baseline", "--repo", str(self.fixture.root)],
+            cwd=Path(__file__).resolve().parents[3], check=False, capture_output=True, text=True, encoding="utf-8",
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual("aeterna-document-create-baseline/0.1", payload["schema_version"])
+        self.assertIn("specification", payload["controlled_values"]["type"])
+        self.assertIn("technical-contract", payload["controlled_values"]["authority"])
+        self.assertEqual(["current", "pending_integration"], payload["create_contract"]["integration"])
+        self.assertTrue(payload["worktree_clean"])
+
+    def test_external_candidate_hard_link_to_canonical_is_blocked(self) -> None:
+        external = self.fixture.root.parent / "Aeterna_Local" / "document_editor" / "create"
+        session = external / self.fixture.root.name
+        session.mkdir(parents=True)
+        try:
+            candidate = session / "create.md"
+            try:
+                os.link(self.fixture.target, candidate)
+            except OSError as exc:
+                self.skipTest(f"Hard links unavailable: {exc}")
+            manifest = self.fixture.create_manifest(candidate)
+            with self.assertRaises(WorkflowError) as caught:
+                build_create_plan(self.fixture.root, manifest, external)
+            self.assertEqual("CREATE_CANDIDATE_PATH_BLOCKED", caught.exception.diagnostics[0].code)
+        finally:
+            shutil.rmtree(session)
 
     def test_manifest_schema_exact_fields_and_derived_overrides_block(self) -> None:
         _, manifest = self._valid()

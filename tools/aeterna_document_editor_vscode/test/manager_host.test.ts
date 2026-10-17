@@ -86,10 +86,16 @@ test("manager opens one separate panel and routes only current selected document
   await new Promise<void>((resolve) => setImmediate(resolve));
   assert.deepEqual(actions, ["edit:AET-DOC-PROJECT-PLAN", "planMinor:AET-DOC-PROJECT-PLAN"]);
 
+  receiver?.({ type: "action", action: "newDocument" });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  receiver?.({ type: "action", action: "planCreate" });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.deepEqual(actions, ["edit:AET-DOC-PROJECT-PLAN", "planMinor:AET-DOC-PROJECT-PLAN", "newDocument:", "planCreate:"]);
+
   receiver?.({ type: "action", action: "apply", artifactId: "AET-DOC-PROJECT-PLAN" });
   receiver?.({ type: "action", action: "compare", artifactId: "AET-DOC-NOT-LISTED" });
   await new Promise<void>((resolve) => setImmediate(resolve));
-  assert.deepEqual(actions, ["edit:AET-DOC-PROJECT-PLAN", "planMinor:AET-DOC-PROJECT-PLAN"]);
+  assert.deepEqual(actions, ["edit:AET-DOC-PROJECT-PLAN", "planMinor:AET-DOC-PROJECT-PLAN", "newDocument:", "planCreate:"]);
   manager.dispose();
 });
 

@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 import json
+import copy
+import io
 from pathlib import Path
 import unittest
+import uuid
 from unittest.mock import patch
 
 from tools.aeterna_artifacts.scanner import scan_repository
 from tools.aeterna_document_workflow import transaction
 from tools.aeterna_document_workflow.content import inspect_markdown
 from tools.aeterna_document_workflow.git_state import capture_git_state
+from tools.aeterna_document_workflow.governance_approval import (
+    GovernanceApproval,
+    approval_binding,
+)
 from tools.aeterna_document_workflow.model import PreparedUpdate, WorkflowError, fail
 from tools.aeterna_document_workflow.planner import build_update_plan
 from tools.aeterna_document_workflow.review import (
@@ -17,7 +24,9 @@ from tools.aeterna_document_workflow.review import (
     review_semantic_digest,
     verify_review_file,
 )
-from tools.aeterna_document_workflow.transaction import FailureInjection, apply_plan
+from tools.aeterna_document_workflow.transaction import (
+    FailureInjection, apply_governance_plan, apply_plan,
+)
 
 from .helpers import RepositoryFixture, markdown
 
@@ -351,7 +360,167 @@ class ApplyTests(unittest.TestCase):
             apply_plan(plan_path, self.fixture.root, review_dir)
         self.assertEqual(1, caught.exception.exit_code)
         self.assertEqual(before, self.fixture.tracked_bytes())
+        review = self._assert_blocked_review(review_dir)
+        self.assertEqual("NOT_CONFIRMED", review["governance_approval"]["decision"])
+
+    def _governance_plan(self) -> tuple[dict[str, object], Path, Path]:
+        return self._materialize(
+            markdown("AET-DOC-TARGET", "Target", version="2.0", body="Governance meaning changed."),
+            change_class="semantic-governance-change",
+            version_intent="major",
+            proposed_version="2.0",
+            metadata_delta=[{"field": "version", "old": "1.0", "new": "2.0"}],
+        )
+
+    def test_governance_approval_rejects_noninteractive_declined_and_interrupted(self) -> None:
+        before = self.fixture.tracked_bytes()
+        plan, plan_path, review_dir = self._governance_plan()
+        operation = uuid.UUID("12345678-1234-1234-1234-123456789abc")
+
+        class Tty(io.StringIO):
+            def isatty(self) -> bool:
+                return True
+
+        scenarios = (
+            (io.StringIO(""), "SEMANTIC_GOVERNANCE_APPLY_BLOCKED"),
+            (Tty("CANCEL\n"), "SEMANTIC_GOVERNANCE_APPROVAL_REJECTED"),
+            (Tty(""), "SEMANTIC_GOVERNANCE_APPROVAL_INTERRUPTED"),
+        )
+        for input_stream, code in scenarios:
+            with self.subTest(code=code):
+                with patch.object(transaction.uuid, "uuid4", return_value=operation), \
+                        patch("tools.aeterna_document_workflow.governance_approval.sys.stdin", input_stream), \
+                        patch("tools.aeterna_document_workflow.governance_approval.sys.stderr", Tty()):
+                    with self.assertRaises(WorkflowError) as caught:
+                        apply_governance_plan(plan_path, self.fixture.root, review_dir)
+                self.assertEqual(code, caught.exception.diagnostics[0].code)
+                self.assertEqual(before, self.fixture.tracked_bytes())
+                self._assert_blocked_review(review_dir)
+
+    def test_governance_approval_is_bound_once_to_every_scope_field(self) -> None:
+        plan, _, _ = self._governance_plan()
+        operation_id = "one-operation"
+        binding = approval_binding(plan, self.fixture.root, operation_id)
+        variants = (
+            ("repository", self.fixture.root.parent),
+            ("artifact", {"artifact_id": "AET-DOC-OTHER"}),
+            ("head", {"baseline": {"head": "different"}}),
+            ("plan_digest", {"plan_semantic_sha256": "0" * 64}),
+            ("paths", {"expected_changes": [{"path": "project/planning/OTHER.md"}]}),
+            ("class", {"change": {"class": "body-only"}}),
+            ("intent", {"version": {"declared_intent": "minor"}}),
+        )
+        for name, change in variants:
+            with self.subTest(name=name):
+                altered = copy.deepcopy(plan)
+                root = self.fixture.root
+                if name == "repository":
+                    root = change
+                else:
+                    for key, value in change.items():
+                        if isinstance(value, dict) and isinstance(altered.get(key), dict):
+                            altered[key].update(value)
+                        else:
+                            altered[key] = value
+                with self.assertRaises(WorkflowError):
+                    GovernanceApproval(dict(binding)).consume(altered, root, operation_id)
+        approval = GovernanceApproval(dict(binding))
+        approval.consume(plan, self.fixture.root, operation_id)
+        self.assertTrue(approval.consumed)
+        with self.assertRaises(WorkflowError):
+            approval.consume(plan, self.fixture.root, operation_id)
+        with self.assertRaises(WorkflowError):
+            GovernanceApproval(dict(binding)).consume(plan, self.fixture.root, "other-operation")
+
+    def test_governance_apply_rechecks_stale_candidate_before_prompt(self) -> None:
+        before = self.fixture.tracked_bytes()
+        plan, plan_path, review_dir = self._governance_plan()
+        Path(plan["candidate"]["resolved_path"]).write_bytes(b"stale candidate")
+        with patch.object(transaction, "confirm_governance_apply") as prompt:
+            with self.assertRaises(WorkflowError):
+                apply_governance_plan(plan_path, self.fixture.root, review_dir)
+        prompt.assert_not_called()
+        self.assertEqual(before, self.fixture.tracked_bytes())
         self._assert_blocked_review(review_dir)
+
+    def test_governance_apply_interactive_success_and_review_binding(self) -> None:
+        plan, plan_path, review_dir = self._governance_plan()
+        operation = uuid.UUID("12345678-1234-1234-1234-123456789abc")
+        phrase = f"APPLY {operation.hex} {plan['plan_semantic_sha256']}\n"
+
+        class Tty(io.StringIO):
+            def isatty(self) -> bool:
+                return True
+
+        output = Tty()
+        with patch.object(transaction.uuid, "uuid4", return_value=operation), \
+                patch("tools.aeterna_document_workflow.governance_approval.sys.stdin", Tty(phrase)), \
+                patch("tools.aeterna_document_workflow.governance_approval.sys.stderr", output):
+            result = apply_governance_plan(plan_path, self.fixture.root, review_dir)
+        self.assertEqual("PASS", result["status"])
+        self.assertIn(plan["plan_semantic_sha256"], output.getvalue())
+        self.assertEqual("2.0", inspect_markdown(self.fixture.target).metadata.fields["version"])
+        review = verify_review_file(result["review_json"])
+        approval = review["governance_approval"]
+        self.assertEqual("CONFIRMED", approval["decision"])
+        self.assertTrue(approval["consumed"])
+        self.assertEqual(operation.hex, approval["binding"]["operation_id"])
+        self.assertEqual(
+            [item["path"] for item in plan["expected_changes"]],
+            approval["binding"]["expected_changed_paths"],
+        )
+        self.assertEqual("", self.fixture.git("diff", "--cached", "--name-only"))
+        tampered = copy.deepcopy(review)
+        tampered["governance_approval"]["binding"]["baseline_head"] = "other"
+        tampered["review_semantic_sha256"] = review_semantic_digest(tampered)
+        from tools.aeterna_document_workflow.review import verify_review_payload
+        with self.assertRaises(WorkflowError):
+            verify_review_payload(tampered)
+        missing = copy.deepcopy(review)
+        missing.pop("governance_approval")
+        missing["review_semantic_sha256"] = review_semantic_digest(missing)
+        with self.assertRaises(WorkflowError):
+            verify_review_payload(missing)
+        unconsumed = copy.deepcopy(review)
+        unconsumed["governance_approval"]["consumed"] = False
+        unconsumed["review_semantic_sha256"] = review_semantic_digest(unconsumed)
+        with self.assertRaises(WorkflowError):
+            verify_review_payload(unconsumed)
+
+    def test_governance_approval_binding_mismatch_blocks_before_write(self) -> None:
+        before = self.fixture.tracked_bytes()
+        _, plan_path, review_dir = self._governance_plan()
+
+        def wrong_approval(plan: dict[str, object], root: Path, operation_id: str) -> GovernanceApproval:
+            binding = approval_binding(plan, root, operation_id)
+            binding["artifact_id"] = "AET-DOC-OTHER"
+            return GovernanceApproval(binding)
+
+        with patch.object(transaction, "confirm_governance_apply", side_effect=wrong_approval):
+            with self.assertRaises(WorkflowError) as caught:
+                apply_governance_plan(plan_path, self.fixture.root, review_dir)
+        self.assertEqual("SEMANTIC_GOVERNANCE_APPROVAL_INVALID", caught.exception.diagnostics[0].code)
+        self.assertEqual(before, self.fixture.tracked_bytes())
+        self._assert_blocked_review(review_dir)
+
+    def test_governance_apply_failure_preserves_rollback_and_review(self) -> None:
+        before = self.fixture.tracked_bytes()
+        _, plan_path, review_dir = self._governance_plan()
+
+        def confirmed(plan: dict[str, object], root: Path, operation_id: str) -> GovernanceApproval:
+            return GovernanceApproval(approval_binding(plan, root, operation_id))
+
+        with patch.object(transaction, "confirm_governance_apply", side_effect=confirmed):
+            with self.assertRaises(WorkflowError):
+                apply_governance_plan(
+                    plan_path, self.fixture.root, review_dir,
+                    injection=FailureInjection(fail_after_write=1),
+                )
+        self.assertEqual(before, self.fixture.tracked_bytes())
+        review = verify_review_file(review_dir / "review.json")
+        self.assertEqual("FAIL", review["final_status"])
+        self.assertTrue(review["rollback"]["verified"])
+        self.assertTrue(review["governance_approval"]["consumed"])
 
     def test_plan_integrity_and_recomputation_block_stale_inputs(self) -> None:
         plan, plan_path, review_dir = self._materialize(

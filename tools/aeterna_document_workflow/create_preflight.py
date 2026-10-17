@@ -150,16 +150,18 @@ def _candidate_title(body: bytes) -> str:
 def run_create_preflight(
     repository_root: str | Path,
     manifest_path: str | Path,
+    external_candidate_root: str | Path | None = None,
 ) -> CreatePreflightContext:
     manifest_file = Path(manifest_path).resolve()
     manifest = load_create_manifest(manifest_file)
-    return run_create_preflight_manifest(repository_root, manifest, manifest_file)
+    return run_create_preflight_manifest(repository_root, manifest, manifest_file, external_candidate_root)
 
 
 def run_create_preflight_manifest(
     repository_root: str | Path,
     manifest: CreateManifest,
     manifest_path: str | Path,
+    external_candidate_root: str | Path | None = None,
 ) -> CreatePreflightContext:
     manifest_file = Path(manifest_path).resolve()
     root = Path(repository_root).resolve()
@@ -187,6 +189,7 @@ def run_create_preflight_manifest(
         manifest_file,
         manifest.candidate_path,
         manifest.target_path,
+        Path(external_candidate_root) if external_candidate_root is not None else None,
     )
     try:
         candidate_data = candidate_path.read_bytes()
@@ -265,9 +268,14 @@ def run_create_preflight_manifest(
         title=title,
     )
     baseline_identity = _artifact_set_identity(scan.artifacts)
+    if external_candidate_root is None:
+        gates.extend((
+            _gate("candidate_inside_repository_temp", True, True),
+            _gate("candidate_git_ignored", True, True),
+        ))
+    else:
+        gates.append(_gate("candidate_storage_policy", "EXTERNAL", "EXTERNAL"))
     gates.extend((
-        _gate("candidate_inside_repository_temp", True, True),
-        _gate("candidate_git_ignored", True, True),
         _gate("candidate_is_not_target", True, True),
         _gate("candidate_metadata_exact", True, True),
         _gate("candidate_h1_count", 1, 1),

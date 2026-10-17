@@ -29,6 +29,12 @@ from .git_state import (
     git_path_is_ignored,
     git_path_is_tracked,
 )
+from .governance_approval import (
+    GovernanceApproval,
+    approval_binding,
+    approval_review,
+    confirm_governance_apply,
+)
 from .model import WorkflowError, fail
 from .planner import recompute_prepared_update
 from .resolver import resolve_artifact
@@ -503,6 +509,7 @@ def _review_payload(
     deviations: list[str],
     expected_git_paths: tuple[str, ...] | None = None,
     normalized_unchanged_generated: tuple[str, ...] = (),
+    governance_approval: dict[str, object] | None = None,
 ) -> dict[str, object]:
     target = plan["resolved_artifact"]["path"]
     root = Path(plan["repository"]["root"])
@@ -535,6 +542,12 @@ def _review_payload(
         "deviations": deviations,
         "final_status": status,
     }
+    if plan["change"]["class"] == "semantic-governance-change":
+        payload["repository"] = {"root": plan["repository"]["root"]}
+        payload["version"] = plan["version"]
+        payload["governance_approval"] = governance_approval or approval_review(
+            approval_binding(plan, root, operation_id),
+        )
     return finalize_review(payload)
 
 
@@ -551,18 +564,36 @@ def apply_plan(
         )
 
 
-def _apply_plan_under_lock(
+def apply_governance_plan(
     plan_path: str | Path,
     repository_root: str | Path,
     review_directory: str | Path,
     *,
     injection: FailureInjection | None = None,
 ) -> dict[str, object]:
+    """Separate, terminal-confirmed UPDATE entrypoint; ordinary Apply stays closed."""
+    with repository_apply_lock(repository_root):
+        return _apply_plan_under_lock(
+            plan_path, repository_root, review_directory,
+            injection=injection, governance_interactive=True,
+        )
+
+
+def _apply_plan_under_lock(
+    plan_path: str | Path,
+    repository_root: str | Path,
+    review_directory: str | Path,
+    *,
+    injection: FailureInjection | None = None,
+    governance_interactive: bool = False,
+) -> dict[str, object]:
     root = Path(repository_root).resolve()
     require_repository_apply_lock(root)
     plan = load_plan(plan_path)
     review_dir = validate_ignored_temp_path(root, Path(review_directory), "REVIEW_DIRECTORY_BLOCKED")
     if plan.get("schema_version") == "aeterna-document-create-plan/0.1":
+        if governance_interactive:
+            fail("SEMANTIC_GOVERNANCE_APPLY_BLOCKED", "Governance approval is only for UPDATE plans.")
         from .create_transaction import _apply_create_plan_under_lock
 
         return _apply_create_plan_under_lock(plan, root, review_dir, injection=injection)
@@ -570,6 +601,12 @@ def _apply_plan_under_lock(
     proposed_transaction_root: Path | None = None
     expected_git_paths: tuple[str, ...] | None = None
     normalized_unchanged_generated: tuple[str, ...] = ()
+    approval: GovernanceApproval | None = None
+
+    def approval_evidence() -> dict[str, object] | None:
+        if approval is None or approval.binding != approval_binding(plan, root, operation_id):
+            return None
+        return approval.review()
 
     def blocked_review(exc: WorkflowError, transaction_root: str = "") -> None:
         blocked = TransactionResult(
@@ -591,13 +628,17 @@ def _apply_plan_under_lock(
             [str(exc)],
             expected_git_paths,
             normalized_unchanged_generated,
+            approval_evidence(),
         )
         write_review_files(review_dir, review)
 
     try:
         validate_candidate_location(root, plan)
-        if plan["change"]["class"] == "semantic-governance-change":
+        high_risk = plan["change"]["class"] == "semantic-governance-change"
+        if high_risk and not governance_interactive:
             fail("SEMANTIC_GOVERNANCE_APPLY_BLOCKED", "High-risk semantic governance plans cannot be applied.")
+        if governance_interactive and not high_risk:
+            fail("SEMANTIC_GOVERNANCE_APPLY_BLOCKED", "Governance approval requires a high-risk UPDATE plan.")
         prepared = recompute_prepared_update(root, plan)
         if prepared.plan != plan:
             fail("PLAN_RECOMPUTATION_MISMATCH", "Recomputed semantic plan differs from supplied plan.", exit_code=3)
@@ -624,6 +665,8 @@ def _apply_plan_under_lock(
         if not _same_volume(root, transaction_parent):
             fail("TRANSACTION_VOLUME_MISMATCH", "Transaction and repository targets must share a volume.")
         transaction_root = proposed_transaction_root
+        if high_risk:
+            approval = confirm_governance_apply(plan, root, operation_id)
     except WorkflowError as exc:
         blocked_review(exc, str(proposed_transaction_root) if proposed_transaction_root else "")
         raise
@@ -632,6 +675,8 @@ def _apply_plan_under_lock(
         second = recompute_prepared_update(root, plan)
         if second.plan != plan or second.target_bytes != prepared.target_bytes:
             fail("PREWRITE_RECOMPUTATION_MISMATCH", "Pre-write recomputation drifted.", exit_code=3)
+        if approval is not None:
+            approval.consume(plan, root, operation_id)
 
     def post_validate() -> None:
         scan = scan_repository(root)
@@ -669,6 +714,7 @@ def _apply_plan_under_lock(
         review = _review_payload(
             plan, operation_id, "PASS", result, git_changed_paths(root), [],
             expected_git_paths, normalized_unchanged_generated,
+            approval_evidence(),
         )
         review_paths = write_review_files(review_dir, review)
 
@@ -696,6 +742,7 @@ def _apply_plan_under_lock(
             [str(exc.cause)],
             expected_git_paths,
             normalized_unchanged_generated,
+            approval_evidence(),
         )
         write_review_files(review_dir, review)
         diagnostic = Diagnostic(
@@ -708,6 +755,7 @@ def _apply_plan_under_lock(
         review = _review_payload(
             plan, operation_id, "FAIL", exc.result, git_changed_paths(root),
             [str(exc.cause)], expected_git_paths, normalized_unchanged_generated,
+            approval_evidence(),
         )
         write_review_files(review_dir, review)
         diagnostic = Diagnostic(

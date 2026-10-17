@@ -1,6 +1,14 @@
 import * as vscode from "vscode";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import {
+  CreateCandidateError, createOrOpenCreateSession, createStorageRootForRepository, loadCreateSession,
+  type CreateInput, type CreateSession,
+} from "./create_candidate";
+import {
+  CreatePlanError, inspectCreateBaseline, prepareCreatePreview, renderCreatePreview,
+  type CreateBaseline, type CreatePreview,
+} from "./create_plan";
 
 import {
   type ManagedDocument,
@@ -226,7 +234,7 @@ function reportCandidateError(
   error: unknown,
 ): void {
   const detail = error instanceof Error ? error.message : String(error);
-  const code = error instanceof CandidateSessionError || error instanceof UpdatePreviewError || error instanceof ExplicitApplyError || error instanceof CandidateVersionError
+  const code = error instanceof CandidateSessionError || error instanceof UpdatePreviewError || error instanceof ExplicitApplyError || error instanceof CandidateVersionError || error instanceof CreateCandidateError || error instanceof CreatePlanError
     ? ` [${error.code}]` : "";
   output.appendLine(`${action} failed${code}: ${detail}`);
   if (error instanceof UpdatePreviewError) {
@@ -268,6 +276,58 @@ function offerProductionReview(reviewPath: string | undefined, message: string, 
   });
 }
 
+async function promptCreateInput(baseline: CreateBaseline, artifactId: string): Promise<CreateInput | undefined> {
+  const targetPath = await vscode.window.showInputBox({
+    title: "New Document — canonical target path",
+    prompt: "Repository-relative .md path in an existing project/, data/, design/ or src/engine/docs/ directory.",
+    validateInput: (value) => value && !value.includes("\\") && !value.includes("..") && value.endsWith(".md")
+      ? undefined : "Enter a safe repository-relative .md path. The production planner checks collisions and scope.",
+  });
+  if (targetPath === undefined) return undefined;
+  const type = await vscode.window.showQuickPick(
+    baseline.controlled_values.type.map((value) => ({ label: value })),
+    { title: "New Document — document type", placeHolder: "Select a type from the production metadata schema" },
+  );
+  if (!type) return undefined;
+  const authority = await vscode.window.showQuickPick(
+    baseline.controlled_values.authority.map((value) => ({ label: value })),
+    { title: "New Document — authority", placeHolder: "Select the document's authority explicitly" },
+  );
+  if (!authority) return undefined;
+  const integration = await vscode.window.showQuickPick(
+    baseline.create_contract.integration.map((value) => ({ label: value })),
+    { title: "New Document — integration state", placeHolder: "Choose current or pending_integration" },
+  );
+  if (!integration || !["current", "pending_integration"].includes(integration.label)) return undefined;
+  const dependencies = await vscode.window.showQuickPick(
+    baseline.existing_artifact_ids.filter((id) => id !== artifactId).map((id) => ({ label: id })),
+    { title: "New Document — dependencies", placeHolder: "Select zero or more existing artifact IDs", canPickMany: true },
+  );
+  if (!dependencies) return undefined;
+  const version = await vscode.window.showInputBox({
+    title: "New Document — initial version",
+    prompt: "Enter and approve the initial version. No default or automatic increment is applied.",
+    validateInput: (value) => value.trim() && !/[\r\n]/.test(value) ? undefined : "Enter a non-empty, single-line version.",
+  });
+  if (version === undefined) return undefined;
+  const title = await vscode.window.showInputBox({
+    title: "New Document — H1 title",
+    prompt: "Enter the initial Markdown H1 title.",
+    validateInput: (value) => value.trim() && !/[\r\n]/.test(value) ? undefined : "Enter a non-empty, single-line title.",
+  });
+  if (title === undefined) return undefined;
+  const initialContent = await vscode.window.showInputBox({
+    title: "New Document — initial body",
+    prompt: "Optional first paragraph. You can edit the external candidate in the native Markdown editor.",
+  });
+  if (initialContent === undefined) return undefined;
+  return {
+    artifactId, targetPath, type: type.label, authority: authority.label,
+    dependencies: dependencies.map((item) => item.label), version, integration: integration.label as CreateInput["integration"],
+    title, initialContent,
+  };
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel("AETERNA Documents");
   const provider = new AeternaDocumentsProvider(output);
@@ -275,6 +335,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     context.globalStorageUri,
     "e1-candidates",
   ).fsPath;
+  let createSession: CreateSession | undefined;
+  let createPreview: CreatePreview | undefined;
+  let createState = "No CREATE candidate open.";
   const planStates = new Map<string, ManagerPlanState>();
   const candidatePaths = new Map<string, string>();
   const applyCoordinator = new ExplicitApplyCoordinator();
@@ -293,6 +356,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           ok: Boolean(provider.currentRepositoryRoot),
           message: provider.currentStatus,
         };
+      }
+      if (action === "newDocument" || action === "planCreate") {
+        const succeeded = await vscode.commands.executeCommand<boolean>(
+          action === "newDocument" ? "aeterna.newDocument" : "aeterna.prepareCreatePlan",
+        );
+        return succeeded
+          ? { ok: true, message: action === "newDocument" ? "CREATE candidate opened outside the repository. Save it before planning." : "Read-only CREATE plan ready. Review candidate, plan and AETERNA Documents output." }
+          : { ok: false, message: "CREATE candidate or plan cancelled or blocked. See the VS Code notification and AETERNA Documents output." };
       }
       if (!document) {
         return { ok: false, message: "Selected document is unavailable. Refresh the list." };
@@ -314,6 +385,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         : { ok: false, message: `${document.artifact_id}: ${action} cancelled or blocked. See the VS Code notification and AETERNA Documents output.` };
     },
     (artifactId) => planStates.get(artifactId) ?? "PLAN_MISSING",
+    () => createState,
   );
   const preparedPlans = new Map<string, {
     readonly request: CandidateSessionRequest;
@@ -443,10 +515,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.workspace.onDidChangeTextDocument((event) => {
       if (event.contentChanges.length > 0) {
         invalidateChangedDocument(event.document.uri.fsPath);
+        if (createSession && pathsEqual(createSession.candidatePath, event.document.uri.fsPath)) {
+          createPreview = undefined;
+          createState = "CREATE candidate changed. Save it and prepare a new read-only plan.";
+          manager.refresh();
+        }
       }
     }),
     vscode.workspace.onDidSaveTextDocument((document) => {
       invalidateChangedDocument(document.uri.fsPath);
+      if (createSession && pathsEqual(createSession.candidatePath, document.uri.fsPath)) {
+        createPreview = undefined;
+        createState = "CREATE candidate saved. Prepare a new read-only plan.";
+        manager.refresh();
+      }
       for (const [artifactId, candidatePath] of candidatePaths) {
         if (pathsEqual(candidatePath, document.uri.fsPath) && (planStates.get(artifactId) ?? "PLAN_MISSING") === "PLAN_MISSING") {
           setPlanState(artifactId, "CANDIDATE_SAVED");
@@ -456,6 +538,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.window.onDidChangeWindowState((state) => {
       if (!state.focused) {
         return;
+      }
+      if (createSession && createPreview) {
+        const session = createSession;
+        const preview = createPreview;
+        void (async () => {
+          try {
+            const [bytes, baseline] = await Promise.all([readFile(session.candidatePath), inspectCreateBaseline(session.repositoryRoot)]);
+            if (createPreview === preview && (createHash("sha256").update(bytes).digest("hex") !== preview.candidateSha256 ||
+                baseline.head !== session.head || baseline.branch !== session.branch || !baseline.worktree_clean || !baseline.staging_empty)) {
+              createPreview = undefined;
+              createState = "CREATE plan STALE after candidate or repository change. Prepare a new plan.";
+              manager.refresh();
+            }
+          } catch {
+            if (createPreview === preview) {
+              createPreview = undefined;
+              createState = "CREATE plan STALE because its baseline could not be verified.";
+              manager.refresh();
+            }
+          }
+        })();
       }
       for (const [key, saved] of preparedPlans) {
         void (async () => {
@@ -481,6 +584,96 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("aeterna.openManager", () => manager.show()),
     vscode.commands.registerCommand("aeterna.refreshDocuments", async () => {
       await provider.refresh();
+    }),
+    vscode.commands.registerCommand("aeterna.newDocument", async (): Promise<boolean> => {
+      const root = provider.currentRepositoryRoot;
+      if (!root) {
+        void vscode.window.showErrorMessage("AETERNA Documents: repository is unavailable; refresh the list.");
+        return false;
+      }
+      try {
+        const baseline = await inspectCreateBaseline(root);
+        const artifactId = await vscode.window.showInputBox({
+          title: "New Document — artifact ID",
+          prompt: "Enter a stable AET-DOC-... ID. Existing sessions reopen without overwriting edits.",
+          validateInput: (value) => /^AET-DOC-[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(value)
+            ? undefined : "Use AET-DOC- followed by uppercase alphanumeric tokens separated by single hyphens.",
+        });
+        if (artifactId === undefined) return false;
+        if (baseline.existing_artifact_ids.some((id) => id.toLowerCase() === artifactId.toLowerCase())) {
+          throw new CreateCandidateError("ARTIFACT_ID_COLLISION", "Artifact ID already exists in the current repository scan.");
+        }
+        const createStorageRoot = createStorageRootForRepository(root);
+        const existing = await loadCreateSession(root, createStorageRoot, artifactId, baseline.branch, baseline.head);
+        if (existing) {
+          createSession = existing;
+          createPreview = undefined;
+          createState = `CREATE candidate reopened: ${artifactId}. Save and prepare a new plan.`;
+          output.appendLine(`Existing CREATE candidate reopened without overwrite: ${existing.candidatePath}`);
+        } else {
+          const input = await promptCreateInput(baseline, artifactId);
+          if (!input) return false;
+          const approval = await vscode.window.showWarningMessage(
+            `Approve new document identity and metadata for ${artifactId}?`,
+            { modal: true, detail: [
+              `Canonical target: ${input.targetPath}`, `Type: ${input.type}`, `Authority: ${input.authority}`,
+              `Dependencies: ${input.dependencies.join(", ") || "none"}`, `Initial version: ${input.version}`,
+              `Integration: ${input.integration}`, `H1 title: ${input.title}`,
+              "Only a candidate outside the repository will be created. CREATE Apply is unavailable.",
+            ].join("\n") },
+            "Create External Candidate",
+          );
+          if (approval !== "Create External Candidate") return false;
+          const created = await createOrOpenCreateSession(root, createStorageRoot, baseline.branch, baseline.head, input);
+          createSession = created.session;
+          createPreview = undefined;
+          createState = `CREATE candidate ready: ${artifactId}. Save and prepare a read-only plan.`;
+          output.appendLine(`CREATE candidate ${created.disposition}: ${created.session.candidatePath}`);
+        }
+        const session = createSession;
+        manager.refresh();
+        await vscode.window.showTextDocument(vscode.Uri.file(session.candidatePath), { preview: false, viewColumn: vscode.ViewColumn.Beside });
+        await vscode.commands.executeCommand("markdown.showPreviewToSide");
+        output.appendLine(`CREATE target (not created): ${session.input.targetPath}; baseline ${session.head}.`);
+        return true;
+      } catch (error) {
+        reportCandidateError(output, "New Document", error);
+        return false;
+      }
+    }),
+    vscode.commands.registerCommand("aeterna.prepareCreatePlan", async (): Promise<boolean> => {
+      const session = createSession;
+      const root = provider.currentRepositoryRoot;
+      if (!session || !root) {
+        void vscode.window.showWarningMessage("Open a New Document candidate in this VS Code window before preparing a CREATE plan.");
+        return false;
+      }
+      try {
+        if (isCandidateUnsaved(session.candidatePath)) {
+          throw new CreatePlanError("CANDIDATE_UNSAVED", "Save every CREATE candidate editor before planning.");
+        }
+        createPreview = undefined;
+        createState = `Preparing read-only CREATE plan for ${session.input.artifactId}…`;
+        manager.refresh();
+        const preview = await prepareCreatePreview(root, session, () => isCandidateUnsaved(session.candidatePath));
+        if (isCandidateUnsaved(session.candidatePath)) {
+          throw new CreatePlanError("CANDIDATE_UNSAVED", "CREATE candidate became unsaved during planning; plan discarded.");
+        }
+        createPreview = preview;
+        createState = `CREATE plan ready for ${session.input.artifactId}. Review it; no CREATE Apply is available.`;
+        manager.refresh();
+        output.appendLine(renderCreatePreview(preview));
+        output.show(true);
+        await vscode.window.showTextDocument(vscode.Uri.file(preview.planPath), { preview: false, viewColumn: vscode.ViewColumn.Beside });
+        void vscode.window.showInformationMessage("Read-only CREATE plan ready. Review the external candidate, full plan and AETERNA Documents output. No CREATE Apply is available.");
+        return true;
+      } catch (error) {
+        createPreview = undefined;
+        createState = `CREATE plan blocked: ${error instanceof Error ? error.message : String(error)}`;
+        manager.refresh();
+        reportCandidateError(output, "Prepare CREATE plan", error);
+        return false;
+      }
     }),
     vscode.commands.registerCommand(
       "aeterna.openDocument",

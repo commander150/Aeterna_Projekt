@@ -26,6 +26,7 @@ export class DocumentManager implements vscode.Disposable {
     private readonly status: () => string,
     private readonly act: (action: ManagerAction, document?: ManagedDocument) => Promise<ManagerActionResult>,
     private readonly planState: (artifactId: string) => ManagerPlanState = () => "PLAN_MISSING",
+    private readonly createState: () => string = () => "No CREATE candidate open.",
   ) {}
 
   public show(): void {
@@ -64,6 +65,7 @@ export class DocumentManager implements vscode.Disposable {
         planStateLabel: managerPlanStateLabel(this.planState(document.artifact_id)),
       })),
       status: this.status(),
+      createState: this.createState(),
     });
   }
 
@@ -93,7 +95,7 @@ export class DocumentManager implements vscode.Disposable {
     const document = message.artifactId
       ? this.documents().find((item) => item.artifact_id === message.artifactId)
       : undefined;
-    if (message.action !== "refresh" && !document) {
+    if (!["refresh", "newDocument", "planCreate"].includes(message.action) && !document) {
       this.publishStatus("Selected document is no longer available. Refresh the list.");
       return;
     }

@@ -64,6 +64,7 @@ def validate_candidate_path(
     manifest_path: Path,
     candidate_path: str,
     target_path: str,
+    external_root: Path | None = None,
 ) -> Path:
     candidate = Path(candidate_path)
     windows = PureWindowsPath(candidate_path)
@@ -72,22 +73,41 @@ def validate_candidate_path(
     if ".." in windows.parts:
         fail("CREATE_CANDIDATE_PATH_BLOCKED", "CREATE candidate path cannot escape through '..'.")
     unresolved = manifest_path.parent / candidate
-    if _has_reparse_component(root, unresolved):
+    storage_root = external_root if external_root is not None else root
+    if external_root is not None:
+        if not external_root.is_absolute() or not external_root.is_dir():
+            fail("CREATE_CANDIDATE_PATH_BLOCKED", "External candidate root must be an existing absolute directory.")
+        expected_root = root.resolve().parent / "Aeterna_Local" / "document_editor" / "create"
+        if (any(part in {".", ".."} for part in external_root.parts)
+                or os.path.normcase(str(external_root.absolute())) != os.path.normcase(str(expected_root))):
+            fail("CREATE_CANDIDATE_PATH_BLOCKED", "External CREATE candidates require the repository's Aeterna_Local/document_editor/create root.")
+        if _has_reparse_component(Path(external_root.anchor), external_root):
+            fail("CREATE_CANDIDATE_PATH_BLOCKED", "External candidate root cannot use symlink/reparse components.")
+        if external_root.resolve().is_relative_to(root.resolve()):
+            fail("CREATE_CANDIDATE_PATH_BLOCKED", "External candidate root cannot be inside the repository.")
+        if _has_reparse_component(external_root, manifest_path):
+            fail("CREATE_CANDIDATE_PATH_BLOCKED", "CREATE manifest must be below the external candidate root without reparse components.")
+    if _has_reparse_component(storage_root, unresolved):
         fail("CREATE_CANDIDATE_PATH_BLOCKED", "CREATE candidate cannot use symlink/reparse components.")
     try:
         resolved = unresolved.resolve(strict=True)
     except OSError as exc:
         fail("CONTENT_READ_ERROR", f"{unresolved}: {exc}", exit_code=2)
     try:
-        relative = resolved.relative_to(root.resolve()).as_posix()
+        relative = resolved.relative_to(storage_root.resolve()).as_posix()
     except ValueError:
-        fail("CREATE_CANDIDATE_PATH_BLOCKED", "CREATE candidate must resolve inside the repository.")
+        fail("CREATE_CANDIDATE_PATH_BLOCKED", "CREATE candidate must resolve inside its declared storage root.")
     parts = PurePosixPath(relative).parts
-    if not parts or parts[0].casefold() != "temp":
-        fail("CREATE_CANDIDATE_PATH_BLOCKED", "CREATE candidate must resolve below repository TEMP.")
+    if external_root is None:
+        if not parts or parts[0].casefold() != "temp":
+            fail("CREATE_CANDIDATE_PATH_BLOCKED", "CREATE candidate must resolve below repository TEMP.")
+    elif not parts or len(parts) < 2:
+        fail("CREATE_CANDIDATE_PATH_BLOCKED", "External CREATE candidate must be in a session directory.")
     if not resolved.is_file():
         fail("CREATE_CANDIDATE_PATH_BLOCKED", "CREATE candidate must be a regular file.")
-    if git_path_is_tracked(root, relative) or not git_path_is_ignored(root, relative):
+    if external_root is not None and resolved.stat().st_nlink != 1:
+        fail("CREATE_CANDIDATE_PATH_BLOCKED", "External CREATE candidate cannot be a hard link.")
+    if external_root is None and (git_path_is_tracked(root, relative) or not git_path_is_ignored(root, relative)):
         fail("CREATE_CANDIDATE_PATH_BLOCKED", "CREATE candidate must be untracked and Git-ignored.")
     target = root.joinpath(*PurePosixPath(target_path).parts)
     if resolved == target.absolute():

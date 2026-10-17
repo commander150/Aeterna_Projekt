@@ -99,6 +99,26 @@ class CliTests(unittest.TestCase):
         self.assertEqual(0, verified.returncode, verified.stderr)
         self.assertEqual("PASS", json.loads(verified.stdout)["status"])
 
+    def test_governance_cli_requires_interactive_confirmation(self) -> None:
+        candidate = self.fixture.candidate(
+            markdown("AET-DOC-TARGET", "Target", body="Governance meaning changed.")
+        )
+        manifest = self.fixture.manifest(candidate, change_class="semantic-governance-change")
+        plan = build_update_plan(self.fixture.root, manifest)
+        plan_path = candidate.parent / "governance-plan.json"
+        plan_path.write_text(json.dumps(plan), encoding="utf-8")
+        before = self.fixture.tracked_bytes()
+        result = self._run(
+            "apply-governance", str(plan_path), "--repo", str(self.fixture.root),
+            "--review-dir", str(candidate.parent / "governance-review"),
+        )
+        self.assertEqual(1, result.returncode)
+        self.assertEqual(
+            "SEMANTIC_GOVERNANCE_APPLY_BLOCKED",
+            json.loads(result.stderr)["diagnostics"][0]["code"],
+        )
+        self.assertEqual(before, self.fixture.tracked_bytes())
+
 
 if __name__ == "__main__":
     unittest.main()

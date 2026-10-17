@@ -169,8 +169,8 @@ def _prepare_create_context(context: CreatePreflightContext) -> PreparedCreate:
     return PreparedCreate(validated, tuple(target_bytes))
 
 
-def build_create_plan(repository_root: str | Path, manifest_path: str | Path) -> dict[str, object]:
-    return _prepare_create_context(run_create_preflight(repository_root, manifest_path)).plan
+def build_create_plan(repository_root: str | Path, manifest_path: str | Path, external_candidate_root: str | Path | None = None) -> dict[str, object]:
+    return _prepare_create_context(run_create_preflight(repository_root, manifest_path, external_candidate_root)).plan
 
 
 def prepare_create(

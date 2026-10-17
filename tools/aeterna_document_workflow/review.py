@@ -5,10 +5,11 @@ from __future__ import annotations
 import hashlib
 import copy
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 
 from .model import fail
+from .governance_approval import APPROVAL_SCHEMA
 
 
 PLAN_SCHEMA = "aeterna-document-update-plan/0.1"
@@ -178,6 +179,46 @@ def verify_review_payload(payload: object) -> dict[str, object]:
         fail("REVIEW_STATUS_INCONSISTENT", "BLOCKED review cannot record writes or rollback.")
     if rollback.get("verified") and not rollback.get("performed"):
         fail("REVIEW_STATUS_INCONSISTENT", "Verified rollback must have been performed.")
+    if schema == REVIEW_SCHEMA and isinstance(payload.get("change"), dict) \
+            and payload["change"].get("class") == "semantic-governance-change":
+        approval = payload.get("governance_approval")
+        # Historical BLOCKED reviews predate the separate approval path.
+        if approval is None and status != "BLOCKED":
+            fail("GOVERNANCE_APPROVAL_REVIEW_MISSING", "High-risk review lacks approval evidence.")
+        if approval is not None:
+            binding = approval.get("binding") if isinstance(approval, dict) else None
+            repository = payload.get("repository")
+            version = payload.get("version")
+            if not isinstance(binding, dict) or not isinstance(repository, dict) or not isinstance(version, dict) \
+                    or not isinstance(payload.get("scope"), dict) or not isinstance(payload.get("artifact"), dict) \
+                    or not isinstance(payload.get("baseline"), dict):
+                fail("GOVERNANCE_APPROVAL_REVIEW_INVALID", "High-risk review binding is incomplete.")
+            expected_binding = {
+                "schema_version": APPROVAL_SCHEMA,
+                "operation_id": payload["operation_id"],
+                "repository_root": repository.get("root"),
+                "artifact_id": payload["artifact"].get("artifact_id"),
+                "baseline_branch": payload["baseline"].get("branch"),
+                "baseline_head": payload["baseline"].get("head"),
+                "plan_semantic_sha256": payload["plan_semantic_sha256"],
+                "expected_changed_paths": payload["scope"].get("expected_changed_paths"),
+                "change_class": payload["change"]["class"],
+                "version_intent": version.get("declared_intent"),
+            }
+            repository_root = binding.get("repository_root")
+            root_is_absolute = isinstance(repository_root, str) and (
+                PureWindowsPath(repository_root).is_absolute()
+                or PurePosixPath(repository_root).is_absolute()
+            )
+            if binding != expected_binding or not root_is_absolute \
+                    or approval.get("method") != "interactive-console" \
+                    or approval.get("identity_assurance") != "local-interaction-only" \
+                    or approval.get("decision") not in {"NOT_CONFIRMED", "CONFIRMED"} \
+                    or not isinstance(approval.get("consumed"), bool):
+                fail("GOVERNANCE_APPROVAL_REVIEW_INVALID", "High-risk review binding is inconsistent.")
+            if (status == "PASS" or transaction.get("write_started")) \
+                    and (approval["decision"] != "CONFIRMED" or not approval["consumed"]):
+                fail("GOVERNANCE_APPROVAL_REVIEW_INVALID", "Written high-risk transaction lacks consumed confirmation.")
     if schema == CREATE_REVIEW_SCHEMA:
         for section in (
             "baseline", "target", "artifact", "candidate", "version", "authority",
@@ -240,5 +281,12 @@ def write_review_files(review_dir: Path, payload: dict[str, object]) -> tuple[Pa
             "git_normalized_unchanged_generated_paths:",
             *[f"- {path}" for path in scope.get("git_normalized_unchanged_generated_paths", [])],
         ])
+        if "governance_approval" in payload:
+            approval = payload["governance_approval"]
+            lines.extend([
+                f"governance_approval: {approval['decision']}",
+                f"governance_approval_consumed: {approval['consumed']}",
+                f"governance_operation_id: {approval['binding']['operation_id']}",
+            ])
     text_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     return json_path, text_path

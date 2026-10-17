@@ -14,7 +14,9 @@ from .git_state import capture_git_state
 from .planner import build_update_plan
 from .resolver import record_payload, resolve_artifact
 from .review import verify_review_file
-from .transaction import apply_plan
+from .transaction import apply_governance_plan, apply_plan
+from tools.aeterna_artifacts.scanner import scan_repository
+from tools.aeterna_artifacts.validation import CONTROLLED_VALUES
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -46,11 +48,23 @@ def _parser() -> argparse.ArgumentParser:
     create = commands.add_parser("plan-create", help="Build a deterministic read-only CREATE plan.")
     create.add_argument("--manifest", required=True)
     create.add_argument("--repo", required=True)
+    create.add_argument("--external-candidate-root")
+
+    create_baseline = commands.add_parser("inspect-create-baseline", help="Read CREATE input options and current repository identity without writing.")
+    create_baseline.add_argument("--repo", required=True)
 
     apply = commands.add_parser("apply", help="Apply one materialized governed plan transactionally.")
     apply.add_argument("plan")
     apply.add_argument("--repo", required=True)
     apply.add_argument("--review-dir", required=True)
+
+    governance_apply = commands.add_parser(
+        "apply-governance",
+        help="Apply one high-risk UPDATE after an operation-bound interactive confirmation.",
+    )
+    governance_apply.add_argument("plan")
+    governance_apply.add_argument("--repo", required=True)
+    governance_apply.add_argument("--review-dir", required=True)
 
     verify = commands.add_parser("verify-review", help="Verify historical review evidence.")
     verify.add_argument("review")
@@ -111,10 +125,30 @@ def _run(arguments: argparse.Namespace) -> int:
         _print_json(build_update_plan(arguments.repo, arguments.manifest))
         return 0
     if arguments.command == "plan-create":
-        _print_json(build_create_plan(arguments.repo, arguments.manifest))
+        _print_json(build_create_plan(arguments.repo, arguments.manifest, arguments.external_candidate_root))
+        return 0
+    if arguments.command == "inspect-create-baseline":
+        git = capture_git_state(arguments.repo)
+        scan = scan_repository(git.root)
+        _print_json({
+            "schema_version": "aeterna-document-create-baseline/0.1",
+            "repository_root": str(git.root),
+            "branch": git.branch,
+            "head": git.head,
+            "worktree_clean": not git.worktree_entries,
+            "staging_empty": not git.staged_paths,
+            "diagnostics": [item.code for item in scan.diagnostics],
+            "existing_artifact_ids": sorted(item.artifact_id for item in scan.artifacts),
+            "controlled_values": {name: sorted(values) for name, values in CONTROLLED_VALUES.items()},
+            "create_contract": {"kind": "document", "lifecycle": "active", "generated": False,
+                                "integration": ["current", "pending_integration"]},
+        })
         return 0
     if arguments.command == "apply":
         _print_json(apply_plan(arguments.plan, arguments.repo, arguments.review_dir))
+        return 0
+    if arguments.command == "apply-governance":
+        _print_json(apply_governance_plan(arguments.plan, arguments.repo, arguments.review_dir))
         return 0
     if arguments.command == "verify-review":
         review = verify_review_file(arguments.review)
