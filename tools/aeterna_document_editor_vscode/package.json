@@ -17,7 +17,9 @@
     "onCommand:aeterna.compareCandidate",
     "onCommand:aeterna.prepareUpdatePlan",
     "onCommand:aeterna.prepareMinorUpdatePlan",
+    "onCommand:aeterna.prepareGovernanceUpdatePlan",
     "onCommand:aeterna.applyPreparedUpdate",
+    "onCommand:aeterna.applyGovernanceUpdate",
     "onCommand:aeterna.newDocument",
     "onCommand:aeterna.prepareCreatePlan"
   ],
@@ -64,6 +66,14 @@
       {
         "command": "aeterna.applyPreparedUpdate",
         "title": "AETERNA: Apply Prepared UPDATE (Explicit Approval)"
+      },
+      {
+        "command": "aeterna.prepareGovernanceUpdatePlan",
+        "title": "AETERNA: Prepare Governance UPDATE Plan (Major, Read Only)"
+      },
+      {
+        "command": "aeterna.applyGovernanceUpdate",
+        "title": "AETERNA: Approve Governance Apply (High Risk)"
       },
       {
         "command": "aeterna.showDiagnostics",

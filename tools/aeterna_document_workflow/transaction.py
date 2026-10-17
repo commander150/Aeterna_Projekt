@@ -34,6 +34,7 @@ from .governance_approval import (
     approval_binding,
     approval_review,
     confirm_governance_apply,
+    confirm_governance_gui,
 )
 from .model import WorkflowError, fail
 from .planner import recompute_prepared_update
@@ -579,6 +580,17 @@ def apply_governance_plan(
         )
 
 
+def apply_governance_gui_plan(
+    plan_path: str | Path, repository_root: str | Path, review_directory: str | Path,
+) -> dict[str, object]:
+    """Use the same production transaction with a process-local GUI challenge."""
+    with repository_apply_lock(repository_root):
+        return _apply_plan_under_lock(
+            plan_path, repository_root, review_directory,
+            governance_interactive=True, governance_gui=True,
+        )
+
+
 def _apply_plan_under_lock(
     plan_path: str | Path,
     repository_root: str | Path,
@@ -586,6 +598,7 @@ def _apply_plan_under_lock(
     *,
     injection: FailureInjection | None = None,
     governance_interactive: bool = False,
+    governance_gui: bool = False,
 ) -> dict[str, object]:
     root = Path(repository_root).resolve()
     require_repository_apply_lock(root)
@@ -666,7 +679,7 @@ def _apply_plan_under_lock(
             fail("TRANSACTION_VOLUME_MISMATCH", "Transaction and repository targets must share a volume.")
         transaction_root = proposed_transaction_root
         if high_risk:
-            approval = confirm_governance_apply(plan, root, operation_id)
+            approval = (confirm_governance_gui if governance_gui else confirm_governance_apply)(plan, root, operation_id)
     except WorkflowError as exc:
         blocked_review(exc, str(proposed_transaction_root) if proposed_transaction_root else "")
         raise

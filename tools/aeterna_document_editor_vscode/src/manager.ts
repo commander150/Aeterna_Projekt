@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import type * as vscode from "vscode";
 
 import type { ManagedDocument } from "./registry";
-import { filterManagedDocuments, managerPlanStateLabel, parseManagerMessage, renderManagerHtml, type ManagerAction, type ManagerActionResult, type ManagerPlanState } from "./manager_content";
+import { filterManagedDocuments, isGovernanceDocument, managerPlanStateLabel, parseManagerMessage, renderManagerHtml, type ManagerAction, type ManagerActionResult, type ManagerPlanState } from "./manager_content";
 
 export function notifyPlanReady(
   show: () => PromiseLike<string | undefined>,
@@ -27,6 +27,7 @@ export class DocumentManager implements vscode.Disposable {
     private readonly act: (action: ManagerAction, document?: ManagedDocument) => Promise<ManagerActionResult>,
     private readonly planState: (artifactId: string) => ManagerPlanState = () => "PLAN_MISSING",
     private readonly createState: () => string = () => "No CREATE candidate open.",
+    private readonly governancePlan: (artifactId: string) => boolean = () => false,
   ) {}
 
   public show(): void {
@@ -61,6 +62,8 @@ export class DocumentManager implements vscode.Disposable {
         title: document.title,
         path: document.path,
         version: document.version,
+        governance: isGovernanceDocument(document.path),
+        governancePlan: this.governancePlan(document.artifact_id),
         planState: this.planState(document.artifact_id),
         planStateLabel: managerPlanStateLabel(this.planState(document.artifact_id)),
       })),
@@ -99,7 +102,13 @@ export class DocumentManager implements vscode.Disposable {
       this.publishStatus("Selected document is no longer available. Refresh the list.");
       return;
     }
-    if (message.action === "apply" && document && !["PLAN_READY", "PLAN_READY_MISMATCH"].includes(this.planState(document.artifact_id))) {
+    if ((message.action === "planGovernance" || message.action === "applyGovernance") && document && !isGovernanceDocument(document.path)) {
+      this.publishStatus("Governance action blocked: selected document is outside project/governance/.");
+      return;
+    }
+    if ((message.action === "apply" || message.action === "applyGovernance") && document &&
+        (!["PLAN_READY", "PLAN_READY_MISMATCH"].includes(this.planState(document.artifact_id)) ||
+         this.governancePlan(document.artifact_id) !== (message.action === "applyGovernance"))) {
       this.publishStatus("Apply blocked: selected document has no current prepared plan.");
       return;
     }

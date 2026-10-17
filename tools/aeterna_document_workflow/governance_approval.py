@@ -37,10 +37,10 @@ def approval_binding(
 
 def approval_review(
     binding: dict[str, object], *, decision: str = "NOT_CONFIRMED",
-    consumed: bool = False,
+    consumed: bool = False, method: str = "interactive-console",
 ) -> dict[str, object]:
     return {
-        "method": "interactive-console",
+        "method": method,
         "identity_assurance": "local-interaction-only",
         "decision": decision,
         "consumed": consumed,
@@ -54,6 +54,7 @@ class GovernanceApproval:
 
     binding: dict[str, object]
     consumed: bool = False
+    method: str = "interactive-console"
 
     def consume(
         self, plan: dict[str, object], repository_root: Path, operation_id: str,
@@ -63,7 +64,34 @@ class GovernanceApproval:
         self.consumed = True
 
     def review(self) -> dict[str, object]:
-        return approval_review(self.binding, decision="CONFIRMED", consumed=self.consumed)
+        return approval_review(self.binding, decision="CONFIRMED", consumed=self.consumed, method=self.method)
+
+
+def confirm_governance_gui(
+    plan: dict[str, object], repository_root: Path, operation_id: str,
+) -> GovernanceApproval:
+    """One process-local challenge after production checks, answered by the GUI host."""
+    binding = approval_binding(plan, repository_root, operation_id)
+    challenge = f"APPLY {operation_id} {plan['plan_semantic_sha256']}"
+    scope = {
+        "schema_version": "aeterna-governance-gui-challenge/0.1",
+        "approval_binding": binding,
+        "challenge": challenge,
+        "candidate_sha256": plan["candidate"]["sha256"],
+        "metadata_delta": plan["metadata_delta"],
+        "dependency_impact": plan["impact"],
+        "generated_outputs": plan["generated"],
+    }
+    print(json.dumps(scope, ensure_ascii=False, sort_keys=True), flush=True)
+    try:
+        response = sys.stdin.readline()
+    except (KeyboardInterrupt, EOFError, OSError):
+        fail("SEMANTIC_GOVERNANCE_APPROVAL_INTERRUPTED", "GUI governance approval was interrupted.")
+    if not response:
+        fail("SEMANTIC_GOVERNANCE_APPROVAL_INTERRUPTED", "GUI governance approval ended without a response.")
+    if response.rstrip("\r\n") != challenge:
+        fail("SEMANTIC_GOVERNANCE_APPROVAL_REJECTED", "Governance Apply was not explicitly confirmed in the GUI.")
+    return GovernanceApproval(binding, method="interactive-gui")
 
 
 def confirm_governance_apply(

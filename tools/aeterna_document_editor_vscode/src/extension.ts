@@ -30,7 +30,7 @@ import {
   loadRoutedCandidate,
 } from "./candidate_routing";
 import { DocumentManager, notifyPlanReady } from "./manager";
-import type { ManagerAction, ManagerPlanState } from "./manager_content";
+import { isGovernanceDocument, type ManagerAction, type ManagerPlanState } from "./manager_content";
 import {
   ExplicitApplyCoordinator,
   ExplicitApplyError,
@@ -50,6 +50,7 @@ import {
 import {
   CandidateVersionError,
   candidateVersion,
+  suggestMajorVersion,
   suggestMinorVersion,
   validateProposedVersion,
   writeCandidateVersion,
@@ -161,7 +162,7 @@ async function chooseDocument(
       detail: document.path,
       document,
     })),
-    { placeHolder: "Select an AETERNA managed document" },
+    { placeHolder: "Select an AETERNA managed document", ignoreFocusOut: true },
   );
   return selected?.document;
 }
@@ -251,8 +252,8 @@ function reportCandidateError(
 function applyConfirmationDetail(summary: ApplySummary): string {
   return [
     `Document: ${summary.artifactId} — ${summary.title}`,
-    `Current version: ${summary.version}; mode: ${summary.versionIntent === "minor" ? "metadata+body / minor" : "body-only / git-only"}; proposed version: ${summary.proposedVersion}.`,
-    `HEAD: ${summary.head}`,
+    `Current version: ${summary.version}; mode: ${summary.versionIntent === "major" ? "semantic-governance-change / major" : summary.versionIntent === "minor" ? "metadata+body / minor" : "body-only / git-only"}; proposed version: ${summary.proposedVersion}.`,
+    `Branch/HEAD: ${summary.branch} / ${summary.head}`,
     `Canonical baseline SHA-256: ${summary.baselineSha256}`,
     `Candidate SHA-256: ${summary.candidateSha256}`,
     `Reviewed plan SHA-256: ${summary.planSemanticSha256}`,
@@ -377,7 +378,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         compare: "aeterna.compareCandidate",
         plan: "aeterna.prepareUpdatePlan",
         planMinor: "aeterna.prepareMinorUpdatePlan",
+        planGovernance: "aeterna.prepareGovernanceUpdatePlan",
         apply: "aeterna.applyPreparedUpdate",
+        applyGovernance: "aeterna.applyGovernanceUpdate",
       }[action];
       const succeeded = await vscode.commands.executeCommand<boolean>(
         command,
@@ -390,6 +393,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     },
     (artifactId) => planStates.get(artifactId) ?? "PLAN_MISSING",
     () => createState,
+    (artifactId) => preparedPlans.get(artifactId)?.materialized.preview.manifest.change_class === "semantic-governance-change",
   );
   const preparedPlans = new Map<string, {
     readonly request: CandidateSessionRequest;
@@ -410,10 +414,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   };
   const preparePlanForMode = async (
     item: DocumentTreeItem | undefined,
-    mode: "git-only" | "minor",
+    mode: "git-only" | "minor" | "major",
   ): Promise<boolean> => {
     const document = await chooseDocument(provider, item);
     if (!document) return false;
+    if (mode === "major" && !isGovernanceDocument(document.path)) {
+      void vscode.window.showErrorMessage("Governance UPDATE planning is limited to project/governance/ documents.");
+      return false;
+    }
     try {
       const originalRequest = await prepareCandidateRequest(provider, document, candidateStorageRoot);
       const { request, session } = await loadRoutedCandidate(originalRequest);
@@ -421,14 +429,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         throw new UpdatePreviewError("CANDIDATE_UNSAVED", "Save every candidate editor before preparing a plan.");
       }
       let proposedVersion: string | undefined;
-      if (mode === "minor") {
+      if (mode === "minor" || mode === "major") {
         const before = await readFile(session.candidatePath);
         const existingVersion = candidateVersion(before);
         const baselineVersion = session.manifest.baseline.version;
         proposedVersion = await vscode.window.showInputBox({
-          title: "Versioned UPDATE (minor)",
+          ignoreFocusOut: true,
+          title: mode === "major" ? "Governance UPDATE (major)" : "Versioned UPDATE (minor)",
           prompt: `Current canonical version: ${baselineVersion}. Approve the new candidate version. Only the candidate will be edited.`,
-          value: existingVersion !== baselineVersion ? existingVersion : suggestMinorVersion(baselineVersion) ?? "",
+          value: existingVersion !== baselineVersion ? existingVersion : (mode === "major" ? suggestMajorVersion(baselineVersion) : suggestMinorVersion(baselineVersion)) ?? "",
           validateInput: (value) => {
             try { validateProposedVersion(baselineVersion, value); return undefined; }
             catch (error) { return error instanceof Error ? error.message : String(error); }
@@ -476,13 +485,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           output.appendLine(`Previous UPDATE plan STALE: ${document.artifact_id}.`);
         }
       }
-      const choice = mode === "minor"
+      const choice = mode === "major"
+        ? { changeClass: "semantic-governance-change" as const, versionIntent: "major" as const, proposedVersion: proposedVersion! }
+        : mode === "minor"
         ? { changeClass: "metadata+body" as const, versionIntent: "minor" as const, proposedVersion: proposedVersion! }
         : { changeClass: "body-only" as const, versionIntent: "git-only" as const };
       const preview = await prepareUpdatePreview(request.repositoryRoot, session, choice);
       const current = await currentUpdateIdentity(request.repositoryRoot, session);
       if (isCandidateUnsaved(session.candidatePath) || isUpdatePlanStale(preview.identity, current)) {
         throw new UpdatePreviewError("PLAN_STALE", "Candidate, baseline or HEAD changed after planning; prepare a new plan.");
+      }
+      if (mode === "major" && ((preview.plan.change as { risk?: unknown } | undefined)?.risk !== "HIGH" ||
+          (preview.plan.version as { declared_intent?: unknown } | undefined)?.declared_intent !== "major")) {
+        throw new UpdatePreviewError("GOVERNANCE_PLAN_INVALID", "Production plan did not classify this UPDATE as high-risk governance / major.");
       }
       const materialized = await materializePreparedUpdate(
         preview, request.repositoryRoot, vscode.Uri.joinPath(context.globalStorageUri, "e2b-plans").fsPath,
@@ -499,7 +514,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       output.show(true);
       notifyPlanReady(
         () => vscode.window.showInformationMessage(
-          `Read-only ${mode === "minor" ? "versioned minor" : "git-only"} UPDATE plan ready for ${document.artifact_id}. See AETERNA Documents output for impact, paths and version.`,
+          `Read-only ${mode === "major" ? "governance major" : mode === "minor" ? "versioned minor" : "git-only"} UPDATE plan ready for ${document.artifact_id}. See AETERNA Documents output for impact, paths and version.`,
           "Compare Candidate",
         ),
         () => vscode.commands.executeCommand("aeterna.compareCandidate", item),
@@ -860,6 +875,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       (item: DocumentTreeItem | undefined) => preparePlanForMode(item, "minor"),
     ),
     vscode.commands.registerCommand(
+      "aeterna.prepareGovernanceUpdatePlan",
+      (item: DocumentTreeItem | undefined) => preparePlanForMode(item, "major"),
+    ),
+    vscode.commands.registerCommand(
       "aeterna.applyPreparedUpdate",
       async (item: DocumentTreeItem | undefined): Promise<boolean> => {
         const document = await chooseDocument(provider, item);
@@ -927,6 +946,86 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             setPlanState(document.artifact_id, "APPLY_BLOCKED");
           }
           reportCandidateError(output, "Apply Prepared UPDATE", error);
+          return false;
+        }
+      },
+    ),
+    vscode.commands.registerCommand(
+      "aeterna.applyGovernanceUpdate",
+      async (item: DocumentTreeItem | undefined): Promise<boolean> => {
+        const document = await chooseDocument(provider, item);
+        if (!document || !isGovernanceDocument(document.path)) return false;
+        const saved = preparedPlans.get(document.artifact_id);
+        if (!saved || saved.materialized.preview.manifest.change_class !== "semantic-governance-change" ||
+            !["PLAN_READY", "PLAN_READY_MISMATCH"].includes(planStates.get(document.artifact_id) ?? "PLAN_MISSING")) {
+          void vscode.window.showWarningMessage("No current high-risk governance plan exists for this document. Prepare a new governance plan.");
+          return false;
+        }
+        try {
+          const result = await applyCoordinator.applyGovernance(
+            saved.materialized, saved.request, document.title, document.version,
+            {
+              candidateIsDirty: () => isCandidateUnsaved(saved.candidatePath),
+              confirm: async (summary) => {
+                const choice = await vscode.window.showWarningMessage(
+                  `Review high-risk governance UPDATE for ${summary.artifactId}?`,
+                  { modal: true, detail: applyConfirmationDetail(summary) },
+                  "Review Diff", "Continue to Separate Approval",
+                );
+                if (choice === "Review Diff") await vscode.commands.executeCommand("aeterna.compareCandidate", item);
+                return choice === "Continue to Separate Approval";
+              },
+              confirmMismatch: async (summary) => (await vscode.window.showWarningMessage(
+                `Planner recommends ${summary.recommendedIntent}, but the selected governance plan declares ${summary.versionIntent}. Continue?`,
+                { modal: true, detail: applyConfirmationDetail(summary) },
+                "Continue Despite Mismatch",
+              )) === "Continue Despite Mismatch",
+              onBeforeRun: () => {
+                setPlanState(document.artifact_id, "APPLY_RUNNING");
+                output.appendLine(`Production governance Apply preconditions started for ${document.artifact_id}.`);
+              },
+            },
+            async (summary, challenge) => {
+              const approved = await vscode.window.showWarningMessage(
+                `Approve this one governance Apply: ${summary.artifactId} — ${summary.title}?`,
+                { modal: true, detail: [
+                  `Version ${summary.version} → ${summary.proposedVersion}; semantic-governance-change / major.`,
+                  `Repository HEAD: ${summary.head}`,
+                  `Candidate SHA-256: ${summary.candidateSha256}`,
+                  `Immutable plan semantic SHA-256: ${summary.planSemanticSha256}`,
+                  `One-time operation: ${String(challenge.approval_binding.operation_id)}`,
+                  `Exact planned writes: ${summary.plannedWrites.join(", ")}`,
+                  `Dependency impact: ${summary.dependencyImpact}`,
+                  "Production has rechecked the plan under the repository lock. This confirmation authorizes one current operation only.",
+                ].join("\n") },
+                "Approve This Governance Apply",
+              );
+              return approved === "Approve This Governance Apply";
+            },
+          );
+          output.appendLine(`Governance Apply ${result.status}: ${result.message}`);
+          if (result.reviewPath) output.appendLine(`Production review: ${result.reviewPath}`);
+          if (result.status === "CANCELLED") {
+            setPlanState(document.artifact_id, preparedPlans.get(document.artifact_id) === saved ? "PLAN_READY" : "PLAN_STALE");
+            return false;
+          }
+          preparedPlans.delete(document.artifact_id);
+          if (result.status === "PASS") {
+            await provider.refresh();
+            setPlanState(document.artifact_id, "APPLY_PASS");
+            offerProductionReview(result.reviewPath, `AETERNA governance Apply PASS for ${document.artifact_id}; production review verified. Inspect GitHub Desktop before manual commit/push.`, false);
+            return true;
+          }
+          setPlanState(document.artifact_id, result.status === "BLOCKED" ? "APPLY_BLOCKED" : "APPLY_FAIL");
+          output.show(true);
+          offerProductionReview(result.reviewPath, `AETERNA governance Apply ${result.status}: ${result.message}`, true);
+          return false;
+        } catch (error) {
+          if (!(error instanceof ExplicitApplyError && error.code === "APPLY_ALREADY_ATTEMPTED")) {
+            preparedPlans.delete(document.artifact_id);
+            setPlanState(document.artifact_id, "APPLY_BLOCKED");
+          }
+          reportCandidateError(output, "Governance Apply", error);
           return false;
         }
       },

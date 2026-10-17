@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   filterManagedDocuments,
+  isGovernanceDocument,
   managerPlanStateLabel,
   parseManagerMessage,
   renderManagerHtml,
@@ -59,6 +60,10 @@ test("manager accepts only known actions and well-formed artifact IDs", () => {
     parseManagerMessage({ type: "action", action: "planMinor", artifactId: "AET-DOC-PROJECT-PLAN" }),
     { type: "action", action: "planMinor", artifactId: "AET-DOC-PROJECT-PLAN" },
   );
+  assert.deepEqual(parseManagerMessage({ type: "action", action: "planGovernance", artifactId: "AET-DOC-GITHUB-WORKFLOW" }),
+    { type: "action", action: "planGovernance", artifactId: "AET-DOC-GITHUB-WORKFLOW" });
+  assert.deepEqual(parseManagerMessage({ type: "action", action: "applyGovernance", artifactId: "AET-DOC-GITHUB-WORKFLOW" }),
+    { type: "action", action: "applyGovernance", artifactId: "AET-DOC-GITHUB-WORKFLOW" });
   for (const invalid of [
     null,
     { type: "action", action: "create", artifactId: "AET-DOC-PROJECT-PLAN" },
@@ -74,6 +79,12 @@ test("manager accepts only known actions and well-formed artifact IDs", () => {
   }
 });
 
+test("governance actions are limited to the canonical governance directory", () => {
+  assert.equal(isGovernanceDocument("project/governance/workflows/GITHUB_WORKFLOW.md"), true);
+  assert.equal(isGovernanceDocument("project/planning/PROJECT_PLAN.md"), false);
+  assert.equal(isGovernanceDocument("project/governance/../planning/PROJECT_PLAN.md"), false);
+});
+
 test("manager HTML uses CSP and text-only DOM rendering for registry values", () => {
   const html = renderManagerHtml("known-nonce");
   assert.match(html, /default-src 'none'; script-src 'nonce-known-nonce'; style-src 'nonce-known-nonce'/);
@@ -83,6 +94,8 @@ test("manager HTML uses CSP and text-only DOM rendering for registry values", ()
   assert.doesNotMatch(html, /innerHTML/);
   assert.match(html, /data-action="apply" disabled/);
   assert.match(html, /data-action="planMinor" disabled/);
+  assert.match(html, /data-action="planGovernance" disabled/);
+  assert.match(html, /data-action="applyGovernance" disabled/);
   assert.match(html, /data-action="plan" disabled/);
   assert.match(html, /data-action="newDocument"/);
   assert.match(html, /data-action="planCreate"/);

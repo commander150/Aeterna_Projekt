@@ -251,6 +251,94 @@ export async function runWorkflowCommand(
   }
 }
 
+export interface GovernanceGuiChallenge {
+  readonly schema_version: "aeterna-governance-gui-challenge/0.1";
+  readonly approval_binding: Record<string, unknown>;
+  readonly challenge: string;
+  readonly candidate_sha256: string;
+}
+
+export async function runGovernanceGuiCommand(
+  repositoryRoot: string,
+  arguments_: readonly string[],
+  confirm: (challenge: GovernanceGuiChallenge) => Promise<boolean>,
+): Promise<WorkflowCommandExecution> {
+  if (!(await workflowIsAvailable(repositoryRoot))) {
+    throw new WorkflowIntegrationError("WORKFLOW_UNAVAILABLE", "The AETERNA document workflow CLI is unavailable in the repository.");
+  }
+  const interpreter = await discoverPythonInterpreter(repositoryRoot);
+  return new Promise((resolve, reject) => {
+    const child = spawn(interpreter.command,
+      [...interpreter.prefixArguments, "-m", WORKFLOW_MODULE, ...arguments_],
+      { cwd: repositoryRoot, shell: false, windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
+    const stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+    let size = 0;
+    let pending = Buffer.alloc(0);
+    let challenged = false;
+    let prefixLength = 0;
+    let failed = false;
+    let protocolError: Error | undefined;
+    const abort = (error: Error): void => {
+      if (failed) return;
+      failed = true;
+      child.stdin.end();
+      child.kill();
+      reject(error);
+    };
+    const capture = (target: Buffer[], chunk: Buffer): void => {
+      size += chunk.length;
+      if (size > MAX_OUTPUT_BYTES) {
+        abort(new Error("Governance workflow output exceeded the allowed size."));
+        return;
+      }
+      target.push(chunk);
+    };
+    child.stdout.on("data", (chunk: Buffer) => {
+      capture(stdout, chunk);
+      if (challenged || failed) return;
+      pending = Buffer.concat([pending, chunk]);
+      const end = pending.indexOf(10);
+      if (end < 0) return;
+      challenged = true;
+      prefixLength = end + 1;
+      let challenge: GovernanceGuiChallenge;
+      try {
+        challenge = JSON.parse(pending.subarray(0, end).toString("utf8")) as GovernanceGuiChallenge;
+        if (challenge.schema_version !== "aeterna-governance-gui-challenge/0.1" ||
+            !challenge.approval_binding || typeof challenge.challenge !== "string" ||
+            typeof challenge.candidate_sha256 !== "string") throw new Error("Invalid governance challenge.");
+      } catch {
+        protocolError = new Error("Production governance challenge was malformed.");
+        child.stdin.end("\n");
+        return;
+      }
+      void Promise.resolve().then(() => confirm(challenge)).then((approved) => {
+        if (!failed && child.exitCode === null && !child.stdin.destroyed) child.stdin.end(`${approved ? challenge.challenge : ""}\n`);
+      }).catch((error: unknown) => {
+        protocolError = error instanceof Error ? error : new Error(String(error));
+        if (child.exitCode === null && !child.stdin.destroyed) child.stdin.end("\n");
+      });
+    });
+    child.stderr.on("data", (chunk: Buffer) => capture(stderr, chunk));
+    child.on("error", (error: Error) => abort(error));
+    child.on("close", (code) => {
+      if (failed) return;
+      if (protocolError) {
+        reject(protocolError);
+        return;
+      }
+      const output = Buffer.concat(stdout);
+      if (code === 0 && !challenged) {
+        reject(new Error("Governance workflow completed without an interactive challenge."));
+        return;
+      }
+      resolve({ exitCode: code ?? -1, stdout: challenged ? output.subarray(prefixLength).toString("utf8") : output.toString("utf8"),
+        stderr: Buffer.concat(stderr).toString("utf8"), interpreter });
+    });
+  });
+}
+
 export async function resolveArtifact(
   repositoryRoot: string,
   artifactId: string,

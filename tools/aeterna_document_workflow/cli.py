@@ -14,7 +14,7 @@ from .git_state import capture_git_state
 from .planner import build_update_plan
 from .resolver import record_payload, resolve_artifact
 from .review import verify_review_file
-from .transaction import apply_governance_plan, apply_plan
+from .transaction import apply_governance_gui_plan, apply_governance_plan, apply_plan
 from tools.aeterna_artifacts.scanner import scan_repository
 from tools.aeterna_artifacts.validation import CONTROLLED_VALUES
 
@@ -65,6 +65,14 @@ def _parser() -> argparse.ArgumentParser:
     governance_apply.add_argument("plan")
     governance_apply.add_argument("--repo", required=True)
     governance_apply.add_argument("--review-dir", required=True)
+
+    gui_apply = commands.add_parser(
+        "apply-governance-gui",
+        help="Apply high-risk UPDATE with one process-local GUI challenge/response.",
+    )
+    gui_apply.add_argument("plan")
+    gui_apply.add_argument("--repo", required=True)
+    gui_apply.add_argument("--review-dir", required=True)
 
     verify = commands.add_parser("verify-review", help="Verify historical review evidence.")
     verify.add_argument("review")
@@ -149,6 +157,9 @@ def _run(arguments: argparse.Namespace) -> int:
         return 0
     if arguments.command == "apply-governance":
         _print_json(apply_governance_plan(arguments.plan, arguments.repo, arguments.review_dir))
+        return 0
+    if arguments.command == "apply-governance-gui":
+        _print_json(apply_governance_gui_plan(arguments.plan, arguments.repo, arguments.review_dir))
         return 0
     if arguments.command == "verify-review":
         review = verify_review_file(arguments.review)

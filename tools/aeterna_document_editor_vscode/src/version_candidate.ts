@@ -21,6 +21,12 @@ export function suggestMinorVersion(current: string): string | undefined {
   return `${match[1]}.${BigInt(match[2]!) + 1n}`;
 }
 
+export function suggestMajorVersion(current: string): string | undefined {
+  const match = /^(\d+)\.(\d+)$/.exec(current);
+  if (!match) return undefined;
+  return `${BigInt(match[1]!) + 1n}.0`;
+}
+
 export function validateProposedVersion(current: string, proposed: string): void {
   if (!proposed || proposed !== proposed.trim() || proposed === current ||
       /["\\\u0000-\u001f\u007f]/.test(proposed)) {

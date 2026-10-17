@@ -6,7 +6,7 @@ import path from "node:path";
 import { isPathWithin, loadCandidateSession, pathsEqual, type CandidateSessionRequest } from "./candidate";
 import { inspectUpdateBaseline, parseUpdatePlanJson, type PreparedUpdatePreview } from "./update_plan";
 import { candidateVersion } from "./version_candidate";
-import { runWorkflowCommand, type WorkflowCommandExecution } from "./workflow";
+import { runGovernanceGuiCommand, runWorkflowCommand, type GovernanceGuiChallenge, type WorkflowCommandExecution } from "./workflow";
 
 export class ExplicitApplyError extends Error {
   public constructor(public readonly code: string, message: string) {
@@ -26,8 +26,9 @@ export interface ApplySummary {
   readonly artifactId: string;
   readonly title: string;
   readonly version: string;
-  readonly versionIntent: "git-only" | "minor";
+  readonly versionIntent: "git-only" | "minor" | "major";
   readonly proposedVersion: string;
+  readonly branch: string;
   readonly head: string;
   readonly baselineSha256: string;
   readonly candidateSha256: string;
@@ -51,6 +52,26 @@ export interface ApplyOptions {
   readonly confirmMismatch: (summary: ApplySummary) => Promise<boolean>;
   readonly onBeforeRun?: () => void;
   readonly runner?: (root: string, args: readonly string[]) => Promise<WorkflowCommandExecution>;
+}
+
+export function governanceChallengeMatches(
+  challenge: GovernanceGuiChallenge, summary: ApplySummary, repositoryRoot: string,
+): boolean {
+  const binding = challenge.approval_binding;
+  const operation = binding.operation_id;
+  return challenge.schema_version === "aeterna-governance-gui-challenge/0.1" &&
+    typeof operation === "string" && /^[0-9a-f]{32}$/.test(operation) &&
+    challenge.challenge === `APPLY ${operation} ${summary.planSemanticSha256}` &&
+    challenge.candidate_sha256 === summary.candidateSha256 &&
+    binding.schema_version === "aeterna-local-governance-approval/0.1" &&
+    pathsEqual(String(binding.repository_root), repositoryRoot) &&
+    binding.artifact_id === summary.artifactId &&
+    binding.baseline_branch === summary.branch &&
+    binding.baseline_head === summary.head &&
+    binding.plan_semantic_sha256 === summary.planSemanticSha256 &&
+    binding.change_class === "semantic-governance-change" &&
+    binding.version_intent === "major" &&
+    isDeepStrictEqual(binding.expected_changed_paths, summary.plannedWrites);
 }
 
 function sha256(data: Buffer): string {
@@ -89,6 +110,7 @@ export function summarizePreparedUpdate(materialized: MaterializedUpdatePlan, ti
     version,
     versionIntent: preview.manifest.version_intent,
     proposedVersion: preview.manifest.proposed_version ?? version,
+    branch: preview.identity.branch,
     head: preview.identity.head,
     baselineSha256: preview.identity.baselineSha256,
     candidateSha256: preview.identity.candidateSha256,
@@ -158,7 +180,8 @@ async function validatePreparedState(
   const manifest = saved.preview.manifest;
   const expectedMode = manifest.change_class === "body-only" && manifest.version_intent === "git-only"
     ? manifest.metadata_delta.length === 0 && manifest.proposed_version === null
-    : manifest.change_class === "metadata+body" && manifest.version_intent === "minor"
+    : ((manifest.change_class === "metadata+body" && manifest.version_intent === "minor") ||
+       (manifest.change_class === "semantic-governance-change" && manifest.version_intent === "major"))
       && manifest.metadata_delta.length === 1
       && manifest.metadata_delta[0]?.field === "version"
       && manifest.metadata_delta[0]?.old === request.artifact.version
@@ -178,7 +201,7 @@ async function validatePreparedState(
       sha256(candidateBytes) !== saved.preview.identity.candidateSha256) {
     throw new ExplicitApplyError("PLAN_STALE", "Candidate changed after planning; prepare a new plan.");
   }
-  if (manifest.version_intent === "minor" && candidateVersion(candidateBytes) !== manifest.proposed_version) {
+  if (manifest.version_intent !== "git-only" && candidateVersion(candidateBytes) !== manifest.proposed_version) {
     throw new ExplicitApplyError("PLAN_STALE", "Candidate version no longer matches the approved minor plan.");
   }
   const { baseline } = await inspectUpdateBaseline(realRoot, session.manifest.artifactId);
@@ -217,6 +240,28 @@ export class ExplicitApplyCoordinator {
     version: string,
     options: ApplyOptions,
   ): Promise<ApplyOutcome> {
+    return this.applyInternal(saved, request, title, version, options);
+  }
+
+  public async applyGovernance(
+    saved: MaterializedUpdatePlan,
+    request: CandidateSessionRequest,
+    title: string,
+    version: string,
+    options: ApplyOptions,
+    confirmChallenge: (summary: ApplySummary, challenge: GovernanceGuiChallenge) => Promise<boolean>,
+  ): Promise<ApplyOutcome> {
+    return this.applyInternal(saved, request, title, version, options, confirmChallenge);
+  }
+
+  private async applyInternal(
+    saved: MaterializedUpdatePlan,
+    request: CandidateSessionRequest,
+    title: string,
+    version: string,
+    options: ApplyOptions,
+    confirmChallenge?: (summary: ApplySummary, challenge: GovernanceGuiChallenge) => Promise<boolean>,
+  ): Promise<ApplyOutcome> {
     const key = saved.planPath;
     if (this.running || this.attempted.has(key)) {
       throw new ExplicitApplyError("APPLY_ALREADY_ATTEMPTED", "An Apply is already running or this plan was already attempted. Prepare a new plan.");
@@ -224,6 +269,10 @@ export class ExplicitApplyCoordinator {
     this.running = true;
     try {
       await validatePreparedState(saved, request, options.candidateIsDirty);
+      const governance = saved.preview.manifest.change_class === "semantic-governance-change";
+      if (governance !== Boolean(confirmChallenge)) {
+        throw new ExplicitApplyError("GOVERNANCE_ENTRYPOINT_REQUIRED", "High-risk governance plans require the separate GUI governance approval action.");
+      }
       const summary = summarizePreparedUpdate(saved, title, version);
       if (!(await options.confirm(summary))) {
         return { status: "CANCELLED", message: "Apply cancelled; canonical files were not changed." };
@@ -239,9 +288,19 @@ export class ExplicitApplyCoordinator {
       const reviewPath = path.join(reviewDir, "review.json");
       let execution: WorkflowCommandExecution;
       try {
-        execution = await run(saved.repositoryRoot, [
-          "apply", saved.planPath, "--repo", saved.repositoryRoot, "--review-dir", reviewDir,
-        ]);
+        const args = [governance ? "apply-governance-gui" : "apply", saved.planPath,
+          "--repo", saved.repositoryRoot, "--review-dir", reviewDir];
+        execution = governance
+          ? await runGovernanceGuiCommand(saved.repositoryRoot, args, async (challenge) => {
+            if (!governanceChallengeMatches(challenge, summary, saved.repositoryRoot)) {
+              throw new ExplicitApplyError("GOVERNANCE_CHALLENGE_MISMATCH", "Production governance challenge does not match the reviewed plan.");
+            }
+            const approved = await confirmChallenge!(summary, challenge);
+            if (!approved) return false;
+            await validatePreparedState(saved, request, options.candidateIsDirty);
+            return true;
+          })
+          : await run(saved.repositoryRoot, args);
       } catch (error) {
         return { status: "BLOCKED", message: `Production Apply could not start or complete: ${error instanceof Error ? error.message : String(error)}. No automatic retry.`, reviewPath };
       }
@@ -268,6 +327,19 @@ export class ExplicitApplyCoordinator {
           object(review.artifact).artifact_id !== summary.artifactId ||
           review.plan_semantic_sha256 !== summary.planSemanticSha256) {
         return { status: "VERIFY_FAILED", message: `Production review verification failed: ${diagnostic(verified)}. Inspect the repository and review evidence.`, reviewPath };
+      }
+      if (governance && execution.exitCode === 0) {
+        const approval = object(review.governance_approval);
+        const binding = object(approval.binding);
+        if (approval.method !== "interactive-gui" || approval.decision !== "CONFIRMED" ||
+            approval.consumed !== true || !governanceChallengeMatches({
+              schema_version: "aeterna-governance-gui-challenge/0.1",
+              approval_binding: binding,
+              challenge: `APPLY ${String(binding.operation_id)} ${summary.planSemanticSha256}`,
+              candidate_sha256: summary.candidateSha256,
+            }, summary, saved.repositoryRoot) || binding.operation_id !== review.operation_id) {
+          return { status: "VERIFY_FAILED", message: "Governance approval evidence does not match the reviewed operation.", reviewPath };
+        }
       }
       const rollback = object(review.rollback);
       const rollbackStatus: ApplyOutcome["rollback"] = rollback.performed

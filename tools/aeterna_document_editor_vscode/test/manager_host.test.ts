@@ -139,6 +139,42 @@ test("manager permits Apply only for a selected document with a ready plan", asy
   manager.dispose();
 });
 
+test("governance GUI routes only a ready governance plan and excludes ordinary Apply", async () => {
+  const document: ManagedDocument = {
+    artifact_id: "AET-DOC-GITHUB-WORKFLOW", title: "GitHub Workflow",
+    path: "project/governance/workflows/GITHUB_WORKFLOW.md",
+    absolutePath: "C:\\repo\\project\\governance\\workflows\\GITHUB_WORKFLOW.md",
+    kind: "document", version: "1.1", generated: false, scope: "ACTIVE",
+  };
+  let receiver: ((message: unknown) => void) | undefined;
+  const actions: string[] = [];
+  const panel = {
+    webview: { html: "", postMessage: async () => true,
+      onDidReceiveMessage: (listener: (message: unknown) => void) => { receiver = listener; return { dispose() {} }; } },
+    onDidDispose: () => ({ dispose() {} }), dispose() {}, reveal() {},
+  };
+  const host = { ViewColumn: { One: 1 }, window: { createWebviewPanel: () => panel } } as unknown as typeof vscode;
+  let governance = false;
+  let ready = false;
+  const manager = new DocumentManager(host, () => [document], () => "Ready", async (action) => {
+    actions.push(action);
+    return { ok: true, message: "Done" };
+  }, () => ready ? "PLAN_READY" : "PLAN_STALE", () => "", () => governance);
+  manager.show();
+  receiver?.({ type: "action", action: "applyGovernance", artifactId: document.artifact_id });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.deepEqual(actions, []);
+  governance = true;
+  ready = true;
+  receiver?.({ type: "action", action: "apply", artifactId: document.artifact_id });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.deepEqual(actions, []);
+  receiver?.({ type: "action", action: "applyGovernance", artifactId: document.artifact_id });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.deepEqual(actions, ["applyGovernance"]);
+  manager.dispose();
+});
+
 test("minor and git-only plan notifications do not hold Manager actions busy", async () => {
   const document: ManagedDocument = {
     artifact_id: "AET-DOC-PROJECT-PLAN", title: "Project Plan",

@@ -15,6 +15,7 @@ from tools.aeterna_document_workflow.git_state import capture_git_state
 from tools.aeterna_document_workflow.governance_approval import (
     GovernanceApproval,
     approval_binding,
+    confirm_governance_gui,
 )
 from tools.aeterna_document_workflow.model import PreparedUpdate, WorkflowError, fail
 from tools.aeterna_document_workflow.planner import build_update_plan
@@ -25,7 +26,7 @@ from tools.aeterna_document_workflow.review import (
     verify_review_file,
 )
 from tools.aeterna_document_workflow.transaction import (
-    FailureInjection, apply_governance_plan, apply_plan,
+    FailureInjection, apply_governance_gui_plan, apply_governance_plan, apply_plan,
 )
 
 from .helpers import RepositoryFixture, markdown
@@ -486,6 +487,40 @@ class ApplyTests(unittest.TestCase):
         unconsumed["review_semantic_sha256"] = review_semantic_digest(unconsumed)
         with self.assertRaises(WorkflowError):
             verify_review_payload(unconsumed)
+
+    def test_gui_challenge_rejection_and_single_use_binding(self) -> None:
+        before = self.fixture.tracked_bytes()
+        plan, plan_path, review_dir = self._governance_plan()
+        for response in ("\n", "APPLY wrong-operation wrong-hash\n"):
+            with self.subTest(response=response), \
+                    patch("tools.aeterna_document_workflow.governance_approval.sys.stdin", io.StringIO(response)), \
+                    patch("tools.aeterna_document_workflow.governance_approval.sys.stdout", io.StringIO()) as output:
+                with self.assertRaises(WorkflowError) as caught:
+                    apply_governance_gui_plan(plan_path, self.fixture.root, review_dir)
+                self.assertEqual("SEMANTIC_GOVERNANCE_APPROVAL_REJECTED", caught.exception.diagnostics[0].code)
+                challenge = json.loads(output.getvalue().splitlines()[0])
+                self.assertEqual(plan["plan_semantic_sha256"], challenge["approval_binding"]["plan_semantic_sha256"])
+                self.assertEqual(plan["candidate"]["sha256"], challenge["candidate_sha256"])
+                self.assertEqual(before, self.fixture.tracked_bytes())
+                self._assert_blocked_review(review_dir)
+
+    def test_gui_apply_passes_verified_review_with_one_operation_bound_approval(self) -> None:
+        plan, plan_path, review_dir = self._governance_plan()
+        operation = uuid.UUID("12345678-1234-1234-1234-123456789abc")
+        response = f"APPLY {operation.hex} {plan['plan_semantic_sha256']}\n"
+        output = io.StringIO()
+        with patch.object(transaction.uuid, "uuid4", return_value=operation), \
+                patch("tools.aeterna_document_workflow.governance_approval.sys.stdin", io.StringIO(response)), \
+                patch("tools.aeterna_document_workflow.governance_approval.sys.stdout", output):
+            result = apply_governance_gui_plan(plan_path, self.fixture.root, review_dir)
+        challenge = json.loads(output.getvalue().splitlines()[0])
+        self.assertEqual("aeterna-governance-gui-challenge/0.1", challenge["schema_version"])
+        self.assertEqual(approval_binding(plan, self.fixture.root, operation.hex), challenge["approval_binding"])
+        review = verify_review_file(result["review_json"])
+        self.assertEqual("PASS", review["final_status"])
+        self.assertEqual("interactive-gui", review["governance_approval"]["method"])
+        self.assertTrue(review["governance_approval"]["consumed"])
+        self.assertEqual("2.0", inspect_markdown(self.fixture.target).metadata.fields["version"])
 
     def test_governance_approval_binding_mismatch_blocks_before_write(self) -> None:
         before = self.fixture.tracked_bytes()

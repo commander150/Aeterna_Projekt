@@ -7,7 +7,7 @@ import { test } from "node:test";
 
 import {
   CandidateVersionError, candidateVersion, replaceCandidateVersion,
-  suggestMinorVersion, writeCandidateVersion,
+  suggestMajorVersion, suggestMinorVersion, writeCandidateVersion,
 } from "../src/version_candidate";
 
 function digest(bytes: Buffer): string {
@@ -23,6 +23,9 @@ test("minor suggestion applies only to a known two-component numeric form", () =
   assert.equal(suggestMinorVersion("6.20"), "6.21");
   assert.equal(suggestMinorVersion("release-1.1"), undefined);
   assert.equal(suggestMinorVersion("1.2.3"), undefined);
+  assert.equal(suggestMajorVersion("1.1"), "2.0");
+  assert.equal(suggestMajorVersion("6.20"), "7.0");
+  assert.equal(suggestMajorVersion("release-1.1"), undefined);
 });
 
 test("candidate version edit preserves BOM, CRLF and every other byte", () => {

@@ -49,7 +49,8 @@ export interface UpdateBaseline {
 
 export type UpdateChoice =
   | { readonly changeClass: "body-only"; readonly versionIntent: "git-only" }
-  | { readonly changeClass: "metadata+body"; readonly versionIntent: "minor"; readonly proposedVersion: string };
+  | { readonly changeClass: "metadata+body"; readonly versionIntent: "minor"; readonly proposedVersion: string }
+  | { readonly changeClass: "semantic-governance-change"; readonly versionIntent: "major"; readonly proposedVersion: string };
 
 export interface VersionDelta {
   readonly field: "version";
@@ -65,8 +66,8 @@ export interface UpdateManifestPayload {
   readonly expected_path: string;
   readonly baseline_sha256: string;
   readonly metadata_fingerprint: string;
-  readonly change_class: "body-only" | "metadata+body";
-  readonly version_intent: "git-only" | "minor";
+  readonly change_class: "body-only" | "metadata+body" | "semantic-governance-change";
+  readonly version_intent: "git-only" | "minor" | "major";
   readonly candidate_path: string;
   readonly candidate_sha256: string;
   readonly metadata_delta: readonly VersionDelta[];
@@ -203,8 +204,9 @@ export function createUpdateManifest(
   choice: UpdateChoice,
 ): UpdateManifestPayload {
   if ((choice.changeClass !== "body-only" || choice.versionIntent !== "git-only") &&
-      (choice.changeClass !== "metadata+body" || choice.versionIntent !== "minor")) {
-    throw new UpdatePreviewError("UNSUPPORTED_CHOICE", "Only body-only / git-only or metadata+body / minor UPDATE is supported.");
+      (choice.changeClass !== "metadata+body" || choice.versionIntent !== "minor") &&
+      (choice.changeClass !== "semantic-governance-change" || choice.versionIntent !== "major")) {
+    throw new UpdatePreviewError("UNSUPPORTED_CHOICE", "Unsupported UPDATE change class and version intent.");
   }
   if (
     baseline.artifact_id !== session.manifest.artifactId ||
@@ -215,7 +217,7 @@ export function createUpdateManifest(
   ) {
     throw new UpdatePreviewError("BASELINE_DRIFT", "Current Python workflow baseline does not match the E1 candidate session.");
   }
-  if (choice.versionIntent === "minor") {
+  if (choice.versionIntent !== "git-only") {
     validateProposedVersion(String(baseline.metadata.version), choice.proposedVersion);
   }
   return {
@@ -230,11 +232,11 @@ export function createUpdateManifest(
     version_intent: choice.versionIntent,
     candidate_path: session.candidatePath,
     candidate_sha256: candidateSha256,
-    metadata_delta: choice.versionIntent === "minor"
+    metadata_delta: choice.versionIntent !== "git-only"
       ? [{ field: "version", old: String(baseline.metadata.version), new: choice.proposedVersion }]
       : [],
     reference_changes: [],
-    proposed_version: choice.versionIntent === "minor" ? choice.proposedVersion : null,
+    proposed_version: choice.versionIntent !== "git-only" ? choice.proposedVersion : null,
   };
 }
 
@@ -329,7 +331,7 @@ export async function prepareUpdatePreview(
     candidateBytes(session.candidatePath),
   ]);
   const candidateSha256 = sha256(bytes);
-  if (choice.versionIntent === "minor" && candidateVersion(bytes) !== choice.proposedVersion) {
+  if (choice.versionIntent !== "git-only" && candidateVersion(bytes) !== choice.proposedVersion) {
     throw new UpdatePreviewError("CANDIDATE_VERSION_MISMATCH", "Candidate version must equal the approved proposed version before planning.");
   }
   const manifest = createUpdateManifest(session, baseline, candidateSha256, choice);

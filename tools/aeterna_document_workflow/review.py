@@ -211,7 +211,7 @@ def verify_review_payload(payload: object) -> dict[str, object]:
                 or PurePosixPath(repository_root).is_absolute()
             )
             if binding != expected_binding or not root_is_absolute \
-                    or approval.get("method") != "interactive-console" \
+                    or approval.get("method") not in {"interactive-console", "interactive-gui"} \
                     or approval.get("identity_assurance") != "local-interaction-only" \
                     or approval.get("decision") not in {"NOT_CONFIRMED", "CONFIRMED"} \
                     or not isinstance(approval.get("consumed"), bool):

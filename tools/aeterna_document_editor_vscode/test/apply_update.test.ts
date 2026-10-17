@@ -8,7 +8,7 @@ import { afterEach, test } from "node:test";
 
 import { createOrOpenCandidateSession, type CandidateSession } from "../src/candidate";
 import {
-  ExplicitApplyCoordinator, ExplicitApplyError, materializePreparedUpdate,
+  ExplicitApplyCoordinator, ExplicitApplyError, governanceChallengeMatches, materializePreparedUpdate,
   type ApplyOptions, type MaterializedUpdatePlan,
 } from "../src/apply_update";
 import { prepareUpdatePreview } from "../src/update_plan";
@@ -43,7 +43,7 @@ function run(command: string, args: string[], cwd: string): string {
   return result.stdout.trim();
 }
 
-async function fixture(mode: "git-only" | "minor" = "git-only"): Promise<{
+async function fixture(mode: "git-only" | "minor" | "major" = "git-only"): Promise<{
   readonly root: string;
   readonly canonical: string;
   readonly session: CandidateSession;
@@ -87,12 +87,13 @@ async function fixture(mode: "git-only" | "minor" = "git-only"): Promise<{
   };
   const session = await createOrOpenCandidateSession(request);
   await writeFile(session.candidatePath, baseline.replace("Baseline body.", "Candidate body changed."), "utf8");
-  if (mode === "minor") {
+  if (mode !== "git-only") {
     const bytes = await readFile(session.candidatePath);
-    await writeCandidateVersion(session.candidatePath, createHash("sha256").update(bytes).digest("hex"), "1.0", "1.1");
+    await writeCandidateVersion(session.candidatePath, createHash("sha256").update(bytes).digest("hex"), "1.0", mode === "major" ? "2.0" : "1.1");
   }
-  const preview = await prepareUpdatePreview(root, session, mode === "minor"
-    ? { changeClass: "metadata+body", versionIntent: "minor", proposedVersion: "1.1" }
+  const preview = await prepareUpdatePreview(root, session, mode === "major"
+    ? { changeClass: "semantic-governance-change", versionIntent: "major", proposedVersion: "2.0" }
+    : mode === "minor" ? { changeClass: "metadata+body", versionIntent: "minor", proposedVersion: "1.1" }
     : { changeClass: "body-only", versionIntent: "git-only" });
   const saved = await materializePreparedUpdate(preview, root, path.join(top, "vscode-storage", "e2b-plans"));
   return { root, canonical, session, request, saved };
@@ -110,6 +111,77 @@ function options(overrides: Partial<ApplyOptions> = {}): ApplyOptions {
 function hasCode(code: string): (error: unknown) => boolean {
   return (error) => error instanceof ExplicitApplyError && error.code === code;
 }
+
+test("governance challenge is bound to repository, artifact, branch, HEAD, digest, candidate and paths", async () => {
+  const data = await fixture("major");
+  const summary = (await import("../src/apply_update")).summarizePreparedUpdate(data.saved, "Target", "1.0");
+  const operation = "a".repeat(32);
+  const binding = {
+    schema_version: "aeterna-local-governance-approval/0.1", operation_id: operation,
+    repository_root: data.root, artifact_id: summary.artifactId,
+    baseline_branch: summary.branch, baseline_head: summary.head,
+    plan_semantic_sha256: summary.planSemanticSha256,
+    expected_changed_paths: [...summary.plannedWrites],
+    change_class: "semantic-governance-change", version_intent: "major",
+  };
+  const challenge = {
+    schema_version: "aeterna-governance-gui-challenge/0.1" as const,
+    approval_binding: binding, challenge: `APPLY ${operation} ${summary.planSemanticSha256}`,
+    candidate_sha256: summary.candidateSha256,
+  };
+  assert.equal(governanceChallengeMatches(challenge, summary, data.root), true);
+  for (const [key, value] of Object.entries({ repository_root: "other", artifact_id: "AET-DOC-OTHER",
+    baseline_branch: "other", baseline_head: "other", plan_semantic_sha256: "0".repeat(64),
+    expected_changed_paths: [target], change_class: "body-only", version_intent: "minor" })) {
+    assert.equal(governanceChallengeMatches({ ...challenge, approval_binding: { ...binding, [key]: value } }, summary, data.root), false, key);
+  }
+  assert.equal(governanceChallengeMatches({ ...challenge, candidate_sha256: "0".repeat(64) }, summary, data.root), false);
+  assert.equal(governanceChallengeMatches({ ...challenge, challenge: "APPLY stale" }, summary, data.root), false);
+});
+
+test("high-risk plan cannot use ordinary Apply; GUI cancellation leaves isolated repository clean", async () => {
+  const data = await fixture("major");
+  const coordinator = new ExplicitApplyCoordinator();
+  await assert.rejects(coordinator.apply(data.saved, data.request, "Target", "1.0", options()), hasCode("GOVERNANCE_ENTRYPOINT_REQUIRED"));
+  const outcome = await coordinator.applyGovernance(data.saved, data.request, "Target", "1.0",
+    options({ confirm: async () => false }), async () => { throw new Error("Challenge must not be reached"); });
+  assert.equal(outcome.status, "CANCELLED");
+  assert.equal(await readFile(data.canonical, "utf8"), baseline);
+  assert.equal(run("git", ["status", "--porcelain"], data.root), "");
+});
+
+test("GUI governance challenge is one-use and production review verifies in isolated repository", async () => {
+  const data = await fixture("major");
+  const coordinator = new ExplicitApplyCoordinator();
+  let confirmations = 0;
+  const outcome = await coordinator.applyGovernance(data.saved, data.request, "Target", "1.0", options(), async (summary) => {
+    confirmations += 1;
+    assert.equal(summary.planSemanticSha256, data.saved.preview.plan.plan_semantic_sha256);
+    return true;
+  });
+  assert.equal(outcome.status, "PASS", outcome.message);
+  assert.equal(confirmations, 1);
+  assert.match(await readFile(data.canonical, "utf8"), /version: "2.0"/);
+  await assert.rejects(coordinator.applyGovernance(data.saved, data.request, "Target", "1.0", options(), async () => true),
+    hasCode("APPLY_ALREADY_ATTEMPTED"));
+});
+
+test("declined GUI challenge writes a verified BLOCKED review and never touches canonical bytes", async () => {
+  const data = await fixture("major");
+  const coordinator = new ExplicitApplyCoordinator();
+  let prompts = 0;
+  const outcome = await coordinator.applyGovernance(data.saved, data.request, "Target", "1.0", options(), async () => {
+    prompts += 1;
+    return false;
+  });
+  assert.equal(prompts, 1);
+  assert.equal(outcome.status, "BLOCKED");
+  assert.ok(outcome.reviewPath);
+  const review = JSON.parse(await readFile(outcome.reviewPath, "utf8")) as Record<string, unknown>;
+  assert.equal(review.final_status, "BLOCKED");
+  assert.equal(await readFile(data.canonical, "utf8"), baseline);
+  assert.equal(run("git", ["status", "--porcelain"], data.root), "");
+});
 
 test("immutable reviewed plan executes one real production Apply only in an isolated repository", async () => {
   const data = await fixture();

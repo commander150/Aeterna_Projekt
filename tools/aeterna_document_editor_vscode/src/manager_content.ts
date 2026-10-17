@@ -1,6 +1,11 @@
 import type { ManagedDocument } from "./registry";
 
-export type ManagerAction = "edit" | "compare" | "plan" | "planMinor" | "apply" | "refresh" | "newDocument" | "planCreate";
+export type ManagerAction = "edit" | "compare" | "plan" | "planMinor" | "planGovernance" | "apply" | "applyGovernance" | "refresh" | "newDocument" | "planCreate";
+
+export function isGovernanceDocument(path: string): boolean {
+  return path.startsWith("project/governance/") && path.endsWith(".md") &&
+    !path.includes("\\") && path.split("/").every((part) => part !== "" && part !== "." && part !== "..");
+}
 
 export type ManagerPlanState =
   | "PLAN_MISSING" | "CANDIDATE_SAVED" | "PLAN_READY" | "PLAN_READY_MISMATCH" | "PLAN_STALE"
@@ -48,7 +53,7 @@ export function parseManagerMessage(value: unknown): ManagerMessage | undefined 
   if (value.type !== "action" || typeof value.action !== "string") {
     return undefined;
   }
-  const actions: readonly string[] = ["edit", "compare", "plan", "planMinor", "apply", "refresh", "newDocument", "planCreate"];
+  const actions: readonly string[] = ["edit", "compare", "plan", "planMinor", "planGovernance", "apply", "applyGovernance", "refresh", "newDocument", "planCreate"];
   if (!actions.includes(value.action)) {
     return undefined;
   }
@@ -134,7 +139,9 @@ export function renderManagerHtml(nonce: string): string {
         <button class="action" type="button" data-action="compare" disabled>Compare Candidate</button>
         <button class="action" type="button" data-action="planMinor" disabled>Versioned UPDATE Plan (minor)</button>
         <button class="action" type="button" data-action="plan" disabled>Unchanged Version Plan (git-only)</button>
+        <button class="action" type="button" data-action="planGovernance" disabled>Governance UPDATE Plan (major)</button>
         <button class="action" type="button" data-action="apply" disabled>Apply Prepared UPDATE</button>
+        <button class="action" type="button" data-action="applyGovernance" disabled>Approve Governance Apply</button>
         <button class="action" type="button" data-action="refresh">Refresh List</button>
       </div>
     </section>
@@ -161,7 +168,9 @@ export function renderManagerHtml(nonce: string): string {
         empty.hidden = Boolean(selected);
         fields.hidden = !selected;
         for (const button of buttons) {
-          if (button.dataset.action === "apply") button.disabled = !selected || !["PLAN_READY", "PLAN_READY_MISMATCH"].includes(selected.planState);
+          if (button.dataset.action === "apply") button.disabled = !selected || selected.governancePlan || !["PLAN_READY", "PLAN_READY_MISMATCH"].includes(selected.planState);
+          else if (button.dataset.action === "applyGovernance") button.disabled = !selected || !selected.governancePlan || !["PLAN_READY", "PLAN_READY_MISMATCH"].includes(selected.planState);
+          else if (button.dataset.action === "planGovernance") button.disabled = !selected || !selected.governance;
           else if (!["refresh", "newDocument", "planCreate"].includes(button.dataset.action)) button.disabled = !selected;
         }
         planState.textContent = selected ? selected.planStateLabel : "Plan missing.";
