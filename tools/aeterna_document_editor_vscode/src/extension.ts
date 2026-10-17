@@ -278,6 +278,7 @@ function offerProductionReview(reviewPath: string | undefined, message: string, 
 
 async function promptCreateInput(baseline: CreateBaseline, artifactId: string): Promise<CreateInput | undefined> {
   const targetPath = await vscode.window.showInputBox({
+    ignoreFocusOut: true,
     title: "New Document — canonical target path",
     prompt: "Repository-relative .md path in an existing project/, data/, design/ or src/engine/docs/ directory.",
     validateInput: (value) => value && !value.includes("\\") && !value.includes("..") && value.endsWith(".md")
@@ -286,37 +287,40 @@ async function promptCreateInput(baseline: CreateBaseline, artifactId: string): 
   if (targetPath === undefined) return undefined;
   const type = await vscode.window.showQuickPick(
     baseline.controlled_values.type.map((value) => ({ label: value })),
-    { title: "New Document — document type", placeHolder: "Select a type from the production metadata schema" },
+    { title: "New Document — document type", placeHolder: "Select a type from the production metadata schema", ignoreFocusOut: true },
   );
   if (!type) return undefined;
   const authority = await vscode.window.showQuickPick(
     baseline.controlled_values.authority.map((value) => ({ label: value })),
-    { title: "New Document — authority", placeHolder: "Select the document's authority explicitly" },
+    { title: "New Document — authority", placeHolder: "Select the document's authority explicitly", ignoreFocusOut: true },
   );
   if (!authority) return undefined;
   const integration = await vscode.window.showQuickPick(
     baseline.create_contract.integration.map((value) => ({ label: value })),
-    { title: "New Document — integration state", placeHolder: "Choose current or pending_integration" },
+    { title: "New Document — integration state", placeHolder: "Choose current or pending_integration", ignoreFocusOut: true },
   );
   if (!integration || !["current", "pending_integration"].includes(integration.label)) return undefined;
   const dependencies = await vscode.window.showQuickPick(
     baseline.existing_artifact_ids.filter((id) => id !== artifactId).map((id) => ({ label: id })),
-    { title: "New Document — dependencies", placeHolder: "Select zero or more existing artifact IDs", canPickMany: true },
+    { title: "New Document — dependencies", placeHolder: "Select zero or more existing artifact IDs", canPickMany: true, ignoreFocusOut: true },
   );
   if (!dependencies) return undefined;
   const version = await vscode.window.showInputBox({
+    ignoreFocusOut: true,
     title: "New Document — initial version",
     prompt: "Enter and approve the initial version. No default or automatic increment is applied.",
     validateInput: (value) => value.trim() && !/[\r\n]/.test(value) ? undefined : "Enter a non-empty, single-line version.",
   });
   if (version === undefined) return undefined;
   const title = await vscode.window.showInputBox({
+    ignoreFocusOut: true,
     title: "New Document — H1 title",
     prompt: "Enter the initial Markdown H1 title.",
     validateInput: (value) => value.trim() && !/[\r\n]/.test(value) ? undefined : "Enter a non-empty, single-line title.",
   });
   if (title === undefined) return undefined;
   const initialContent = await vscode.window.showInputBox({
+    ignoreFocusOut: true,
     title: "New Document — initial body",
     prompt: "Optional first paragraph. You can edit the external candidate in the native Markdown editor.",
   });
@@ -594,6 +598,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       try {
         const baseline = await inspectCreateBaseline(root);
         const artifactId = await vscode.window.showInputBox({
+          ignoreFocusOut: true,
           title: "New Document — artifact ID",
           prompt: "Enter a stable AET-DOC-... ID. Existing sessions reopen without overwriting edits.",
           validateInput: (value) => /^AET-DOC-[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(value)
