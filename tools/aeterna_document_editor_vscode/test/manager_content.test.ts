@@ -68,6 +68,8 @@ test("manager accepts only known actions and well-formed artifact IDs", () => {
     { type: "select", artifactId: "AET-DOC-PROJECT-PLAN" });
   assert.deepEqual(parseManagerMessage({ type: "action", action: "planCreate" }), { type: "action", action: "planCreate" });
   assert.deepEqual(parseManagerMessage({ type: "action", action: "applyCreate" }), { type: "action", action: "applyCreate" });
+  assert.deepEqual(parseManagerMessage({ type: "answer", questionId: "a".repeat(32), choice: "approve" }),
+    { type: "answer", questionId: "a".repeat(32), choice: "approve" });
   assert.deepEqual(
     parseManagerMessage({ type: "action", action: "edit", artifactId: "AET-DOC-PROJECT-PLAN" }),
     { type: "action", action: "edit", artifactId: "AET-DOC-PROJECT-PLAN" },
@@ -91,6 +93,8 @@ test("manager accepts only known actions and well-formed artifact IDs", () => {
   for (const invalid of [
     null,
     { type: "action", action: "create", artifactId: "AET-DOC-PROJECT-PLAN" },
+    { type: "answer", questionId: "bad", choice: "approve" },
+    { type: "answer", questionId: "a".repeat(32), choice: "approve", approved: true },
     { type: "select", artifactId: "../outside.md" },
     { type: "action", action: "edit", artifactId: "../outside.md" },
     { type: "action", action: "edit", artifactId: "AET-DOC-PROJECT-PLAN", path: "C:\\outside" },
@@ -136,6 +140,9 @@ test("manager HTML uses CSP and text-only DOM rendering for registry values", ()
   assert.match(html, /message\.selectedDocument/);
   assert.match(html, /message\.query/);
   assert.match(html, /createState\.textContent/);
+  assert.match(html, /questionArea\.replaceChildren\(\)/);
+  assert.match(html, /content\.textContent = question\.details/);
+  assert.match(html, /choice: option\.id/);
   assert.match(html, /"PLAN_READY_MISMATCH"/);
   assert.doesNotMatch(html, /AET-DOC-PROJECT-PLAN/);
 });

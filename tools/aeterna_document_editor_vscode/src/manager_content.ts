@@ -29,7 +29,21 @@ export type ManagerMessage =
   | { readonly type: "ready" }
   | { readonly type: "search"; readonly query: string }
   | { readonly type: "select"; readonly artifactId: string }
+  | { readonly type: "answer"; readonly questionId: string; readonly choice: string }
   | { readonly type: "action"; readonly action: ManagerAction; readonly artifactId?: string };
+
+export interface InlineQuestion {
+  readonly title: string;
+  readonly explanation: string;
+  readonly document: string;
+  readonly consequence: string;
+  /** Shown after dismissing this question without taking its primary action. */
+  readonly cancelConsequence?: string;
+  readonly details?: string;
+  /** A completed operation's review notice, not an approval request. */
+  readonly completed?: boolean;
+  readonly choices: readonly { readonly id: string; readonly label: string; readonly review?: boolean }[];
+}
 
 export interface ManagerActionResult {
   readonly ok: boolean;
@@ -54,6 +68,11 @@ export function parseManagerMessage(value: unknown): ManagerMessage | undefined 
   if (value.type === "select" && typeof value.artifactId === "string" &&
       /^AET-DOC-[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(value.artifactId) && Object.keys(value).length === 2) {
     return { type: "select", artifactId: value.artifactId };
+  }
+  if (value.type === "answer" && typeof value.questionId === "string" && /^[a-f0-9]{32}$/.test(value.questionId)
+    && typeof value.choice === "string" && /^[a-zA-Z0-9-]{1,64}$/.test(value.choice)
+    && Object.keys(value).length === 3) {
+    return { type: "answer", questionId: value.questionId, choice: value.choice };
   }
   if (value.type !== "action" || typeof value.action !== "string") {
     return undefined;
@@ -119,6 +138,10 @@ export function renderManagerHtml(nonce: string): string {
     .operation { margin-top: 16px; padding: 10px; border: 1px solid var(--vscode-panel-border); border-left: 3px solid var(--vscode-focusBorder); overflow-wrap: anywhere; }
     .operation h2 { margin: 0 0 8px; font-size: 1.05rem; }
     .operation p { margin: 5px 0; }
+    .question { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--vscode-panel-border); }
+    .question h3 { margin: 0 0 8px; }
+    .question pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .question-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
     @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -163,6 +186,7 @@ export function renderManagerHtml(nonce: string): string {
     <h2>Művelet és visszajelzés</h2>
     <p id="status" role="status" aria-live="polite">Betöltés…</p>
     <p id="next-step"></p>
+    <div id="question" class="question" role="group" aria-label="Aktuális kérdés" hidden></div>
   </section>
   <script nonce="${nonce}">
     (() => {
@@ -177,6 +201,7 @@ export function renderManagerHtml(nonce: string): string {
       const planState = document.getElementById("plan-state");
       const status = document.getElementById("status");
       const nextStep = document.getElementById("next-step");
+      const questionArea = document.getElementById("question");
       const createState = document.getElementById("create-state");
       const buttons = [...document.querySelectorAll("button[data-action]")];
       let documents = [];
@@ -184,6 +209,57 @@ export function renderManagerHtml(nonce: string): string {
       let selectedDocument;
       let createPlanReady = false;
       let metadata;
+      let activeQuestionId;
+      let awaitingApproval = false;
+      let operationStatus = "Betöltés…";
+
+      function renderStatus() {
+        status.textContent = awaitingApproval
+          ? "Jóváhagyásra vár. Válaszd ki a kívánt műveletet, vagy kattints a Mégse gombra."
+          : operationStatus;
+      }
+
+      function renderQuestion(question) {
+        questionArea.replaceChildren();
+        activeQuestionId = question?.id;
+        awaitingApproval = Boolean(question && !question.completed);
+        questionArea.hidden = !question;
+        renderStatus();
+        if (!question) return;
+        const heading = document.createElement("h3");
+        heading.textContent = question.title;
+        const explanation = document.createElement("p");
+        explanation.textContent = question.explanation;
+        const subject = document.createElement("p");
+        subject.textContent = "Dokumentum: " + question.document;
+        const consequence = document.createElement("p");
+        consequence.textContent = "Következmény: " + question.consequence;
+        questionArea.append(heading, explanation, subject, consequence);
+        if (question.details) {
+          const details = document.createElement("details");
+          const summary = document.createElement("summary");
+          summary.textContent = "Technikai részletek";
+          const content = document.createElement("pre");
+          content.textContent = question.details;
+          details.append(summary, content);
+          questionArea.append(details);
+        }
+        const actions = document.createElement("div");
+        actions.className = "question-actions";
+        for (const option of [...question.choices, { id: "cancel", label: "Mégse" }]) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "action";
+          button.textContent = option.label;
+          button.addEventListener("click", () => {
+            if (activeQuestionId !== question.id) return;
+            vscode.postMessage({ type: "answer", questionId: question.id, choice: option.id });
+            if (!option.review) actions.querySelectorAll("button").forEach((item) => { item.disabled = true; });
+          });
+          actions.append(button);
+        }
+        questionArea.append(actions);
+      }
 
       function showDetails() {
         const selected = documents.find((item) => item.artifactId === selectedId) || selectedDocument;
@@ -279,7 +355,8 @@ export function renderManagerHtml(nonce: string): string {
           if (typeof message.query === "string" && search.value !== message.query) search.value = message.query;
           renderList();
           if (selectedId && (previousId !== selectedId || !metadata)) vscode.postMessage({ type: "select", artifactId: selectedId });
-          status.textContent = message.status;
+          operationStatus = message.status;
+          renderStatus();
           nextStep.textContent = typeof message.nextStep === "string" ? message.nextStep : "";
           createState.textContent = typeof message.createState === "string" ? message.createState : "CREATE state unavailable.";
         } else if (message?.type === "metadata" && message.artifactId === selectedId) {
@@ -288,8 +365,11 @@ export function renderManagerHtml(nonce: string): string {
         } else if (message?.type === "metadataError" && message.artifactId === selectedId) {
           metadataState.textContent = message.error;
         } else if (message?.type === "status" && typeof message.status === "string") {
-          status.textContent = message.status;
+          operationStatus = message.status;
+          renderStatus();
           nextStep.textContent = typeof message.nextStep === "string" ? message.nextStep : "";
+        } else if (message?.type === "question") {
+          renderQuestion(message.question);
         }
       });
       vscode.postMessage({ type: "ready" });

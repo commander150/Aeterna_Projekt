@@ -33,8 +33,8 @@ import {
   createOrOpenRoutedCandidate,
   loadRoutedCandidate,
 } from "./candidate_routing";
-import { DocumentManager, notifyPlanReady } from "./manager";
-import { isGovernanceDocument, type ManagerAction, type ManagerPlanState } from "./manager_content";
+import { DocumentManager, notifyPlanReady, routeLowRiskQuestion } from "./manager";
+import { isGovernanceDocument, type InlineQuestion, type ManagerAction, type ManagerPlanState } from "./manager_content";
 import {
   ExplicitApplyCoordinator,
   ExplicitApplyError,
@@ -286,7 +286,23 @@ function createApplyConfirmationDetail(summary: CreateApplySummary): string {
   ].join("\n");
 }
 
-function offerProductionReview(reviewPath: string | undefined, message: string, error: boolean): void {
+function offerProductionReview(reviewPath: string | undefined, message: string, error: boolean,
+  manager?: DocumentManager, document = "AETERNA dokumentum", fromManager = false): void {
+  if (fromManager && manager?.actionActive) {
+    void manager.ask({
+      completed: true,
+      title: error ? "Apply eredmény: ellenőrzés szükséges" : "Apply sikeres",
+      explanation: error ? "A művelet eredménye blokkolt, hibás vagy bizonytalan; ne ismételje automatikusan." : "A production review ellenőrzése sikeres.",
+      document,
+      consequence: error ? "Vizsgálja meg a production review-t és a recovery állapotot." : "Tekintse át a Git-változásokat; commit és push nem történt.",
+      cancelConsequence: error ? "Az Apply eredménye továbbra is ellenőrzést igényel; a production review megmaradt."
+        : "A sikeres Apply eredménye és production review-ja megmaradt.",
+      details: `${message}\nReview: ${reviewPath ?? "nem áll rendelkezésre"}`,
+      choices: [...(reviewPath ? [{ id: "review", label: "Production review megnyitása", review: true }] : []),
+        { id: "done", label: "Rendben" }],
+    }, reviewPath ? { review: () => vscode.window.showTextDocument(vscode.Uri.file(reviewPath), { preview: false }) } : {});
+    return;
+  }
   const notification = error
     ? vscode.window.showErrorMessage(message, ...(reviewPath ? ["Open Production Review"] : []))
     : vscode.window.showInformationMessage(message, ...(reviewPath ? ["Open Production Review"] : []));
@@ -385,6 +401,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           action === "newDocument" ? "aeterna.newDocument"
             : action === "compareCreate" ? "aeterna.compareCreateCandidate"
               : action === "planCreate" ? "aeterna.prepareCreatePlan" : "aeterna.applyPreparedCreate",
+          true,
         );
         return succeeded
           ? { ok: true, message: action === "newDocument" ? "CREATE candidate opened outside the repository. Save it before planning."
@@ -411,6 +428,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         command,
         new DocumentTreeItem(document),
         false,
+        true,
       );
       return succeeded
         ? { ok: true, message: `${document.artifact_id}: ${action} completed. Check AETERNA Documents output for details.` }
@@ -436,6 +454,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     readonly identity: UpdatePlanIdentity;
     readonly materialized: MaterializedUpdatePlan;
   }>();
+  const askLowRisk = (
+    fromManager: boolean,
+    question: InlineQuestion,
+    native: () => PromiseLike<string | undefined>,
+    review: Readonly<Record<string, () => PromiseLike<unknown>>> = {},
+  ): Promise<string | undefined> => routeLowRiskQuestion(manager, fromManager, question, native, review);
   const invalidateChangedDocument = (documentPath: string): void => {
     for (const [key, saved] of preparedPlans) {
       if (pathsEqual(saved.candidatePath, documentPath) || pathsEqual(saved.canonicalPath, documentPath)) {
@@ -448,6 +472,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const preparePlanForMode = async (
     item: DocumentTreeItem | undefined,
     mode: "git-only" | "minor" | "major",
+    fromManager = false,
   ): Promise<boolean> => {
     const document = await chooseDocument(provider, item);
     if (!document) return false;
@@ -478,12 +503,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         });
         if (proposedVersion === undefined) return false;
         validateProposedVersion(baselineVersion, proposedVersion);
-        const approval = await vscode.window.showWarningMessage(
+        const approval = await askLowRisk(fromManager, {
+          title: "Candidate-verzió jóváhagyása",
+          explanation: `${baselineVersion} → ${proposedVersion} (${mode === "major" ? "major governance" : "minor"}).`,
+          document: `${document.artifact_id} — ${document.title}`,
+          consequence: "Csak a külső candidate version mezője változhat; a terv read-only, Apply nem indul.",
+          cancelConsequence: "A candidate verziója nem módosult, új terv nem készült; a meglévő candidate és terv megmaradt.",
+          choices: [{ id: "approve", label: "Verzió és terv jóváhagyása" }],
+        }, () => vscode.window.showWarningMessage(
           `Approve candidate version ${baselineVersion} -> ${proposedVersion} for ${document.artifact_id}?`,
           { modal: true, detail: "The version field changes only in the external candidate. The canonical document remains untouched; plan-update is read-only and Apply requires separate approval." },
           "Approve Candidate Version and Plan",
-        );
-        if (approval !== "Approve Candidate Version and Plan") return false;
+        ).then((value) => value === "Approve Candidate Version and Plan" ? "approve" : undefined));
+        if (approval !== "approve") return false;
         if (isCandidateUnsaved(session.candidatePath)) {
           throw new UpdatePreviewError("CANDIDATE_UNSAVED", "Candidate has unsaved edits; version change was cancelled.");
         }
@@ -499,12 +531,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           output.appendLine(`Approved candidate-only version edit: ${existingVersion} -> ${proposedVersion}.`);
         }
       } else {
-        const confirmation = await vscode.window.showWarningMessage(
+        const confirmation = await askLowRisk(fromManager, {
+          title: "Read-only UPDATE-terv készítése",
+          explanation: "Ellenőrizze, hogy a candidate minden módosítása mentett, a ManulDownban is.",
+          document: `${document.artifact_id} — ${document.title}`,
+          consequence: "body-only / git-only terv készül; canonical írás és Apply nem történik.",
+          cancelConsequence: "Nem készült új terv, a candidate nem módosult; a korábbi terv megmaradt.",
+          choices: [{ id: "prepare", label: "Terv készítése" }],
+        }, () => vscode.window.showWarningMessage(
           "Confirm all candidate edits are saved, including ManulDown. Prepare a read-only UPDATE plan with change_class=body-only and version_intent=git-only? No canonical changes or Apply will occur.",
           { modal: true },
           "Prepare body-only / git-only plan",
-        );
-        if (confirmation !== "Prepare body-only / git-only plan") return false;
+        ).then((value) => value === "Prepare body-only / git-only plan" ? "prepare" : undefined));
+        if (confirmation !== "prepare") return false;
       }
       if (isCandidateUnsaved(session.candidatePath)) {
         throw new UpdatePreviewError("CANDIDATE_UNSAVED", "Save the candidate before planning.");
@@ -545,14 +584,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       output.appendLine(renderUpdatePreview(preview));
       output.appendLine(`Immutable production plan stored: ${materialized.planPath} (SHA-256 ${materialized.planSha256}).`);
       output.show(true);
-      notifyPlanReady(
-        () => vscode.window.showInformationMessage(
-          `Read-only ${mode === "major" ? "governance major" : mode === "minor" ? "versioned minor" : "git-only"} UPDATE plan ready for ${document.artifact_id}. See AETERNA Documents output for impact, paths and version.`,
-          "Compare Candidate",
-        ),
-        () => vscode.commands.executeCommand("aeterna.compareCandidate", item),
-        (error) => reportCandidateError(output, "Compare Candidate", error),
-      );
+      if (fromManager && manager.actionActive) {
+        void manager.ask({
+          completed: true,
+          title: "Read-only UPDATE-terv elkészült",
+          explanation: `${mode === "major" ? "Governance major" : mode === "minor" ? "Minor" : "Git-only"} terv; a canonical fájl nem változott.`,
+          document: `${document.artifact_id} — ${document.title}`,
+          consequence: "Tekintse át a candidate-diffet és a terv részleteit a későbbi, külön Apply előtt.",
+          cancelConsequence: "A read-only terv már elkészült; a canonical dokumentum nem módosult.",
+          details: `Immutable plan: ${materialized.planPath}\nSHA-256: ${materialized.planSha256}`,
+          choices: [{ id: "compare", label: "Candidate diff megnyitása", review: true }, { id: "done", label: "Rendben" }],
+        }, { compare: () => vscode.commands.executeCommand("aeterna.compareCandidate", item, false, true) });
+      } else {
+        notifyPlanReady(
+          () => vscode.window.showInformationMessage(
+            `Read-only ${mode === "major" ? "governance major" : mode === "minor" ? "versioned minor" : "git-only"} UPDATE plan ready for ${document.artifact_id}. See AETERNA Documents output for impact, paths and version.`,
+            "Compare Candidate",
+          ),
+          () => vscode.commands.executeCommand("aeterna.compareCandidate", item),
+          (error) => reportCandidateError(output, "Compare Candidate", error),
+        );
+      }
       return true;
     } catch (error) {
       reportCandidateError(output, "Prepare UPDATE plan", error);
@@ -641,7 +693,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("aeterna.refreshDocuments", async () => {
       await provider.refresh();
     }),
-    vscode.commands.registerCommand("aeterna.newDocument", async (): Promise<boolean> => {
+    vscode.commands.registerCommand("aeterna.newDocument", async (fromManager = false): Promise<boolean> => {
       const root = provider.currentRepositoryRoot;
       if (!root) {
         void vscode.window.showErrorMessage("AETERNA Documents: repository is unavailable; refresh the list.");
@@ -670,17 +722,26 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         } else {
           const input = await promptCreateInput(baseline, artifactId);
           if (!input) return false;
-          const approval = await vscode.window.showWarningMessage(
+          const createDetails = [
+            `Canonical target: ${input.targetPath}`, `Type: ${input.type}`, `Authority: ${input.authority}`,
+            `Dependencies: ${input.dependencies.join(", ") || "none"}`, `Initial version: ${input.version}`,
+            `Integration: ${input.integration}`, `H1 title: ${input.title}`,
+            "Only a candidate outside the repository will be created. Apply requires a separate plan review and approval.",
+          ].join("\n");
+          const approval = await askLowRisk(fromManager, {
+            title: "Új dokumentum adatainak jóváhagyása",
+            explanation: `${artifactId} · ${input.targetPath} · v${input.version}`,
+            document: `${artifactId} — ${input.title}`,
+            consequence: "Csak külső CREATE candidate jön létre; canonical fájl és Apply nem.",
+            cancelConsequence: "Nem jött létre új CREATE candidate; a megadott adatok nem kerültek alkalmazásra.",
+            details: createDetails,
+            choices: [{ id: "create", label: "Külső candidate létrehozása" }],
+          }, () => vscode.window.showWarningMessage(
             `Approve new document identity and metadata for ${artifactId}?`,
-            { modal: true, detail: [
-              `Canonical target: ${input.targetPath}`, `Type: ${input.type}`, `Authority: ${input.authority}`,
-              `Dependencies: ${input.dependencies.join(", ") || "none"}`, `Initial version: ${input.version}`,
-              `Integration: ${input.integration}`, `H1 title: ${input.title}`,
-              "Only a candidate outside the repository will be created. Apply requires a separate plan review and approval.",
-            ].join("\n") },
+            { modal: true, detail: createDetails },
             "Create External Candidate",
-          );
-          if (approval !== "Create External Candidate") return false;
+          ).then((value) => value === "Create External Candidate" ? "create" : undefined));
+          if (approval !== "create") return false;
           const created = await createOrOpenCreateSession(root, createStorageRoot, baseline.branch, baseline.head, input);
           createSession = created.session;
           createPreview = undefined;
@@ -718,7 +779,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return false;
       }
     }),
-    vscode.commands.registerCommand("aeterna.prepareCreatePlan", async (): Promise<boolean> => {
+    vscode.commands.registerCommand("aeterna.prepareCreatePlan", async (fromManager = false): Promise<boolean> => {
       const session = createSession;
       const root = provider.currentRepositoryRoot;
       if (!session || !root) {
@@ -742,7 +803,29 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         output.appendLine(renderCreatePreview(preview));
         output.show(true);
         await vscode.window.showTextDocument(vscode.Uri.file(preview.planPath), { preview: false, viewColumn: vscode.ViewColumn.Beside });
-        void vscode.window.showInformationMessage("Read-only CREATE plan ready. Review the external candidate, Compare CREATE Candidate diff, full plan and AETERNA Documents output. Apply requires separate approval.");
+        if (fromManager && manager.actionActive) {
+          void manager.ask({
+            completed: true,
+            title: "Read-only CREATE-terv elkészült",
+            explanation: "A candidate és a terv készen áll az áttekintésre.",
+            document: `${session.input.artifactId} — ${session.input.title}`,
+            consequence: "Canonical dokumentum nem jött létre; az Apply külön jóváhagyást igényel.",
+            cancelConsequence: "A read-only CREATE-terv már elkészült; canonical dokumentum nem jött létre.",
+            details: `Plan: ${preview.planPath}\nCandidate: ${session.candidatePath}`,
+            choices: [
+              { id: "candidate", label: "Candidate megnyitása", review: true },
+              { id: "diff", label: "CREATE diff megnyitása", review: true },
+              { id: "plan", label: "Teljes terv megnyitása", review: true },
+              { id: "done", label: "Rendben" },
+            ],
+          }, {
+            candidate: () => vscode.window.showTextDocument(vscode.Uri.file(session.candidatePath), { preview: false }),
+            diff: () => vscode.commands.executeCommand("aeterna.compareCreateCandidate"),
+            plan: () => vscode.window.showTextDocument(vscode.Uri.file(preview.planPath), { preview: false }),
+          });
+        } else {
+          void vscode.window.showInformationMessage("Read-only CREATE plan ready. Review the external candidate, Compare CREATE Candidate diff, full plan and AETERNA Documents output. Apply requires separate approval.");
+        }
         return true;
       } catch (error) {
         createPreview = undefined;
@@ -752,7 +835,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return false;
       }
     }),
-    vscode.commands.registerCommand("aeterna.applyPreparedCreate", async (): Promise<boolean> => {
+    vscode.commands.registerCommand("aeterna.applyPreparedCreate", async (fromManager = false): Promise<boolean> => {
       const session = createSession;
       const preview = createPreview;
       const root = provider.currentRepositoryRoot;
@@ -804,11 +887,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         manager.refresh();
         if (result.status === "PASS") {
           await provider.refresh();
-          offerProductionReview(result.reviewPath, `AETERNA ${session.input.artifactId}: CREATE Apply PASS, review verified. Inspect GitHub Desktop before manual commit/push.`, false);
+          offerProductionReview(result.reviewPath, `AETERNA ${session.input.artifactId}: CREATE Apply PASS, review verified. Inspect GitHub Desktop before manual commit/push.`, false, manager, session.input.artifactId, fromManager);
           return true;
         }
         output.show(true);
-        offerProductionReview(result.reviewPath, `AETERNA ${session.input.artifactId}: ${result.message}`, true);
+        offerProductionReview(result.reviewPath, `AETERNA ${session.input.artifactId}: ${result.message}`, true, manager, session.input.artifactId, fromManager);
         return false;
       } catch (error) {
         if (!(error instanceof CreateApplyError && error.code === "APPLY_ALREADY_ATTEMPTED")) {
@@ -869,7 +952,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     vscode.commands.registerCommand(
       "aeterna.editCandidate",
-      async (item: DocumentTreeItem | undefined, openPreview = false): Promise<boolean> => {
+      async (item: DocumentTreeItem | undefined, openPreview = false, fromManager = false): Promise<boolean> => {
         const document = await chooseDocument(provider, item);
         if (!document) {
           return false;
@@ -881,12 +964,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             candidateStorageRoot,
           );
           const routed = await createOrOpenRoutedCandidate(request, async () => {
-            const decision = await vscode.window.showWarningMessage(
+            const decision = await askLowRisk(fromManager, {
+              title: "Korábbi candidate megőrzése",
+              explanation: "A candidate egy régebbi canonical baseline-hoz tartozik; az eredeti változat megmarad.",
+              document: `${document.artifact_id} — ${document.title}`,
+              consequence: "Külön candidate jön létre az aktuális baseline-hoz; nincs Apply vagy felülírás.",
+              cancelConsequence: "Nem készült új baseline-candidate; a korábbi candidate és tartalma megmaradt.",
+              choices: [{ id: "create", label: "Új baseline candidate" }],
+            }, () => vscode.window.showWarningMessage(
               "An earlier-baseline candidate exists and will be preserved. Create a separate candidate for the current canonical baseline? This does not Apply or overwrite the old candidate.",
-              { modal: true },
-              "Create Current-Baseline Candidate",
-            );
-            return decision === "Create Current-Baseline Candidate";
+              { modal: true }, "Create Current-Baseline Candidate",
+            ).then((value) => value === "Create Current-Baseline Candidate" ? "create" : undefined));
+            return decision === "create";
           });
           if (!routed) {
             output.appendLine(`Current-baseline candidate creation cancelled: ${document.artifact_id}.`);
@@ -922,9 +1011,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           output.appendLine(
             `Candidate baseline SHA-256: ${session.manifest.baseline.canonicalSha256}`,
           );
-          void vscode.window.showInformationMessage(
-            "AETERNA candidate opened outside the repository. Saving updates only the candidate; Apply requires a separate reviewed plan and explicit confirmation. Use Open With manually to select ManulDown when desired.",
-          );
+          if (!fromManager) {
+            void vscode.window.showInformationMessage(
+              "AETERNA candidate opened outside the repository. Saving updates only the candidate; Apply requires a separate reviewed plan and explicit confirmation. Use Open With manually to select ManulDown when desired.",
+            );
+          }
           return true;
         } catch (error) {
           reportCandidateError(output, "Edit Candidate", error);
@@ -961,7 +1052,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     vscode.commands.registerCommand(
       "aeterna.compareCandidate",
-      async (item: DocumentTreeItem | undefined): Promise<boolean> => {
+      async (item: DocumentTreeItem | undefined, _unused = false, fromManager = false): Promise<boolean> => {
         const document = await chooseDocument(provider, item);
         if (!document) {
           return false;
@@ -985,12 +1076,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             if (!openDocument) {
               throw new Error("Dirty candidate document could not be located.");
             }
-            const decision = await vscode.window.showWarningMessage(
+            const decision = await askLowRisk(fromManager, {
+              title: "Mentetlen candidate összehasonlítása",
+              explanation: "A diff csak a mentett candidate teljes tartalmát tudja megbízhatóan megmutatni.",
+              document: `${document.artifact_id} — ${document.title}`,
+              consequence: "A candidate mentésre kerül, majd natív diff nyílik; canonical írás és Apply nem történik.",
+              cancelConsequence: "Nem történt automatikus mentés vagy összehasonlítás; a szerkesztő mentetlen változásai megmaradtak.",
+              choices: [{ id: "save", label: "Mentés és összehasonlítás" }],
+            }, () => vscode.window.showWarningMessage(
               "The candidate has unsaved changes. Save the candidate before opening the native diff? This does not apply changes to the canonical document.",
-              { modal: true },
-              "Save and Compare",
-            );
-            if (decision !== "Save and Compare") {
+              { modal: true }, "Save and Compare",
+            ).then((value) => value === "Save and Compare" ? "save" : undefined));
+            if (decision !== "save") {
               output.appendLine(
                 `Candidate comparison cancelled with unsaved changes preserved: ${session.candidatePath}`,
               );
@@ -1020,19 +1117,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     vscode.commands.registerCommand(
       "aeterna.prepareUpdatePlan",
-      (item: DocumentTreeItem | undefined) => preparePlanForMode(item, "git-only"),
+      (item: DocumentTreeItem | undefined, _unused = false, fromManager = false) => preparePlanForMode(item, "git-only", fromManager),
     ),
     vscode.commands.registerCommand(
       "aeterna.prepareMinorUpdatePlan",
-      (item: DocumentTreeItem | undefined) => preparePlanForMode(item, "minor"),
+      (item: DocumentTreeItem | undefined, _unused = false, fromManager = false) => preparePlanForMode(item, "minor", fromManager),
     ),
     vscode.commands.registerCommand(
       "aeterna.prepareGovernanceUpdatePlan",
-      (item: DocumentTreeItem | undefined) => preparePlanForMode(item, "major"),
+      (item: DocumentTreeItem | undefined, _unused = false, fromManager = false) => preparePlanForMode(item, "major", fromManager),
     ),
     vscode.commands.registerCommand(
       "aeterna.applyPreparedUpdate",
-      async (item: DocumentTreeItem | undefined): Promise<boolean> => {
+      async (item: DocumentTreeItem | undefined, _unused = false, fromManager = false): Promise<boolean> => {
         const document = await chooseDocument(provider, item);
         if (!document) return false;
         const saved = preparedPlans.get(document.artifact_id);
@@ -1085,12 +1182,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           if (result.status === "PASS") {
             await provider.refresh();
             setPlanState(document.artifact_id, "APPLY_PASS");
-            offerProductionReview(result.reviewPath, `AETERNA ${document.artifact_id}: Apply PASS, review verified. Inspect GitHub Desktop changes before manual commit/push.`, false);
+            offerProductionReview(result.reviewPath, `AETERNA ${document.artifact_id}: Apply PASS, review verified. Inspect GitHub Desktop changes before manual commit/push.`, false, manager, document.artifact_id, fromManager);
             return true;
           }
           setPlanState(document.artifact_id, result.status === "BLOCKED" ? "APPLY_BLOCKED" : "APPLY_FAIL");
           output.show(true);
-          offerProductionReview(result.reviewPath, `AETERNA ${document.artifact_id}: ${result.message} Review: ${result.reviewPath ?? "not available"}`, true);
+          offerProductionReview(result.reviewPath, `AETERNA ${document.artifact_id}: ${result.message} Review: ${result.reviewPath ?? "not available"}`, true, manager, document.artifact_id, fromManager);
           return false;
         } catch (error) {
           if (!(error instanceof ExplicitApplyError && error.code === "APPLY_ALREADY_ATTEMPTED")) {
@@ -1104,7 +1201,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     vscode.commands.registerCommand(
       "aeterna.applyGovernanceUpdate",
-      async (item: DocumentTreeItem | undefined): Promise<boolean> => {
+      async (item: DocumentTreeItem | undefined, _unused = false, fromManager = false): Promise<boolean> => {
         const document = await chooseDocument(provider, item);
         if (!document || !isGovernanceDocument(document.path)) return false;
         const saved = preparedPlans.get(document.artifact_id);
@@ -1165,12 +1262,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           if (result.status === "PASS") {
             await provider.refresh();
             setPlanState(document.artifact_id, "APPLY_PASS");
-            offerProductionReview(result.reviewPath, `AETERNA governance Apply PASS for ${document.artifact_id}; production review verified. Inspect GitHub Desktop before manual commit/push.`, false);
+            offerProductionReview(result.reviewPath, `AETERNA governance Apply PASS for ${document.artifact_id}; production review verified. Inspect GitHub Desktop before manual commit/push.`, false, manager, document.artifact_id, fromManager);
             return true;
           }
           setPlanState(document.artifact_id, result.status === "BLOCKED" ? "APPLY_BLOCKED" : "APPLY_FAIL");
           output.show(true);
-          offerProductionReview(result.reviewPath, `AETERNA governance Apply ${result.status}: ${result.message}`, true);
+          offerProductionReview(result.reviewPath, `AETERNA governance Apply ${result.status}: ${result.message}`, true, manager, document.artifact_id, fromManager);
           return false;
         } catch (error) {
           if (!(error instanceof ExplicitApplyError && error.code === "APPLY_ALREADY_ATTEMPTED")) {
