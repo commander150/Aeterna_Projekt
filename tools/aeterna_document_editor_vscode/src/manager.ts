@@ -3,6 +3,7 @@ import type * as vscode from "vscode";
 
 import type { ManagedDocument } from "./registry";
 import type { MetadataAssistance } from "./metadata_assistance";
+import type { ApplySummary } from "./apply_update";
 import { filterManagedDocuments, isGovernanceDocument, managerPlanStateLabel, parseManagerMessage, renderManagerHtml, type InlineQuestion, type ManagerAction, type ManagerActionResult, type ManagerPlanState } from "./manager_content";
 
 export function notifyPlanReady(
@@ -24,6 +25,47 @@ export function routeLowRiskQuestion(
   review: Readonly<Record<string, () => PromiseLike<unknown>>> = {},
 ): Promise<string | undefined> {
   return fromManager && manager.actionActive ? manager.ask(question, review) : Promise.resolve(native());
+}
+
+export function routeUpdateApplyQuestion(
+  manager: Pick<DocumentManager, "ask">,
+  fromManager: boolean,
+  question: InlineQuestion,
+  native: () => PromiseLike<string | undefined>,
+  review: Readonly<Record<string, () => PromiseLike<unknown>>> = {},
+): Promise<string | undefined> {
+  // A Manager-originated Apply must fail closed if its Webview has gone away.
+  return fromManager ? manager.ask(question, review) : Promise.resolve(native());
+}
+
+export function updateApplyQuestion(summary: ApplySummary, technicalDetails: string): InlineQuestion {
+  return {
+    title: "UPDATE Apply jóváhagyása",
+    explanation: `Verzió: ${summary.version} → ${summary.proposedVersion} (${summary.versionIntent}). Tervezett fájlírások: ${summary.plannedWrites.join(", ")}.`,
+    document: `${summary.artifactId} — ${summary.title}`,
+    consequence: summary.mismatch
+      ? "A folytatáshoz még külön jóvá kell hagyni a planner verzióajánlásától való eltérést. Ezután a production workflow módosíthatja a canonical és generated fájlokat."
+      : "A production workflow módosíthatja a canonical és generated fájlokat. Commit és push nem történik.",
+    cancelConsequence: "Az Apply nem indult el; a candidate és az előkészített terv megmaradt.",
+    details: technicalDetails,
+    choices: [
+      { id: "review-diff", label: "Diff megnyitása", review: true },
+      { id: "review-plan", label: "Teljes terv megnyitása", review: true },
+      { id: "apply-update", label: "UPDATE Apply jóváhagyása" },
+    ],
+  };
+}
+
+export function updateMismatchQuestion(summary: ApplySummary, technicalDetails: string): InlineQuestion {
+  return {
+    title: "Eltérő verzióajánlás – külön jóváhagyás",
+    explanation: `A planner ${summary.recommendedIntent} verziószándékot ajánl, a jóváhagyott terv viszont ${summary.versionIntent} módot használ (${summary.version} → ${summary.proposedVersion}).`,
+    document: `${summary.artifactId} — ${summary.title}`,
+    consequence: "Az eltérés külön jóváhagyása után a production workflow végrehajthatja a már áttekintett UPDATE-tervet. Mégse esetén nem indul Apply.",
+    cancelConsequence: "A verzióeltérés nem kapott jóváhagyást; az Apply nem indult el, a candidate és a terv megmaradt.",
+    details: technicalDetails,
+    choices: [{ id: "approve-mismatch", label: "Apply a verzióeltérés ellenére" }],
+  };
 }
 
 export class DocumentManager implements vscode.Disposable {
@@ -320,7 +362,7 @@ export class DocumentManager implements vscode.Disposable {
         const createApplyState = message.action === "applyCreate" ? this.createState() : "";
         const failed = applyState === "APPLY_FAIL" || /CREATE Apply FAIL/i.test(createApplyState);
         const blocked = applyState === "APPLY_BLOCKED" || /CREATE Apply BLOCKED/i.test(createApplyState);
-        if (!apply && this.questionCancelled) {
+        if (this.questionCancelled) {
           this.publishStatus("A művelet megszakítva.",
             this.cancelledQuestionConsequence ?? "A jóváhagyás utáni lépés nem indult el; a korábbi candidate és terv megmaradt.");
         } else {

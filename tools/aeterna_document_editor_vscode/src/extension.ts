@@ -33,7 +33,7 @@ import {
   createOrOpenRoutedCandidate,
   loadRoutedCandidate,
 } from "./candidate_routing";
-import { DocumentManager, notifyPlanReady, routeLowRiskQuestion } from "./manager";
+import { DocumentManager, notifyPlanReady, routeLowRiskQuestion, routeUpdateApplyQuestion, updateApplyQuestion, updateMismatchQuestion } from "./manager";
 import { isGovernanceDocument, type InlineQuestion, type ManagerAction, type ManagerPlanState } from "./manager_content";
 import {
   ExplicitApplyCoordinator,
@@ -1146,23 +1146,33 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             {
               candidateIsDirty: () => isCandidateUnsaved(saved.candidatePath),
               confirm: async (summary) => {
-                const choice = await vscode.window.showWarningMessage(
-                  `Apply prepared UPDATE to ${summary.artifactId}?`,
-                  { modal: true, detail: applyConfirmationDetail(summary) },
-                  "Review Diff", "Apply Prepared UPDATE",
+                const choice = await routeUpdateApplyQuestion(
+                  manager, fromManager, updateApplyQuestion(summary, applyConfirmationDetail(summary)),
+                  () => vscode.window.showWarningMessage(
+                    `Apply prepared UPDATE to ${summary.artifactId}?`,
+                    { modal: true, detail: applyConfirmationDetail(summary) },
+                    "Review Diff", "Apply Prepared UPDATE",
+                  ).then((answer) => answer === "Apply Prepared UPDATE" ? "apply-update" : answer),
+                  {
+                    "review-diff": () => vscode.commands.executeCommand("aeterna.compareCandidate", item),
+                    "review-plan": () => vscode.window.showTextDocument(vscode.Uri.file(saved.materialized.planPath), { preview: false }),
+                  },
                 );
                 if (choice === "Review Diff") {
                   await vscode.commands.executeCommand("aeterna.compareCandidate", item);
                 }
-                return choice === "Apply Prepared UPDATE";
+                return choice === "apply-update";
               },
               confirmMismatch: async (summary) => {
-                const choice = await vscode.window.showWarningMessage(
-          `Version recommendation mismatch for ${summary.artifactId}: planner recommends ${summary.recommendedIntent}, but this plan uses ${summary.versionIntent} and proposes ${summary.proposedVersion}. Apply anyway?`,
-                  { modal: true, detail: "This is a separate, explicit approval. Canonical files may change without a version increase. Cancel to leave the repository unchanged." },
-                  "Apply Despite Version Mismatch",
+                const choice = await routeUpdateApplyQuestion(
+                  manager, fromManager, updateMismatchQuestion(summary, applyConfirmationDetail(summary)),
+                  () => vscode.window.showWarningMessage(
+                    `Version recommendation mismatch for ${summary.artifactId}: planner recommends ${summary.recommendedIntent}, but this plan uses ${summary.versionIntent} and proposes ${summary.proposedVersion}. Apply anyway?`,
+                    { modal: true, detail: "This is a separate, explicit approval. Canonical files may change without a version increase. Cancel to leave the repository unchanged." },
+                    "Apply Despite Version Mismatch",
+                  ).then((answer) => answer === "Apply Despite Version Mismatch" ? "approve-mismatch" : undefined),
                 );
-                return choice === "Apply Despite Version Mismatch";
+                return choice === "approve-mismatch";
               },
               onBeforeRun: () => {
                 setPlanState(document.artifact_id, "APPLY_RUNNING");

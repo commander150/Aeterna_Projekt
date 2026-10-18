@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type * as vscode from "vscode";
 
-import { DocumentManager, routeLowRiskQuestion } from "../src/manager";
+import { DocumentManager, routeLowRiskQuestion, routeUpdateApplyQuestion, updateApplyQuestion, updateMismatchQuestion } from "../src/manager";
+import type { ApplySummary } from "../src/apply_update";
 import type { ManagedDocument } from "../src/registry";
-import type { ManagerAction, ManagerPlanState } from "../src/manager_content";
+import type { InlineQuestion, ManagerAction, ManagerPlanState } from "../src/manager_content";
 
 const document: ManagedDocument = {
   artifact_id: "AET-DOC-PROJECT-PLAN", title: "Project Plan",
@@ -12,8 +13,17 @@ const document: ManagedDocument = {
   kind: "document", version: "6.20", generated: false, scope: "ACTIVE",
 };
 
+const updateSummary: ApplySummary = {
+  artifactId: document.artifact_id, title: document.title, version: "6.20", proposedVersion: "6.21",
+  versionIntent: "minor", branch: "main", head: "a".repeat(40), baselineSha256: "b".repeat(64),
+  candidateSha256: "c".repeat(64), planSemanticSha256: "d".repeat(64),
+  plannedWrites: [document.path, "project/generated/artifacts_registry.json", "project/generated/DOCUMENT_INDEX.md"],
+  dependencyImpact: "direct: none; transitive: none", recommendedIntent: "minor", mismatch: false,
+};
+
 function harness(deliver = true, reviewGate?: Promise<void>, rejectPost = false,
-  scenario: { action?: ManagerAction; cancelConsequence?: string; planState?: ManagerPlanState; completed?: boolean } = {}) {
+  scenario: { action?: ManagerAction; cancelConsequence?: string; planState?: ManagerPlanState; completed?: boolean;
+    question?: InlineQuestion; secondQuestion?: InlineQuestion; approvedChoice?: string; secondApprovedChoice?: string } = {}) {
   let receiver: ((message: unknown) => void) | undefined;
   let closePanel: (() => void) | undefined;
   let disposeCurrent: (() => void) | undefined;
@@ -44,20 +54,28 @@ function harness(deliver = true, reviewGate?: Promise<void>, rejectPost = false,
   manager = new DocumentManager(host, () => [document], () => "Ready", async (action) => {
     actions.push(action);
     if (action === questionAction) {
-      const question = manager.ask({
+      const question = manager.ask(scenario.question ?? {
         title: "Terv?", explanation: "Csak read-only terv.", document: document.artifact_id,
         consequence: "Nincs canonical írás.",
         cancelConsequence: scenario.cancelConsequence,
         completed: scenario.completed,
         choices: [{ id: "approve", label: "Terv készítése" }, { id: "review", label: "Diff", review: true }],
-      }, { review: async () => { actions.push("review"); await reviewGate; } });
+      }, {
+        review: async () => { actions.push("review"); await reviewGate; },
+        "review-diff": async () => { actions.push("review-diff"); await reviewGate; },
+        "review-plan": async () => { actions.push("review-plan"); await reviewGate; },
+      });
       if (scenario.completed) {
         void question;
         return { ok: true, message: "Completed before review notice" };
       }
       results.push(await question);
+      if (scenario.secondQuestion && results.at(-1) === (scenario.approvedChoice ?? "approve")) {
+        results.push(await manager.ask(scenario.secondQuestion));
+      }
     }
-    return { ok: action !== questionAction || results.at(-1) === "approve", message: "Done" };
+    return { ok: action !== questionAction || results.at(-1) ===
+      (scenario.secondQuestion ? scenario.secondApprovedChoice ?? "approve" : scenario.approvedChoice ?? "approve"), message: "Done" };
   }, () => scenario.planState ?? "PLAN_MISSING", undefined, undefined, undefined, undefined, () => root,
   (message) => { diagnostics.push(message); });
   const send = (message: unknown) => receiver?.(message);
@@ -280,4 +298,99 @@ test("dismissing a completed plan or Apply review notice does not label the comp
     assert.equal(h.status()?.nextStep, consequence);
     h.manager.dispose();
   }
+});
+
+test("UPDATE Apply question shows document, version and writes; Review never approves", async () => {
+  const question = updateApplyQuestion(updateSummary, `Plan SHA-256: ${updateSummary.planSemanticSha256}`);
+  assert.match(question.explanation, /6\.20 → 6\.21/);
+  assert.match(question.explanation, /artifacts_registry\.json/);
+  assert.equal(question.document, `${document.artifact_id} — ${document.title}`);
+  assert.match(question.details ?? "", /Plan SHA-256/);
+  const h = harness(true, undefined, false, { action: "apply", planState: "PLAN_READY", question, approvedChoice: "apply-update" });
+  h.send({ type: "action", action: "apply", artifactId: document.artifact_id });
+  const reviewedId = h.question().id;
+  h.send({ type: "answer", questionId: reviewedId, choice: "review-diff" });
+  await h.settle();
+  assert.deepEqual(h.results, [undefined]);
+  assert.deepEqual(h.actions, ["apply", "review-diff"]);
+  assert.equal(h.status()?.status, "A művelet megszakítva.");
+  h.send({ type: "action", action: "apply", artifactId: document.artifact_id });
+  const newId = h.question().id;
+  assert.notEqual(newId, reviewedId);
+  h.send({ type: "answer", questionId: reviewedId, choice: "apply-update" });
+  assert.deepEqual(h.results, [undefined]);
+  h.send({ type: "answer", questionId: newId, choice: "review-plan" });
+  await h.settle();
+  assert.deepEqual(h.results, [undefined, undefined]);
+  assert.ok(h.actions.includes("review-plan"));
+  h.manager.dispose();
+});
+
+test("UPDATE Apply Cancel, close and repository switch fail closed; a reopened Manager needs a new answer", async () => {
+  for (const abort of ["cancel", "close", "root"] as const) {
+    const h = harness(true, undefined, false, {
+      action: "apply", planState: "PLAN_READY", question: updateApplyQuestion(updateSummary, "plan details"),
+      approvedChoice: "apply-update",
+    });
+    h.send({ type: "action", action: "apply", artifactId: document.artifact_id });
+    const oldId = h.question().id;
+    if (abort === "cancel") h.send({ type: "answer", questionId: oldId, choice: "cancel" });
+    if (abort === "close") { h.close(); h.manager.show(); }
+    if (abort === "root") h.changeRoot("C:\\different-repo");
+    await h.settle();
+    h.send({ type: "answer", questionId: oldId, choice: "apply-update" });
+    assert.deepEqual(h.results, [undefined]);
+    assert.equal(h.status()?.status, "A művelet megszakítva.");
+    h.manager.dispose();
+  }
+});
+
+test("UPDATE version mismatch is a second explicit question and its Cancel prevents completion", async () => {
+  const summary = { ...updateSummary, versionIntent: "git-only" as const,
+    proposedVersion: "6.20", recommendedIntent: "minor", mismatch: true };
+  const first = updateApplyQuestion(summary, "reviewed plan");
+  const second = updateMismatchQuestion(summary, "reviewed plan");
+  assert.match(second.explanation, /minor/);
+  assert.match(second.explanation, /git-only/);
+  assert.equal(second.choices.length, 1);
+  const h = harness(true, undefined, false, { action: "apply", planState: "PLAN_READY_MISMATCH",
+    question: first, secondQuestion: second, approvedChoice: "apply-update", secondApprovedChoice: "approve-mismatch" });
+  h.send({ type: "action", action: "apply", artifactId: document.artifact_id });
+  const firstId = h.question().id;
+  h.send({ type: "answer", questionId: firstId, choice: "apply-update" });
+  await h.settle();
+  const secondId = h.question().id;
+  assert.notEqual(secondId, firstId);
+  h.send({ type: "answer", questionId: firstId, choice: "approve-mismatch" });
+  assert.deepEqual(h.results, ["apply-update"]);
+  h.send({ type: "answer", questionId: secondId, choice: "cancel" });
+  await h.settle();
+  assert.deepEqual(h.results, ["apply-update", undefined]);
+  assert.equal(h.status()?.status, "A művelet megszakítva.");
+  h.manager.dispose();
+
+  const accepted = harness(true, undefined, false, { action: "apply", planState: "PLAN_READY_MISMATCH",
+    question: first, secondQuestion: second, approvedChoice: "apply-update", secondApprovedChoice: "approve-mismatch" });
+  accepted.send({ type: "action", action: "apply", artifactId: document.artifact_id });
+  accepted.send({ type: "answer", questionId: accepted.question().id, choice: "apply-update" });
+  await accepted.settle();
+  accepted.send({ type: "answer", questionId: accepted.question().id, choice: "approve-mismatch" });
+  await accepted.settle();
+  assert.deepEqual(accepted.results, ["apply-update", "approve-mismatch"]);
+  assert.equal(accepted.status()?.status, "Az Apply és a production ellenőrzés sikeres.");
+  accepted.manager.dispose();
+});
+
+test("UPDATE commands outside the Manager retain native approval; Manager origin never falls back when unavailable", async () => {
+  const h = harness();
+  const question = updateApplyQuestion(updateSummary, "details");
+  const native = await routeUpdateApplyQuestion(h.manager, false, question, async () => "apply-update");
+  assert.equal(native, "apply-update");
+  h.manager.dispose();
+  let fallbackCalled = false;
+  const closed = await routeUpdateApplyQuestion(h.manager, true, question, async () => {
+    fallbackCalled = true; return "apply-update";
+  });
+  assert.equal(closed, undefined);
+  assert.equal(fallbackCalled, false);
 });
