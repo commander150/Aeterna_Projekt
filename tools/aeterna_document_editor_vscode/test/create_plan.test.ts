@@ -11,6 +11,7 @@ import {
 import {
   CreatePlanError, inspectCreateBaseline, prepareCreatePreview, renderCreatePreview,
 } from "../src/create_plan";
+import { CreateApplyCoordinator, CreateApplyError } from "../src/apply_create";
 
 const sourceRoot = path.resolve(__dirname, "../../../..");
 const e3aTestRoot = path.join(path.dirname(sourceRoot), "Aeterna_Local", "tests", "e3a-create");
@@ -153,7 +154,7 @@ test("production plan-create accepts external candidate, is deterministic and le
   assert.deepEqual((first.plan.expected_changes as { path: string }[]).map((entry) => entry.path), [
     input.targetPath, "project/generated/artifacts_registry.json", "project/generated/DOCUMENT_INDEX.md",
   ]);
-  assert.match(renderCreatePreview(first), /NO APPLY AVAILABLE/);
+  assert.match(renderCreatePreview(first), /Apply requires separate approval/);
   assert.deepEqual(await readFile(path.join(data.root, "project", "planning", "TARGET.md")), canonicalBefore);
   assert.equal(run("git", ["status", "--short"], data.root), "");
 });
@@ -187,4 +188,104 @@ test("CREATE plan rejects duplicate identity, missing dependency, target collisi
   run("git", ["commit", "--allow-empty", "-m", "advance head"], data.root);
   await assert.rejects(() => prepareCreatePreview(data.root, session, () => false),
     (error: unknown) => error instanceof CreatePlanError && error.code === "BASELINE_DRIFT");
+});
+
+test("GUI CREATE Apply uses the immutable external plan, production review and verify-review", async () => {
+  const data = await fixture();
+  const session = (await createOrOpenCreateSession(data.root, data.storage, "main", data.head, input)).session;
+  const preview = await prepareCreatePreview(data.root, session, () => false);
+  const candidateBefore = await readFile(session.candidatePath);
+  const baselineBefore = await readFile(path.join(data.root, "project", "planning", "TARGET.md"));
+  const approvals: string[] = [];
+  const coordinator = new CreateApplyCoordinator();
+  const result = await coordinator.apply(data.root, session, preview, {
+    candidateIsDirty: () => false,
+    confirmReview: async (summary) => {
+      approvals.push("review");
+      assert.equal(summary.artifactId, input.artifactId);
+      assert.equal(summary.targetPath, input.targetPath);
+      assert.equal(summary.authority, input.authority);
+      assert.equal(summary.authorityRisk, "HIGH");
+      assert.equal(summary.initialVersion, "0.1");
+      assert.equal(summary.candidateSha256, preview.candidateSha256);
+      assert.equal(summary.planSemanticSha256, preview.plan.plan_semantic_sha256);
+      assert.deepEqual(summary.plannedWrites, [input.targetPath, "project/generated/artifacts_registry.json", "project/generated/DOCUMENT_INDEX.md"]);
+      assert.match(summary.dependencyImpact, /AET-DOC-TARGET/);
+      return true;
+    },
+    confirmFinal: async () => { approvals.push("final"); return true; },
+  });
+  assert.deepEqual(approvals, ["review", "final"]);
+  assert.equal(result.status, "PASS", result.message);
+  assert.equal(typeof result.reviewPath, "string");
+  assert.deepEqual(await readFile(path.join(data.root, input.targetPath)), candidateBefore);
+  assert.deepEqual(await readFile(session.candidatePath), candidateBefore);
+  assert.deepEqual(await readFile(path.join(data.root, "project", "planning", "TARGET.md")), baselineBefore);
+  assert.equal(run("git", ["diff", "--cached", "--name-only"], data.root), "");
+  assert.deepEqual(run("git", ["status", "--short"], data.root).split(/\r?\n/).sort(), [
+    "M project/generated/DOCUMENT_INDEX.md", " M project/generated/artifacts_registry.json",
+    "?? project/planning/NEW_REVIEW.md",
+  ].sort());
+  await assert.rejects(() => coordinator.apply(data.root, session, preview, {
+    candidateIsDirty: () => false, confirmReview: async () => true, confirmFinal: async () => true,
+  }), (error: unknown) => error instanceof CreateApplyError && error.code === "APPLY_ALREADY_ATTEMPTED");
+});
+
+test("GUI CREATE Apply cancels at either approval without touching canonical files", async () => {
+  for (const cancelAt of ["review", "final"]) {
+    const data = await fixture();
+    const session = (await createOrOpenCreateSession(data.root, data.storage, "main", data.head, input)).session;
+    const preview = await prepareCreatePreview(data.root, session, () => false);
+    const candidateBefore = await readFile(session.candidatePath);
+    let finalCalled = false;
+    const result = await new CreateApplyCoordinator().apply(data.root, session, preview, {
+      candidateIsDirty: () => false,
+      confirmReview: async () => cancelAt !== "review",
+      confirmFinal: async () => { finalCalled = true; return cancelAt !== "final"; },
+    });
+    assert.equal(result.status, "CANCELLED");
+    assert.equal(finalCalled, cancelAt === "final");
+    assert.equal(run("git", ["status", "--short"], data.root), "");
+    assert.deepEqual(await readFile(session.candidatePath), candidateBefore);
+    await assert.rejects(() => readFile(path.join(data.root, input.targetPath)), { code: "ENOENT" });
+  }
+});
+
+test("GUI CREATE Apply blocks unsaved, candidate, immutable plan, HEAD and worktree drift", async () => {
+  for (const drift of ["unsaved", "candidate", "plan", "head", "worktree"]) {
+    const data = await fixture();
+    const session = (await createOrOpenCreateSession(data.root, data.storage, "main", data.head, input)).session;
+    const preview = await prepareCreatePreview(data.root, session, () => false);
+    if (drift === "candidate") await writeFile(session.candidatePath, Buffer.concat([await readFile(session.candidatePath), Buffer.from("Changed.\n")]));
+    if (drift === "plan") await writeFile(preview.planPath, "{}\n");
+    if (drift === "head") run("git", ["commit", "--allow-empty", "-m", "advance head"], data.root);
+    if (drift === "worktree") await writeFile(path.join(data.root, "project", "planning", "TARGET.md"), "dirty\n");
+    let approved = false;
+    await assert.rejects(() => new CreateApplyCoordinator().apply(data.root, session, preview, {
+      candidateIsDirty: () => drift === "unsaved",
+      confirmReview: async () => { approved = true; return true; },
+      confirmFinal: async () => true,
+    }));
+    assert.equal(approved, false, drift);
+    await assert.rejects(() => readFile(path.join(data.root, input.targetPath)), { code: "ENOENT" });
+  }
+});
+
+test("GUI CREATE Apply rechecks candidate after review approval before final approval", async () => {
+  const data = await fixture();
+  const session = (await createOrOpenCreateSession(data.root, data.storage, "main", data.head, input)).session;
+  const preview = await prepareCreatePreview(data.root, session, () => false);
+  let finalCalled = false;
+  await assert.rejects(() => new CreateApplyCoordinator().apply(data.root, session, preview, {
+    candidateIsDirty: () => false,
+    confirmReview: async () => {
+      await writeFile(session.candidatePath, Buffer.concat([await readFile(session.candidatePath), Buffer.from("Human edit during review.\n")]));
+      return true;
+    },
+    confirmFinal: async () => { finalCalled = true; return true; },
+  }), (error: unknown) => error instanceof CreateApplyError && error.code === "CANDIDATE_DRIFT");
+  assert.equal(finalCalled, false);
+  assert.match((await readFile(session.candidatePath)).toString("utf8"), /Human edit during review/);
+  assert.equal(run("git", ["status", "--short"], data.root), "");
+  await assert.rejects(() => readFile(path.join(data.root, input.targetPath)), { code: "ENOENT" });
 });

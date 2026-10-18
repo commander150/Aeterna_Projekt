@@ -1,6 +1,6 @@
 import type { ManagedDocument } from "./registry";
 
-export type ManagerAction = "edit" | "compare" | "plan" | "planMinor" | "planGovernance" | "apply" | "applyGovernance" | "refresh" | "newDocument" | "planCreate";
+export type ManagerAction = "edit" | "compare" | "plan" | "planMinor" | "planGovernance" | "apply" | "applyGovernance" | "refresh" | "newDocument" | "planCreate" | "applyCreate";
 
 export function isGovernanceDocument(path: string): boolean {
   return path.startsWith("project/governance/") && path.endsWith(".md") &&
@@ -53,14 +53,14 @@ export function parseManagerMessage(value: unknown): ManagerMessage | undefined 
   if (value.type !== "action" || typeof value.action !== "string") {
     return undefined;
   }
-  const actions: readonly string[] = ["edit", "compare", "plan", "planMinor", "planGovernance", "apply", "applyGovernance", "refresh", "newDocument", "planCreate"];
+  const actions: readonly string[] = ["edit", "compare", "plan", "planMinor", "planGovernance", "apply", "applyGovernance", "refresh", "newDocument", "planCreate", "applyCreate"];
   if (!actions.includes(value.action)) {
     return undefined;
   }
-  if (["refresh", "newDocument", "planCreate"].includes(value.action) && Object.keys(value).length === 2) {
-    return { type: "action", action: value.action as "refresh" | "newDocument" | "planCreate" };
+  if (["refresh", "newDocument", "planCreate", "applyCreate"].includes(value.action) && Object.keys(value).length === 2) {
+    return { type: "action", action: value.action as "refresh" | "newDocument" | "planCreate" | "applyCreate" };
   }
-  if (!["refresh", "newDocument", "planCreate"].includes(value.action) && typeof value.artifactId === "string"
+  if (!["refresh", "newDocument", "planCreate", "applyCreate"].includes(value.action) && typeof value.artifactId === "string"
     && /^AET-DOC-[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(value.artifactId)
     && Object.keys(value).length === 3) {
     return { type: "action", action: value.action as ManagerAction, artifactId: value.artifactId };
@@ -116,10 +116,11 @@ export function renderManagerHtml(nonce: string): string {
 </head>
 <body>
   <h1>AETERNA Document Manager</h1>
-  <p>Choose a managed document to update, or start a new document. Saving a candidate does not change the repository. CREATE planning is read-only; CREATE Apply is not available here.</p>
+  <p>Choose a managed document to update, or start a new document. Saving a candidate and preparing a plan do not change the repository. CREATE Apply requires separate review and approval.</p>
   <div class="actions" aria-label="New document actions">
     <button class="action" type="button" data-action="newDocument">New Document</button>
     <button class="action" type="button" data-action="planCreate">Prepare CREATE Plan (read only)</button>
+    <button class="action" type="button" data-action="applyCreate" disabled>Apply Prepared CREATE</button>
   </div>
   <p id="create-state" role="status">No CREATE candidate open.</p>
   <label for="search">Search by name, title, path or artifact ID</label>
@@ -161,6 +162,7 @@ export function renderManagerHtml(nonce: string): string {
       const buttons = [...document.querySelectorAll("button[data-action]")];
       let documents = [];
       let selectedId;
+      let createPlanReady = false;
 
       function showDetails() {
         const selected = documents.find((item) => item.artifactId === selectedId);
@@ -168,10 +170,11 @@ export function renderManagerHtml(nonce: string): string {
         empty.hidden = Boolean(selected);
         fields.hidden = !selected;
         for (const button of buttons) {
-          if (button.dataset.action === "apply") button.disabled = !selected || selected.governancePlan || !["PLAN_READY", "PLAN_READY_MISMATCH"].includes(selected.planState);
+          if (button.dataset.action === "applyCreate") button.disabled = !createPlanReady;
+          else if (button.dataset.action === "apply") button.disabled = !selected || selected.governancePlan || !["PLAN_READY", "PLAN_READY_MISMATCH"].includes(selected.planState);
           else if (button.dataset.action === "applyGovernance") button.disabled = !selected || !selected.governancePlan || !["PLAN_READY", "PLAN_READY_MISMATCH"].includes(selected.planState);
           else if (button.dataset.action === "planGovernance") button.disabled = !selected || !selected.governance;
-          else if (!["refresh", "newDocument", "planCreate"].includes(button.dataset.action)) button.disabled = !selected;
+          else if (!["refresh", "newDocument", "planCreate", "applyCreate"].includes(button.dataset.action)) button.disabled = !selected;
         }
         planState.textContent = selected ? selected.planStateLabel : "Plan missing.";
         if (!selected) return;
@@ -217,7 +220,7 @@ export function renderManagerHtml(nonce: string): string {
       for (const button of buttons) {
         button.addEventListener("click", () => {
           const action = button.dataset.action;
-          if (["refresh", "newDocument", "planCreate"].includes(action)) vscode.postMessage({ type: "action", action });
+          if (["refresh", "newDocument", "planCreate", "applyCreate"].includes(action)) vscode.postMessage({ type: "action", action });
           else if (selectedId) vscode.postMessage({ type: "action", action, artifactId: selectedId });
         });
       }
@@ -225,6 +228,7 @@ export function renderManagerHtml(nonce: string): string {
         const message = event.data;
         if (message?.type === "documents" && Array.isArray(message.documents)) {
           documents = message.documents;
+          createPlanReady = message.createPlanReady === true;
           if (!documents.some((item) => item.artifactId === selectedId)) selectedId = undefined;
           renderList();
           status.textContent = message.status;

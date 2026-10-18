@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { CreateApplyCoordinator, CreateApplyError, type CreateApplySummary } from "./apply_create";
 import {
   CreateCandidateError, createOrOpenCreateSession, createStorageRootForRepository, loadCreateSession,
   type CreateInput, type CreateSession,
@@ -266,6 +267,22 @@ function applyConfirmationDetail(summary: ApplySummary): string {
   ].join("\n");
 }
 
+function createApplyConfirmationDetail(summary: CreateApplySummary): string {
+  return [
+    `Artifact ID: ${summary.artifactId}`,
+    `Canonical target: ${summary.targetPath}`,
+    `Authority: ${summary.authority}; risk: ${summary.authorityRisk}${summary.authorityRisk === "HIGH" ? " — HIGH-RISK AUTHORITY: review carefully" : ""}`,
+    `Initial version: ${summary.initialVersion}`,
+    `Branch/HEAD: ${summary.branch} / ${summary.head}`,
+    `Dependency impact: ${summary.dependencyImpact}`,
+    `Candidate SHA-256: ${summary.candidateSha256}`,
+    `Immutable plan semantic SHA-256: ${summary.planSemanticSha256}`,
+    `All planned writes: ${summary.plannedWrites.join(", ")}`,
+    "Only explicit Apply can create the canonical document. Saving or planning cannot Apply.",
+    "After PASS, inspect GitHub Desktop; commit and push remain manual.",
+  ].join("\n");
+}
+
 function offerProductionReview(reviewPath: string | undefined, message: string, error: boolean): void {
   const notification = error
     ? vscode.window.showErrorMessage(message, ...(reviewPath ? ["Open Production Review"] : []))
@@ -346,6 +363,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const planStates = new Map<string, ManagerPlanState>();
   const candidatePaths = new Map<string, string>();
   const applyCoordinator = new ExplicitApplyCoordinator();
+  const createApplyCoordinator = new CreateApplyCoordinator();
   const setPlanState = (artifactId: string, state: ManagerPlanState): void => {
     planStates.set(artifactId, state);
     manager.refresh();
@@ -362,13 +380,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           message: provider.currentStatus,
         };
       }
-      if (action === "newDocument" || action === "planCreate") {
+      if (action === "newDocument" || action === "planCreate" || action === "applyCreate") {
         const succeeded = await vscode.commands.executeCommand<boolean>(
-          action === "newDocument" ? "aeterna.newDocument" : "aeterna.prepareCreatePlan",
+          action === "newDocument" ? "aeterna.newDocument"
+            : action === "planCreate" ? "aeterna.prepareCreatePlan" : "aeterna.applyPreparedCreate",
         );
         return succeeded
-          ? { ok: true, message: action === "newDocument" ? "CREATE candidate opened outside the repository. Save it before planning." : "Read-only CREATE plan ready. Review candidate, plan and AETERNA Documents output." }
-          : { ok: false, message: "CREATE candidate or plan cancelled or blocked. See the VS Code notification and AETERNA Documents output." };
+          ? { ok: true, message: action === "newDocument" ? "CREATE candidate opened outside the repository. Save it before planning."
+            : action === "planCreate" ? "Read-only CREATE plan ready. Review candidate, plan and AETERNA Documents output."
+              : "CREATE Apply PASS. Inspect the production review and GitHub Desktop before manual commit/push." }
+          : { ok: false, message: action === "applyCreate" ? createState
+            : "CREATE candidate or plan cancelled or blocked. See the VS Code notification and AETERNA Documents output." };
       }
       if (!document) {
         return { ok: false, message: "Selected document is unavailable. Refresh the list." };
@@ -394,6 +416,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     (artifactId) => planStates.get(artifactId) ?? "PLAN_MISSING",
     () => createState,
     (artifactId) => preparedPlans.get(artifactId)?.materialized.preview.manifest.change_class === "semantic-governance-change",
+    () => createPreview !== undefined,
   );
   const preparedPlans = new Map<string, {
     readonly request: CandidateSessionRequest;
@@ -639,7 +662,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
               `Canonical target: ${input.targetPath}`, `Type: ${input.type}`, `Authority: ${input.authority}`,
               `Dependencies: ${input.dependencies.join(", ") || "none"}`, `Initial version: ${input.version}`,
               `Integration: ${input.integration}`, `H1 title: ${input.title}`,
-              "Only a candidate outside the repository will be created. CREATE Apply is unavailable.",
+              "Only a candidate outside the repository will be created. Apply requires a separate plan review and approval.",
             ].join("\n") },
             "Create External Candidate",
           );
@@ -680,18 +703,84 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           throw new CreatePlanError("CANDIDATE_UNSAVED", "CREATE candidate became unsaved during planning; plan discarded.");
         }
         createPreview = preview;
-        createState = `CREATE plan ready for ${session.input.artifactId}. Review it; no CREATE Apply is available.`;
+        createState = `CREATE plan ready for ${session.input.artifactId}. Review the candidate and plan before explicit Apply.`;
         manager.refresh();
         output.appendLine(renderCreatePreview(preview));
         output.show(true);
         await vscode.window.showTextDocument(vscode.Uri.file(preview.planPath), { preview: false, viewColumn: vscode.ViewColumn.Beside });
-        void vscode.window.showInformationMessage("Read-only CREATE plan ready. Review the external candidate, full plan and AETERNA Documents output. No CREATE Apply is available.");
+        void vscode.window.showInformationMessage("Read-only CREATE plan ready. Review the external candidate, full plan and AETERNA Documents output. Apply requires separate approval.");
         return true;
       } catch (error) {
         createPreview = undefined;
         createState = `CREATE plan blocked: ${error instanceof Error ? error.message : String(error)}`;
         manager.refresh();
         reportCandidateError(output, "Prepare CREATE plan", error);
+        return false;
+      }
+    }),
+    vscode.commands.registerCommand("aeterna.applyPreparedCreate", async (): Promise<boolean> => {
+      const session = createSession;
+      const preview = createPreview;
+      const root = provider.currentRepositoryRoot;
+      if (!session || !preview || !root) {
+        void vscode.window.showWarningMessage("No current prepared CREATE plan exists. Save the external candidate and prepare a new plan.");
+        return false;
+      }
+      try {
+        const result = await createApplyCoordinator.apply(root, session, preview, {
+          candidateIsDirty: () => isCandidateUnsaved(session.candidatePath),
+          confirmReview: async (summary) => {
+            output.appendLine(renderCreatePreview(preview));
+            output.show(true);
+            const choice = await vscode.window.showWarningMessage(
+              `Review prepared CREATE for ${summary.artifactId}?`,
+              { modal: true, detail: createApplyConfirmationDetail(summary) },
+              "Review Candidate", "Review Full Plan", "Continue to Final Approval",
+            );
+            if (choice === "Review Candidate") {
+              await vscode.window.showTextDocument(vscode.Uri.file(session.candidatePath), { preview: false });
+            } else if (choice === "Review Full Plan") {
+              await vscode.window.showTextDocument(vscode.Uri.file(preview.planPath), { preview: false });
+            }
+            return choice === "Continue to Final Approval";
+          },
+          confirmFinal: async (summary) => (await vscode.window.showWarningMessage(
+            `Final approval: create ${summary.artifactId} at ${summary.targetPath}?`,
+            { modal: true, detail: createApplyConfirmationDetail(summary) },
+            "Apply Prepared CREATE",
+          )) === "Apply Prepared CREATE",
+          onBeforeRun: () => {
+            createState = `Production CREATE Apply running for ${session.input.artifactId}…`;
+            manager.refresh();
+            output.appendLine(`Production CREATE Apply started for ${session.input.artifactId}.`);
+          },
+        });
+        output.appendLine(`CREATE Apply ${result.status}: ${result.message}`);
+        if (result.reviewPath) output.appendLine(`Production CREATE review: ${result.reviewPath}`);
+        if (result.status === "CANCELLED") {
+          createState = createPreview === preview ? `CREATE plan ready for ${session.input.artifactId}; Apply cancelled without writes.`
+            : "CREATE plan stale after candidate change. Prepare a new plan.";
+          manager.refresh();
+          return false;
+        }
+        if (createPreview === preview) createPreview = undefined;
+        createState = `CREATE Apply ${result.status}: ${result.message}`;
+        manager.refresh();
+        if (result.status === "PASS") {
+          await provider.refresh();
+          offerProductionReview(result.reviewPath, `AETERNA ${session.input.artifactId}: CREATE Apply PASS, review verified. Inspect GitHub Desktop before manual commit/push.`, false);
+          return true;
+        }
+        output.show(true);
+        offerProductionReview(result.reviewPath, `AETERNA ${session.input.artifactId}: ${result.message}`, true);
+        return false;
+      } catch (error) {
+        if (!(error instanceof CreateApplyError && error.code === "APPLY_ALREADY_ATTEMPTED")) {
+          if (createPreview === preview) createPreview = undefined;
+          createState = `CREATE Apply BLOCKED: ${error instanceof Error ? error.message : String(error)} Candidate preserved.`;
+          manager.refresh();
+        }
+        reportCandidateError(output, "Apply Prepared CREATE", error);
         return false;
       }
     }),
@@ -1036,7 +1125,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   output.appendLine(
-    "AETERNA document extension activated (Document Manager, E1 candidate editing, E2A plan preview, E2B explicit governed Apply).",
+    "AETERNA document extension activated (Document Manager, candidate editing, UPDATE and CREATE planning, explicit governed Apply).",
   );
   output.appendLine(`Candidate storage root: ${candidateStorageRoot}`);
   await provider.refresh();

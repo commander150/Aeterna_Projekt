@@ -177,9 +177,10 @@ def prepare_create(
     repository_root: str | Path,
     manifest: CreateManifest,
     manifest_path: str | Path,
+    external_candidate_root: str | Path | None = None,
 ) -> PreparedCreate:
     return _prepare_create_context(
-        run_create_preflight_manifest(repository_root, manifest, manifest_path)
+        run_create_preflight_manifest(repository_root, manifest, manifest_path, external_candidate_root)
     )
 
 
@@ -223,7 +224,12 @@ def recompute_prepared_create(
     if planned_root != root:
         fail("REPOSITORY_ROOT_MISMATCH", "CREATE plan repository root does not match apply root.", exit_code=3)
     manifest, manifest_path = manifest_from_create_plan(plan)
-    return prepare_create(root, manifest, manifest_path)
+    candidate_path = Path(str(plan["candidate"]["resolved_path"]))
+    external_root = root.parent / "Aeterna_Local" / "document_editor" / "create"
+    # The plan does not add a storage-policy field: infer only the already
+    # approved external root, then run the same strict path policy again.
+    selected_root = external_root if candidate_path.is_relative_to(external_root) else None
+    return prepare_create(root, manifest, manifest_path, selected_root)
 
 
 def validate_create_plan_integrity(plan: object) -> dict[str, object]:

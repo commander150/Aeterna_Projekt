@@ -48,6 +48,7 @@ test("manager accepts only known actions and well-formed artifact IDs", () => {
   assert.deepEqual(parseManagerMessage({ type: "action", action: "refresh" }), { type: "action", action: "refresh" });
   assert.deepEqual(parseManagerMessage({ type: "action", action: "newDocument" }), { type: "action", action: "newDocument" });
   assert.deepEqual(parseManagerMessage({ type: "action", action: "planCreate" }), { type: "action", action: "planCreate" });
+  assert.deepEqual(parseManagerMessage({ type: "action", action: "applyCreate" }), { type: "action", action: "applyCreate" });
   assert.deepEqual(
     parseManagerMessage({ type: "action", action: "edit", artifactId: "AET-DOC-PROJECT-PLAN" }),
     { type: "action", action: "edit", artifactId: "AET-DOC-PROJECT-PLAN" },
@@ -72,6 +73,7 @@ test("manager accepts only known actions and well-formed artifact IDs", () => {
     { type: "action", action: "refresh", artifactId: "AET-DOC-PROJECT-PLAN" },
     { type: "action", action: "newDocument", artifactId: "AET-DOC-PROJECT-PLAN" },
     { type: "action", action: "planCreate", extra: true },
+    { type: "action", action: "applyCreate", artifactId: "AET-DOC-PROJECT-PLAN" },
     { type: "search", query: "x".repeat(257) },
     { type: "ready", extra: true },
   ]) {
@@ -99,6 +101,7 @@ test("manager HTML uses CSP and text-only DOM rendering for registry values", ()
   assert.match(html, /data-action="plan" disabled/);
   assert.match(html, /data-action="newDocument"/);
   assert.match(html, /data-action="planCreate"/);
+  assert.match(html, /data-action="applyCreate" disabled/);
   assert.match(html, /createState\.textContent/);
   assert.match(html, /"PLAN_READY_MISMATCH"/);
   assert.doesNotMatch(html, /AET-DOC-PROJECT-PLAN/);

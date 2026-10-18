@@ -139,6 +139,36 @@ test("manager permits Apply only for a selected document with a ready plan", asy
   manager.dispose();
 });
 
+test("manager gates CREATE Apply on a prepared plan without a selected existing document", async () => {
+  let receiver: ((message: unknown) => void) | undefined;
+  const actions: string[] = [];
+  const posted: unknown[] = [];
+  const panel = {
+    webview: { html: "", postMessage: async (message: unknown) => { posted.push(message); return true; },
+      onDidReceiveMessage: (listener: (message: unknown) => void) => { receiver = listener; return { dispose() {} }; } },
+    onDidDispose: () => ({ dispose() {} }), dispose() {}, reveal() {},
+  };
+  const host = { ViewColumn: { One: 1 }, window: { createWebviewPanel: () => panel } } as unknown as typeof vscode;
+  let ready = false;
+  const manager = new DocumentManager(host, () => [], () => "Ready", async (action) => {
+    actions.push(action);
+    return { ok: true, message: "Done" };
+  }, undefined, () => "CREATE plan ready", undefined, () => ready);
+  manager.show();
+  receiver?.({ type: "ready" });
+  assert.equal((posted.at(-1) as { createPlanReady: boolean }).createPlanReady, false);
+  receiver?.({ type: "action", action: "applyCreate" });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.deepEqual(actions, []);
+  ready = true;
+  manager.refresh();
+  assert.equal((posted.at(-1) as { createPlanReady: boolean }).createPlanReady, true);
+  receiver?.({ type: "action", action: "applyCreate" });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.deepEqual(actions, ["applyCreate"]);
+  manager.dispose();
+});
+
 test("governance GUI routes only a ready governance plan and excludes ordinary Apply", async () => {
   const document: ManagedDocument = {
     artifact_id: "AET-DOC-GITHUB-WORKFLOW", title: "GitHub Workflow",

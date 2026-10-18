@@ -4,6 +4,7 @@ import copy
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import unittest
@@ -160,6 +161,97 @@ class CreateApplyTests(unittest.TestCase):
         )
         self.assertEqual(0, verified.returncode, verified.stderr)
         self.assertEqual("aeterna-document-create-review/0.1", json.loads(verified.stdout)["schema_version"])
+
+    def test_external_candidate_plan_apply_and_verify_review(self) -> None:
+        external = self.fixture.root.parent / "Aeterna_Local" / "document_editor" / "create"
+        session = external / self.fixture.root.name
+        session.mkdir(parents=True)
+        try:
+            candidate_data = markdown("AET-DOC-NEW", "New Document", version="0.1")
+            candidate = session / "candidate.md"
+            candidate.write_bytes(candidate_data)
+            manifest = self.fixture.create_manifest(candidate)
+            plan = build_create_plan(self.fixture.root, manifest, external)
+            plan_path = session / "plan.json"
+            plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+            review_dir = self.fixture.root / "TEMP" / "external-create-review"
+
+            result = apply_plan(plan_path, self.fixture.root, review_dir)
+
+            self.assertEqual("PASS", result["status"])
+            self.assertEqual(candidate_data, (self.fixture.root / "project/planning/NEW.md").read_bytes())
+            self.assertEqual("PASS", verify_review_file(result["review_json"])["final_status"])
+            self.assertEqual("", self.fixture.git("diff", "--cached", "--name-only"))
+        finally:
+            shutil.rmtree(session)
+
+    def test_external_candidate_apply_blocks_drift_without_writes(self) -> None:
+        external = self.fixture.root.parent / "Aeterna_Local" / "document_editor" / "create"
+        session = external / self.fixture.root.name
+        session.mkdir(parents=True)
+        try:
+            candidate = session / "candidate.md"
+            candidate.write_bytes(markdown("AET-DOC-NEW", "New Document", version="0.1"))
+            manifest = self.fixture.create_manifest(candidate)
+            plan = build_create_plan(self.fixture.root, manifest, external)
+            plan_path = session / "plan.json"
+            plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+            before = self.fixture.tracked_bytes()
+            candidate.write_bytes(candidate.read_bytes() + b"Changed after planning.\n")
+            with self.assertRaises(WorkflowError) as caught:
+                apply_plan(plan_path, self.fixture.root, self.fixture.root / "TEMP" / "drift-review")
+            self.assertEqual("CREATE_CANDIDATE_HASH_MISMATCH", caught.exception.diagnostics[0].code)
+            self.assertFalse((self.fixture.root / "project/planning/NEW.md").exists())
+            self.assertEqual(before, self.fixture.tracked_bytes())
+            self.assertEqual("", self.fixture.git("status", "--short"))
+        finally:
+            shutil.rmtree(session)
+
+    def test_external_candidate_apply_rechecks_link_safety(self) -> None:
+        external = self.fixture.root.parent / "Aeterna_Local" / "document_editor" / "create"
+        session = external / self.fixture.root.name
+        session.mkdir(parents=True)
+        try:
+            candidate = session / "candidate.md"
+            candidate.write_bytes(markdown("AET-DOC-NEW", "New Document", version="0.1"))
+            manifest = self.fixture.create_manifest(candidate)
+            plan = build_create_plan(self.fixture.root, manifest, external)
+            plan_path = session / "plan.json"
+            plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+            candidate.unlink()
+            try:
+                os.link(self.fixture.target, candidate)
+            except OSError as exc:
+                self.skipTest(f"Hard links unavailable: {exc}")
+            with self.assertRaises(WorkflowError) as caught:
+                apply_plan(plan_path, self.fixture.root, self.fixture.root / "TEMP" / "link-review")
+            self.assertEqual("CREATE_CANDIDATE_PATH_BLOCKED", caught.exception.diagnostics[0].code)
+            self.assertFalse((self.fixture.root / "project/planning/NEW.md").exists())
+            self.assertEqual("", self.fixture.git("status", "--short"))
+        finally:
+            shutil.rmtree(session)
+
+    def test_external_candidate_failure_rolls_back_and_preserves_candidate(self) -> None:
+        external = self.fixture.root.parent / "Aeterna_Local" / "document_editor" / "create"
+        session = external / self.fixture.root.name
+        session.mkdir(parents=True)
+        try:
+            data = markdown("AET-DOC-NEW", "New Document", version="0.1")
+            candidate = session / "candidate.md"
+            candidate.write_bytes(data)
+            manifest = self.fixture.create_manifest(candidate)
+            plan = build_create_plan(self.fixture.root, manifest, external)
+            plan_path = session / "plan.json"
+            plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+            before = self.fixture.tracked_bytes()
+            review_dir = self.fixture.root / "TEMP" / "rollback-review"
+            with self.assertRaises(WorkflowError):
+                apply_plan(plan_path, self.fixture.root, review_dir, injection=FailureInjection(fail_after_write=1))
+            review = self._assert_rollback(review_dir, self.fixture.root / "project/planning/NEW.md", before, verified=True)
+            self.assertEqual("PASS", review["validation"]["recomputed_create_plan_match"])
+            self.assertEqual(data, candidate.read_bytes())
+        finally:
+            shutil.rmtree(session)
 
     def test_failure_after_target_write_rolls_back(self) -> None:
         before = self.fixture.tracked_bytes()

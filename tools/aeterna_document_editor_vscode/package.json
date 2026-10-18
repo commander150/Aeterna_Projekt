@@ -1,7 +1,7 @@
 {
   "name": "aeterna-document-editor",
   "displayName": "AETERNA Document Editor",
-  "description": "AETERNA Document Manager with governed candidate editing and read-only UPDATE/CREATE planning.",
+  "description": "AETERNA Document Manager with governed candidate editing, planning and explicit Apply.",
   "version": "0.0.1",
   "private": true,
   "engines": {
@@ -21,7 +21,8 @@
     "onCommand:aeterna.applyPreparedUpdate",
     "onCommand:aeterna.applyGovernanceUpdate",
     "onCommand:aeterna.newDocument",
-    "onCommand:aeterna.prepareCreatePlan"
+    "onCommand:aeterna.prepareCreatePlan",
+    "onCommand:aeterna.applyPreparedCreate"
   ],
   "main": "./out/src/extension.js",
   "scripts": {
@@ -86,6 +87,10 @@
       {
         "command": "aeterna.prepareCreatePlan",
         "title": "AETERNA: Prepare CREATE Plan (Read Only)"
+      },
+      {
+        "command": "aeterna.applyPreparedCreate",
+        "title": "AETERNA: Apply Prepared CREATE (Explicit Approval)"
       }
     ],
     "menus": {

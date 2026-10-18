@@ -28,6 +28,7 @@ export class DocumentManager implements vscode.Disposable {
     private readonly planState: (artifactId: string) => ManagerPlanState = () => "PLAN_MISSING",
     private readonly createState: () => string = () => "No CREATE candidate open.",
     private readonly governancePlan: (artifactId: string) => boolean = () => false,
+    private readonly createPlanReady: () => boolean = () => false,
   ) {}
 
   public show(): void {
@@ -69,6 +70,7 @@ export class DocumentManager implements vscode.Disposable {
       })),
       status: this.status(),
       createState: this.createState(),
+      createPlanReady: this.createPlanReady(),
     });
   }
 
@@ -98,7 +100,7 @@ export class DocumentManager implements vscode.Disposable {
     const document = message.artifactId
       ? this.documents().find((item) => item.artifact_id === message.artifactId)
       : undefined;
-    if (!["refresh", "newDocument", "planCreate"].includes(message.action) && !document) {
+    if (!["refresh", "newDocument", "planCreate", "applyCreate"].includes(message.action) && !document) {
       this.publishStatus("Selected document is no longer available. Refresh the list.");
       return;
     }
@@ -110,6 +112,10 @@ export class DocumentManager implements vscode.Disposable {
         (!["PLAN_READY", "PLAN_READY_MISMATCH"].includes(this.planState(document.artifact_id)) ||
          this.governancePlan(document.artifact_id) !== (message.action === "applyGovernance"))) {
       this.publishStatus("Apply blocked: selected document has no current prepared plan.");
+      return;
+    }
+    if (message.action === "applyCreate" && !this.createPlanReady()) {
+      this.publishStatus("CREATE Apply blocked: no current prepared CREATE plan. Save the candidate and prepare a new plan.");
       return;
     }
     this.busy = true;

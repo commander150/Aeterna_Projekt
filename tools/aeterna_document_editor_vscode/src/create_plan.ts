@@ -31,6 +31,7 @@ export interface CreateBaseline {
 export interface CreatePreview {
   readonly plan: Record<string, unknown>;
   readonly planPath: string;
+  readonly planSha256: string;
   readonly manifestPath: string;
   readonly candidateSha256: string;
 }
@@ -160,8 +161,9 @@ export async function prepareCreatePreview(
   const after = await inspectCreateBaseline(repositoryRoot);
   requireCreateBaseline(after, session);
   const planPath = path.join(path.dirname(session.candidatePath), `create-plan-${randomUUID()}.json`);
-  await writeFile(planPath, `${JSON.stringify(plan, null, 2)}\n`, { encoding: "utf8", flag: "wx", mode: 0o600 });
-  return { plan, planPath, manifestPath, candidateSha256 };
+  const planBytes = Buffer.from(`${JSON.stringify(plan, null, 2)}\n`, "utf8");
+  await writeFile(planPath, planBytes, { flag: "wx", mode: 0o600 });
+  return { plan, planPath, planSha256: sha256(planBytes), manifestPath, candidateSha256 };
 }
 
 export function renderCreatePreview(preview: CreatePreview): string {
@@ -172,7 +174,7 @@ export function renderCreatePreview(preview: CreatePreview): string {
   const expected = Array.isArray(plan.expected_changes) ? plan.expected_changes : [];
   const generated = record(plan.generated) && Array.isArray(plan.generated.outputs) ? plan.generated.outputs : [];
   return [
-    "AETERNA read-only CREATE plan review — NO APPLY AVAILABLE",
+    "AETERNA read-only CREATE plan review — Apply requires separate approval",
     `Artifact ID: ${String(plan.artifact_id)}`,
     `Canonical target: ${String(target.declared_path)}`,
     `Authority: ${String(authority.declared_authority)}; review risk: ${String(authority.risk)}`,
