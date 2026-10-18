@@ -3,9 +3,10 @@
   "displayName": "AETERNA Document Editor",
   "description": "AETERNA Document Manager with governed candidate editing, planning and explicit Apply.",
   "version": "0.0.1",
+  "publisher": "aeterna-local",
   "private": true,
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.140.0"
   },
   "categories": [
     "Other"
@@ -14,6 +15,7 @@
     "onView:aeternaDocuments",
     "onCommand:aeterna.openManager",
     "onCommand:aeterna.editCandidate",
+    "onCommand:aeterna.previewCandidate",
     "onCommand:aeterna.compareCandidate",
     "onCommand:aeterna.prepareUpdatePlan",
     "onCommand:aeterna.prepareMinorUpdatePlan",
@@ -21,6 +23,7 @@
     "onCommand:aeterna.applyPreparedUpdate",
     "onCommand:aeterna.applyGovernanceUpdate",
     "onCommand:aeterna.newDocument",
+    "onCommand:aeterna.compareCreateCandidate",
     "onCommand:aeterna.prepareCreatePlan",
     "onCommand:aeterna.applyPreparedCreate"
   ],
@@ -51,6 +54,10 @@
       {
         "command": "aeterna.editCandidate",
         "title": "AETERNA: Edit Candidate (Does Not Apply)"
+      },
+      {
+        "command": "aeterna.previewCandidate",
+        "title": "AETERNA: Preview Existing Candidate"
       },
       {
         "command": "aeterna.compareCandidate",
@@ -85,6 +92,10 @@
         "title": "AETERNA: New Document Candidate (No Apply)"
       },
       {
+        "command": "aeterna.compareCreateCandidate",
+        "title": "AETERNA: Compare CREATE Candidate with Empty Document"
+      },
+      {
         "command": "aeterna.prepareCreatePlan",
         "title": "AETERNA: Prepare CREATE Plan (Read Only)"
       },
@@ -113,14 +124,28 @@
           "group": "navigation@2"
         },
         {
+          "command": "aeterna.previewCandidate",
+          "when": "view == aeternaDocuments && viewItem == aeternaManagedDocument",
+          "group": "navigation@2.5"
+        },
+        {
           "command": "aeterna.prepareUpdatePlan",
           "when": "view == aeternaDocuments && viewItem == aeternaManagedDocument",
           "group": "navigation@3"
         }
       ]
     },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "aeternaDocumentsContainer",
+          "title": "AETERNA",
+          "icon": "media/aeterna-documents.svg"
+        }
+      ]
+    },
     "views": {
-      "explorer": [
+      "aeternaDocumentsContainer": [
         {
           "id": "aeternaDocuments",
           "name": "AETERNA Documents"

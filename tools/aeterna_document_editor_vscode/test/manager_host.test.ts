@@ -99,6 +99,33 @@ test("manager opens one separate panel and routes only current selected document
   manager.dispose();
 });
 
+test("manager loads canonical metadata only for a selected known artifact", async () => {
+  const document: ManagedDocument = {
+    artifact_id: "AET-DOC-PROJECT-PLAN", title: "Project Plan", path: "project/planning/PROJECT_PLAN.md",
+    absolutePath: "C:\\repo\\project\\planning\\PROJECT_PLAN.md", kind: "document",
+    version: "6.20", generated: false, scope: "ACTIVE",
+  };
+  let receiver: ((message: unknown) => void) | undefined;
+  const posted: unknown[] = [];
+  const panel = { webview: { html: "", postMessage: async (message: unknown) => { posted.push(message); return true; },
+    onDidReceiveMessage: (listener: (message: unknown) => void) => { receiver = listener; return { dispose() {} }; } },
+    onDidDispose: () => ({ dispose() {} }), dispose() {}, reveal() {} };
+  const host = { ViewColumn: { One: 1 }, window: { createWebviewPanel: () => panel } } as unknown as typeof vscode;
+  let loaded = 0;
+  const manager = new DocumentManager(host, () => [document], () => "Ready", async () => ({ ok: true, message: "Done" }),
+    undefined, undefined, undefined, undefined, async () => {
+      loaded += 1;
+      return { artifactId: document.artifact_id, fields: { artifact_id: document.artifact_id }, allowed: {}, rules: "read only" };
+    });
+  manager.show();
+  receiver?.({ type: "select", artifactId: "AET-DOC-UNKNOWN" });
+  receiver?.({ type: "select", artifactId: document.artifact_id });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(loaded, 1);
+  assert.equal((posted.at(-1) as { type: string }).type, "metadata");
+  manager.dispose();
+});
+
 test("manager permits Apply only for a selected document with a ready plan", async () => {
   const document: ManagedDocument = {
     artifact_id: "AET-DOC-PROJECT-PLAN", title: "Project Plan",
@@ -291,11 +318,66 @@ test("Manager remains busy during Apply and unlocks after cancellation", async (
   receiver?.({ type: "action", action: "edit", artifactId: document.artifact_id });
   await new Promise<void>((resolve) => setImmediate(resolve));
   assert.deepEqual(actions, ["apply"]);
-  assert.ok(posted.some((message) => (message as { status?: string }).status === "Another Document Manager action is still running."));
+  assert.ok(posted.some((message) => (message as { status?: string }).status === "Egy másik művelet még folyamatban van."));
   cancelApply?.({ ok: false, message: "Cancelled" });
   await new Promise<void>((resolve) => setImmediate(resolve));
   receiver?.({ type: "action", action: "edit", artifactId: document.artifact_id });
   await new Promise<void>((resolve) => setImmediate(resolve));
   assert.deepEqual(actions, ["apply", "edit"]);
+  manager.dispose();
+});
+
+test("selection and search survive compare, refresh and panel reopening, but clear on repository change or removal", async () => {
+  const document: ManagedDocument = {
+    artifact_id: "AET-DOC-PROJECT-PLAN", title: "Project Plan", path: "project/planning/PROJECT_PLAN.md",
+    absolutePath: "C:\\repo\\project\\planning\\PROJECT_PLAN.md", kind: "document",
+    version: "6.20", generated: false, scope: "ACTIVE",
+  };
+  let root = "C:\\repo";
+  let current: ManagedDocument[] = [document];
+  let receiver: ((message: unknown) => void) | undefined;
+  let disposePanel: (() => void) | undefined;
+  const posted: unknown[] = [];
+  const actions: string[] = [];
+  const host = { ViewColumn: { One: 1 }, window: { createWebviewPanel: () => ({
+    webview: { html: "", postMessage: async (message: unknown) => { posted.push(message); return true; },
+      onDidReceiveMessage: (listener: (message: unknown) => void) => { receiver = listener; return { dispose() {} }; } },
+    onDidDispose: (listener: () => void) => { disposePanel = listener; return { dispose() {} }; },
+    dispose() {}, reveal() {},
+  }) } } as unknown as typeof vscode;
+  const manager = new DocumentManager(host, () => current, () => "Ready", async (action) => {
+    actions.push(action); return { ok: true, message: "Done" };
+  }, undefined, undefined, undefined, undefined, async () => ({
+    artifactId: document.artifact_id, fields: {}, allowed: {}, rules: "read only",
+  }), () => root);
+  const latest = () => posted.filter((message) => (message as { type?: string }).type === "documents").at(-1) as {
+    selectedId?: string; query: string; selectedDocument?: { artifactId: string }; documents: unknown[];
+  };
+  manager.show();
+  receiver?.({ type: "ready" });
+  receiver?.({ type: "select", artifactId: document.artifact_id });
+  receiver?.({ type: "search", query: "no-match" });
+  assert.equal(latest().selectedId, document.artifact_id);
+  assert.equal(latest().selectedDocument?.artifactId, document.artifact_id);
+  assert.equal(latest().documents.length, 0);
+  receiver?.({ type: "action", action: "compare", artifactId: document.artifact_id });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  manager.refresh();
+  assert.equal(latest().selectedId, document.artifact_id);
+  assert.equal(latest().query, "no-match");
+  disposePanel?.();
+  manager.show();
+  receiver?.({ type: "ready" });
+  assert.equal(latest().selectedId, document.artifact_id);
+  assert.equal(latest().query, "no-match");
+  assert.deepEqual(actions, ["compare"]);
+  root = "C:\\other-repo";
+  manager.refresh();
+  assert.equal(latest().selectedId, undefined);
+  assert.equal(latest().query, "");
+  receiver?.({ type: "select", artifactId: document.artifact_id });
+  current = [];
+  manager.refresh();
+  assert.equal(latest().selectedId, undefined);
   manager.dispose();
 });

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
@@ -54,6 +54,14 @@ test("current-baseline E1 session still reopens without a new-session prompt", a
   assert.equal(routed?.session.disposition, "REUSED");
   assert.equal(routed?.session.candidatePath, created.candidatePath);
   assert.equal(routed?.newerBaseline, false);
+});
+
+test("loading an existing candidate for preview never creates a missing session", async () => {
+  const { request } = await fixture();
+  await assert.rejects(loadRoutedCandidate(request), (error: unknown) =>
+    error instanceof CandidateSessionError && error.code === "SESSION_NOT_FOUND");
+  assert.equal((await readdir(request.storageRoot, { recursive: true, withFileTypes: true }))
+    .filter((entry) => entry.isFile()).length, 0);
 });
 
 test("version drift preserves old candidate on cancellation and blocks compare/plan", async () => {

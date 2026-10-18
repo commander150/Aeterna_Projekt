@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
 
 import {
@@ -33,6 +35,20 @@ const documents: ManagedDocument[] = [
   },
 ];
 
+test("AETERNA Activity Bar container contains the existing documents view and a packaged SVG icon", () => {
+  const root = path.resolve(__dirname, "../..");
+  const manifest = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")) as {
+    contributes: { viewsContainers: { activitybar: { id: string; icon: string }[] };
+      views: Record<string, { id: string }[]> };
+  };
+  const container = manifest.contributes.viewsContainers.activitybar.find((item) => item.id === "aeternaDocumentsContainer");
+  assert.ok(container);
+  const views = manifest.contributes.views.aeternaDocumentsContainer;
+  assert.ok(views);
+  assert.deepEqual(views.map((item) => item.id), ["aeternaDocuments"]);
+  assert.match(readFileSync(path.join(root, container.icon), "utf8"), /<svg[^>]+viewBox="0 0 24 24"/);
+});
+
 test("manager search matches artifact ID, title and canonical filename without changing source list", () => {
   assert.deepEqual(filterManagedDocuments(documents, ""), documents);
   assert.deepEqual(filterManagedDocuments(documents, "  PROJECT_PLAN  "), [documents[0]]);
@@ -47,11 +63,18 @@ test("manager accepts only known actions and well-formed artifact IDs", () => {
   assert.deepEqual(parseManagerMessage({ type: "search", query: "plan" }), { type: "search", query: "plan" });
   assert.deepEqual(parseManagerMessage({ type: "action", action: "refresh" }), { type: "action", action: "refresh" });
   assert.deepEqual(parseManagerMessage({ type: "action", action: "newDocument" }), { type: "action", action: "newDocument" });
+  assert.deepEqual(parseManagerMessage({ type: "action", action: "compareCreate" }), { type: "action", action: "compareCreate" });
+  assert.deepEqual(parseManagerMessage({ type: "select", artifactId: "AET-DOC-PROJECT-PLAN" }),
+    { type: "select", artifactId: "AET-DOC-PROJECT-PLAN" });
   assert.deepEqual(parseManagerMessage({ type: "action", action: "planCreate" }), { type: "action", action: "planCreate" });
   assert.deepEqual(parseManagerMessage({ type: "action", action: "applyCreate" }), { type: "action", action: "applyCreate" });
   assert.deepEqual(
     parseManagerMessage({ type: "action", action: "edit", artifactId: "AET-DOC-PROJECT-PLAN" }),
     { type: "action", action: "edit", artifactId: "AET-DOC-PROJECT-PLAN" },
+  );
+  assert.deepEqual(
+    parseManagerMessage({ type: "action", action: "preview", artifactId: "AET-DOC-PROJECT-PLAN" }),
+    { type: "action", action: "preview", artifactId: "AET-DOC-PROJECT-PLAN" },
   );
   assert.deepEqual(
     parseManagerMessage({ type: "action", action: "apply", artifactId: "AET-DOC-PROJECT-PLAN" }),
@@ -68,6 +91,7 @@ test("manager accepts only known actions and well-formed artifact IDs", () => {
   for (const invalid of [
     null,
     { type: "action", action: "create", artifactId: "AET-DOC-PROJECT-PLAN" },
+    { type: "select", artifactId: "../outside.md" },
     { type: "action", action: "edit", artifactId: "../outside.md" },
     { type: "action", action: "edit", artifactId: "AET-DOC-PROJECT-PLAN", path: "C:\\outside" },
     { type: "action", action: "refresh", artifactId: "AET-DOC-PROJECT-PLAN" },
@@ -100,8 +124,17 @@ test("manager HTML uses CSP and text-only DOM rendering for registry values", ()
   assert.match(html, /data-action="applyGovernance" disabled/);
   assert.match(html, /data-action="plan" disabled/);
   assert.match(html, /data-action="newDocument"/);
+  assert.match(html, /data-action="compareCreate"/);
+  assert.match(html, /metadataState\.textContent/);
+  assert.match(html, /metadataRules\.textContent/);
   assert.match(html, /data-action="planCreate"/);
   assert.match(html, /data-action="applyCreate" disabled/);
+  assert.match(html, /data-action="edit" disabled>Candidate szerkesztése/);
+  assert.match(html, /data-action="preview" disabled>Markdown előnézet/);
+  assert.match(html, /class="operation"/);
+  assert.match(html, /message\.selectedId/);
+  assert.match(html, /message\.selectedDocument/);
+  assert.match(html, /message\.query/);
   assert.match(html, /createState\.textContent/);
   assert.match(html, /"PLAN_READY_MISMATCH"/);
   assert.doesNotMatch(html, /AET-DOC-PROJECT-PLAN/);

@@ -10,6 +10,9 @@ import {
   CreatePlanError, inspectCreateBaseline, prepareCreatePreview, renderCreatePreview,
   type CreateBaseline, type CreatePreview,
 } from "./create_plan";
+import { createDiffUris, emptyCreateDocument, EMPTY_CREATE_SCHEME } from "./create_diff";
+import { loadMetadataAssistance } from "./metadata_assistance";
+import { updateCandidateStorageRoot } from "./storage_compat";
 
 import {
   type ManagedDocument,
@@ -353,10 +356,7 @@ async function promptCreateInput(baseline: CreateBaseline, artifactId: string): 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const output = vscode.window.createOutputChannel("AETERNA Documents");
   const provider = new AeternaDocumentsProvider(output);
-  const candidateStorageRoot = vscode.Uri.joinPath(
-    context.globalStorageUri,
-    "e1-candidates",
-  ).fsPath;
+  const candidateStorageRoot = await updateCandidateStorageRoot(context.globalStorageUri.fsPath);
   let createSession: CreateSession | undefined;
   let createPreview: CreatePreview | undefined;
   let createState = "No CREATE candidate open.";
@@ -380,14 +380,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           message: provider.currentStatus,
         };
       }
-      if (action === "newDocument" || action === "planCreate" || action === "applyCreate") {
+      if (action === "newDocument" || action === "compareCreate" || action === "planCreate" || action === "applyCreate") {
         const succeeded = await vscode.commands.executeCommand<boolean>(
           action === "newDocument" ? "aeterna.newDocument"
-            : action === "planCreate" ? "aeterna.prepareCreatePlan" : "aeterna.applyPreparedCreate",
+            : action === "compareCreate" ? "aeterna.compareCreateCandidate"
+              : action === "planCreate" ? "aeterna.prepareCreatePlan" : "aeterna.applyPreparedCreate",
         );
         return succeeded
           ? { ok: true, message: action === "newDocument" ? "CREATE candidate opened outside the repository. Save it before planning."
-            : action === "planCreate" ? "Read-only CREATE plan ready. Review candidate, plan and AETERNA Documents output."
+            : action === "compareCreate" ? "CREATE candidate diff opened against an empty read-only document."
+              : action === "planCreate" ? "Read-only CREATE plan ready. Review candidate, diff, plan and AETERNA Documents output."
               : "CREATE Apply PASS. Inspect the production review and GitHub Desktop before manual commit/push." }
           : { ok: false, message: action === "applyCreate" ? createState
             : "CREATE candidate or plan cancelled or blocked. See the VS Code notification and AETERNA Documents output." };
@@ -397,6 +399,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
       const command = {
         edit: "aeterna.editCandidate",
+        preview: "aeterna.previewCandidate",
         compare: "aeterna.compareCandidate",
         plan: "aeterna.prepareUpdatePlan",
         planMinor: "aeterna.prepareMinorUpdatePlan",
@@ -407,7 +410,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const succeeded = await vscode.commands.executeCommand<boolean>(
         command,
         new DocumentTreeItem(document),
-        action === "edit",
+        false,
       );
       return succeeded
         ? { ok: true, message: `${document.artifact_id}: ${action} completed. Check AETERNA Documents output for details.` }
@@ -417,6 +420,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     () => createState,
     (artifactId) => preparedPlans.get(artifactId)?.materialized.preview.manifest.change_class === "semantic-governance-change",
     () => createPreview !== undefined,
+    async (document) => {
+      const root = provider.currentRepositoryRoot;
+      if (!root) throw new Error("Repository unavailable; refresh the document list.");
+      return loadMetadataAssistance(root, document);
+    },
+    () => provider.currentRepositoryRoot,
+    (message) => output.appendLine(message),
   );
   const preparedPlans = new Map<string, {
     readonly request: CandidateSessionRequest;
@@ -553,7 +563,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     output,
     provider,
     manager,
+    vscode.workspace.registerTextDocumentContentProvider(EMPTY_CREATE_SCHEME, {
+      provideTextDocumentContent: emptyCreateDocument,
+    }),
     provider.onDidChangeTreeData(() => manager.refresh()),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => { void provider.refresh(); }),
     vscode.workspace.onDidChangeTextDocument((event) => {
       if (event.contentChanges.length > 0) {
         invalidateChangedDocument(event.document.uri.fsPath);
@@ -684,6 +698,26 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return false;
       }
     }),
+    vscode.commands.registerCommand("aeterna.compareCreateCandidate", async (): Promise<boolean> => {
+      const session = createSession;
+      if (!session || !provider.currentRepositoryRoot || !pathsEqual(session.repositoryRoot, provider.currentRepositoryRoot)) {
+        void vscode.window.showWarningMessage("Open a CREATE candidate in this repository before comparing it.");
+        return false;
+      }
+      try {
+        const verified = await loadCreateSession(session.repositoryRoot, session.storageRoot,
+          session.input.artifactId, session.branch, session.head);
+        if (!verified || !pathsEqual(verified.candidatePath, session.candidatePath)) {
+          throw new CreateCandidateError("SESSION_DRIFT", "CREATE candidate session changed; reopen it before comparing.");
+        }
+        const diff = createDiffUris(session, vscode);
+        await vscode.commands.executeCommand("vscode.diff", diff.empty, diff.candidate, diff.title, { preview: false });
+        return true;
+      } catch (error) {
+        reportCandidateError(output, "Compare CREATE Candidate", error);
+        return false;
+      }
+    }),
     vscode.commands.registerCommand("aeterna.prepareCreatePlan", async (): Promise<boolean> => {
       const session = createSession;
       const root = provider.currentRepositoryRoot;
@@ -703,12 +737,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           throw new CreatePlanError("CANDIDATE_UNSAVED", "CREATE candidate became unsaved during planning; plan discarded.");
         }
         createPreview = preview;
-        createState = `CREATE plan ready for ${session.input.artifactId}. Review the candidate and plan before explicit Apply.`;
+        createState = `CREATE plan ready for ${session.input.artifactId}. Review candidate, diff and plan before explicit Apply.`;
         manager.refresh();
         output.appendLine(renderCreatePreview(preview));
         output.show(true);
         await vscode.window.showTextDocument(vscode.Uri.file(preview.planPath), { preview: false, viewColumn: vscode.ViewColumn.Beside });
-        void vscode.window.showInformationMessage("Read-only CREATE plan ready. Review the external candidate, full plan and AETERNA Documents output. Apply requires separate approval.");
+        void vscode.window.showInformationMessage("Read-only CREATE plan ready. Review the external candidate, Compare CREATE Candidate diff, full plan and AETERNA Documents output. Apply requires separate approval.");
         return true;
       } catch (error) {
         createPreview = undefined;
@@ -735,10 +769,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             const choice = await vscode.window.showWarningMessage(
               `Review prepared CREATE for ${summary.artifactId}?`,
               { modal: true, detail: createApplyConfirmationDetail(summary) },
-              "Review Candidate", "Review Full Plan", "Continue to Final Approval",
+              "Review Candidate", "Review CREATE Diff", "Review Full Plan", "Continue to Final Approval",
             );
             if (choice === "Review Candidate") {
               await vscode.window.showTextDocument(vscode.Uri.file(session.candidatePath), { preview: false });
+            } else if (choice === "Review CREATE Diff") {
+              await vscode.commands.executeCommand("aeterna.compareCreateCandidate");
             } else if (choice === "Review Full Plan") {
               await vscode.window.showTextDocument(vscode.Uri.file(preview.planPath), { preview: false });
             }
@@ -892,6 +928,33 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           return true;
         } catch (error) {
           reportCandidateError(output, "Edit Candidate", error);
+          return false;
+        }
+      },
+    ),
+    vscode.commands.registerCommand(
+      "aeterna.previewCandidate",
+      async (item: DocumentTreeItem | undefined): Promise<boolean> => {
+        const document = await chooseDocument(provider, item);
+        if (!document) return false;
+        try {
+          const request = await prepareCandidateRequest(provider, document, candidateStorageRoot);
+          const { session } = await loadRoutedCandidate(request);
+          const openDocument = openCandidateDocument(session.candidatePath);
+          if (openDocument?.isDirty) {
+            void vscode.window.showWarningMessage("Mentse a candidate-et az előnézet megnyitása előtt. A mentetlen módosításokat az előnézet nem mutatja biztosan.");
+            return false;
+          }
+          if (openDocument) {
+            await vscode.window.showTextDocument(openDocument, { preview: false });
+          } else {
+            await vscode.window.showTextDocument(vscode.Uri.file(session.candidatePath), { preview: false });
+          }
+          await vscode.commands.executeCommand("markdown.showPreviewToSide");
+          output.appendLine(`Native Markdown preview opened for existing candidate: ${session.candidatePath}.`);
+          return true;
+        } catch (error) {
+          reportCandidateError(output, "Preview Candidate", error);
           return false;
         }
       },

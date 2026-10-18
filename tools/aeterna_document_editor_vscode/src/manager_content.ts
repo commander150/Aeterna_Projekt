@@ -1,6 +1,6 @@
 import type { ManagedDocument } from "./registry";
 
-export type ManagerAction = "edit" | "compare" | "plan" | "planMinor" | "planGovernance" | "apply" | "applyGovernance" | "refresh" | "newDocument" | "planCreate" | "applyCreate";
+export type ManagerAction = "edit" | "preview" | "compare" | "plan" | "planMinor" | "planGovernance" | "apply" | "applyGovernance" | "refresh" | "newDocument" | "compareCreate" | "planCreate" | "applyCreate";
 
 export function isGovernanceDocument(path: string): boolean {
   return path.startsWith("project/governance/") && path.endsWith(".md") &&
@@ -28,6 +28,7 @@ export function managerPlanStateLabel(state: ManagerPlanState): string {
 export type ManagerMessage =
   | { readonly type: "ready" }
   | { readonly type: "search"; readonly query: string }
+  | { readonly type: "select"; readonly artifactId: string }
   | { readonly type: "action"; readonly action: ManagerAction; readonly artifactId?: string };
 
 export interface ManagerActionResult {
@@ -50,17 +51,21 @@ export function parseManagerMessage(value: unknown): ManagerMessage | undefined 
     && Object.keys(value).length === 2) {
     return { type: "search", query: value.query };
   }
+  if (value.type === "select" && typeof value.artifactId === "string" &&
+      /^AET-DOC-[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(value.artifactId) && Object.keys(value).length === 2) {
+    return { type: "select", artifactId: value.artifactId };
+  }
   if (value.type !== "action" || typeof value.action !== "string") {
     return undefined;
   }
-  const actions: readonly string[] = ["edit", "compare", "plan", "planMinor", "planGovernance", "apply", "applyGovernance", "refresh", "newDocument", "planCreate", "applyCreate"];
+  const actions: readonly string[] = ["edit", "preview", "compare", "plan", "planMinor", "planGovernance", "apply", "applyGovernance", "refresh", "newDocument", "compareCreate", "planCreate", "applyCreate"];
   if (!actions.includes(value.action)) {
     return undefined;
   }
-  if (["refresh", "newDocument", "planCreate", "applyCreate"].includes(value.action) && Object.keys(value).length === 2) {
-    return { type: "action", action: value.action as "refresh" | "newDocument" | "planCreate" | "applyCreate" };
+  if (["refresh", "newDocument", "compareCreate", "planCreate", "applyCreate"].includes(value.action) && Object.keys(value).length === 2) {
+    return { type: "action", action: value.action as "refresh" | "newDocument" | "compareCreate" | "planCreate" | "applyCreate" };
   }
-  if (!["refresh", "newDocument", "planCreate", "applyCreate"].includes(value.action) && typeof value.artifactId === "string"
+  if (!["refresh", "newDocument", "compareCreate", "planCreate", "applyCreate"].includes(value.action) && typeof value.artifactId === "string"
     && /^AET-DOC-[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(value.artifactId)
     && Object.keys(value).length === 3) {
     return { type: "action", action: value.action as ManagerAction, artifactId: value.artifactId };
@@ -85,7 +90,7 @@ export function filterManagedDocuments(
 
 export function renderManagerHtml(nonce: string): string {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="hu">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}';">
@@ -96,7 +101,8 @@ export function renderManagerHtml(nonce: string): string {
     h1 { font-size: 1.3rem; margin: 0 0 8px; }
     p { line-height: 1.45; }
     input { box-sizing: border-box; width: 100%; padding: 7px; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); }
-    .layout { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(260px, 1fr); gap: 16px; margin-top: 16px; }
+    .layout { display: grid; grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1.2fr); gap: 16px; margin-top: 16px; }
+    .layout > * { min-width: 0; }
     .list { max-height: 60vh; overflow: auto; border: 1px solid var(--vscode-panel-border); }
     .row { width: 100%; display: block; text-align: left; padding: 9px; color: var(--vscode-foreground); background: transparent; border: 0; border-bottom: 1px solid var(--vscode-panel-border); cursor: pointer; }
     .row:hover, .row:focus { background: var(--vscode-list-hoverBackground); }
@@ -110,15 +116,18 @@ export function renderManagerHtml(nonce: string): string {
     button.action { padding: 7px 10px; border: 1px solid var(--vscode-button-border); color: var(--vscode-button-foreground); background: var(--vscode-button-background); cursor: pointer; }
     button.action:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
     button.action:disabled { opacity: 0.5; cursor: default; }
-    #status { margin-top: 16px; padding: 8px; border-left: 3px solid var(--vscode-focusBorder); overflow-wrap: anywhere; }
+    .operation { margin-top: 16px; padding: 10px; border: 1px solid var(--vscode-panel-border); border-left: 3px solid var(--vscode-focusBorder); overflow-wrap: anywhere; }
+    .operation h2 { margin: 0 0 8px; font-size: 1.05rem; }
+    .operation p { margin: 5px 0; }
     @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <h1>AETERNA Document Manager</h1>
-  <p>Choose a managed document to update, or start a new document. Saving a candidate and preparing a plan do not change the repository. CREATE Apply requires separate review and approval.</p>
+  <p>Válasszon kezelt dokumentumot, vagy indítson új dokumentumot. A candidate mentése és a tervkészítés nem módosítja a canonical fájlokat. Az Apply külön jóváhagyást igényel.</p>
   <div class="actions" aria-label="New document actions">
     <button class="action" type="button" data-action="newDocument">New Document</button>
+    <button class="action" type="button" data-action="compareCreate">Compare CREATE Candidate</button>
     <button class="action" type="button" data-action="planCreate">Prepare CREATE Plan (read only)</button>
     <button class="action" type="button" data-action="applyCreate" disabled>Apply Prepared CREATE</button>
   </div>
@@ -134,9 +143,12 @@ export function renderManagerHtml(nonce: string): string {
       <h2>Selected document</h2>
       <p id="empty">Select a document from the list.</p>
       <dl id="fields" hidden></dl>
+      <p id="metadata-state" role="status">Select a document to inspect its canonical metadata.</p>
+      <p id="metadata-rules" hidden></p>
       <p id="plan-state" role="status">Plan missing.</p>
       <div class="actions">
-        <button class="action" type="button" data-action="edit" disabled>Edit Candidate + Preview</button>
+        <button class="action" type="button" data-action="edit" disabled>Candidate szerkesztése</button>
+        <button class="action" type="button" data-action="preview" disabled>Markdown előnézet</button>
         <button class="action" type="button" data-action="compare" disabled>Compare Candidate</button>
         <button class="action" type="button" data-action="planMinor" disabled>Versioned UPDATE Plan (minor)</button>
         <button class="action" type="button" data-action="plan" disabled>Unchanged Version Plan (git-only)</button>
@@ -147,7 +159,11 @@ export function renderManagerHtml(nonce: string): string {
       </div>
     </section>
   </div>
-  <p id="status" role="status" aria-live="polite">Loading…</p>
+  <section class="operation" aria-label="Művelet és visszajelzés">
+    <h2>Művelet és visszajelzés</h2>
+    <p id="status" role="status" aria-live="polite">Betöltés…</p>
+    <p id="next-step"></p>
+  </section>
   <script nonce="${nonce}">
     (() => {
       const vscode = acquireVsCodeApi();
@@ -156,19 +172,27 @@ export function renderManagerHtml(nonce: string): string {
       const count = document.getElementById("count");
       const empty = document.getElementById("empty");
       const fields = document.getElementById("fields");
+      const metadataState = document.getElementById("metadata-state");
+      const metadataRules = document.getElementById("metadata-rules");
       const planState = document.getElementById("plan-state");
       const status = document.getElementById("status");
+      const nextStep = document.getElementById("next-step");
       const createState = document.getElementById("create-state");
       const buttons = [...document.querySelectorAll("button[data-action]")];
       let documents = [];
       let selectedId;
+      let selectedDocument;
       let createPlanReady = false;
+      let metadata;
 
       function showDetails() {
-        const selected = documents.find((item) => item.artifactId === selectedId);
+        const selected = documents.find((item) => item.artifactId === selectedId) || selectedDocument;
         fields.replaceChildren();
         empty.hidden = Boolean(selected);
         fields.hidden = !selected;
+        metadataState.textContent = selected ? (metadata?.artifactId === selectedId ? "Canonical metadata (read only):" : "Loading canonical metadata…") : "Select a document to inspect its canonical metadata.";
+        metadataRules.hidden = !selected || metadata?.artifactId !== selectedId;
+        metadataRules.textContent = metadata?.artifactId === selectedId ? metadata.rules : "";
         for (const button of buttons) {
           if (button.dataset.action === "applyCreate") button.disabled = !createPlanReady;
           else if (button.dataset.action === "apply") button.disabled = !selected || selected.governancePlan || !["PLAN_READY", "PLAN_READY_MISMATCH"].includes(selected.planState);
@@ -180,13 +204,29 @@ export function renderManagerHtml(nonce: string): string {
         if (!selected) return;
         for (const [label, value] of [
           ["Artifact ID", selected.artifactId], ["Title", selected.title],
-          ["Canonical path", selected.path], ["Version", selected.version],
+          ["Canonical path", selected.path],
         ]) {
           const term = document.createElement("dt");
           const detail = document.createElement("dd");
           term.textContent = label;
           detail.textContent = value;
           fields.append(term, detail);
+        }
+        if (metadata?.artifactId === selectedId) {
+          for (const [label, value] of Object.entries(metadata.fields)) {
+            const term = document.createElement("dt");
+            const detail = document.createElement("dd");
+            term.textContent = label;
+            detail.textContent = Array.isArray(value) ? (value.join(", ") || "[]") : String(value);
+            fields.append(term, detail);
+          }
+          for (const [label, values] of Object.entries(metadata.allowed)) {
+            const term = document.createElement("dt");
+            const detail = document.createElement("dd");
+            term.textContent = label + " allowed";
+            detail.textContent = values.join(", ");
+            fields.append(term, detail);
+          }
         }
       }
 
@@ -208,6 +248,9 @@ export function renderManagerHtml(nonce: string): string {
           row.append(title, detail);
           row.addEventListener("click", () => {
             selectedId = item.artifactId;
+            selectedDocument = item;
+            metadata = undefined;
+            vscode.postMessage({ type: "select", artifactId: selectedId });
             renderList();
             showDetails();
           });
@@ -220,7 +263,7 @@ export function renderManagerHtml(nonce: string): string {
       for (const button of buttons) {
         button.addEventListener("click", () => {
           const action = button.dataset.action;
-          if (["refresh", "newDocument", "planCreate", "applyCreate"].includes(action)) vscode.postMessage({ type: "action", action });
+          if (["refresh", "newDocument", "compareCreate", "planCreate", "applyCreate"].includes(action)) vscode.postMessage({ type: "action", action });
           else if (selectedId) vscode.postMessage({ type: "action", action, artifactId: selectedId });
         });
       }
@@ -229,12 +272,24 @@ export function renderManagerHtml(nonce: string): string {
         if (message?.type === "documents" && Array.isArray(message.documents)) {
           documents = message.documents;
           createPlanReady = message.createPlanReady === true;
-          if (!documents.some((item) => item.artifactId === selectedId)) selectedId = undefined;
+          const previousId = selectedId;
+          selectedId = typeof message.selectedId === "string" ? message.selectedId : undefined;
+          selectedDocument = message.selectedDocument?.artifactId === selectedId ? message.selectedDocument : undefined;
+          if (previousId !== selectedId) metadata = undefined;
+          if (typeof message.query === "string" && search.value !== message.query) search.value = message.query;
           renderList();
+          if (selectedId && (previousId !== selectedId || !metadata)) vscode.postMessage({ type: "select", artifactId: selectedId });
           status.textContent = message.status;
+          nextStep.textContent = typeof message.nextStep === "string" ? message.nextStep : "";
           createState.textContent = typeof message.createState === "string" ? message.createState : "CREATE state unavailable.";
+        } else if (message?.type === "metadata" && message.artifactId === selectedId) {
+          metadata = message.data;
+          showDetails();
+        } else if (message?.type === "metadataError" && message.artifactId === selectedId) {
+          metadataState.textContent = message.error;
         } else if (message?.type === "status" && typeof message.status === "string") {
           status.textContent = message.status;
+          nextStep.textContent = typeof message.nextStep === "string" ? message.nextStep : "";
         }
       });
       vscode.postMessage({ type: "ready" });
