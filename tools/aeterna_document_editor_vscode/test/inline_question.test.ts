@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type * as vscode from "vscode";
 
-import { DocumentManager, routeLowRiskQuestion, routeUpdateApplyQuestion, updateApplyQuestion, updateMismatchQuestion } from "../src/manager";
+import { DocumentManager, createFinalQuestion, createReviewQuestion, governanceChallengeQuestion, governanceMismatchQuestion, governanceReviewQuestion, routeApplyQuestion, routeLowRiskQuestion, routeUpdateApplyQuestion, updateApplyQuestion, updateMismatchQuestion } from "../src/manager";
+import type { CreateApplySummary } from "../src/apply_create";
+import type { GovernanceGuiChallenge } from "../src/workflow";
 import type { ApplySummary } from "../src/apply_update";
 import type { ManagedDocument } from "../src/registry";
 import type { InlineQuestion, ManagerAction, ManagerPlanState } from "../src/manager_content";
@@ -21,9 +23,41 @@ const updateSummary: ApplySummary = {
   dependencyImpact: "direct: none; transitive: none", recommendedIntent: "minor", mismatch: false,
 };
 
+const createSummary: CreateApplySummary = {
+  artifactId: "AET-DOC-NEW-TEST", targetPath: "project/planning/NEW_TEST.md", authority: "technical-contract",
+  authorityRisk: "HIGH", initialVersion: "0.1", branch: "main", head: "a".repeat(40),
+  dependencyImpact: "depends on project plan", candidateSha256: "b".repeat(64),
+  planSemanticSha256: "c".repeat(64),
+  plannedWrites: ["project/planning/NEW_TEST.md", "project/generated/artifacts_registry.json", "project/generated/DOCUMENT_INDEX.md"],
+};
+
+const governanceDocument: ManagedDocument = {
+  ...document, artifact_id: "AET-DOC-GITHUB-WORKFLOW", title: "GitHub Workflow",
+  path: "project/governance/workflows/GITHUB_WORKFLOW.md",
+};
+const governanceSummary: ApplySummary = {
+  ...updateSummary, artifactId: governanceDocument.artifact_id, title: governanceDocument.title,
+  version: "1.1", proposedVersion: "2.0", versionIntent: "major", recommendedIntent: "major",
+  plannedWrites: [governanceDocument.path, ...updateSummary.plannedWrites.slice(1)],
+};
+const governanceChallenge: GovernanceGuiChallenge = {
+  schema_version: "aeterna-governance-gui-challenge/0.1",
+  candidate_sha256: governanceSummary.candidateSha256,
+  challenge: `APPLY ${"e".repeat(32)} ${governanceSummary.planSemanticSha256}`,
+  approval_binding: {
+    schema_version: "aeterna-local-governance-approval/0.1", operation_id: "e".repeat(32),
+    repository_root: "C:\\repo", artifact_id: governanceSummary.artifactId,
+    baseline_branch: governanceSummary.branch, baseline_head: governanceSummary.head,
+    plan_semantic_sha256: governanceSummary.planSemanticSha256,
+    expected_changed_paths: governanceSummary.plannedWrites,
+  },
+};
+
 function harness(deliver = true, reviewGate?: Promise<void>, rejectPost = false,
-  scenario: { action?: ManagerAction; cancelConsequence?: string; planState?: ManagerPlanState; completed?: boolean;
-    question?: InlineQuestion; secondQuestion?: InlineQuestion; approvedChoice?: string; secondApprovedChoice?: string } = {}) {
+  scenario: { action?: ManagerAction; cancelConsequence?: string; planState?: ManagerPlanState; completed?: boolean; createPlanReady?: boolean;
+    governanceDocument?: ManagedDocument; governancePlanReady?: boolean; productionStartedBeforeSecond?: boolean;
+    productionStartedBeforeThird?: boolean; question?: InlineQuestion; secondQuestion?: InlineQuestion;
+    thirdQuestion?: InlineQuestion; approvedChoice?: string; secondApprovedChoice?: string; thirdApprovedChoice?: string } = {}) {
   let receiver: ((message: unknown) => void) | undefined;
   let closePanel: (() => void) | undefined;
   let disposeCurrent: (() => void) | undefined;
@@ -51,7 +85,7 @@ function harness(deliver = true, reviewGate?: Promise<void>, rejectPost = false,
   } } } as unknown as typeof vscode;
   let manager: DocumentManager;
   const questionAction = scenario.action ?? "plan";
-  manager = new DocumentManager(host, () => [document], () => "Ready", async (action) => {
+  manager = new DocumentManager(host, () => [scenario.governanceDocument ?? document], () => "Ready", async (action) => {
     actions.push(action);
     if (action === questionAction) {
       const question = manager.ask(scenario.question ?? {
@@ -62,6 +96,7 @@ function harness(deliver = true, reviewGate?: Promise<void>, rejectPost = false,
         choices: [{ id: "approve", label: "Terv készítése" }, { id: "review", label: "Diff", review: true }],
       }, {
         review: async () => { actions.push("review"); await reviewGate; },
+        "review-candidate": async () => { actions.push("review-candidate"); await reviewGate; },
         "review-diff": async () => { actions.push("review-diff"); await reviewGate; },
         "review-plan": async () => { actions.push("review-plan"); await reviewGate; },
       });
@@ -71,12 +106,19 @@ function harness(deliver = true, reviewGate?: Promise<void>, rejectPost = false,
       }
       results.push(await question);
       if (scenario.secondQuestion && results.at(-1) === (scenario.approvedChoice ?? "approve")) {
+        if (scenario.productionStartedBeforeSecond) manager.markProductionStarted();
         results.push(await manager.ask(scenario.secondQuestion));
+      }
+      if (scenario.thirdQuestion && results.at(-1) === (scenario.secondApprovedChoice ?? "approve")) {
+        if (scenario.productionStartedBeforeThird) manager.markProductionStarted();
+        results.push(await manager.ask(scenario.thirdQuestion));
       }
     }
     return { ok: action !== questionAction || results.at(-1) ===
-      (scenario.secondQuestion ? scenario.secondApprovedChoice ?? "approve" : scenario.approvedChoice ?? "approve"), message: "Done" };
-  }, () => scenario.planState ?? "PLAN_MISSING", undefined, undefined, undefined, undefined, () => root,
+      (scenario.thirdQuestion ? scenario.thirdApprovedChoice ?? "approve"
+        : scenario.secondQuestion ? scenario.secondApprovedChoice ?? "approve" : scenario.approvedChoice ?? "approve"), message: "Done" };
+  }, () => scenario.planState ?? "PLAN_MISSING", undefined, () => scenario.governancePlanReady ?? false,
+  () => scenario.createPlanReady ?? false, undefined, () => root,
   (message) => { diagnostics.push(message); });
   const send = (message: unknown) => receiver?.(message);
   const question = () => (posted.filter((item) => (item as { type?: string }).type === "question")
@@ -393,4 +435,203 @@ test("UPDATE commands outside the Manager retain native approval; Manager origin
   });
   assert.equal(closed, undefined);
   assert.equal(fallbackCalled, false);
+});
+
+test("CREATE review exposes identity, authority risk, candidate, diff and immutable plan without approving", async () => {
+  const first = createReviewQuestion(createSummary, `Candidate SHA-256: ${createSummary.candidateSha256}; Plan SHA-256: ${createSummary.planSemanticSha256}`);
+  assert.match(first.explanation, /NEW_TEST\.md/);
+  assert.match(first.explanation, /HIGH/);
+  assert.match(first.explanation, /0\.1/);
+  assert.match(first.consequence, /DOCUMENT_INDEX\.md/);
+  assert.deepEqual(first.choices.filter((choice) => choice.review).map((choice) => choice.id),
+    ["review-candidate", "review-diff", "review-plan"]);
+  for (const reviewChoice of ["review-candidate", "review-diff", "review-plan"]) {
+    const h = harness(true, undefined, false, { action: "applyCreate", createPlanReady: true,
+      question: first, approvedChoice: "continue-create" });
+    h.send({ type: "action", action: "applyCreate" });
+    const oldId = h.question().id;
+    h.send({ type: "answer", questionId: oldId, choice: reviewChoice });
+    await h.settle();
+    assert.deepEqual(h.results, [undefined]);
+    assert.ok(h.actions.includes(reviewChoice));
+    h.send({ type: "action", action: "applyCreate" });
+    assert.notEqual(h.question().id, oldId);
+    h.send({ type: "answer", questionId: oldId, choice: "continue-create" });
+    assert.deepEqual(h.results, [undefined]);
+    h.manager.dispose();
+  }
+});
+
+test("CREATE first and final approval are separate, cancellable and fail closed on close or repository switch", async () => {
+  const first = createReviewQuestion(createSummary, "Reviewed plan");
+  const second = createFinalQuestion(createSummary, "Reviewed plan");
+  assert.equal(second.choices[0]?.id, "apply-create");
+  for (const phase of ["first", "final", "close", "root"] as const) {
+    const h = harness(true, undefined, false, { action: "applyCreate", createPlanReady: true,
+      question: first, secondQuestion: second, approvedChoice: "continue-create", secondApprovedChoice: "apply-create" });
+    h.send({ type: "action", action: "applyCreate" });
+    const firstId = h.question().id;
+    if (phase === "first") h.send({ type: "answer", questionId: firstId, choice: "cancel" });
+    else {
+      h.send({ type: "answer", questionId: firstId, choice: "continue-create" });
+      await h.settle();
+      const secondId = h.question().id;
+      assert.notEqual(secondId, firstId);
+      h.send({ type: "answer", questionId: firstId, choice: "apply-create" });
+      if (phase === "final") h.send({ type: "answer", questionId: secondId, choice: "cancel" });
+      if (phase === "close") { h.close(); h.manager.show(); }
+      if (phase === "root") h.changeRoot("C:\\another-repo");
+      h.send({ type: "answer", questionId: secondId, choice: "apply-create" });
+    }
+    await h.settle();
+    assert.equal(h.results.at(-1), undefined);
+    assert.equal(h.status()?.status, "A művelet megszakítva.");
+    h.manager.dispose();
+  }
+  const h = harness(true, undefined, false, { action: "applyCreate", createPlanReady: true,
+    question: first, secondQuestion: second, approvedChoice: "continue-create", secondApprovedChoice: "apply-create" });
+  h.send({ type: "action", action: "applyCreate" });
+  h.send({ type: "answer", questionId: h.question().id, choice: "continue-create" });
+  await h.settle();
+  const finalId = h.question().id;
+  h.send({ type: "answer", questionId: finalId, choice: "apply-create" });
+  h.send({ type: "answer", questionId: finalId, choice: "apply-create" });
+  await h.settle();
+  assert.deepEqual(h.results, ["continue-create", "apply-create"]);
+  h.manager.dispose();
+});
+
+test("CREATE Manager-originated approval never falls back to native dialogs", async () => {
+  const h = harness();
+  let nativeCalled = false;
+  const question = createReviewQuestion(createSummary, "details");
+  assert.equal(await routeApplyQuestion(h.manager, false, question, async () => {
+    nativeCalled = true; return "Continue to Final Approval";
+  }), "Continue to Final Approval");
+  assert.equal(nativeCalled, true);
+  h.manager.dispose();
+  nativeCalled = false;
+  assert.equal(await routeApplyQuestion(h.manager, true, question, async () => {
+    nativeCalled = true; return "Continue to Final Approval";
+  }), undefined);
+  assert.equal(nativeCalled, false);
+});
+
+test("Governance review exposes high risk, identity, full plan and diff without approving", async () => {
+  const first = governanceReviewQuestion(governanceSummary, `Plan SHA-256: ${governanceSummary.planSemanticSha256}`);
+  assert.match(first.explanation, /semantic-governance-change \/ major/);
+  assert.match(first.explanation, /artifacts_registry\.json/);
+  assert.match(first.details ?? "", /Plan SHA-256/);
+  for (const reviewChoice of ["review-diff", "review-plan"]) {
+    const h = harness(true, undefined, false, { action: "applyGovernance", governanceDocument,
+      governancePlanReady: true, planState: "PLAN_READY", question: first, approvedChoice: "continue-governance" });
+    h.send({ type: "action", action: "applyGovernance", artifactId: governanceDocument.artifact_id });
+    const oldId = h.question().id;
+    h.send({ type: "answer", questionId: oldId, choice: reviewChoice });
+    await h.settle();
+    assert.deepEqual(h.results, [undefined]);
+    assert.ok(h.actions.includes(reviewChoice));
+    h.send({ type: "action", action: "applyGovernance", artifactId: governanceDocument.artifact_id });
+    assert.notEqual(h.question().id, oldId);
+    h.send({ type: "answer", questionId: oldId, choice: "continue-governance" });
+    assert.deepEqual(h.results, [undefined]);
+    h.manager.dispose();
+  }
+});
+
+test("Governance first approval and mismatch are separate cancellable questions", async () => {
+  const mismatchSummary = { ...governanceSummary, recommendedIntent: "minor", mismatch: true };
+  const first = governanceReviewQuestion(mismatchSummary, "details");
+  const second = governanceMismatchQuestion(mismatchSummary, "details");
+  assert.match(second.explanation, /minor/);
+  for (const cancelAt of ["first", "mismatch"] as const) {
+    const h = harness(true, undefined, false, { action: "applyGovernance", governanceDocument,
+      governancePlanReady: true, planState: "PLAN_READY_MISMATCH", question: first, secondQuestion: second,
+      approvedChoice: "continue-governance", secondApprovedChoice: "approve-governance-mismatch" });
+    h.send({ type: "action", action: "applyGovernance", artifactId: governanceDocument.artifact_id });
+    const firstId = h.question().id;
+    if (cancelAt === "first") h.send({ type: "answer", questionId: firstId, choice: "cancel" });
+    else {
+      h.send({ type: "answer", questionId: firstId, choice: "continue-governance" });
+      await h.settle();
+      h.send({ type: "answer", questionId: firstId, choice: "approve-governance-mismatch" });
+      h.send({ type: "answer", questionId: h.question().id, choice: "cancel" });
+    }
+    await h.settle();
+    assert.equal(h.results.at(-1), undefined);
+    assert.equal(h.status()?.status, "A művelet megszakítva.");
+    h.manager.dispose();
+  }
+});
+
+test("Production governance challenge uses its own question; replay, duplicate, close and repository switch cannot approve", async () => {
+  const first = governanceReviewQuestion(governanceSummary, "reviewed plan");
+  const final = governanceChallengeQuestion(governanceSummary, governanceChallenge,
+    `Repository: C:\\repo; HEAD: ${governanceSummary.head}; Candidate SHA: ${governanceSummary.candidateSha256}; Plan SHA: ${governanceSummary.planSemanticSha256}; Writes: ${governanceSummary.plannedWrites.join(", ")}`);
+  assert.match(final.explanation, /e{32}/);
+  assert.match(final.details ?? "", /Candidate SHA/);
+  assert.match(final.details ?? "", /DOCUMENT_INDEX\.md/);
+  for (const abort of ["cancel", "close", "root"] as const) {
+    const h = harness(true, undefined, false, { action: "applyGovernance", governanceDocument,
+      governancePlanReady: true, planState: "PLAN_READY", question: first, secondQuestion: final,
+      approvedChoice: "continue-governance", secondApprovedChoice: "approve-governance-challenge",
+      productionStartedBeforeSecond: true });
+    h.send({ type: "action", action: "applyGovernance", artifactId: governanceDocument.artifact_id });
+    const firstId = h.question().id;
+    h.send({ type: "answer", questionId: firstId, choice: "continue-governance" });
+    await h.settle();
+    const challengeId = h.question().id;
+    h.send({ type: "answer", questionId: firstId, choice: "approve-governance-challenge" });
+    if (abort === "cancel") h.send({ type: "answer", questionId: challengeId, choice: "cancel" });
+    if (abort === "close") { h.close(); h.manager.show(); }
+    if (abort === "root") h.changeRoot("C:\\another-repo");
+    h.send({ type: "answer", questionId: challengeId, choice: "approve-governance-challenge" });
+    await h.settle();
+    assert.deepEqual(h.results, ["continue-governance", undefined]);
+    assert.notEqual(h.status()?.status, "A művelet megszakítva.");
+    assert.notEqual(h.status()?.status, "Az Apply és a production ellenőrzés sikeres.");
+    h.manager.dispose();
+  }
+  const accepted = harness(true, undefined, false, { action: "applyGovernance", governanceDocument,
+    governancePlanReady: true, planState: "PLAN_READY", question: first, secondQuestion: final,
+    approvedChoice: "continue-governance", secondApprovedChoice: "approve-governance-challenge",
+    productionStartedBeforeSecond: true });
+  accepted.send({ type: "action", action: "applyGovernance", artifactId: governanceDocument.artifact_id });
+  accepted.send({ type: "answer", questionId: accepted.question().id, choice: "continue-governance" });
+  await accepted.settle();
+  const challengeId = accepted.question().id;
+  accepted.send({ type: "answer", questionId: challengeId, choice: "approve-governance-challenge" });
+  accepted.send({ type: "answer", questionId: challengeId, choice: "approve-governance-challenge" });
+  await accepted.settle();
+  assert.deepEqual(accepted.results, ["continue-governance", "approve-governance-challenge"]);
+  accepted.manager.dispose();
+});
+
+test("Governance mismatch adds a third challenge and Manager origin cannot use native fallback", async () => {
+  const summary = { ...governanceSummary, mismatch: true, recommendedIntent: "minor" };
+  const h = harness(true, undefined, false, { action: "applyGovernance", governanceDocument,
+    governancePlanReady: true, planState: "PLAN_READY_MISMATCH",
+    question: governanceReviewQuestion(summary, "details"),
+    secondQuestion: governanceMismatchQuestion(summary, "details"),
+    thirdQuestion: governanceChallengeQuestion(summary, governanceChallenge, "details"),
+    approvedChoice: "continue-governance", secondApprovedChoice: "approve-governance-mismatch",
+    thirdApprovedChoice: "approve-governance-challenge", productionStartedBeforeThird: true });
+  h.send({ type: "action", action: "applyGovernance", artifactId: governanceDocument.artifact_id });
+  h.send({ type: "answer", questionId: h.question().id, choice: "continue-governance" });
+  await h.settle();
+  const mismatchId = h.question().id;
+  h.send({ type: "answer", questionId: mismatchId, choice: "approve-governance-mismatch" });
+  await h.settle();
+  const challengeId = h.question().id;
+  assert.notEqual(challengeId, mismatchId);
+  h.send({ type: "answer", questionId: mismatchId, choice: "approve-governance-challenge" });
+  h.send({ type: "answer", questionId: challengeId, choice: "approve-governance-challenge" });
+  await h.settle();
+  assert.deepEqual(h.results, ["continue-governance", "approve-governance-mismatch", "approve-governance-challenge"]);
+  h.manager.dispose();
+  let nativeCalled = false;
+  assert.equal(await routeApplyQuestion(h.manager, true, governanceReviewQuestion(summary, "details"), async () => {
+    nativeCalled = true; return "Continue to Separate Approval";
+  }), undefined);
+  assert.equal(nativeCalled, false);
 });

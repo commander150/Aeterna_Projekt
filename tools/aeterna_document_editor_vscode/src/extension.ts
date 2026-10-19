@@ -33,7 +33,7 @@ import {
   createOrOpenRoutedCandidate,
   loadRoutedCandidate,
 } from "./candidate_routing";
-import { DocumentManager, notifyPlanReady, routeLowRiskQuestion, routeUpdateApplyQuestion, updateApplyQuestion, updateMismatchQuestion } from "./manager";
+import { DocumentManager, createFinalQuestion, createReviewQuestion, governanceChallengeQuestion, governanceMismatchQuestion, governanceReviewQuestion, notifyPlanReady, routeApplyQuestion, routeLowRiskQuestion, routeUpdateApplyQuestion, updateApplyQuestion, updateMismatchQuestion } from "./manager";
 import { isGovernanceDocument, type InlineQuestion, type ManagerAction, type ManagerPlanState } from "./manager_content";
 import {
   ExplicitApplyCoordinator,
@@ -237,6 +237,7 @@ function reportCandidateError(
   output: vscode.OutputChannel,
   action: string,
   error: unknown,
+  notify = true,
 ): void {
   const detail = error instanceof Error ? error.message : String(error);
   const code = error instanceof CandidateSessionError || error instanceof UpdatePreviewError || error instanceof ExplicitApplyError || error instanceof CandidateVersionError || error instanceof CreateCandidateError || error instanceof CreatePlanError
@@ -250,7 +251,7 @@ function reportCandidateError(
     }
     output.show(true);
   }
-  void vscode.window.showErrorMessage(`AETERNA Documents: ${detail}`);
+  if (notify) void vscode.window.showErrorMessage(`AETERNA Documents: ${detail}`);
 }
 
 function applyConfirmationDetail(summary: ApplySummary): string {
@@ -840,7 +841,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const preview = createPreview;
       const root = provider.currentRepositoryRoot;
       if (!session || !preview || !root) {
-        void vscode.window.showWarningMessage("No current prepared CREATE plan exists. Save the external candidate and prepare a new plan.");
+        createState = "CREATE Apply BLOCKED: no current prepared plan. Save the candidate and prepare a new plan.";
+        manager.refresh();
+        if (!fromManager) void vscode.window.showWarningMessage("No current prepared CREATE plan exists. Save the external candidate and prepare a new plan.");
         return false;
       }
       try {
@@ -849,10 +852,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           confirmReview: async (summary) => {
             output.appendLine(renderCreatePreview(preview));
             output.show(true);
-            const choice = await vscode.window.showWarningMessage(
-              `Review prepared CREATE for ${summary.artifactId}?`,
-              { modal: true, detail: createApplyConfirmationDetail(summary) },
-              "Review Candidate", "Review CREATE Diff", "Review Full Plan", "Continue to Final Approval",
+            const choice = await routeApplyQuestion(
+              manager, fromManager, createReviewQuestion(summary, createApplyConfirmationDetail(summary)),
+              () => vscode.window.showWarningMessage(
+                `Review prepared CREATE for ${summary.artifactId}?`,
+                { modal: true, detail: createApplyConfirmationDetail(summary) },
+                "Review Candidate", "Review CREATE Diff", "Review Full Plan", "Continue to Final Approval",
+              ),
+              {
+                "review-candidate": () => vscode.window.showTextDocument(vscode.Uri.file(session.candidatePath), { preview: false }),
+                "review-diff": () => vscode.commands.executeCommand("aeterna.compareCreateCandidate"),
+                "review-plan": () => vscode.window.showTextDocument(vscode.Uri.file(preview.planPath), { preview: false }),
+              },
             );
             if (choice === "Review Candidate") {
               await vscode.window.showTextDocument(vscode.Uri.file(session.candidatePath), { preview: false });
@@ -861,14 +872,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             } else if (choice === "Review Full Plan") {
               await vscode.window.showTextDocument(vscode.Uri.file(preview.planPath), { preview: false });
             }
-            return choice === "Continue to Final Approval";
+            return choice === "continue-create" || choice === "Continue to Final Approval";
           },
-          confirmFinal: async (summary) => (await vscode.window.showWarningMessage(
-            `Final approval: create ${summary.artifactId} at ${summary.targetPath}?`,
-            { modal: true, detail: createApplyConfirmationDetail(summary) },
-            "Apply Prepared CREATE",
-          )) === "Apply Prepared CREATE",
+          confirmFinal: async (summary) => {
+            const choice = await routeApplyQuestion(
+              manager, fromManager, createFinalQuestion(summary, createApplyConfirmationDetail(summary)),
+              () => vscode.window.showWarningMessage(
+                `Final approval: create ${summary.artifactId} at ${summary.targetPath}?`,
+                { modal: true, detail: createApplyConfirmationDetail(summary) },
+                "Apply Prepared CREATE",
+              ),
+            );
+            return choice === "apply-create" || choice === "Apply Prepared CREATE";
+          },
           onBeforeRun: () => {
+            if (fromManager) manager.markProductionStarted();
             createState = `Production CREATE Apply running for ${session.input.artifactId}…`;
             manager.refresh();
             output.appendLine(`Production CREATE Apply started for ${session.input.artifactId}.`);
@@ -899,7 +917,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           createState = `CREATE Apply BLOCKED: ${error instanceof Error ? error.message : String(error)} Candidate preserved.`;
           manager.refresh();
         }
-        reportCandidateError(output, "Apply Prepared CREATE", error);
+        reportCandidateError(output, "Apply Prepared CREATE", error, !fromManager);
         return false;
       }
     }),
@@ -1204,7 +1222,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             preparedPlans.delete(document.artifact_id);
             setPlanState(document.artifact_id, "APPLY_BLOCKED");
           }
-          reportCandidateError(output, "Apply Prepared UPDATE", error);
+          reportCandidateError(output, "Apply Prepared UPDATE", error, !fromManager);
           return false;
         }
       },
@@ -1217,7 +1235,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const saved = preparedPlans.get(document.artifact_id);
         if (!saved || saved.materialized.preview.manifest.change_class !== "semantic-governance-change" ||
             !["PLAN_READY", "PLAN_READY_MISMATCH"].includes(planStates.get(document.artifact_id) ?? "PLAN_MISSING")) {
-          void vscode.window.showWarningMessage("No current high-risk governance plan exists for this document. Prepare a new governance plan.");
+          setPlanState(document.artifact_id, "APPLY_BLOCKED");
+          if (!fromManager) void vscode.window.showWarningMessage("No current high-risk governance plan exists for this document. Prepare a new governance plan.");
           return false;
         }
         try {
@@ -1226,46 +1245,66 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             {
               candidateIsDirty: () => isCandidateUnsaved(saved.candidatePath),
               confirm: async (summary) => {
-                const choice = await vscode.window.showWarningMessage(
-                  `Review high-risk governance UPDATE for ${summary.artifactId}?`,
-                  { modal: true, detail: applyConfirmationDetail(summary) },
-                  "Review Diff", "Continue to Separate Approval",
+                const choice = await routeApplyQuestion(
+                  manager, fromManager, governanceReviewQuestion(summary, applyConfirmationDetail(summary)),
+                  () => vscode.window.showWarningMessage(
+                    `Review high-risk governance UPDATE for ${summary.artifactId}?`,
+                    { modal: true, detail: applyConfirmationDetail(summary) },
+                    "Review Diff", "Continue to Separate Approval",
+                  ),
+                  {
+                    "review-diff": () => vscode.commands.executeCommand("aeterna.compareCandidate", item),
+                    "review-plan": () => vscode.window.showTextDocument(vscode.Uri.file(saved.materialized.planPath), { preview: false }),
+                  },
                 );
                 if (choice === "Review Diff") await vscode.commands.executeCommand("aeterna.compareCandidate", item);
-                return choice === "Continue to Separate Approval";
+                return choice === "continue-governance" || choice === "Continue to Separate Approval";
               },
-              confirmMismatch: async (summary) => (await vscode.window.showWarningMessage(
-                `Planner recommends ${summary.recommendedIntent}, but the selected governance plan declares ${summary.versionIntent}. Continue?`,
-                { modal: true, detail: applyConfirmationDetail(summary) },
-                "Continue Despite Mismatch",
-              )) === "Continue Despite Mismatch",
+              confirmMismatch: async (summary) => {
+                const choice = await routeApplyQuestion(
+                  manager, fromManager, governanceMismatchQuestion(summary, applyConfirmationDetail(summary)),
+                  () => vscode.window.showWarningMessage(
+                    `Planner recommends ${summary.recommendedIntent}, but the selected governance plan declares ${summary.versionIntent}. Continue?`,
+                    { modal: true, detail: applyConfirmationDetail(summary) },
+                    "Continue Despite Mismatch",
+                  ),
+                );
+                return choice === "approve-governance-mismatch" || choice === "Continue Despite Mismatch";
+              },
               onBeforeRun: () => {
+                if (fromManager) manager.markProductionStarted();
                 setPlanState(document.artifact_id, "APPLY_RUNNING");
                 output.appendLine(`Production governance Apply preconditions started for ${document.artifact_id}.`);
               },
             },
             async (summary, challenge) => {
-              const approved = await vscode.window.showWarningMessage(
-                `Approve this one governance Apply: ${summary.artifactId} — ${summary.title}?`,
-                { modal: true, detail: [
-                  `Version ${summary.version} → ${summary.proposedVersion}; semantic-governance-change / major.`,
-                  `Repository HEAD: ${summary.head}`,
-                  `Candidate SHA-256: ${summary.candidateSha256}`,
-                  `Immutable plan semantic SHA-256: ${summary.planSemanticSha256}`,
-                  `One-time operation: ${String(challenge.approval_binding.operation_id)}`,
-                  `Exact planned writes: ${summary.plannedWrites.join(", ")}`,
-                  `Dependency impact: ${summary.dependencyImpact}`,
-                  "Production has rechecked the plan under the repository lock. This confirmation authorizes one current operation only.",
-                ].join("\n") },
-                "Approve This Governance Apply",
+              const detail = [
+                `Version ${summary.version} → ${summary.proposedVersion}; semantic-governance-change / major.`,
+                `Repository: ${saved.materialized.repositoryRoot}; branch/HEAD: ${summary.branch} / ${summary.head}`,
+                `Candidate SHA-256: ${summary.candidateSha256}`,
+                `Immutable plan semantic SHA-256: ${summary.planSemanticSha256}`,
+                `One-time operation: ${String(challenge.approval_binding.operation_id)}`,
+                `Exact planned writes: ${summary.plannedWrites.join(", ")}`,
+                `Dependency impact: ${summary.dependencyImpact}`,
+                "Production has rechecked the plan under the repository lock. This confirmation authorizes one current operation only.",
+              ].join("\n");
+              const approved = await routeApplyQuestion(
+                manager, fromManager, governanceChallengeQuestion(summary, challenge, detail),
+                () => vscode.window.showWarningMessage(
+                  `Approve this one governance Apply: ${summary.artifactId} — ${summary.title}?`,
+                  { modal: true, detail },
+                  "Approve This Governance Apply",
+                ),
               );
-              return approved === "Approve This Governance Apply";
+              return approved === "approve-governance-challenge" || approved === "Approve This Governance Apply";
             },
           );
           output.appendLine(`Governance Apply ${result.status}: ${result.message}`);
           if (result.reviewPath) output.appendLine(`Production review: ${result.reviewPath}`);
           if (result.status === "CANCELLED") {
-            setPlanState(document.artifact_id, preparedPlans.get(document.artifact_id) === saved ? "PLAN_READY" : "PLAN_STALE");
+            setPlanState(document.artifact_id, preparedPlans.get(document.artifact_id) === saved
+              ? ((saved.materialized.preview.plan.version as { mismatch?: unknown } | undefined)?.mismatch === true ? "PLAN_READY_MISMATCH" : "PLAN_READY")
+              : "PLAN_STALE");
             return false;
           }
           preparedPlans.delete(document.artifact_id);
@@ -1284,7 +1323,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             preparedPlans.delete(document.artifact_id);
             setPlanState(document.artifact_id, "APPLY_BLOCKED");
           }
-          reportCandidateError(output, "Governance Apply", error);
+          reportCandidateError(output, "Governance Apply", error, !fromManager);
           return false;
         }
       },

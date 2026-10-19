@@ -2,7 +2,7 @@
   "name": "aeterna-document-editor",
   "displayName": "AETERNA Document Editor",
   "description": "AETERNA Document Manager with governed candidate editing, planning and explicit Apply.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "aeterna-local",
   "private": true,
   "engines": {

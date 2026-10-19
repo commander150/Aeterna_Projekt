@@ -4,6 +4,8 @@ import type * as vscode from "vscode";
 import type { ManagedDocument } from "./registry";
 import type { MetadataAssistance } from "./metadata_assistance";
 import type { ApplySummary } from "./apply_update";
+import type { CreateApplySummary } from "./apply_create";
+import type { GovernanceGuiChallenge } from "./workflow";
 import { filterManagedDocuments, isGovernanceDocument, managerPlanStateLabel, parseManagerMessage, renderManagerHtml, type InlineQuestion, type ManagerAction, type ManagerActionResult, type ManagerPlanState } from "./manager_content";
 
 export function notifyPlanReady(
@@ -27,7 +29,7 @@ export function routeLowRiskQuestion(
   return fromManager && manager.actionActive ? manager.ask(question, review) : Promise.resolve(native());
 }
 
-export function routeUpdateApplyQuestion(
+export function routeApplyQuestion(
   manager: Pick<DocumentManager, "ask">,
   fromManager: boolean,
   question: InlineQuestion,
@@ -36,6 +38,77 @@ export function routeUpdateApplyQuestion(
 ): Promise<string | undefined> {
   // A Manager-originated Apply must fail closed if its Webview has gone away.
   return fromManager ? manager.ask(question, review) : Promise.resolve(native());
+}
+
+export const routeUpdateApplyQuestion = routeApplyQuestion;
+
+export function createReviewQuestion(summary: CreateApplySummary, details: string): InlineQuestion {
+  return {
+    title: "CREATE-terv és candidate áttekintése",
+    explanation: `Új dokumentum: ${summary.targetPath}; authority: ${summary.authority} (${summary.authorityRisk}); kezdő verzió: ${summary.initialVersion}.`,
+    document: summary.artifactId,
+    consequence: "A továbblépés után külön végső jóváhagyás szükséges. A tervezett írások: " + summary.plannedWrites.join(", "),
+    cancelConsequence: "A CREATE Apply nem indult el; a candidate és az előkészített terv megmaradt.",
+    details,
+    choices: [
+      { id: "review-candidate", label: "Candidate megnyitása", review: true },
+      { id: "review-diff", label: "CREATE diff megnyitása", review: true },
+      { id: "review-plan", label: "Teljes terv megnyitása", review: true },
+      { id: "continue-create", label: "Tovább a végső jóváhagyáshoz" },
+    ],
+  };
+}
+
+export function createFinalQuestion(summary: CreateApplySummary, details: string): InlineQuestion {
+  return {
+    title: "Végső CREATE Apply-jóváhagyás",
+    explanation: `A ${summary.artifactId} dokumentum a ${summary.targetPath} útvonalon jönne létre. Kockázat: ${summary.authorityRisk}.`,
+    document: summary.artifactId,
+    consequence: "A production workflow létrehozhatja a canonical dokumentumot és frissítheti a generated fájlokat. Commit és push nem történik.",
+    cancelConsequence: "A végső jóváhagyás elmaradt; a CREATE Apply nem indult el, a candidate és a terv megmaradt.",
+    details,
+    choices: [{ id: "apply-create", label: "CREATE Apply jóváhagyása" }],
+  };
+}
+
+export function governanceReviewQuestion(summary: ApplySummary, details: string): InlineQuestion {
+  return {
+    title: "Magas kockázatú Governance Apply áttekintése",
+    explanation: `${summary.version} → ${summary.proposedVersion}; semantic-governance-change / major. Tervezett írások: ${summary.plannedWrites.join(", ")}.`,
+    document: `${summary.artifactId} — ${summary.title}`,
+    consequence: "A folytatás után szükség lehet külön verzióeltérés-jóváhagyásra. A végső engedélyt kizárólag a production challenge után lehet megadni.",
+    cancelConsequence: "A governance Apply nem indult el; a candidate és a terv megmaradt.",
+    details,
+    choices: [
+      { id: "review-diff", label: "Diff megnyitása", review: true },
+      { id: "review-plan", label: "Teljes terv megnyitása", review: true },
+      { id: "continue-governance", label: "Tovább a külön jóváhagyáshoz" },
+    ],
+  };
+}
+
+export function governanceMismatchQuestion(summary: ApplySummary, details: string): InlineQuestion {
+  return {
+    title: "Governance-verzióeltérés külön jóváhagyása",
+    explanation: `A planner ${summary.recommendedIntent} szándékot ajánl; a terv ${summary.versionIntent} szándékot használ (${summary.version} → ${summary.proposedVersion}).`,
+    document: `${summary.artifactId} — ${summary.title}`,
+    consequence: "Az eltérés elfogadása után a production workflow még külön, egyszer használatos challenge-et kér. Mégse esetén nem indul Apply.",
+    cancelConsequence: "A verzióeltérés nem kapott jóváhagyást; a governance Apply nem indult el.",
+    details,
+    choices: [{ id: "approve-governance-mismatch", label: "Verzióeltérés jóváhagyása" }],
+  };
+}
+
+export function governanceChallengeQuestion(summary: ApplySummary, challenge: GovernanceGuiChallenge, details: string): InlineQuestion {
+  return {
+    title: "Production Governance challenge — végső jóváhagyás",
+    explanation: `Egyszer használatos művelet: ${String(challenge.approval_binding.operation_id)}. ${summary.version} → ${summary.proposedVersion}.`,
+    document: `${summary.artifactId} — ${summary.title}`,
+    consequence: "A jóváhagyás kizárólag erre az ellenőrzött production műveletre érvényes. A canonical és generated fájlok módosulhatnak.",
+    cancelConsequence: "A challenge jóváhagyása elmaradt. A production művelet eredményét és review-ját külön ellenőrizni kell.",
+    details: `${details}\nOperation ID: ${String(challenge.approval_binding.operation_id)}`,
+    choices: [{ id: "approve-governance-challenge", label: "Egyedi Governance Apply jóváhagyása" }],
+  };
 }
 
 export function updateApplyQuestion(summary: ApplySummary, technicalDetails: string): InlineQuestion {
@@ -79,6 +152,7 @@ export class DocumentManager implements vscode.Disposable {
   private busy = false;
   private reviewInProgress = false;
   private questionCancelled = false;
+  private productionStarted = false;
   private cancelledQuestionConsequence: string | undefined;
   private pendingQuestion: {
     readonly id: string;
@@ -139,6 +213,10 @@ export class DocumentManager implements vscode.Disposable {
     return this.busy || this.reviewInProgress;
   }
 
+  public markProductionStarted(): void {
+    if (this.busy) this.productionStarted = true;
+  }
+
   private post(panel: vscode.WebviewPanel, message: unknown, onUndelivered?: () => void): void {
     if (this.panel !== panel) return;
     try {
@@ -185,7 +263,10 @@ export class DocumentManager implements vscode.Disposable {
     if (!pending) return;
     this.pendingQuestion = undefined;
     if (this.panel) this.post(this.panel, { type: "question", question: undefined });
-    if (!pending.completed) {
+    if (!pending.completed && this.productionStarted) {
+      this.publishStatus("A jóváhagyás megszakítva; a production eredmény ellenőrzése folyamatban.",
+        "A művelet kimenetelét a production workflow és a review igazolja. Ne indítsa újra automatikusan.");
+    } else if (!pending.completed) {
       this.questionCancelled = true;
       this.cancelledQuestionConsequence = pending.cancelConsequence;
       this.publishStatus("A művelet megszakítva.",
@@ -349,6 +430,7 @@ export class DocumentManager implements vscode.Disposable {
       return;
     }
     this.busy = true;
+    this.productionStarted = false;
     this.questionCancelled = false;
     this.cancelledQuestionConsequence = undefined;
     this.publishStatus("A művelet végrehajtása folyamatban. Kérlek, várj.");
@@ -389,6 +471,7 @@ export class DocumentManager implements vscode.Disposable {
         "Ellenőrizze az Output panelt és az esetleges production review-t; ne ismételje automatikusan.");
     } finally {
       this.busy = false;
+      this.productionStarted = false;
     }
   }
 
