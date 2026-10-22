@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-PROJECT-PLAN
 kind: document
 type: project-plan
-version: "6.20"
+version: "6.21"
 lifecycle: active
 integration: current
 authority: project-direction
@@ -11,15 +11,15 @@ depends_on: []
 supersedes: []
 ---
 
-# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.20
+# AETERNA – AKTUÁLIS PROJEKTTERV ÉS PRIORITÁSOK v6.21
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 6.20
-**Dátum:** 2026-10-11
+**Dokumentumverzió:** 6.21
+**Dátum:** 2026-10-20
 **Státusz:** aktív projektirányító és prioritási dokumentum
-**Előző aktív verzió:** 6.19 (Git history)
-**Szinkronizációs repository-bázis:** `92d299df1f4184912cc3034b2922144006d4cd09` – `feat: add read-only document update plan preview`
+**Előző aktív verzió:** 6.20 (Git history)
+**Szinkronizációs repository-bázis:** `55ff8c673c712e3208a1a32486e7075757b85b4f` – `feat: complete Document Manager UX2B and package v0.0.2`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **Előző technikai checkpoint-bázis:** `931bf5571d541c752aa421a9f0626768bd8ffbe7` – `Add production C# engine foundation`
 
@@ -313,7 +313,7 @@ VS1 content/mechanic readiness audit
 → VS1 end-to-end acceptance
 ```
 
-A current repository-level priority továbbra is a document management/editor. A következő aktív lépés az `EDITOR_UX_REQUIREMENTS_DISCOVERY`; runtime / VS1 csak ezután következik, a projektprioritás szerint.
+A Document Manager 0.0.2 MVP-fejlesztése lezárult; a current repository-level product priority a VS1 / M6 két canonical paklijának readiness auditja. A dokumentumkezelési closeout célzott státuszszinkronja külön governed dokumentációs feladat, nem új Editor-funkció.
 
 ## 6. Aktuális döntési kapuk és Open Questions
 
@@ -468,7 +468,11 @@ Továbbra is aktív:
 
 A learning projekt nem szabályforrás és nem közvetlen kódforrás.
 
-### 9.1 Current dokumentum-governance fázis
+### 9.1 Dokumentum-governance mérföldkövek és aktuális handoff
+
+A következő PILOT-6–8E státuszok és az akkori verzió-/CLI-adatok történeti
+mérföldkő-bizonyítékok. Az itt szereplő korábbi `current` jelölések nem a
+Document Manager 0.0.2 utáni prioritást rögzítik; annak forrása a 10–11. szakasz.
 
 A PILOT-6 stable filename migration `COMPLETE`; mind a 30 managed artifact stabil
 artifact ID-val, stabil current fájlnévvel és natív metadata-authorityvel rendelkezik.
@@ -504,8 +508,8 @@ PILOT-8E_MEANING = FIRST_REAL_GOVERNED_CREATE_ACCEPTANCE
 PILOT_8E_REMOTE_COMMIT = 4647d263e2ae23019723e8db8a0cebd92a065457
 ```
 
-Az `AET-DOC-DOCUMENT-UPDATE-WORKFLOW` verziója `1.0`, integration státusza
-`current`.
+A PILOT-8E mérföldkő idején az `AET-DOC-DOCUMENT-UPDATE-WORKFLOW` verziója
+`1.0` volt, integration státusza `current`.
 
 ```text
 MANAGED_ARTIFACTS = 30
@@ -524,7 +528,7 @@ DOCUMENT_EDITOR_MVP_SPECIFICATION = 0.1 / CURRENT
 AUTONOMOUS_DOCUMENT_GENERATION = OUT_OF_SCOPE
 ```
 
-Az elfogadott current CLI surface:
+A PILOT-8E idején elfogadott CLI surface:
 `resolve → impact → plan-update → plan-create → apply → verify-review`.
 Ezek közül a `resolve`, `impact`, `plan-update`, `plan-create` és `verify-review`
 read-only; kizárólag az explicit `apply` mutating. Az `apply` az elfogadott UPDATE
@@ -562,6 +566,9 @@ dokumentumverziót, HEAD-et, státuszt és implementációt GitHubról kell elle
 
 `DOCUMENT_SYSTEM_SCOPE_FREEZE = ACCEPTED`
 
+A következő bekezdések már a Document Manager 0.0.2 utáni aktuális
+handoffot írják le.
+
 A build-vs-adopt értékelés `COMPLETE_AND_ACCEPTED`; az elfogadott
 megközelítés `EXISTING_EDITOR_PLUS_AETERNA_TOOLING`, a host `VISUAL_STUDIO_CODE`.
 A `c8e7e1854c3e054c8c0f59ba35196ae6d0ffdecd` commitban elfogadott read-only VS Code extension proof és a
@@ -573,11 +580,15 @@ plan preview `COMPLETE_AND_REMOTE_VERIFIED`
 repositoryn kívüli candidate-szerkesztés, a natív candidate–canonical diff és a
 governed Python workflow-ra épülő read-only UPDATE-tervelőnézet. A ManulDown
 opcionális, kézzel kiválasztott vizuális Markdown-szerkesztőként lett kipróbálva;
-programozott integráció nincs. E2B explicit Apply integráció:
-`NOT_YET_IMPLEMENTED`.
+programozott integráció nincs. Az E2B explicit UPDATE Apply, az E2C minor
+verziókezelt UPDATE, a grafikus CREATE és Governance Apply, valamint az UX1,
+UX2A és UX2B Document Manager-szeletek implementáltak és a `main` ágban vannak.
+A 0.0.2 VSIX normál VS Code-ba telepíthető; a telepítés és a grafikus működés
+elfogadása felhasználói beszámoló, az automatizált regressziótól elkülönítve.
 
-A következő projektlépés az `EDITOR_UX_REQUIREMENTS_DISCOVERY`; a végleges
-editing surface és a normál használat telepítési/indítási módja nyitott.
+A következő product-facing lépés a VS1 / M6 readiness audit az
+`ENGINE_CHECKPOINT.md` két canonical paklija alapján. Az offline/portable
+telepítőkit egy későbbi megvalósíthatósági javaslat, nem elkészült termék.
 
 Az `AETERNA Document Editor` a governed document workflow fölötti dedikált
 authoring/editing réteg funkcionális célja. Koncepcionális felelőssége a
@@ -585,9 +596,9 @@ human/AI-assisted content authoring, a structured target selection, a candidate
 generation és a diff/review; validáláshoz és alkalmazáshoz a meglévő governed
 workflow-t használja.
 
-A következő, 2026-10-08-án elfogadott 9.2 Scope Freeze szakasz az akkori
-tervezési határt történeti snapshotként őrzi. A current completion- és
-roadmap-státuszt a 9.3, 10. és 11. szakasz rögzíti.
+A következő, 2026-10-08-án elfogadott 9.2 Scope Freeze és a 9.3 proof-closeout
+szakasz az akkori tervezési és megvalósítási állapotot őrzi. A jelenlegi
+completion- és prioritásstátusz forrása a 10–11. szakasz.
 
 
 ### 9.2 Document System Scope Freeze – 2026-10-08
@@ -709,7 +720,7 @@ authorityjét, dependencyit, initial versionjét és body/contentjét az első v
 CREATE apply előtt embernek kell review-znia. A rendszer ezt a specifikációt nem
 találhatja ki autonóm módon.
 
-Elfogadott roadmap:
+A 2026-10-08-i scope freeze idején elfogadott roadmap:
 
 ```text
 PILOT-8C = COMPLETE_AND_REMOTE_VERIFIED
@@ -722,10 +733,17 @@ PILOT-8C = COMPLETE_AND_REMOTE_VERIFIED
 → only justified follow-up document capabilities
 ```
 
-Runtime / VS1 a current dokumentumkezelési prioritás után marad.
+A 2026-10-08-i tervben runtime / VS1 a dokumentumkezelési prioritás után
+következett; a jelenlegi handoffot a 10–11. szakasz rögzíti.
 
 
 ### 9.3 Document Editor megközelítés-döntés és proof closeout
+
+Az alábbi proof-closeout állapotok a 2026-10-10-i mérföldkövet dokumentálják.
+Az `E2B_EXPLICIT_APPLY = NOT_YET_IMPLEMENTED`, az Editor UX discovery mint
+következő lépés és a nyitott editing surface az akkori állapotot jelölik, nem
+aktuális feladatok. A jelenlegi Editor- és prioritásstátuszt a 10–11. szakasz
+rögzíti.
 
 ```text
 PILOT-8E = COMPLETE_AND_REMOTE_VERIFIED
@@ -754,7 +772,7 @@ AUTONOMOUS_DOCUMENT_GENERATION = OUT_OF_SCOPE
 FULLY_CUSTOM_APPLICATION_IS_DEFAULT = NO
 ```
 
-A human-approved build-vs-adopt döntés current státusza:
+A 2026-10-10-re elfogadott build-vs-adopt döntés akkori állapota:
 
 ```text
 DOCUMENT_EDITOR_BUILD_VS_ADOPT_EVALUATION = COMPLETE_AND_ACCEPTED
@@ -783,8 +801,8 @@ nem igényel Codexet; az AI-assisted authoring opcionális és provider-agnostic
 Fully custom standalone alkalmazás csak akkor indokolt, ha valós követelmények
 később szükségesnek bizonyítják.
 
-Az elfogadott döntés a hostot és az integrációs stratégiát rögzíti, de a
-végleges editing surface architektúráját nem zárja le:
+Az akkori döntés a hostot és az integrációs stratégiát rögzítette, de
+a végleges editing surface architektúráját ekkor még nem zárta le:
 
 ```text
 EDITOR_UI_ARCHITECTURE = NOT_YET_DECIDED
@@ -796,8 +814,8 @@ CUSTOM_METADATA_OR_REVIEW_UI = ALLOWED_IF_REQUIREMENTS_JUSTIFY
 ```
 
 A Visual Studio Code az elfogadott host alkalmazás. A natív VS Code Markdown
-editor az initial proof baseline-ja, nem végleges korlát. A következő fázis
-ember által vezetett requirements discovery: először azt kell meghatározni, hogy
+editor az initial proof baseline-ja, nem végleges korlát. Az akkori következő fázis
+ember által vezetett requirements discovery volt: először azt kell meghatározni, hogy
 a felhasználónak ténylegesen mire van szüksége a dokumentumszerkesztési
 élményben; az implementációs mechanizmus másodlagos.
 
@@ -838,7 +856,7 @@ megoldás továbbra sincs kiválasztva; ezt az UX- és implementációs munka é
 Ez a closeout nem választ VSIX-et, shortcutot, installert, workspace fájlt vagy
 más launch mechanizmust.
 
-Az aktív Document Editor munkasorrend:
+A 2026-10-10-i proof closeout idején aktív Document Editor munkasorrend:
 
 ```text
 READ_ONLY_VSCODE_EXTENSION_FOUNDATION_PROOF = COMPLETE_AND_REMOTE_VERIFIED
@@ -858,14 +876,15 @@ TECHNOLOGY_DECISION_TD015_COMMIT = 08c6710a92562edb0db536369d8b5f9e88066690
 TECHNOLOGY_DECISIONS_VERSION = 2.6
 ```
 
-A document management/editor marad a current prioritás; runtime / VS1 munka
-később, a projektprioritás szerint következhet.
+A 2026-10-10-i proof closeout idején a document management/editor volt a
+prioritás, runtime / VS1 későbbi lépésként szerepelt. Ez a történeti állapot
+nem írja felül a 10–11. szakasz jelenlegi VS1-prioritását.
 
 ---
 
 ## 10. Rövid aktuális állapot
 
-**Szinkronizációs repository-bázis:** `92d299df1f4184912cc3034b2922144006d4cd09`
+**Szinkronizációs repository-bázis:** `55ff8c673c712e3208a1a32486e7075757b85b4f`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9`
 **Production authority:** C#/.NET
 **Visual client:** Godot/GDScript
@@ -891,7 +910,7 @@ később, a projektprioritás szerint következhet.
 **PILOT-7F workflow integration/self-hosting activation:** `COMPLETE_AND_REMOTE_VERIFIED`
 **PILOT-7G current filename normalization:** `COMPLETE_AND_REMOTE_VERIFIED`
 **PILOT-7G.1 remaining current source filename normalization:** `COMPLETE_AND_REMOTE_VERIFIED`
-**Document update workflow:** `1.0 / current`
+**Document update workflow at synchronization baseline:** `2.0`
 **UPDATE workflow:** `IMPLEMENTED_AND_ACCEPTED`
 **CREATE workflow:** `IMPLEMENTED_AND_ACCEPTED`
 **UPDATE 0.1 backward compatibility:** `YES`
@@ -912,7 +931,7 @@ később, a projektprioritás szerint következhet.
 **PILOT-8D remote commit:** `860cbf7fda03d67c953982a7d0be0c5cfd05542a`
 **PILOT-8E first real governed CREATE acceptance:** `COMPLETE_AND_REMOTE_VERIFIED`
 **PILOT-8E remote commit:** `4647d263e2ae23019723e8db8a0cebd92a065457`
-**AETERNA Document Editor MVP specification:** `0.1 / CURRENT`
+**AETERNA Document Editor MVP specification at synchronization baseline:** `0.1`
 **Document System Scope Freeze:** `ACCEPTED`
 **Autonomous document generation:** `OUT_OF_SCOPE`
 **Document governance foundation:** `COMPLETE_AND_CURRENT`
@@ -934,44 +953,43 @@ később, a projektprioritás szerint következhet.
 **E1 commit:** `e3dd6ed9f72c1de962583d3260db6bdee2257611`
 **E2A read-only UPDATE plan preview:** `COMPLETE_AND_REMOTE_VERIFIED`
 **E2A commit:** `92d299df1f4184912cc3034b2922144006d4cd09`
-**E2B explicit Apply integration:** `NOT_YET_IMPLEMENTED`
+**E2B explicit UPDATE Apply integration:** `COMPLETE_AND_REMOTE_VERIFIED`
+**E2C minor versioned UPDATE:** `COMPLETE_AND_REMOTE_VERIFIED`
+**Graphical CREATE Apply:** `IMPLEMENTED_AND_REMOTE_VERIFIED`; isolated testclone GUI acceptance `PASS` (user report)
+**Graphical Governance Apply:** `IMPLEMENTED_AND_REMOTE_VERIFIED`
+**Document Manager UX1 / UX2A / UX2B:** `COMPLETE_AND_REMOTE_VERIFIED`
+**Document Manager VSIX:** `0.0.2 / RELEASED`, main commit `55ff8c673c712e3208a1a32486e7075757b85b4f`
+**Normal VS Code installation / GUI acceptance:** `PASS` (user report; automated evidence separate)
 **ManulDown:** `OPTIONAL_MANUALLY_SELECTED_VISUAL_MARKDOWN_EDITOR`
-**Technology Decisions version:** `2.6`
-**Editor UI architecture:** `NOT_YET_DECIDED`
-**Document Editor next step:** `EDITOR_UX_REQUIREMENTS_DISCOVERY`
+**Technology Decisions version at synchronization baseline:** `2.6`
+**Editor UI architecture:** `DOCUMENT_MANAGER_WEBVIEW_PLUS_NATIVE_VSCODE_MARKDOWN`
+**Document Editor next step:** `VS1_TWO_DECK_READINESS_AUDIT`
 **Normal-use developer commands required:** `NO`
 **Fully custom application is default:** `NO`
-**AETERNA Document Editor full MVP completion:** `PLANNED` (E1/E2A részfunkciók elkészültek)
-**VS1 / M6:** `NEXT MAJOR PRODUCT-FACING GOAL AFTER DOCUMENT-MANAGEMENT PRIORITY`
+**AETERNA Document Editor MVP completion:** `COMPLETE_AND_REMOTE_VERIFIED`; GUI acceptance user-reported
+**VS1 / M6:** `CURRENT_NEXT_PRODUCT_FACING_GOAL`
 **0.0.1:** `ACTIVE_LONG_TERM_TARGET`
 
 ## 11. Következő szakmai munkasorrend
 
-1. ember által vezetett Editor UX requirements discovery;
-2. editing surface architecture decision;
-3. AETERNA Document Editor MVP implementation;
-4. valós használat;
-5. csak valós használattal igazolt további dokumentumképességek;
-6. runtime / VS1 munka később, a projektprioritás szerint.
+A Document Manager 0.0.2 az elfogadott VS Code-alapú MVP. A célzott
+dokumentációs closeout után a következő szakmai prioritás:
 
-Elfogadott roadmap:
+1. VS1 / M6 két canonical deckjének card/mechanic readiness auditja;
+2. emberi scope- és prioritásdöntés a bizonyított VS1 blockerekről;
+3. csak a szükséges finite engine/content slice;
+4. simple fair AI és minimal playable Godot client;
+5. human-vs-AI, reproducible AI-vs-AI és VS1 end-to-end acceptance.
 
-```text
-PILOT-8E = COMPLETE_AND_REMOTE_VERIFIED
-→ DOCUMENT_EDITOR_BUILD_VS_ADOPT_EVALUATION = COMPLETE_AND_ACCEPTED
-→ DOCUMENT_EDITOR_IMPLEMENTATION_APPROACH_DECISION = ACCEPTED
-→ READ_ONLY_VSCODE_EXTENSION_FOUNDATION_PROOF = COMPLETE_AND_REMOTE_VERIFIED
-→ TECHNOLOGY_DECISION_TD015 = COMPLETE_AND_REMOTE_VERIFIED
-→ E1_CANDIDATE_EDITING_FOUNDATION = COMPLETE_AND_REMOTE_VERIFIED
-→ E2A_READ_ONLY_UPDATE_PLAN_PREVIEW = COMPLETE_AND_REMOTE_VERIFIED
-→ EDITOR_UX_REQUIREMENTS_DISCOVERY = NEXT
-→ EDITING_SURFACE_ARCHITECTURE_DECISION
-→ AETERNA_DOCUMENT_EDITOR_MVP_IMPLEMENTATION
-→ REAL_USAGE
-→ ONLY_JUSTIFIED_FOLLOW_UP_CAPABILITIES
-```
+Canonical deckek: `DECK-IGN-HAM-VS1-001` és `DECK-AQU-MOR-VS1-001`.
+Az engine- és játékszabály-döntések authorityja továbbra is az
+`ENGINE_CHECKPOINT.md` és a current szabályforrások; ez a státuszszinkron
+nem változtat rajtuk.
 
-Runtime / VS1 prioritása a current dokumentumkezelési prioritás után marad.
+Current handoff:
+
+`DOCUMENT_MANAGER_0_0_2 = COMPLETE_AND_REMOTE_VERIFIED`
+→ `VS1_TWO_DECK_READINESS_AUDIT = NEXT`
 
 Elfogadott státusz:
 
@@ -983,7 +1001,7 @@ Elfogadott státusz:
 - `PILOT-8D = COMPLETE_AND_REMOTE_VERIFIED`;
 - `PILOT-8E = COMPLETE_AND_REMOTE_VERIFIED`;
 - `FIRST_REAL_GOVERNED_CREATE = COMPLETE_AND_REMOTE_VERIFIED`;
-- `DOCUMENT_EDITOR_MVP_SPECIFICATION = 0.1 / CURRENT`;
+- `DOCUMENT_EDITOR_MVP_SPECIFICATION_AT_SYNC_BASELINE = 0.1`;
 - `DOCUMENT_EDITOR_BUILD_VS_ADOPT_EVALUATION = COMPLETE_AND_ACCEPTED`;
 - `DOCUMENT_EDITOR_IMPLEMENTATION_APPROACH_DECISION = ACCEPTED`;
 - `DOCUMENT_EDITOR_IMPLEMENTATION_APPROACH = EXISTING_EDITOR_PLUS_AETERNA_TOOLING`;
@@ -999,12 +1017,17 @@ Elfogadott státusz:
   commit `e3dd6ed9f72c1de962583d3260db6bdee2257611`;
 - `E2A_READ_ONLY_UPDATE_PLAN_PREVIEW = COMPLETE_AND_REMOTE_VERIFIED`,
   commit `92d299df1f4184912cc3034b2922144006d4cd09`;
-- `E2B_EXPLICIT_APPLY = NOT_YET_IMPLEMENTED`;
-- `TECHNOLOGY_DECISIONS_VERSION = 2.6`;
-- `EDITOR_UI_ARCHITECTURE = NOT_YET_DECIDED`;
-- `DOCUMENT_EDITOR_NEXT_STEP = EDITOR_UX_REQUIREMENTS_DISCOVERY`;
+- `E2B_EXPLICIT_APPLY = COMPLETE_AND_REMOTE_VERIFIED`;
+- `E2C_VERSIONED_UPDATE = COMPLETE_AND_REMOTE_VERIFIED`;
+- `DOCUMENT_MANAGER_GUI_CREATE_APPLY = IMPLEMENTED_AND_REMOTE_VERIFIED`;
+- `DOCUMENT_MANAGER_GUI_GOVERNANCE = IMPLEMENTED_AND_REMOTE_VERIFIED`;
+- `DOCUMENT_MANAGER_UX1_UX2A_UX2B = COMPLETE_AND_REMOTE_VERIFIED`;
+- `DOCUMENT_MANAGER_VSIX_0_0_2 = RELEASED_AND_INSTALLED` (installation/GUI acceptance: user report);
+- `TECHNOLOGY_DECISIONS_VERSION_AT_SYNC_BASELINE = 2.6`;
+- `EDITOR_UI_ARCHITECTURE = DOCUMENT_MANAGER_WEBVIEW_PLUS_NATIVE_VSCODE_MARKDOWN`;
+- `DOCUMENT_EDITOR_NEXT_STEP = VS1_TWO_DECK_READINESS_AUDIT`;
 - `FULLY_CUSTOM_APPLICATION_IS_DEFAULT = NO`;
-- `AETERNA Document Editor full MVP completion = PLANNED` (E1/E2A részfunkciók elkészültek).
+- `AETERNA Document Editor MVP completion = COMPLETE_AND_REMOTE_VERIFIED` (GUI acceptance: user report).
 
 Reaction / Priority v1: `COMPLETE_AND_ACCEPTED`.
 
