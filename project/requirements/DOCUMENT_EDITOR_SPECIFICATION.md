@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-DOCUMENT-EDITOR-SPECIFICATION
 kind: document
 type: specification
-version: "0.1"
+version: "0.2"
 lifecycle: active
 integration: current
 authority: technical-contract
@@ -205,8 +205,13 @@ ember áttekinti a repository változásait, és külön dönt a stagingről, co
 
 ## 10. Build-vs-adopt stratégia
 
+Az alábbi stratégiai kérdés az eredeti 0.1-es tervezési állapotot őrzi.
+A jelenlegi elfogadott döntést a TD-015 rögzíti:
+
 ```text
-DOCUMENT_EDITOR_IMPLEMENTATION_STRATEGY = BUILD_VS_ADOPT_NOT_YET_DECIDED
+DOCUMENT_EDITOR_ORIGINAL_0_1_STRATEGY = BUILD_VS_ADOPT_NOT_YET_DECIDED
+DOCUMENT_EDITOR_CURRENT_APPROACH = EXISTING_EDITOR_PLUS_AETERNA_TOOLING
+DOCUMENT_EDITOR_CURRENT_HOST = VISUAL_STUDIO_CODE
 ```
 
 A Document Editor funkcionális cél, nem előre eldöntött custom program. Az
@@ -221,8 +226,10 @@ implementáció előtt értékelni kell, hogy az MVP teljesíthető-e:
 A teljesen custom alkalmazás nem alapértelmezett követelmény. Az értékelés
 szempontjai az MVP-követelmények lefedése, a local-first működés, a governed
 workflow integrációja, a karbantarthatóság és a szükséges custom fejlesztési
-ráfordítás. Ez a specifikáció nem választ konkrét terméket, implementációs
-nyelvet, frameworköt vagy GUI toolkitet.
+ráfordítás. Az eredeti 0.1-es specifikáció nem választott konkrét hostot vagy GUI
+toolkitet. A későbbi, elfogadott TD-015 a VS Code hostot és a meglévő
+governed Python workflow-ra épülő thin extension irányt választotta;
+az eredeti funkcionális MVP-követelmények ettől nem változnak.
 
 ## 11. Explicit MVP non-goals
 
@@ -294,7 +301,12 @@ Az MVP biztonsági elfogadásához:
 
 ## 14. Implementációs technológia
 
-Ez a dokumentum azt határozza meg, mit kell az MVP-nek elérnie, nem azt, hogyan
-kell megvalósítani. Implementációs nyelv, framework, UI toolkit vagy konkrét
-külső termék nincs kiválasztva. A technológiai döntés a build-vs-adopt értékelést
-követi.
+Ez a dokumentum továbbra is az MVP funkcionális contractját rögzíti; a
+technológiai authority a TD-015. Az eredeti 0.1-es kiadáskor a host még
+nem volt kiválasztva. Azóta a Document Manager 0.0.2 a VS Code-bővítmény,
+a natív Markdown-szerkesztő/előnézet és a meglévő governed Python workflow
+kombinációjával valósult meg. A VSIX normál VS Code-ba telepíthető, a
+felhasználó telepítési és grafikus acceptance-et jelentett. Az
+automatizált regresszió, a production review-bizonyíték és az emberi
+GUI-acceptance egymástól külön kezelendő. Az opcionális ManulDown
+kézzel választható; programozott integrációt ez nem állít.
