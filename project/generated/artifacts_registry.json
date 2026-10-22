@@ -324,10 +324,10 @@
     },
     {
       "artifact_id": "AET-DOC-PROJECT-MAP-FILE-STATUS",
-      "title": "AETERNA – Projekt Térkép és Fájlstátusz v1.12",
+      "title": "AETERNA – Projekt Térkép és Fájlstátusz v1.13",
       "kind": "document",
       "type": "status",
-      "version": "1.12",
+      "version": "1.13",
       "lifecycle": "active",
       "integration": "current",
       "authority": "project-direction",

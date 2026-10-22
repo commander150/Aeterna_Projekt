@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-PROJECT-MAP-FILE-STATUS
 kind: document
 type: status
-version: "1.12"
+version: "1.13"
 lifecycle: active
 integration: current
 authority: project-direction
@@ -11,15 +11,15 @@ depends_on: []
 supersedes: []
 ---
 
-# AETERNA – Projekt Térkép és Fájlstátusz v1.12
+# AETERNA – Projekt Térkép és Fájlstátusz v1.13
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 1.12
-**Dátum:** 2026-09-28
+**Dokumentumverzió:** 1.13
+**Dátum:** 2026-10-20
 **Státusz:** aktív magas szintű projekt- és fájlszerep-térkép
-**Előző aktív verzió:** 1.11 (Git history)
-**Szinkronizációs repository-bázis:** `bc4465a2bd63d30b29c9277cbef3f631de12ad3f`
+**Előző aktív verzió:** 1.12 (Git history)
+**Szinkronizációs repository-bázis:** `55ff8c673c712e3208a1a32486e7075757b85b4f`
 **Production engine mérföldkő:** `0862e1002dbef81ee203852714d377592272a0e9` – Combat + Pecsét Foundation C0–C6
 **C# proof-bázis:** `8e5ee64e42e1657e10f3413444bb870524ee07f9`
 
@@ -406,9 +406,12 @@ Továbbra is külön munkasáv:
 
 A legacy publisher, a standalone exporter launcher, a stale `main.py` és a kapcsolódó
 wrapperek retired állapotúak az `Archive/data_layer/retired_entrypoints/d7a40269/`
-alatt. A következő dependency-vezérelt structural migration wave:
-`platform production source relocation / W4`. A PILOT-5 stable-name cutover ettől
-nem válik ready állapotúvá.
+alatt. A W4, W5, W6B1 és W7 reduced document-owner reconciliation lezárta
+a PILOT-5 előtti minimális strukturális migrációt; W4 nem következő wave.
+A W6B2B és W6B3 továbbra is deferred, a PILOT-5 stable-name dry-run külön
+governance-feladat. A következő product-facing prioritás a current Project Plan
+és az `ENGINE_CHECKPOINT.md` szerinti VS1 readiness audit; ez a halasztott
+migrációkat nem zárja le automatikusan.
 
 ## 10. Dokumentációs minimum
 
@@ -444,4 +447,9 @@ Nem kell minden kisebb commit után teljes dokumentációs tömegfrissítés.
 - OQ: `52 answered / 15 partly_answered / 7 deferred / 0 open`;
 - VS1 / M6: `NEXT MAJOR PRODUCT-FACING GOAL`;
 - 0.0.1: `ACTIVE_LONG_TERM_TARGET`;
-- következő structural migration wave: `platform production source relocation / W4`.
+- W4, W5, W6B1 és W7 reduced document-owner reconciliation: `COMPLETE` a PILOT-5 előtti minimális strukturális migrációhoz;
+- W6B2B és W6B3: `DEFERRED`; PILOT-5 stable-name dry-run: külön governance-feladat;
+- Document Manager 0.0.2: `COMPLETE_AND_REMOTE_VERIFIED`; normál VS Code telepítés és GUI acceptance: felhasználói beszámoló;
+- E1/E2A/E2B/E2C és UX1/UX2A/UX2B: `COMPLETE_AND_REMOTE_VERIFIED`;
+- grafikus CREATE Apply és külön governance jóváhagyás: `IMPLEMENTED_AND_REMOTE_VERIFIED`;
+- next product-facing step: `VS1_TWO_DECK_READINESS_AUDIT`.
