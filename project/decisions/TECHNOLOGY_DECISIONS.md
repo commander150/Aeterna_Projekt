@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-TECHNOLOGY-DECISIONS
 kind: document
 type: decision-log
-version: "2.6"
+version: "2.7"
 lifecycle: active
 integration: current
 authority: technical-architecture
@@ -15,10 +15,10 @@ supersedes: []
 
 ## VERZIÓ / DOKUMENTUMSTÁTUSZ
 
-**Dokumentumverzió:** 2.6
-**Dátum:** 2026-10-10
+**Dokumentumverzió:** 2.7
+**Dátum:** 2026-10-20
 **Státusz:** aktív technológiai döntési nyilvántartás  
-**Aktuális repository-bázis:** `c8e7e1854c3e054c8c0f59ba35196ae6d0ffdecd` – `feat: add read-only vscode document extension proof`
+**Aktuális repository-bázis:** `55ff8c673c712e3208a1a32486e7075757b85b4f` – `feat: complete Document Manager UX2B and package v0.0.2`
 
 Ez a dokumentum az AETERNA elfogadott technológiai döntéseit, azok indokait, korlátait és újranyitási feltételeit rögzíti.
 
@@ -573,7 +573,7 @@ workflow marad canonical a validációhoz, planninghez, review-hoz és apply-hoz
 A generált artifact registry az Editor read-only navigációs/adatforrása, nem
 válhat writable authorityvá.
 
-A proof jelenlegi read-only foundationje bizonyítja:
+A 2026-10-10-i read-only proof foundationje bizonyította:
 
 - repository detection;
 - managed document listing;
@@ -598,6 +598,9 @@ Proof evidence:
 - webview: `NONE`.
 
 ### Editing UX boundary
+
+A következő státuszblokk a 2026-10-10-i proof idején nyitott UX-kérdéseket őrzi;
+a későbbi, elfogadott megvalósítást az alábbi dátumozott kiegészítés rögzíti.
 
 ```text
 EDITOR_UI_ARCHITECTURE = NOT_YET_DECIDED
@@ -649,11 +652,35 @@ write pathként. A TD-015 ezt a write pathot nem implementálja.
 
 ### Development-host boundary
 
+A következő bekezdés a 2026-10-10-i proof disztribúciós határát írja le.
+
 Az Extension Development Host a proof fejlesztési/tesztmechanizmusa volt, nem a
 végleges felhasználói indítási vagy disztribúciós modell. A normál használat nem
 követelheti meg developer PowerShell parancsok megjegyzését. A pontos
 installation/distribution/launch megoldás az Editor UX és implementációs munkára
 halasztott; a TD-015 nem választ packaging mechanizmust.
+
+### 2026-10-20 – Document Manager 0.0.2 megvalósítási kiegészítés
+
+A TD-015 VS Code host- és governance-backend döntése változatlan. A
+Document Manager saját VS Code Webview-felületen kezeli a dokumentumlistát,
+a kiválasztást, a műveleteket és a visszajelzéseket; a candidate
+Markdown-szerkesztése és olvasható előnézete a natív VS Code editorra
+és preview-ra épül. A ManulDown opcionális, kézzel választott vizuális
+szerkesztő, dokumentált programozott integráció nélkül.
+
+Az E1/E2A/E2B/E2C UPDATE, a grafikus CREATE Apply, a külön governance
+jóváhagyás és az UX1/UX2A/UX2B slice a `main` ágon megvalósult. A
+Document Manager 0.0.2 VSIX a `55ff8c673c712e3208a1a32486e7075757b85b4f`
+commitban kiadott forrásállapothoz egyeztetett. A normál VS Code
+telepítés és grafikus működés elfogadása felhasználói beszámoló; a
+production review-k és automatizált tesztek külön bizonyítékok.
+Az offline/portable telepítőkit csak javaslat, nem elkészült kiadás.
+
+A governed Python workflow továbbra is az egyetlen canonical
+validációs, planning, Apply és review authority. A generated
+registry/index nem kézi szerkesztési input; AI-integráció és
+automatikus Git publication továbbra sem része a döntésnek.
 
 ### Újranyitás
 
