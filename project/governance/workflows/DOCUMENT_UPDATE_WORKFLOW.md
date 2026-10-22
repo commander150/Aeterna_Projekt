@@ -2,7 +2,7 @@
 artifact_id: AET-DOC-DOCUMENT-UPDATE-WORKFLOW
 kind: document
 type: workflow
-version: "2.0"
+version: "2.1"
 lifecycle: active
 integration: current
 authority: operational-workflow
@@ -52,18 +52,22 @@ CREATE_PLAN_SCHEMA = aeterna-document-create-plan/0.1
 CREATE_REVIEW_SCHEMA = aeterna-document-create-review/0.1
 
 DOCUMENT_MANAGER_CREATE_CANDIDATE_AND_PLAN = IMPLEMENTED
-DOCUMENT_MANAGER_CREATE_APPLY = NOT_YET_IMPLEMENTED
-DOCUMENT_MANAGER_CREATE_APPLY_ACCEPTANCE = NOT_YET_COMPLETE
+DOCUMENT_MANAGER_CREATE_APPLY = IMPLEMENTED_AND_REMOTE_VERIFIED
+DOCUMENT_MANAGER_CREATE_APPLY_ACCEPTANCE = ISOLATED_TESTCLONE_GUI_PASS_USER_REPORTED
+DOCUMENT_MANAGER_UPDATE_APPLY = IMPLEMENTED_AND_REMOTE_VERIFIED
+DOCUMENT_MANAGER_GOVERNANCE_APPLY = IMPLEMENTED_AND_REMOTE_VERIFIED
 
 UPDATE_0_1_BACKWARD_COMPATIBLE = YES
 ```
 
 Az `integration: current` az implementált és elfogadott UPDATE és production
 CREATE backend-műveletre vonatkozik. A PILOT-8E első valódi governed CREATE
-acceptance-e remote verified. A Document Manager grafikus CREATE candidate-et
-és read-only `plan-create` tervet készít, de grafikus CREATE Apply nincs
-implementálva, ezért annak éles grafikus acceptance-e sem teljes. A backend
-acceptance nem helyettesíti a grafikus CREATE Apply acceptance-et.
+acceptance-e remote verified. A Document Manager grafikus CREATE candidate-et,
+read-only `plan-create` tervet és külön ember által jóváhagyott CREATE Apply-t
+biztosít. Az izolált tesztclone-ban végzett grafikus CREATE Apply és production
+review-ellenőrzés sikerét a felhasználó jelentette; ez külön bizonyíték a
+PILOT-8E backend-acceptance-től, és nem hivatalos repositoryban végzett
+grafikus CREATE Apply.
 
 ## Normatív operation-scope boundary
 
@@ -640,8 +644,9 @@ existing-managed-Markdown update MVP számára; az `integration` értéke `curre
 
 A külön CREATE backend implementációja és első valódi governed CREATE
 acceptance-e remote verified; contractját az alábbi additív fejezetek rögzítik.
-A Document Manager CREATE candidate és read-only plan felülete implementált,
-grafikus CREATE Apply és annak éles acceptance-e még nincs. Továbbra is kívül
+A Document Manager CREATE candidate, read-only plan és explicit grafikus
+CREATE Apply felülete implementált. Az izolált testclone grafikus acceptance
+sikerét a felhasználó jelentette. Továbbra is kívül
 marad: retirement vagy Archive-intake; move/rename; authority change; batch
 editing; XLSX; DOCX; source bundle; package manifest.
 
@@ -1071,8 +1076,11 @@ PILOT-8D = transactional CREATE apply + rollback/review + tests / COMPLETE_AND_R
 PILOT-8E = first real governed CREATE acceptance / COMPLETE_AND_REMOTE_VERIFIED
 ```
 
-A Document Manager CREATE candidate és read-only plan felülete implementált.
-A grafikus CREATE Apply még nem implementált; annak éles acceptance-e nyitott.
+A Document Manager CREATE candidate, read-only plan és külön jóváhagyáshoz
+kötött grafikus CREATE Apply felülete implementált. Az izolált tesztclone
+grafikus acceptance-e felhasználói beszámoló alapján PASS; a production
+backend review és verify-review ettől külön bizonyíték. Az eredeti
+repositoryban végzett grafikus CREATE Apply-t ez nem állítja.
 
 ## 47. Továbbra is out of scope
 

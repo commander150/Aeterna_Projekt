@@ -215,7 +215,7 @@
       "title": "AETERNA governed dokumentumműveleti workflow",
       "kind": "document",
       "type": "workflow",
-      "version": "2.0",
+      "version": "2.1",
       "lifecycle": "active",
       "integration": "current",
       "authority": "operational-workflow",
